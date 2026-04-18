@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const ReactGlobe = dynamic(() => import("react-globe.gl"), {
   ssr: false,
@@ -29,11 +29,64 @@ export type GlobeProps = {
   lastUpdatedAt?: string;
 };
 
+const TEAL = "#2dd4bf";
+const SLATE = "#cbd5e1";
+
+type Cluster = {
+  lat: number;
+  lng: number;
+  color: string;
+  size: number;
+  count: number;
+  aiCount: number;
+};
+
 /**
- * Stub Globe for Checkpoint 1 — renders the 3D globe, a legend, and an
- * "awaiting data" overlay until real GitHub Events polling lands in
- * Checkpoint 2. Never seeds synthetic points (constraint test in CLAUDE.md).
+ * Bucket points into a coarse lat/lng grid. Two events whose authors geocoded
+ * to the same approximate region collapse into one weighted dot — readability
+ * over raw count. Bucket centres become the cluster's lat/lng (averaged), and
+ * size scales with log(count) so single events stay tiny while concentrations
+ * read as bigger glow without overwhelming the globe.
  */
+function clusterPoints(points: GlobePoint[]): Cluster[] {
+  const BUCKET_DEG = 4;
+  const buckets = new Map<string, { lats: number[]; lngs: number[]; ai: number; total: number }>();
+
+  for (const p of points) {
+    const by = Math.round(p.lat / BUCKET_DEG);
+    const bx = Math.round(p.lng / BUCKET_DEG);
+    const key = `${by}:${bx}`;
+    const isAi = p.color === TEAL;
+    const b = buckets.get(key);
+    if (b) {
+      b.lats.push(p.lat);
+      b.lngs.push(p.lng);
+      b.total += 1;
+      if (isAi) b.ai += 1;
+    } else {
+      buckets.set(key, { lats: [p.lat], lngs: [p.lng], ai: isAi ? 1 : 0, total: 1 });
+    }
+  }
+
+  const clusters: Cluster[] = [];
+  for (const b of buckets.values()) {
+    const lat = b.lats.reduce((s, v) => s + v, 0) / b.lats.length;
+    const lng = b.lngs.reduce((s, v) => s + v, 0) / b.lngs.length;
+    const aiDominant = b.ai > 0;
+    const base = aiDominant ? 0.55 : 0.32;
+    const size = Math.min(1.6, base + Math.log2(1 + b.total) * 0.22);
+    clusters.push({
+      lat,
+      lng,
+      color: aiDominant ? TEAL : SLATE,
+      size,
+      count: b.total,
+      aiCount: b.ai,
+    });
+  }
+  return clusters;
+}
+
 export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
@@ -51,6 +104,7 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
     return () => observer.disconnect();
   }, []);
 
+  const clusters = useMemo(() => clusterPoints(points), [points]);
   const hasData = points.length > 0;
 
   return (
@@ -65,19 +119,19 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
           showAtmosphere
           atmosphereColor="#2dd4bf"
           atmosphereAltitude={0.12}
-          pointsData={points}
-          pointLat={(d) => (d as GlobePoint).lat}
-          pointLng={(d) => (d as GlobePoint).lng}
-          pointColor={(d) => (d as GlobePoint).color}
+          pointsData={clusters}
+          pointLat={(d) => (d as Cluster).lat}
+          pointLng={(d) => (d as Cluster).lng}
+          pointColor={(d) => (d as Cluster).color}
           pointAltitude={0.005}
-          pointRadius={(d) => ((d as GlobePoint).size ?? 0.3) * 0.18}
+          pointRadius={(d) => (d as Cluster).size * 0.18}
           pointsMerge
           pointsTransitionDuration={2500}
         />
       )}
 
       <GlobeLegend />
-      <GlobeStatus hasData={hasData} lastUpdatedAt={lastUpdatedAt} />
+      <GlobeStatus hasData={hasData} lastUpdatedAt={lastUpdatedAt} clusterCount={clusters.length} eventCount={points.length} />
     </div>
   );
 }
@@ -112,20 +166,24 @@ function LegendRow({ color, label }: { color: string; label: string }) {
 function GlobeStatus({
   hasData,
   lastUpdatedAt,
+  clusterCount,
+  eventCount,
 }: {
   hasData: boolean;
   lastUpdatedAt?: string;
+  clusterCount: number;
+  eventCount: number;
 }) {
   if (hasData && lastUpdatedAt) {
     return (
       <div className="pointer-events-none absolute right-3 top-3 rounded-md border border-border/40 bg-background/70 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-emerald-400 backdrop-blur-sm">
-        Live · updated {formatTimestamp(lastUpdatedAt)}
+        Live · {clusterCount} cluster{clusterCount === 1 ? "" : "s"} · {eventCount} evt · {formatTimestamp(lastUpdatedAt)}
       </div>
     );
   }
   return (
     <div className="pointer-events-none absolute right-3 top-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-amber-400 backdrop-blur-sm">
-      Awaiting data · polling not yet wired (Checkpoint 2)
+      Awaiting data · polling…
     </div>
   );
 }

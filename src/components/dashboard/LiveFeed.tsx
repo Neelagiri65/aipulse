@@ -106,23 +106,16 @@ function FeedStatus({
 }
 
 function FeedRowItem({ row }: { row: FeedRow }) {
-  const color = row.hasAiConfig ? "bg-teal-400" : "bg-zinc-400";
+  const variant = row.hasAiConfig ? "info" : "pending";
   return (
     <li className="rounded-md border border-border/40 bg-background/40 p-2 text-xs">
       <div className="flex items-center gap-2">
-        <span
-          className="inline-block h-1.5 w-1.5 rounded-full"
-          style={{ boxShadow: row.hasAiConfig ? "0 0 6px #2dd4bf" : "none" }}
-          aria-hidden
-        >
-          <span className={`block h-full w-full rounded-full ${color}`} />
+        <span className={`ap-sev-pill ap-sev-pill--${variant}`}>
+          <span className="ap-sev-dot ap-sev-dot--sm" aria-hidden />
+          {row.hasAiConfig ? "ai-cfg" : "no-cfg"}
         </span>
-        <span className="truncate font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          {prettyType(row.type)}
-        </span>
-        <span className="ml-auto font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70">
-          {formatRelative(row.createdAt)}
-        </span>
+        <span className="ap-label-sm truncate">{prettyType(row.type)}</span>
+        <span className="ap-label-sm ml-auto">{formatRelative(row.createdAt)}</span>
       </div>
       <div className="mt-1 truncate text-[11px] text-foreground/90">
         <a

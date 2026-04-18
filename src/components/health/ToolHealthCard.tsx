@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import {
   allSourcesVerified,
   primarySourceUrl,
@@ -29,21 +28,19 @@ export function ToolHealthCard({ config, data }: ToolHealthCardProps) {
       : "live";
 
   return (
-    <Card className="relative gap-3 border-border/60 bg-card/40 backdrop-blur-sm">
-      <CardHeader className="gap-1">
+    <Card className="relative gap-3 border-border/60 bg-card/40 py-3 backdrop-blur-sm">
+      <CardHeader className="gap-1 px-3">
         <div className="flex items-start justify-between gap-2">
           <div>
             <CardTitle className="text-sm font-semibold tracking-tight">
               {config.name}
             </CardTitle>
-            <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              {config.subtitle}
-            </p>
+            <p className="ap-label-sm mt-0.5">{config.subtitle}</p>
           </div>
-          <StatusDot mode={mode} status={data?.status} />
+          <SeverityPill mode={mode} status={data?.status} />
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 px-3">
         {mode === "pending" && <PendingSourceBody />}
         {mode === "awaiting" && <AwaitingBody />}
         {mode === "live" && data && <LiveBody data={data} />}
@@ -58,60 +55,51 @@ export function ToolHealthCard({ config, data }: ToolHealthCardProps) {
   );
 }
 
-function StatusDot({
+export function SeverityPill({
   mode,
   status,
 }: {
   mode: "pending" | "awaiting" | "live";
   status?: ToolHealthStatus;
 }) {
-  const { color, label, pulse } = dotStyle(mode, status);
+  const { variant, label } = pillStyle(mode, status);
   return (
-    <div className="flex items-center gap-2">
-      <span
-        className={cn(
-          "relative inline-block h-2.5 w-2.5 rounded-full",
-          pulse && "animate-pulse",
-        )}
-        style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}` }}
-        aria-label={label}
-      />
-      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-        {label}
-      </span>
-    </div>
+    <span className={`ap-sev-pill ap-sev-pill--${variant}`}>
+      <span className="ap-sev-dot ap-sev-dot--sm" aria-hidden />
+      {label}
+    </span>
   );
 }
 
-function dotStyle(
+type PillVariant = "outage" | "degrade" | "regress" | "op" | "info" | "pending";
+
+function pillStyle(
   mode: "pending" | "awaiting" | "live",
   status?: ToolHealthStatus,
-): { color: string; label: string; pulse: boolean } {
-  if (mode === "pending") return { color: "#52525b", label: "no source", pulse: false };
-  if (mode === "awaiting") return { color: "#fbbf24", label: "no data", pulse: true };
+): { variant: PillVariant; label: string } {
+  if (mode === "pending") return { variant: "pending", label: "no source" };
+  if (mode === "awaiting") return { variant: "degrade", label: "no data" };
   switch (status) {
     case "operational":
-      return { color: "#22c55e", label: "operational", pulse: false };
+      return { variant: "op", label: "operational" };
     case "degraded":
-      return { color: "#fbbf24", label: "degraded", pulse: true };
+      return { variant: "degrade", label: "degraded" };
     case "partial_outage":
-      return { color: "#f97316", label: "partial outage", pulse: true };
+      return { variant: "regress", label: "partial outage" };
     case "major_outage":
-      return { color: "#ef4444", label: "major outage", pulse: true };
+      return { variant: "outage", label: "major outage" };
     default:
-      return { color: "#71717a", label: "unknown", pulse: false };
+      return { variant: "pending", label: "unknown" };
   }
 }
 
 function PendingSourceBody() {
   return (
-    <div className="rounded-md border border-border/40 bg-muted/30 p-3 text-xs text-muted-foreground">
-      <p className="font-mono text-[10px] uppercase tracking-wider text-foreground/60">
-        Source pending verification
-      </p>
+    <div className="rounded-md border border-border/40 bg-muted/30 p-2.5 text-xs text-muted-foreground">
+      <p className="ap-label-sm">Source pending verification</p>
       <p className="mt-1 leading-relaxed">
-        This tool depends on a data source that has not been Phase-0 validated
-        in this session. No number is shown to preserve the trust contract.
+        Source not Phase-0 validated yet. No number shown to preserve the trust
+        contract.
       </p>
     </div>
   );
@@ -119,13 +107,11 @@ function PendingSourceBody() {
 
 function AwaitingBody() {
   return (
-    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-200/90">
-      <p className="font-mono text-[10px] uppercase tracking-wider text-amber-300/80">
+    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5 text-xs text-amber-200/90">
+      <p className="ap-label-sm" style={{ color: "var(--sev-degrade)" }}>
         Awaiting first poll
       </p>
-      <p className="mt-1 leading-relaxed">
-        Source is verified. Live polling pipeline ships in Checkpoint 2.
-      </p>
+      <p className="mt-1 leading-relaxed">Source verified. Polling…</p>
     </div>
   );
 }
