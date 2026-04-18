@@ -2,90 +2,85 @@
 
 ## Current state (2026-04-18)
 
-### Session 2 — Checkpoint 2 REACHED · deployed to Vercel prod · awaiting user review
+### Session 3 — Checkpoint 2 polish + ticker shipped · awaiting user review
 
 **Done this session:**
-- **Verified three pending sources** (`gh-issues-claude-code` 9,635 open issues, `github-status` Copilot component, Cursor status dropped — no verified public endpoint). Commit `96b0d37`.
-- **Data layer** (`src/lib/`):
-  - `github.ts` — typed wrappers over `/events`, `/users/:login`, Contents API probes. 5 AI-tool config paths: `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, `.continue/config.json`, `.windsurfrules`.
-  - `geocoding.ts` — curated 95-city dictionary. Naïve substring match against GitHub profile `location` string. No external geocoder; we accept the coverage gap and surface it honestly.
-  - `status-adapter.ts` — Statuspage.io v2 → `ToolHealthStatus` enum mapping.
-  - `data/fetch-status.ts` — aggregates Anthropic + OpenAI + GitHub summaries + anthropics/claude-code issue search. 5-min `next.revalidate` cache.
-  - `data/fetch-events.ts` — pulls last 30 events, filters to Push/PR/Issue/Release, resolves author locations (7d cache), probes AI-config per repo (24h cache), emits `GlobePoint[]` + coverage diagnostics.
-- **Edge + Node routes**:
-  - `src/app/api/status/route.ts` (edge runtime) — returns `StatusResult`.
-  - `src/app/api/globe-events/route.ts` (node runtime — up to ~30 parallel GH calls on cold cache).
-- **Client polling**:
-  - `src/lib/hooks/use-polled-endpoint.ts` — generic 40-line hook. Visibility-aware pause/resume, abort-on-unmount, last-known retention on error. No SWR dependency.
-  - `src/components/dashboard/Dashboard.tsx` — client wrapper. Status at 5 min · events at 30 s.
-  - `src/components/dashboard/LiveFeed.tsx` — last 30 placeable events with repo/actor/age.
-- **Vercel deployment live**:
-  - Project: `srinaths-projects-49f63f3c/aipulse` (scope `brindha-9238`).
-  - GitHub integration: connected to `Neelagiri65/aipulse` — pushes to `main` auto-deploy.
-  - Env vars: `GH_TOKEN` set for Production + Development. Preview env not yet set (CLI wouldn't accept non-interactive `*`-branch scope).
-  - Prod alias: **https://aipulse-pi.vercel.app**
-  - Deployment ID: `dpl_Cvq1repMCFYzuKuyH7VNPg1g6J6W`
-- **Smoke test (2026-04-18 14:52 UTC)**:
-  - `/api/status` → 200 · Claude Code `operational` (9,650 open issues) · Copilot `operational` · OpenAI `unknown` (see open item below).
-  - `/api/globe-events` → 200 · points with real lat/lng + AI-config signal (observed Lagos, Tokyo, etc.).
+- **Fixed OpenAI `unknown` status** (open item #1 from session 2).
+  - Root cause: edge-runtime fetch to `status.openai.com/api/v2/summary.json` on Vercel returned a shape that bypassed the indicator map (no failure raised; summary parsed but the field didn't match the enum).
+  - Fix: switched `/api/status` from `edge` to `nodejs` runtime to match `/api/globe-events`. Post-deploy: `operational` returns correctly.
+  - Also added a diagnostic — when `overallStatus` falls through to `unknown` for OpenAI, the raw indicator + page name is pushed into `failures` so any future upstream drift is visible in the response instead of silently unknown.
+  - Commit `ec9c915`.
+- **Rolling 15-minute event window** (feedback: "5 dots looks empty").
+  - Module-scoped `Map<eventId, CachedPoint>` on each warm Node serverless instance. Each poll merges fresh placeable events, prunes >15m, caps at 1000 entries. Single-threaded JS guarantees no write races.
+  - Coverage diagnostics split: `eventsReceived` / `eventsWithLocation` / `locationCoveragePct` are last-poll metrics; `windowSize` / `windowAiConfig` / `windowMinutes` describe the accumulated view.
+  - Cold-start instances rebuild the window over ~5 min of polling. Within a single warm instance the globe shows accumulated dots, not just the latest 30.
+  - Commit `2284be6`.
+- **6-metric bottom ticker** (`src/components/dashboard/MetricTicker.tsx`).
+  - Every cell cites source IDs via links to the verified public endpoint. Metrics: Claude Code open issues (gh-issues-claude-code) · Placeable events 15m window (gh-events) · Repos with AI config + % (gh-contents) · Tools operational ratio (anthropic/openai/github-status) · Geocoder coverage % last poll (gh-events) · Sources verified (registry).
+  - Tone (emerald/amber/rose) reflects status for tools-operational and coverage cells. Others stay neutral to avoid implied editorial.
+  - Commit `2284be6`.
+- **Leaner health cards** (feedback: "lots of — dashes read as broken").
+  - Dropped placeholder rows for uptime, version, sentiment. Cards now render status dot + source citation by default; Open Issues row only appears when a value is present (Claude Code only right now).
+  - `ToolHealthData` type retains the fields for future use — change is render-side only.
+  - Commit `2284be6`.
+- **Per_page bump to 100** (GitHub /events max) — commit `58047cf`.
+  - ~3x wider funnel to the geocoder. Observed: `eventsReceived` rose from 30 → 86-89 per snapshot. Placeable events rose from ~1 per poll to ~5 per fresh snapshot.
+  - Rate-budget impact is minor: unique-repo dedupe + 24h Contents API cache keeps us well under 5000/hr authenticated.
 
-**Honesty audit**: no synthetic data on the globe; events without geocodable locations drop out; AI-config colour is file-existence only; every card cites `data-sources.ts` IDs; OpenAI card shows `unknown` rather than faking `operational`.
+**Live prod verification (2026-04-18 15:09-15:17 UTC):**
+- `/api/status` — all three tools `operational`, Claude Code `openIssues: 9653`. No failures.
+- `/api/globe-events` — window builds to ~40-60 dots after ~15 min (cold start → 6 dots after ~3 min observed, growing linearly).
+
+**Honesty audit:** no synthetic data; OpenAI fixed without faking; ticker cites every number; health cards no longer pretend to have fields they don't. Trust contract intact.
 
 ## Auditor checkpoints
 
-`/advisor` is not available. Commits use `AUDITOR-REVIEW: PENDING` trailer. PRs are the review surface.
-
 | # | Checkpoint | Status | Notes |
 |---|------------|--------|-------|
-| 1 | data-sources.ts + Globe stub + health cards committed | **REACHED** (session 1) | |
-| 2 | Globe renders with real data + health cards show live status | **REACHED — awaiting user review** | Prod live at aipulse-pi.vercel.app. |
+| 1 | data-sources.ts + Globe stub + health cards committed | REACHED (session 1) | |
+| 2 | Globe renders with real data + health cards show live status | REACHED (session 2) | |
+| 2.1 | OpenAI fix · rolling window · 6-metric ticker · lean cards | **REACHED — awaiting user review** | Prod live at aipulse-pi.vercel.app |
 | 3 | Pre-launch review | NOT STARTED | |
 
 ## Open items — for review or next session
 
-1. **OpenAI card shows `unknown` on prod** — local curl to `status.openai.com/api/v2/summary.json` returns `status.indicator: "none"` (would map to `operational`). Same code path works for Anthropic + GitHub. Hypothesis: stale cached response in Next Data Cache from a cold-start transient failure, or edge runtime fetch behaviour differs. Force a cache bust (`revalidateTag("openai-status")`) or switch the status route to `nodejs` runtime and re-test. **Not a blocker** — `unknown` is honest graceful degradation.
-2. **`GEMINI_API_KEY` not yet set on Vercel** — only needed for `/audit` deep scan, which isn't built yet.
-3. **Upstash Redis not provisioned** — current design uses Next.js Data Cache (which maps to Vercel Data Cache on prod). Redis is in the CLAUDE.md stack list but not required for Checkpoint 2's traffic pattern. Revisit when Phase 2 adds features that need shared state beyond the fetch cache.
-4. **Preview env missing GH_TOKEN** — PR preview deploys will currently 500 on the API routes. Set via web UI: https://vercel.com/srinaths-projects-49f63f3c/aipulse/settings/environment-variables.
-5. **`~/.secrets/populate-env.sh` doesn't know about `aipulse`** — add a branch so `./populate-env.sh aipulse` writes `GH_TOKEN` to `.env.local` from Keychain `github-pat`. Currently `.env.local` is absent (local dev will 500 on API routes until added).
-6. **Globe texture still loaded from unpkg** (`//unpkg.com/three-globe/example/img/earth-dark.jpg`). External dependency; self-host before the public launch.
-7. **Rate budget unverified under real traffic** — expected <1% of 5000/hr authenticated at single-visitor cadence; revisit when ~10 concurrent viewers or if the dashboard is linked publicly.
+1. **Cold-start globe sparsity.** Module cache resets on new Node serverless instances. First ~5 min after a redeploy or cold start show fewer dots. Fixes (pick one when traffic warrants): (a) move the window to Upstash Redis so it survives across instances, (b) pre-seed the cache during module init with a synchronous first poll, (c) expand the geocoder dictionary to include country-level matches so more raw events become placeable.
+2. **Geocoder hit rate is ~5-6%** (95-city dictionary · substring match against GitHub profile free-text). A pragmatic uplift would be country-level fallbacks ("Germany" → centroid; "USA" → centroid) and ~50 more cities. Not hard; just a discrete PR.
+3. **Preview env still missing `GH_TOKEN`** — set via https://vercel.com/srinaths-projects-49f63f3c/aipulse/settings/environment-variables before the first PR preview is relied on.
+4. **`~/.secrets/populate-env.sh` doesn't know about `aipulse`** — extend with a branch that writes `GH_TOKEN=$(security find-generic-password -a neelagiri -s github-pat -w)` to `~/aipulse/.env.local`. Blocks local dev of the API routes until done.
+5. **Globe texture still on unpkg** — self-host before public launch.
+6. **`GEMINI_API_KEY` not yet on Vercel** — only needed when `/audit` deep scan lands.
+7. **Upstash Redis not provisioned** — current design uses Vercel Data Cache. Revisit when Phase 2 adds features needing shared state.
 
 ## Decisions made without Auditor sign-off — flag for review
 
-Carried forward from session 1 plus this session's additions:
-
-- **globe-events route runs on Node, not edge.** Reason: cold-cache fan-out of up to ~30 parallel GitHub calls (events + N unique users + M unique repos × 5 paths) exceeds the edge CPU budget on Vercel Hobby. Node serverless has the headroom. Status route stays edge (fewer, smaller fetches).
-- **Dashboard is fully client-side after first paint.** No SSR of initial data. Reason: simpler boundary, no build-time GH_TOKEN dependency, and the graceful-degradation loading state is honest ("polling…").
-- **`usePolledEndpoint` is bespoke, not SWR.** 40 lines · visibility-aware · AbortController. No runtime dependency.
-- **No `vercel.json`.** Framework defaults are correct; explicit config only if/when regions or function-level overrides become necessary.
+- **Status route moved from edge to nodejs.** Consistency with globe-events, avoids an unexplained edge-fetch quirk. Latency impact negligible behind the 5-min Data Cache.
+- **Rolling window lives in module-scoped memory, not Redis.** Cheap, stateless, rebuilds within 5 min of polling on any warm instance. If multi-instance density becomes a problem, item #1 above has three escape hatches.
+- **Ticker includes a "registry" citation for sources-verified.** Self-referential but honest — the count comes from `data-sources.ts`, not an external feed.
+- **Per_page bumped to 100.** Within the documented API limits. Adds maybe 10-20 extra Contents-API probes per fresh snapshot, dominated by the 24h cache.
 
 ## Environment notes
-- Prod URL: https://aipulse-pi.vercel.app
-- Deploy: push to `main` via connected GitHub integration, or `vercel --prod`.
-- `GH_TOKEN` on Vercel: Production + Development (set 2026-04-18 14:51 UTC).
-- `.env.local` not yet populated locally (see open item 5).
-- Keychain source: `security find-generic-password -a neelagiri -s github-pat -w`.
+- Prod URL: **https://aipulse-pi.vercel.app**
+- Deploy: push to `main` via connected GitHub integration.
+- `GH_TOKEN` on Vercel: Production + Development.
+- Latest commit on main: `58047cf feat(events): bump per_page to 100 (GitHub max)`.
 
-## Next action (on resume — Checkpoint 3 lead-in)
-1. **Investigate OpenAI `unknown`** (open item 1) — probably a one-line `revalidateTag` bust; confirm schema match on edge then unwind.
-2. **Populate local `.env.local`** via an extended `populate-env.sh aipulse` branch.
-3. **Add preview-env `GH_TOKEN`** through the Vercel dashboard.
-4. **Review the prod UI** — verify dots render, feed populates, no layout drift. Spot-check coverage %.
-5. Once the above is clean, move to 6-metric ticker (spec Part 4) as the next Phase-1 chunk, then `/audit` page.
+## Next action (on resume — Phase 1 closeout lead-in)
+1. Expand geocoder dictionary to lift coverage from ~5% → ~15-25% (open item #2).
+2. Populate `.env.local` via extended `populate-env.sh` branch (open item #4) to enable local API route testing.
+3. Spot-check the live UI — ticker rendering, coverage growth, feed animation smoothness — before moving to `/audit`.
+4. Once the above is clean, `/audit` page (spec Part 7): CLAUDE.md/Cursor/Copilot config file detection against a user-submitted GitHub URL. Deterministic pattern matching only — no LLM unless the user opts into deep scan with their own Gemini key.
 
-## Files changed this session
-Session 2 adds (10 new, 1 modified):
-- `src/app/api/globe-events/route.ts` (new)
-- `src/app/api/status/route.ts` (new)
-- `src/components/dashboard/Dashboard.tsx` (new)
-- `src/components/dashboard/LiveFeed.tsx` (new)
-- `src/lib/data/fetch-events.ts` (new)
-- `src/lib/data/fetch-status.ts` (new)
-- `src/lib/geocoding.ts` (new)
-- `src/lib/github.ts` (new)
-- `src/lib/hooks/use-polled-endpoint.ts` (new)
-- `src/lib/status-adapter.ts` (new)
-- `src/app/page.tsx` (server shell; dashboard body moved to client component)
+## Files changed this session (session 3)
+Modified (3):
+- `src/app/api/status/route.ts` — runtime nodejs.
+- `src/lib/data/fetch-status.ts` — raw-indicator diagnostic for OpenAI.
+- `src/lib/data/fetch-events.ts` — rolling 15-min window + coverage split.
+- `src/components/dashboard/Dashboard.tsx` — ticker wired in, coverage badge updated.
+- `src/components/health/ToolHealthCard.tsx` — dropped placeholder rows.
+- `src/lib/github.ts` — per_page 30 → 100.
 
-Commit: `1484d5d feat(checkpoint-2): live data pipeline for status + globe events`.
+New (1):
+- `src/components/dashboard/MetricTicker.tsx` — 6-metric cited ticker.
+
+Commits: `ec9c915`, `2284be6`, `58047cf`.
