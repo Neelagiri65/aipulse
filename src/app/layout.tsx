@@ -16,9 +16,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Pulse — real-time observatory for the global AI ecosystem",
+  title: "AI Pulse — live status & activity monitor for AI coding tools",
   description:
-    "Live dashboard aggregating publicly verifiable signals across AI infrastructure, models, tools, and research. Every number cites its source.",
+    "Real-time status pages for Anthropic, OpenAI, GitHub Copilot, plus a globe of public AI-coding events from the GitHub Events API. Every number cites its source. MVP scope: 3 tools + 1 activity feed.",
 };
 
 export default function RootLayout({

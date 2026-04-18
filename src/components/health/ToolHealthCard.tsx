@@ -44,6 +44,12 @@ export function ToolHealthCard({ config, data }: ToolHealthCardProps) {
         {mode === "pending" && <PendingSourceBody />}
         {mode === "awaiting" && <AwaitingBody />}
         {mode === "live" && data && <LiveBody data={data} />}
+        {mode === "live" && data?.activeIncidents && data.activeIncidents.length > 0 && (
+          <ActiveIncidentList incidents={data.activeIncidents} sourceUrl={sourceUrl} />
+        )}
+        {mode === "live" && !config.incidentsApiAvailable && (
+          <IncidentsApiUnavailable sourceUrl={sourceUrl} />
+        )}
         <SourceFooter
           mode={mode}
           data={data}
@@ -52,6 +58,73 @@ export function ToolHealthCard({ config, data }: ToolHealthCardProps) {
         />
       </CardContent>
     </Card>
+  );
+}
+
+function IncidentsApiUnavailable({ sourceUrl }: { sourceUrl?: string }) {
+  return (
+    <div className="rounded-md border border-border/40 bg-muted/20 p-2 text-[10px] leading-snug text-muted-foreground">
+      <span className="ap-label-sm">incidents · n/a</span>{" "}
+      <span>
+        Provider doesn&rsquo;t expose an incidents JSON. Check the{" "}
+        {sourceUrl ? (
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+          >
+            public status page
+          </a>
+        ) : (
+          "public status page"
+        )}{" "}
+        for unresolved incidents.
+      </span>
+    </div>
+  );
+}
+
+function ActiveIncidentList({
+  incidents,
+  sourceUrl,
+}: {
+  incidents: NonNullable<ToolHealthData["activeIncidents"]>;
+  sourceUrl?: string;
+}) {
+  return (
+    <div className="space-y-1.5 rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="ap-sev-pill ap-sev-pill--degrade">
+          <span className="ap-sev-dot ap-sev-dot--sm" aria-hidden />
+          {incidents.length === 1 ? "1 active incident" : `${incidents.length} active incidents`}
+        </span>
+      </div>
+      <ul className="space-y-1">
+        {incidents.slice(0, 3).map((i) => (
+          <li key={i.id} className="text-[11px] leading-snug text-amber-100/90">
+            <span className="ap-label-sm" style={{ color: "var(--sev-degrade)" }}>
+              {i.status}
+            </span>{" "}
+            <span>{i.name}</span>{" "}
+            <span className="text-amber-200/60">· {formatRelative(i.createdAt)}</span>
+          </li>
+        ))}
+        {incidents.length > 3 && sourceUrl && (
+          <li className="text-[10px] text-amber-200/60">
+            +{incidents.length - 3} more · see{" "}
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-dotted underline-offset-2 hover:text-amber-100"
+            >
+              status page
+            </a>
+          </li>
+        )}
+      </ul>
+    </div>
   );
 }
 

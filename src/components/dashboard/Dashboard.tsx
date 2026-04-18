@@ -93,7 +93,15 @@ export function Dashboard() {
 
   return (
     <>
-      <TopBar status={status.data} />
+      <TopBar
+        status={status.data}
+        freshness={{
+          isInitialLoading: status.isInitialLoading,
+          lastSuccessAt: status.lastSuccessAt,
+          intervalMs: STATUS_POLL_MS,
+          error: status.error,
+        }}
+      />
 
       {/* Full-bleed stage: globe behind, floating chrome on top */}
       <div className="relative min-h-[calc(100vh-100px)]">
@@ -181,6 +189,8 @@ export function Dashboard() {
         events={events.data}
         verifiedSourceCount={VERIFIED_SOURCES.length}
         pendingSourceCount={PENDING_SOURCES.length}
+        statusLoading={status.isInitialLoading}
+        eventsLoading={events.isInitialLoading}
       />
     </>
   );

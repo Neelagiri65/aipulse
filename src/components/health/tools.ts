@@ -15,6 +15,20 @@ export type ToolSentiment = {
   windowHours: number;
 };
 
+/**
+ * An unresolved incident from the upstream status page. We surface these even
+ * when the per-component status reads "operational" — Statuspage marks
+ * components green during the `monitoring` phase, but the incident itself is
+ * still open and worth showing.
+ */
+export type ToolIncident = {
+  id: string;
+  name: string;
+  /** Statuspage incident lifecycle: investigating | identified | monitoring */
+  status: string;
+  createdAt: string;
+};
+
 /** Snapshot of a tool's current health. Always cites the source it came from. */
 export type ToolHealthData = {
   status: ToolHealthStatus;
@@ -24,6 +38,8 @@ export type ToolHealthData = {
   version?: string;
   openIssues?: number;
   sentiment?: ToolSentiment;
+  /** Active incidents from the status page (not in resolved/postmortem). */
+  activeIncidents?: ToolIncident[];
   /** ISO timestamp of last time we successfully polled this tool's status. */
   lastCheckedAt: string;
   /** ISO timestamp of the last known good reading if current poll failed. */
@@ -36,6 +52,14 @@ export type ToolConfig = {
   subtitle: string;
   /** Source IDs this card relies on (in descending priority). */
   sourceIds: string[];
+  /**
+   * False when the upstream status page does not expose an `incidents` array
+   * in its JSON API. We surface this on the card so a green pill is not
+   * silently hiding an unresolved incident the user could read on the public
+   * status page (e.g. OpenAI moved off Statuspage to a custom page that only
+   * exposes per-component status).
+   */
+  incidentsApiAvailable: boolean;
 };
 
 // Cursor intentionally omitted 2026-04-18 — no confirmed public status page.
@@ -46,18 +70,25 @@ export const TOOLS: readonly ToolConfig[] = [
     name: "Claude Code",
     subtitle: "Anthropic · CLI",
     sourceIds: ["anthropic-status", "gh-issues-claude-code"],
+    incidentsApiAvailable: true,
   },
   {
     id: "copilot",
     name: "GitHub Copilot",
     subtitle: "GitHub · IDE extension",
     sourceIds: ["github-status"],
+    incidentsApiAvailable: true,
   },
   {
     id: "openai-api",
     name: "OpenAI API",
     subtitle: "OpenAI · hosted models",
     sourceIds: ["openai-status"],
+    // status.openai.com is a custom Next.js page (not Statuspage.io). Its
+    // summary.json exposes per-component status only — no `incidents` array.
+    // We mark this honestly on the card so users know to check the public
+    // page for any ongoing incident the JSON can't show us.
+    incidentsApiAvailable: false,
   },
 ] as const;
 

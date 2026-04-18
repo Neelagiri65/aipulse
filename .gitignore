@@ -42,3 +42,6 @@ next-env.d.ts
 
 # design-system handoff bundle (reference only, not part of the build)
 /wmsample
+
+# claude code local session state — never committed
+/.claude

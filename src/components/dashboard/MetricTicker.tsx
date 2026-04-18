@@ -9,6 +9,10 @@ export type MetricTickerProps = {
   events?: GlobeEventsResult;
   verifiedSourceCount: number;
   pendingSourceCount: number;
+  /** True until the first status poll lands. */
+  statusLoading: boolean;
+  /** True until the first events poll lands. */
+  eventsLoading: boolean;
 };
 
 type Metric = {
@@ -17,8 +21,8 @@ type Metric = {
   sourceIds: string[];
   /** Optional freshness stamp, e.g. poll age. */
   stamp?: string;
-  /** Tone: neutral (default), good (emerald), warn (amber), bad (rose). */
-  tone?: "neutral" | "good" | "warn" | "bad";
+  /** Tone: neutral (default), good (emerald), warn (amber), bad (rose), pending (muted italic). */
+  tone?: "neutral" | "good" | "warn" | "bad" | "pending";
 };
 
 export function MetricTicker({
@@ -26,13 +30,15 @@ export function MetricTicker({
   events,
   verifiedSourceCount,
   pendingSourceCount,
+  statusLoading,
+  eventsLoading,
 }: MetricTickerProps) {
   const metrics: Metric[] = [
-    claudeCodeIssuesMetric(status),
-    aiEventsMetric(events),
-    aiConfigRatioMetric(events),
-    toolsOperationalMetric(status),
-    coverageMetric(events),
+    claudeCodeIssuesMetric(status, statusLoading),
+    aiEventsMetric(events, eventsLoading),
+    aiConfigRatioMetric(events, eventsLoading),
+    toolsOperationalMetric(status, statusLoading),
+    coverageMetric(events, eventsLoading),
     sourcesVerifiedMetric(verifiedSourceCount, pendingSourceCount),
   ];
 
@@ -117,77 +123,137 @@ function toneClassname(tone: Metric["tone"]): string {
       return "text-amber-400";
     case "bad":
       return "text-rose-400";
+    case "pending":
+      return "text-muted-foreground/70 italic";
     default:
       return "text-foreground";
   }
 }
 
-// --- Metric builders --------------------------------------------------------
+const LOADING_VALUE = "loading…";
+const NO_DATA_VALUE = "no data";
 
-function claudeCodeIssuesMetric(status?: StatusResult): Metric {
+// --- Metric builders --------------------------------------------------------
+// Cell-state contract:
+//   loading → poll has not landed yet (initial cold start)
+//   no data → poll landed but the upstream value is genuinely missing
+//   value  → real number from a real source
+
+function claudeCodeIssuesMetric(status: StatusResult | undefined, loading: boolean): Metric {
+  if (loading && !status) {
+    return {
+      label: "Claude Code open issues",
+      value: LOADING_VALUE,
+      sourceIds: ["gh-issues-claude-code"],
+      tone: "pending",
+    };
+  }
   const n = status?.data["claude-code"]?.openIssues;
   return {
     label: "Claude Code open issues",
-    value: n !== undefined ? n.toLocaleString() : "—",
+    value: n !== undefined ? n.toLocaleString() : NO_DATA_VALUE,
     sourceIds: ["gh-issues-claude-code"],
+    tone: n !== undefined ? "neutral" : "pending",
     stamp: status?.data["claude-code"]?.lastCheckedAt
       ? pollAge(status.data["claude-code"].lastCheckedAt)
       : undefined,
   };
 }
 
-function aiEventsMetric(events?: GlobeEventsResult): Metric {
+function aiEventsMetric(events: GlobeEventsResult | undefined, loading: boolean): Metric {
+  if (loading && !events) {
+    return {
+      label: "Placeable events",
+      value: LOADING_VALUE,
+      sourceIds: ["gh-events"],
+      tone: "pending",
+    };
+  }
   const n = events?.coverage.windowSize ?? 0;
-  const window = events?.coverage.windowMinutes ?? 15;
+  const window = events?.coverage.windowMinutes ?? 60;
   return {
     label: `Placeable events · ${window}m window`,
-    value: n > 0 ? n.toLocaleString() : "—",
+    value: n > 0 ? n.toLocaleString() : NO_DATA_VALUE,
     sourceIds: ["gh-events"],
+    tone: n > 0 ? "neutral" : "pending",
     stamp: events?.polledAt ? pollAge(events.polledAt) : undefined,
   };
 }
 
-function aiConfigRatioMetric(events?: GlobeEventsResult): Metric {
+function aiConfigRatioMetric(events: GlobeEventsResult | undefined, loading: boolean): Metric {
+  if (loading && !events) {
+    return {
+      label: "Repos with AI config",
+      value: LOADING_VALUE,
+      sourceIds: ["gh-contents"],
+      tone: "pending",
+    };
+  }
   const total = events?.coverage.windowSize ?? 0;
   const ai = events?.coverage.windowAiConfig ?? 0;
   const pct = total > 0 ? Math.round((ai / total) * 100) : undefined;
   return {
     label: "Repos with AI config",
-    value:
-      pct !== undefined
-        ? `${ai.toLocaleString()} · ${pct}%`
-        : "—",
+    value: pct !== undefined ? `${ai.toLocaleString()} · ${pct}%` : NO_DATA_VALUE,
     sourceIds: ["gh-contents"],
-    tone: pct !== undefined && pct > 0 ? "good" : "neutral",
+    tone: pct !== undefined && pct > 0 ? "good" : "pending",
   };
 }
 
-function toolsOperationalMetric(status?: StatusResult): Metric {
+function toolsOperationalMetric(status: StatusResult | undefined, loading: boolean): Metric {
+  if (loading && !status) {
+    return {
+      label: "Tools operational",
+      value: LOADING_VALUE,
+      sourceIds: ["anthropic-status", "openai-status", "github-status"],
+      tone: "pending",
+    };
+  }
   if (!status) {
     return {
       label: "Tools operational",
-      value: "—",
+      value: NO_DATA_VALUE,
       sourceIds: ["anthropic-status", "openai-status", "github-status"],
+      tone: "pending",
     };
   }
   const values = Object.values(status.data);
   const total = values.length;
-  const ok = values.filter((v) => v?.status === "operational").length;
+  // Active incident folds into "not operational" — same lie-fix as TopBar.
+  const ok = values.filter(
+    (v) => v?.status === "operational" && (v.activeIncidents?.length ?? 0) === 0,
+  ).length;
+  if (total === 0) {
+    return {
+      label: "Tools operational",
+      value: NO_DATA_VALUE,
+      sourceIds: ["anthropic-status", "openai-status", "github-status"],
+      tone: "pending",
+    };
+  }
   const tone: Metric["tone"] =
     ok === total ? "good" : ok === 0 ? "bad" : "warn";
   return {
     label: "Tools operational",
-    value: total > 0 ? `${ok} / ${total}` : "—",
+    value: `${ok} / ${total}`,
     sourceIds: ["anthropic-status", "openai-status", "github-status"],
     tone,
   };
 }
 
-function coverageMetric(events?: GlobeEventsResult): Metric {
+function coverageMetric(events: GlobeEventsResult | undefined, loading: boolean): Metric {
+  if (loading && !events) {
+    return {
+      label: "Geocoder coverage · last poll",
+      value: LOADING_VALUE,
+      sourceIds: ["gh-events"],
+      tone: "pending",
+    };
+  }
   const pct = events?.coverage.locationCoveragePct;
   const tone: Metric["tone"] =
     pct === undefined
-      ? "neutral"
+      ? "pending"
       : pct >= 30
         ? "good"
         : pct >= 10
@@ -195,7 +261,7 @@ function coverageMetric(events?: GlobeEventsResult): Metric {
           : "bad";
   return {
     label: "Geocoder coverage · last poll",
-    value: pct !== undefined ? `${pct}%` : "—",
+    value: pct !== undefined ? `${pct}%` : NO_DATA_VALUE,
     sourceIds: ["gh-events"],
     tone,
   };

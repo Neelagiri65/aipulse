@@ -18,7 +18,11 @@ import {
   overallStatus,
   type StatuspageSummary,
 } from "@/lib/status-adapter";
-import type { ToolHealthData, ToolConfig } from "@/components/health/tools";
+import type {
+  ToolHealthData,
+  ToolConfig,
+  ToolIncident,
+} from "@/components/health/tools";
 
 const REVALIDATE_SECONDS = 300;
 
@@ -44,6 +48,30 @@ async function fetchStatuspage(
   } catch (err) {
     return err instanceof Error ? err : new Error(String(err));
   }
+}
+
+/**
+ * Statuspage incident lifecycle: investigating → identified → monitoring →
+ * resolved → postmortem. The first three are unresolved — we surface them on
+ * the card even when components read "operational" (during monitoring,
+ * components flip green but the incident is still open).
+ */
+const ACTIVE_INCIDENT_STATES = new Set([
+  "investigating",
+  "identified",
+  "monitoring",
+]);
+
+function activeIncidentsOf(summary: StatuspageSummary): ToolIncident[] {
+  if (!summary.incidents) return [];
+  return summary.incidents
+    .filter((i) => ACTIVE_INCIDENT_STATES.has(i.status))
+    .map((i) => ({
+      id: i.id,
+      name: i.name,
+      status: i.status,
+      createdAt: i.created_at,
+    }));
 }
 
 async function fetchClaudeCodeIssues(): Promise<number | Error> {
@@ -91,6 +119,7 @@ export async function fetchAllStatus(): Promise<StatusResult> {
       statusSourceId: ANTHROPIC_STATUS.id,
       lastCheckedAt: polledAt,
       openIssues: claudeIssues instanceof Error ? undefined : claudeIssues,
+      activeIncidents: activeIncidentsOf(anthropic),
     };
     if (claudeIssues instanceof Error) {
       failures.push({ toolId: "claude-code", sourceId: "gh-issues-claude-code", message: claudeIssues.message });
@@ -106,9 +135,8 @@ export async function fetchAllStatus(): Promise<StatusResult> {
       status,
       statusSourceId: OPENAI_STATUS.id,
       lastCheckedAt: polledAt,
+      activeIncidents: activeIncidentsOf(openai),
     };
-    // Diagnostic: if the upstream shape drifts we want to know rather than
-    // silently show "unknown". Surface the raw indicator on mismatch.
     if (status === "unknown") {
       failures.push({
         toolId: "openai-api",
@@ -126,6 +154,7 @@ export async function fetchAllStatus(): Promise<StatusResult> {
       status: componentStatusByName(github, "Copilot"),
       statusSourceId: GITHUB_STATUS.id,
       lastCheckedAt: polledAt,
+      activeIncidents: activeIncidentsOf(github),
     };
   }
 

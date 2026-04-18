@@ -4,16 +4,31 @@ import { useEffect, useState } from "react";
 import type { StatusResult } from "@/lib/data/fetch-status";
 import { VERIFIED_SOURCES, PENDING_SOURCES } from "@/lib/data-sources";
 
+export type FreshnessState = {
+  /** True while the very first poll is in flight. */
+  isInitialLoading: boolean;
+  /** Last successful poll wall-clock time (ms epoch). */
+  lastSuccessAt?: number;
+  /** Polling interval in ms — used to decide when "live" becomes "stale". */
+  intervalMs: number;
+  /** Latest error string, if any. */
+  error?: string;
+};
+
 export type TopBarProps = {
   status?: StatusResult;
+  /** Status-poll freshness — drives the live/stale/connecting indicator. */
+  freshness: FreshnessState;
 };
 
 /**
- * Sticky dashboard top bar. Brand pulse + severity summary (from real /api/status)
- * + sources verified count + UTC clock. No fake values — if status hasn't loaded,
- * the severity summary shows "—" rather than fabricating zeros.
+ * Sticky dashboard top bar. Brand + severity summary (from real /api/status,
+ * with active incidents folded into "degraded") + freshness pill + sources
+ * count + UTC clock. The freshness pill replaces the static "LIVE" lie:
+ * CONNECTING during initial poll, LIVE · {age} when fresh, STALE when older
+ * than 2× the poll interval.
  */
-export function TopBar({ status }: TopBarProps) {
+export function TopBar({ status, freshness }: TopBarProps) {
   const now = useUtcClock();
   const sev = deriveSeverity(status);
 
@@ -33,6 +48,7 @@ export function TopBar({ status }: TopBarProps) {
         </nav>
 
         <div className="ml-auto flex items-center gap-4">
+          <FreshnessPill freshness={freshness} />
           <SeveritySummary sev={sev} loaded={status !== undefined} />
           <SourcesCount
             verified={VERIFIED_SOURCES.length}
@@ -47,6 +63,54 @@ export function TopBar({ status }: TopBarProps) {
   );
 }
 
+function FreshnessPill({ freshness }: { freshness: FreshnessState }) {
+  const [, force] = useState(0);
+  // Re-render every second so the age display ticks. Cheap (<1ms).
+  useEffect(() => {
+    const t = setInterval(() => force((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const { isInitialLoading, lastSuccessAt, intervalMs, error } = freshness;
+
+  if (isInitialLoading && !lastSuccessAt) {
+    return (
+      <span className="ap-sev-pill ap-sev-pill--pending">
+        <span className="ap-sev-dot ap-sev-dot--sm" aria-hidden />
+        connecting…
+      </span>
+    );
+  }
+  if (!lastSuccessAt) {
+    return (
+      <span className="ap-sev-pill ap-sev-pill--outage" title={error}>
+        <span className="ap-sev-dot ap-sev-dot--sm" aria-hidden />
+        offline
+      </span>
+    );
+  }
+  const ageMs = Date.now() - lastSuccessAt;
+  const stale = ageMs > intervalMs * 2;
+  const variant = stale ? "degrade" : "op";
+  const label = stale ? `stale · ${formatAge(ageMs)}` : `live · ${formatAge(ageMs)}`;
+  return (
+    <span className={`ap-sev-pill ap-sev-pill--${variant}`} title={error}>
+      <span className="ap-sev-dot ap-sev-dot--sm" aria-hidden />
+      {label}
+    </span>
+  );
+}
+
+function formatAge(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}d`;
+}
+
 function Brand() {
   return (
     <a href="/" className="flex items-center gap-3">
@@ -57,11 +121,14 @@ function Brand() {
         <span className="ap-live-dot" />
       </span>
       <span>
-        <span className="block text-sm font-semibold tracking-tight">
-          AI Pulse
+        <span className="flex items-baseline gap-2">
+          <span className="text-sm font-semibold tracking-tight">AI Pulse</span>
+          <span className="ap-label-sm" style={{ color: "var(--sev-pending)" }}>
+            mvp · 3 tools
+          </span>
         </span>
         <span className="ap-label-sm hidden md:inline-block">
-          Real-time observatory · global AI ecosystem
+          Live status &amp; activity monitor · AI coding tools
         </span>
       </span>
     </a>
@@ -174,9 +241,14 @@ function deriveSeverity(status?: StatusResult) {
   const counts = { outage: 0, degraded: 0, operational: 0, unknown: 0 };
   if (!status) return counts;
   for (const v of Object.values(status.data)) {
+    // A tool with active unresolved incidents is NOT operational, even if the
+    // upstream component status says so. Statuspage flips components green
+    // during the `monitoring` phase before the incident is resolved.
+    const hasActiveIncident = (v?.activeIncidents?.length ?? 0) > 0;
     switch (v?.status) {
       case "operational":
-        counts.operational += 1;
+        if (hasActiveIncident) counts.degraded += 1;
+        else counts.operational += 1;
         break;
       case "degraded":
         counts.degraded += 1;
