@@ -2,7 +2,63 @@
 
 ## Current state (2026-04-18)
 
-### Session 6 — wmsample design system port · awaiting user review
+### Session 6 — wmsample design system port + trust fixes · awaiting user review
+
+### Session 6.1 — post-launch trust audit fixes (commit `103f3ce`)
+
+**Audit prompted:** user ran a live cross-check after pass-2 deploy and found
+three real trust gaps:
+1. Tagline ("real-time observatory for the global AI ecosystem") overclaimed
+   vs delivery (3 status pages + 1 globe = 10% of the implied scope).
+2. Cold-start UX showed `—` everywhere on a fresh serverless instance and a
+   static `LIVE` badge — looked broken / dishonest about freshness.
+3. OpenAI had an active `monitoring` incident (Apr 12, "Elevated 401 errors")
+   that the dashboard didn't surface because the code only read per-component
+   status, not the incidents array.
+
+**Done:**
+- **Tagline narrowed.** "Live status & activity monitor · AI coding tools" in
+  brand subtitle; `mvp · 3 tools` chip on the brand wordmark; layout metadata
+  matches. Will earn the bigger tagline by shipping the bigger product, not
+  the other way round.
+- **Active incident surfacing.** New `ToolIncident` type. `fetch-status.ts`
+  extracts incidents in `{investigating, identified, monitoring}` and attaches
+  to each `ToolHealthData`. `ToolHealthCard` renders an amber-bordered list
+  ("N active incidents" + first 3 names with status + age + link to status
+  page). `TopBar` severity summary now folds tools-with-active-incidents into
+  `degraded` rather than counting as `operational`. Same fold in the ticker's
+  "Tools operational" cell. A green component with an open monitoring incident
+  is no longer reported as fully operational.
+- **OpenAI honesty boundary.** Discovered `status.openai.com` is a custom
+  Next.js page (not Statuspage.io). Its `summary.json` exposes
+  `{page, status, components}` only — no `incidents` array. Added
+  `incidentsApiAvailable: false` flag on the OpenAI tool config, and a
+  per-card "incidents · n/a · check the public status page" footnote so a
+  green pill there explicitly does NOT claim "no incidents". Anthropic and
+  GitHub both expose incidents via standard Statuspage v2 and surface
+  correctly.
+- **Cold-start UX no longer lies.**
+  - Ticker: `—` split into `loading…` (poll in flight, italic muted),
+    `no data` (poll succeeded but value genuinely absent), or the real value.
+  - TopBar: new `FreshnessPill`. `connecting…` (pending pill) during initial
+    poll; `live · 3s` (op pill) when fresh; `stale · 18m` (degrade pill) when
+    older than 2× the poll interval; `offline` (outage pill) on poll error.
+    Replaces the static `LIVE` lie that showed even on cold instances.
+- `.gitignore`: added `/.claude` (local Claude Code session state).
+
+**Honesty audit:** still no synthetic data. Active incidents come straight
+from the upstream Statuspage payload. Cold-start states make actual freshness
+explicit instead of papering over it. Trust contract intact.
+
+**Live verification (commit `103f3ce` deployed):**
+- Top bar shows `MVP · 3 TOOLS` badge + `LIVE · {age}` green pill.
+- Ticker populates real values (`9,675 issues · 9 events · 2 ai-cfg · 22% · 3/3 ops · 11% coverage`).
+- All three tool cards show OPERATIONAL (correctly — Anthropic/GitHub
+  `incidents` arrays are empty right now per their JSON).
+- OpenAI card carries the "incidents · n/a" footnote so a green pill there
+  isn't read as "definitely no incidents".
+
+### Session 6 — wmsample design system port · pass 1 + 2
 
 **User request going in (`/session-start`):**
 > Implement the AI Pulse design system from `~/aipulse/wmsample/` over the
@@ -87,11 +143,29 @@
 | 2.1 | OpenAI fix · rolling window · 6-metric ticker · lean cards | REACHED (session 3) | |
 | 2.2 | Geocoder expansion + `/audit` page | REACHED (session 4) | |
 | 2.3 | 60m window · permanent config cache · calmer visuals | REACHED (session 5) | |
-| 2.4 | wmsample design system port — fonts, fractal bg, floating panels, globe clustering, severity pills | **REACHED — awaiting user review** | Visual layer only; data pipeline untouched |
+| 2.4 | wmsample design system port — fonts, fractal bg, floating panels, globe clustering, severity pills | REACHED (session 6) | Visual layer only; data pipeline untouched |
+| 2.5 | Trust fixes — narrowed tagline · active incident surfacing · honest cold-start | **REACHED — awaiting user review** | Closes 3 audit findings; OpenAI incidents gap documented as data-source limit |
 | 3 | Pre-launch review | NOT STARTED | |
 
 ## Open items — for review or next session
 
+0. **OpenAI incidents data-source gap (from session 6.1 audit).** OpenAI moved
+   off Statuspage to a custom Next.js status page that doesn't expose
+   `incidents` in its JSON. Two options to actually surface their incidents:
+   (a) scrape the public HTML — fragile, breaks on every redesign; (b) find an
+   undocumented JSON endpoint (their Next.js page must read from one — worth
+   inspecting network requests on status.openai.com). Until then, the OpenAI
+   card carries an explicit "incidents · n/a · check the public status page"
+   footnote so the trust contract holds.
+0a. **No incident history.** Audit also flagged this. Statuspage v2 has
+    `/incidents.json` (paginated) for resolved incidents. Even a 7-day window
+    would let the dashboard say "Claude had 2 degraded periods this week"
+    instead of just "operational right now". Phase 2 work.
+0b. **Only 3 tools tracked.** Audit flagged that "AI coding tools" still
+    elides Cursor, Windsurf, Codex CLI, Aider, Continue. Cursor explicitly
+    has no public status page (already noted in `tools.ts`). The others need
+    individual source verification before being added — Phase 1 close-out
+    task.
 1. **Visual review of pass 2.** Confirm: (a) clusters read as denser without
    feeling fake, (b) severity pills are legible at the small font size on the
    tools panel, (c) no dot grouping lies (e.g. trans-Atlantic clusters merging
@@ -136,6 +210,8 @@
 - Deploy: push to `main` via connected GitHub integration.
 - `GH_TOKEN` on Vercel: Production + Development.
 - Latest commits on main:
+  - `103f3ce fix(trust): narrow scope claim, surface active incidents, honest cold-start`
+  - `f02d61b docs: HANDOFF session 6 — wmsample design system passes 1 & 2`
   - `57e909a feat(design): wmsample design system pass 2 — globe clustering + severity pills`
   - `6499ca7 feat(design): wmsample design system pass 1 — fonts, fractal bg, floating panels`
 
