@@ -81,10 +81,20 @@ const WINDOW_CAP = 10000;
 // events, ~60 authenticated requests/hour at a 5-minute cadence.
 const EVENTS_API_PAGES = 5;
 
-// Archive hours pulled on cold-start backfill. 6h is enough to seed the
-// globe densely without blowing the Vercel serverless timeout (each hour
-// is parsed + processed separately).
-const ARCHIVE_BACKFILL_HOURS = 6;
+// Archive hours pulled on cold-start backfill. Each hour decompresses to
+// ~100-150 MB and yields tens of thousands of relevant events. We cap the
+// post-dedupe set to POST_DEDUPE_CAP before geocoding (see runIngest),
+// so pulling more hours mostly just increases variety — 3 hours is enough
+// to seed density without blowing the 60s Vercel timeout on the fetch
+// + gunzip + parse step alone.
+const ARCHIVE_BACKFILL_HOURS = 3;
+
+// Hard cap on unique events surviving dedupe before the expensive
+// geocoding + AI-config probing phase runs. Archive backfill can easily
+// produce 50k+ events; at 100-200 unique users per thousand events we
+// can't reasonably fetch /users/{login} for all of them in a single
+// 60s serverless invocation. Cap to the newest N so coverage is bounded.
+const POST_DEDUPE_CAP = 2000;
 
 /**
  * Permanent per-instance cache of AI-config results. Repos rarely toggle
@@ -270,10 +280,21 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
     if (prev && prev.source === "events-api") continue;
     byId.set(r.event.id, r);
   }
-  const eventsReceived = byId.size;
+  const eventsReceivedRaw = byId.size;
+
+  // 3b) Cap to the newest POST_DEDUPE_CAP events. Archive backfills
+  // easily produce 50k+ events; geocoding every unique actor would blow
+  // the serverless timeout and eat into the GH rate budget for no
+  // additional UX value (the globe caps at WINDOW_CAP anyway).
+  const sortedByRecency = Array.from(byId.values()).sort((a, b) =>
+    b.event.created_at.localeCompare(a.event.created_at),
+  );
+  const capped = sortedByRecency.slice(0, POST_DEDUPE_CAP);
+  const cappedById = new Map(capped.map((r) => [r.event.id, r]));
+  const eventsReceived = cappedById.size;
 
   // 4) Geocode unique actors.
-  const uniqueLogins = Array.from(new Set(Array.from(byId.values()).map((r) => r.event.actor.login)));
+  const uniqueLogins = Array.from(new Set(Array.from(cappedById.values()).map((r) => r.event.actor.login)));
   const locationByLogin = new Map<string, [number, number]>();
   await Promise.all(
     uniqueLogins.map(async (login) => {
@@ -292,7 +313,7 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
 
   // 5) Keep only placeable events.
   const placeable: Array<{ event: GitHubEvent; source: "gharchive" | "events-api" }> = [];
-  for (const r of byId.values()) {
+  for (const r of cappedById.values()) {
     if (locationByLogin.has(r.event.actor.login)) placeable.push(r);
   }
 
@@ -337,30 +358,37 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
     };
   });
 
-  // Cap storage before writing.
-  const capped = points.slice(0, WINDOW_CAP);
+  // Cap storage before writing (WINDOW_CAP is the upper bound per run,
+  // distinct from POST_DEDUPE_CAP which bounds pre-geocoding work).
+  const storagePoints = points.slice(0, WINDOW_CAP);
 
   // 8) Write to Redis (no-op if unavailable).
-  await writePoints(capped);
+  await writePoints(storagePoints);
 
-  // 9) Meta.
+  // 9) Meta. eventsReceived reflects the pre-cap raw total so observers
+  // can see volume; coverage % is computed against the post-cap working
+  // set (that's what got geocoded).
   const meta: IngestMeta = {
     lastIngestAt: startedAt.toISOString(),
     lastIngestSource: opts.archiveBackfill
       ? `gharchive-backfill+events-api(${opts.apiPages ?? EVENTS_API_PAGES}p)`
       : `events-api(${opts.apiPages ?? EVENTS_API_PAGES}p)`,
-    eventsReceived,
+    eventsReceived: eventsReceivedRaw,
     eventsWithLocation: placeable.length,
     locationCoveragePct:
       eventsReceived > 0
         ? Math.round((placeable.length / eventsReceived) * 100)
         : 0,
-    windowSize: capped.length,
-    windowAiConfig: capped.reduce((n, p) => n + (p.sourceKind && (p.meta as { hasAiConfig?: boolean } | undefined)?.hasAiConfig ? 1 : 0), 0),
+    windowSize: storagePoints.length,
+    windowAiConfig: storagePoints.reduce(
+      (n, p) =>
+        n + (p.sourceKind && (p.meta as { hasAiConfig?: boolean } | undefined)?.hasAiConfig ? 1 : 0),
+      0,
+    ),
     windowMinutes: WINDOW_MINUTES,
     failures,
   };
   await writeMeta(meta);
 
-  return { points: capped, meta };
+  return { points: storagePoints, meta };
 }

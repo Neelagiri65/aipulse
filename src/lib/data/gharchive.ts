@@ -76,10 +76,13 @@ export function recentArchiveHours(count: number, now = new Date()): string[] {
  */
 export async function fetchArchiveHour(hourKey: string): Promise<GitHubEvent[]> {
   const url = `${ARCHIVE_BASE}/${hourKey}.json.gz`;
+  // Explicitly opt OUT of Next.js Data Cache. A gharchive hour is ~100MB
+  // uncompressed — well past the 2MB per-entry cache limit, which throws
+  // "ResponseTooLargeError" and surfaces to the caller as 500. Backfill is
+  // a one-shot anyway, so caching the raw response has no downstream value.
   const res = await fetch(url, {
     headers: { "User-Agent": "aipulse-ingester/1.0" },
-    // Archive hour files never change once published — aggressive cache.
-    next: { revalidate: 60 * 60 * 24, tags: [`gharchive:${hourKey}`] },
+    cache: "no-store",
   });
   if (!res.ok) {
     throw new Error(`gharchive ${hourKey} returned ${res.status}`);
