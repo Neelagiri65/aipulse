@@ -8,7 +8,7 @@ export type HealthCardGridProps = {
 
 export function HealthCardGrid({ data }: HealthCardGridProps) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-3">
       {TOOLS.map((tool) => (
         <ToolHealthCard key={tool.id} config={tool} data={data?.[tool.id]} />
       ))}

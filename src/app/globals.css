@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-dm-sans);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-heading: var(--font-dm-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -117,6 +117,39 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ---------- AI Pulse design system tokens (lifted from wmsample) ---------- */
+:root {
+  --ap-bg:           #06080a;
+  --ap-bg-panel:     #0b0f12;
+  --ap-bg-panel-2:   #0d1115;
+  --ap-bg-head:      #0a0d10;
+  --ap-border:       #1a2026;
+  --ap-border-strong:#2b343b;
+  --ap-border-hair:  #121619;
+  --ap-fg:           #d8e2e6;
+  --ap-fg-muted:     #7a8a90;
+  --ap-fg-dim:       #4a565c;
+
+  --ap-accent:       #2dd4bf;
+  --ap-accent-dim:   #0d9488;
+  --ap-accent-glow:  rgba(45, 212, 191, 0.35);
+
+  /* Severity (semantic, never decorative) */
+  --sev-outage:      #ef4444;
+  --sev-degrade:     #f59e0b;
+  --sev-regress:     #eab308;
+  --sev-op:          #22c55e;
+  --sev-unknown:     #71717a;
+  --sev-pending:     #52525b;
+
+  /* Ecosystem tints */
+  --eco-anthropic:   #2dd4bf;
+  --eco-openai:      #4ade80;
+  --eco-google:      #60a5fa;
+  --eco-meta:        #a78bfa;
+  --eco-ms:          #f59e0b;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -127,4 +160,233 @@
   html {
     @apply font-sans;
   }
+}
+
+/* ============================================================================
+   AI PULSE — STAGE BACKGROUND
+   Layered: deep cool base + radial vignettes + SVG fractal noise + cursor glow.
+   Lives behind every page; the dashboard renders into a transparent stage on top.
+   ============================================================================ */
+.ap-stage-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 120%, rgba(58, 36, 24, 0.30), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 0% 0%,    rgba(38, 22, 14, 0.32), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 0%,  rgba(30, 18, 12, 0.26), transparent 55%),
+    var(--ap-bg);
+}
+
+.ap-stage-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.15  0 0 0 0 0.09  0 0 0 0 0.05  0 0 0 0.5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>");
+  opacity: 0.30;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.ap-cursor-glow {
+  position: fixed;
+  width: 720px;
+  height: 720px;
+  left: var(--ap-mx, -9999px);
+  top:  var(--ap-my, -9999px);
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle,
+    rgba(217, 119, 87, 0.10) 0%,
+    rgba(217, 119, 87, 0.04) 30%,
+    transparent 60%);
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: screen;
+  will-change: left, top;
+  transition: left 220ms ease-out, top 220ms ease-out;
+}
+
+/* ============================================================================
+   SEVERITY PILLS / DOTS — single source of truth for status colour language.
+   ============================================================================ */
+.ap-sev-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+}
+.ap-sev-pill--outage   { color: var(--sev-outage);  background: rgba(239,  68,  68, 0.08); }
+.ap-sev-pill--degrade  { color: var(--sev-degrade); background: rgba(245, 158,  11, 0.08); }
+.ap-sev-pill--regress  { color: var(--sev-regress); background: rgba(234, 179,   8, 0.08); }
+.ap-sev-pill--op       { color: var(--sev-op);      background: rgba( 34, 197,  94, 0.08); }
+.ap-sev-pill--info     { color: var(--ap-accent);   background: rgba( 45, 212, 191, 0.06); }
+.ap-sev-pill--pending  { color: var(--sev-pending); background: rgba(255, 255, 255, 0.04); }
+
+.ap-sev-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+.ap-sev-dot--sm { width: 6px; height: 6px; }
+
+/* ============================================================================
+   FLOATING WINDOW CHROME
+   ============================================================================ */
+.ap-win {
+  position: absolute;
+  background: rgba(11, 15, 18, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--ap-border-strong);
+  box-shadow:
+    0 0 0 1px rgba(45, 212, 191, 0.06),
+    0 20px 60px -20px rgba(0, 0, 0, 0.8),
+    0 0 60px -20px var(--ap-accent-glow);
+  display: flex;
+  flex-direction: column;
+  min-width: 300px;
+  min-height: 140px;
+  border-radius: 6px;
+}
+.ap-win--minimized { height: auto !important; min-height: 0; }
+.ap-win--minimized .ap-win__body { display: none; }
+
+.ap-win__titlebar {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 0 12px;
+  background: var(--ap-bg-head);
+  border-bottom: 1px solid var(--ap-border);
+  cursor: grab;
+  user-select: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ap-fg);
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+.ap-win__titlebar:active { cursor: grabbing; }
+.ap-win__titledot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ap-accent);
+  box-shadow: 0 0 6px var(--ap-accent-glow);
+  flex-shrink: 0;
+}
+.ap-win__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ap-win__buttons { display: flex; gap: 0; margin-right: -4px; }
+.ap-win__btn {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ap-fg-dim);
+  background: none; border: 0; cursor: pointer;
+}
+.ap-win__btn:hover { color: var(--ap-fg); background: rgba(255, 255, 255, 0.04); }
+.ap-win__btn--close:hover { color: var(--sev-outage); }
+.ap-win__body {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+.ap-win__resize {
+  position: absolute;
+  right: 0; bottom: 0;
+  width: 14px; height: 14px;
+  cursor: nwse-resize;
+  background:
+    linear-gradient(135deg, transparent 45%, var(--ap-border-strong) 46%, var(--ap-border-strong) 52%, transparent 53%),
+    linear-gradient(135deg, transparent 65%, var(--ap-border-strong) 66%, var(--ap-border-strong) 72%, transparent 73%);
+}
+
+/* ============================================================================
+   LEFT NAV (category list bottom-left)
+   ============================================================================ */
+.ap-leftnav {
+  background: rgba(10, 13, 16, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--ap-border);
+  padding: 6px;
+  border-radius: 4px;
+}
+.ap-leftnav__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--ap-fg-muted);
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  transition: background 120ms, color 120ms, border-color 120ms;
+  width: 100%;
+  text-align: left;
+  background: none;
+  cursor: pointer;
+}
+.ap-leftnav__item:hover { color: var(--ap-fg); background: rgba(45, 212, 191, 0.04); }
+.ap-leftnav__item--active {
+  color: var(--ap-accent);
+  background: rgba(45, 212, 191, 0.08);
+  border-color: rgba(45, 212, 191, 0.35);
+}
+.ap-leftnav__item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.85; }
+.ap-leftnav__item .ap-leftnav__count {
+  margin-left: auto;
+  font-size: 9px;
+  padding: 1px 5px;
+  background: var(--sev-pending);
+  color: var(--ap-fg);
+  letter-spacing: 0;
+  border-radius: 2px;
+}
+.ap-leftnav__item .ap-leftnav__count--hot { background: var(--sev-outage); color: #fff; }
+
+/* ============================================================================
+   AP TYPOGRAPHY UTILITIES
+   ============================================================================ */
+.ap-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ap-fg-muted);
+  font-weight: 500;
+}
+.ap-label-sm {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ap-fg-dim);
+  font-weight: 500;
+}
+
+/* Live pulse used by brand dot + topbar */
+@keyframes ap-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.40; }
+}
+.ap-live-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--ap-accent);
+  box-shadow: 0 0 8px var(--ap-accent-glow);
+  animation: ap-pulse 1.8s ease-in-out infinite;
 }

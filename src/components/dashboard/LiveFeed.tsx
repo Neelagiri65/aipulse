@@ -21,10 +21,10 @@ export function LiveFeed({ events, error, isInitialLoading }: LiveFeedProps) {
   const rows = toRows(events);
 
   return (
-    <aside className="flex h-[min(80vh,900px)] min-h-[520px] flex-col rounded-lg border border-border/60 bg-card/30 p-3 backdrop-blur-sm">
+    <div className="flex h-full min-h-0 flex-col p-3">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Live feed
+          {events?.coverage?.windowMinutes ? `Last ${events.coverage.windowMinutes}m` : "Live feed"}
         </h2>
         <FeedStatus
           isLoading={isInitialLoading}
@@ -56,7 +56,7 @@ export function LiveFeed({ events, error, isInitialLoading }: LiveFeedProps) {
           ))}
         </ul>
       )}
-    </aside>
+    </div>
   );
 }
 
