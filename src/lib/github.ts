@@ -100,7 +100,10 @@ export async function fetchUser(login: string): Promise<GitHubUser | null> {
  * Returns true/false only — we never read file contents.
  *
  * Caveat: the Contents API doesn't support HEAD; we GET and discard body.
- * Rate-limit impact: 1 request per (repo, path) per 24h (cache window).
+ * Rate-limit impact: 1 request per (repo, path) per 30 days (cache window).
+ * Why 30d: repos don't toggle AI tool configs on an hourly cadence, and the
+ * event pipeline layers a process-lifetime in-memory cache on top of this
+ * anyway. Revalidating daily was wasted rate budget.
  */
 export async function pathExists(
   owner: string,
@@ -113,7 +116,7 @@ export async function pathExists(
     {
       headers: authHeaders(token),
       next: {
-        revalidate: 60 * 60 * 24,
+        revalidate: 60 * 60 * 24 * 30,
         tags: [`gh-contents:${owner}/${repo}:${path}`],
       },
     },

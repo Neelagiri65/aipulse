@@ -44,7 +44,7 @@ export type GlobeEventsResult = {
 };
 
 const TEAL = "#2dd4bf"; // AI-config detected
-const WHITE = "#ffffff"; // no AI config
+const WHITE = "#cbd5e1"; // no AI config — soft slate, not harsh pure white
 
 /**
  * Only consider event types that plausibly indicate active coding work.
@@ -57,20 +57,29 @@ const RELEVANT_TYPES = new Set([
   "ReleaseEvent",
 ]);
 
-const WINDOW_MINUTES = 15;
+const WINDOW_MINUTES = 60;
 const WINDOW_MS = WINDOW_MINUTES * 60 * 1000;
-const WINDOW_CAP = 1000; // hard upper bound to prevent runaway memory
+const WINDOW_CAP = 5000; // hard upper bound to prevent runaway memory
 
 type CachedPoint = GlobePoint & { firstSeenAt: number };
 
 /**
  * Module-scoped rolling window. Survives across requests within one warm
- * Node serverless instance (~5–15 min of warmth on Vercel). Each instance
- * has its own cache — that's fine: the Globe shows a dense recent view
- * from whichever instance the client hits. Cold starts rebuild over ~5
- * min of polling. Single-threaded JS guarantees no concurrent-write races.
+ * Node serverless instance. Each instance has its own cache — that's fine:
+ * the Globe shows a dense recent view from whichever instance the client
+ * hits. Single-threaded JS guarantees no concurrent-write races.
  */
 const eventCache = new Map<string, CachedPoint>();
+
+/**
+ * Permanent per-instance cache of AI-config status, keyed by "owner/repo".
+ * Repos rarely toggle AI tooling, so caching until process death is a
+ * correctness-preserving speedup — and it means the Contents API probe is
+ * only paid once per repo per warm instance, not once per 24h. This is the
+ * big unblock for globe density: we stop re-probing repos we've already
+ * classified, so the probing phase becomes near-free after warm-up.
+ */
+const aiConfigCache = new Map<string, boolean>();
 
 function pruneAndCap(now: number) {
   for (const [id, entry] of eventCache) {
@@ -143,36 +152,42 @@ export async function fetchGlobeEvents(): Promise<GlobeEventsResult> {
   // Filter to events we can place on the globe.
   const placeable = relevant.filter((e) => locationByLogin.has(e.actor.login));
 
-  // Probe AI config for each UNIQUE repo among placeable events (cached 24h
-  // per path per repo).
+  // Probe AI config for unique repos we haven't classified yet. Any repo
+  // already in aiConfigCache is skipped entirely — that's the unblock that
+  // lets polling stay cheap as the cache fills.
   const uniqueRepos = Array.from(new Set(placeable.map((e) => e.repo.name)));
-  const configByRepo = new Map<string, boolean>();
+  const reposToProbe = uniqueRepos.filter((r) => !aiConfigCache.has(r));
   await Promise.all(
-    uniqueRepos.map(async (repoFullName) => {
+    reposToProbe.map(async (repoFullName) => {
       try {
         const signal = await probeAIConfig(repoFullName);
-        configByRepo.set(repoFullName, signal.hasAnyConfig);
+        aiConfigCache.set(repoFullName, signal.hasAnyConfig);
       } catch (err) {
+        // Don't poison the cache on a transient probe failure — leave the
+        // entry unset so the next poll retries. The event still gets emitted
+        // as white below; if the repo is truly AI-configured, a later probe
+        // will upgrade it via the backfill pass.
         failures.push({
           step: `probe-ai-config:${repoFullName}`,
           message: err instanceof Error ? err.message : String(err),
         });
-        configByRepo.set(repoFullName, false);
       }
     }),
   );
 
   // Build globe points from this poll and merge into the rolling cache.
+  // Repos whose probe hasn't resolved yet (failed, or brand new) render white;
+  // the backfill pass below recolours them once the cache catches up.
   let newThisPoll = 0;
   for (const event of placeable) {
     if (eventCache.has(event.id)) continue;
     const coords = locationByLogin.get(event.actor.login)!;
-    const hasConfig = configByRepo.get(event.repo.name) === true;
+    const hasConfig = aiConfigCache.get(event.repo.name) === true;
     eventCache.set(event.id, {
       lat: coords[0],
       lng: coords[1],
       color: hasConfig ? TEAL : WHITE,
-      size: hasConfig ? 0.8 : 0.5,
+      size: hasConfig ? 0.7 : 0.35,
       firstSeenAt: now,
       meta: {
         eventId: event.id,
@@ -185,6 +200,23 @@ export async function fetchGlobeEvents(): Promise<GlobeEventsResult> {
     });
     newThisPoll++;
   }
+
+  // Backfill: recolour any cached point whose repo has since been classified
+  // as AI-configured. Covers (a) events emitted before their probe resolved,
+  // (b) repos that 403'd on one poll and succeeded on a later one.
+  for (const [id, point] of eventCache) {
+    const repo = (point.meta as { repo?: string } | undefined)?.repo;
+    if (!repo) continue;
+    if (aiConfigCache.get(repo) !== true) continue;
+    if (point.color === TEAL) continue;
+    eventCache.set(id, {
+      ...point,
+      color: TEAL,
+      size: 0.7,
+      meta: { ...(point.meta ?? {}), hasAiConfig: true },
+    });
+  }
+
   pruneAndCap(now);
 
   const points = cachedPointsArray();

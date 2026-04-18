@@ -64,13 +64,15 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
           bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
           showAtmosphere
           atmosphereColor="#2dd4bf"
-          atmosphereAltitude={0.15}
+          atmosphereAltitude={0.12}
           pointsData={points}
           pointLat={(d) => (d as GlobePoint).lat}
           pointLng={(d) => (d as GlobePoint).lng}
           pointColor={(d) => (d as GlobePoint).color}
-          pointAltitude={0.02}
-          pointRadius={(d) => ((d as GlobePoint).size ?? 0.4) * 0.4}
+          pointAltitude={0.005}
+          pointRadius={(d) => ((d as GlobePoint).size ?? 0.3) * 0.18}
+          pointsMerge
+          pointsTransitionDuration={2500}
         />
       )}
 
@@ -86,7 +88,7 @@ function GlobeLegend() {
       <div className="mb-1.5 text-[9px] text-foreground/60">Dot legend</div>
       <ul className="space-y-1">
         <LegendRow color="#2dd4bf" label="Repo has AI config (CLAUDE.md / .cursorrules / …)" />
-        <LegendRow color="#ffffff" label="Public commit, no AI config detected" />
+        <LegendRow color="#cbd5e1" label="Public commit, no AI config detected" />
         <LegendRow color="#60a5fa" label="Tool migration signal (config rename within 7d)" />
         <LegendRow color="#f87171" label="Region affected by tool outage" />
       </ul>
@@ -99,7 +101,7 @@ function LegendRow({ color, label }: { color: string; label: string }) {
     <li className="flex items-center gap-2">
       <span
         className="inline-block h-2 w-2 rounded-full"
-        style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }}
+        style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}66` }}
         aria-hidden
       />
       <span>{label}</span>
