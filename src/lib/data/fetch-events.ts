@@ -47,14 +47,19 @@ const TEAL = "#2dd4bf"; // AI-config detected
 const WHITE = "#cbd5e1"; // no AI config — soft slate, not harsh pure white
 
 /**
- * Only consider event types that plausibly indicate active coding work.
- * Stars and forks are excluded as they spam the globe without signal.
+ * Event types considered for placement on the globe. PushEvent / PRs / issues
+ * / releases are direct coding signals; ForkEvent + WatchEvent (WatchEvent is
+ * the GitHub Events API's name for a star) are lower-signal but high-volume,
+ * so they densify the globe without overwhelming it — signal is still gated
+ * by the AI-config probe (white dot unless the repo has CLAUDE.md etc.).
  */
 const RELEVANT_TYPES = new Set([
   "PushEvent",
   "PullRequestEvent",
   "IssuesEvent",
   "ReleaseEvent",
+  "ForkEvent",
+  "WatchEvent",
 ]);
 
 const WINDOW_MINUTES = 60;
