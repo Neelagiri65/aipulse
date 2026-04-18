@@ -105,6 +105,11 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
   }, []);
 
   const clusters = useMemo(() => clusterPoints(points), [points]);
+  // Only clusters with >1 event get a numeric badge — keeps singleton dots clean.
+  const labeledClusters = useMemo(
+    () => clusters.filter((c) => c.count > 1),
+    [clusters],
+  );
   const hasData = points.length > 0;
 
   return (
@@ -127,6 +132,12 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
           pointRadius={(d) => (d as Cluster).size * 0.18}
           pointsMerge
           pointsTransitionDuration={2500}
+          htmlElementsData={labeledClusters}
+          htmlLat={(d) => (d as Cluster).lat}
+          htmlLng={(d) => (d as Cluster).lng}
+          htmlAltitude={0.02}
+          htmlElement={(d) => clusterLabelElement(d as Cluster)}
+          htmlTransitionDuration={1200}
         />
       )}
 
@@ -134,6 +145,44 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
       <GlobeStatus hasData={hasData} lastUpdatedAt={lastUpdatedAt} clusterCount={clusters.length} eventCount={points.length} />
     </div>
   );
+}
+
+function clusterLabelElement(c: Cluster): HTMLElement {
+  const el = document.createElement("div");
+  const isAi = c.aiCount > 0;
+  const count = c.count;
+  const border = isAi ? "rgba(45, 212, 191, 0.85)" : "rgba(148, 163, 184, 0.75)";
+  const glow = isAi ? "rgba(45, 212, 191, 0.35)" : "rgba(148, 163, 184, 0.25)";
+  const text = isAi ? "#ccfbf1" : "#e2e8f0";
+  const bg = isAi ? "rgba(15, 42, 39, 0.82)" : "rgba(15, 23, 28, 0.82)";
+  // Scale slightly by count: 2→smallest, 50+→largest.
+  const scale = Math.min(1.25, 0.9 + Math.log10(count) * 0.22);
+  const size = Math.round(22 * scale);
+  const fontSize = Math.round(10.5 + (scale - 0.9) * 4);
+  el.style.cssText = [
+    "pointer-events:none",
+    "position:relative",
+    "transform:translate(-50%,-120%)",
+    `width:${size}px`,
+    `height:${size}px`,
+    "border-radius:9999px",
+    "display:flex",
+    "align-items:center",
+    "justify-content:center",
+    `background:${bg}`,
+    `border:1px solid ${border}`,
+    `box-shadow:0 0 ${Math.round(12 * scale)}px ${glow}`,
+    `color:${text}`,
+    "font-family:var(--font-mono, ui-monospace, monospace)",
+    `font-size:${fontSize}px`,
+    "font-weight:600",
+    "line-height:1",
+    "font-variant-numeric:tabular-nums",
+    "backdrop-filter:blur(2px)",
+  ].join(";");
+  el.textContent = count > 99 ? "99+" : String(count);
+  el.setAttribute("aria-label", `${count} events in this region${isAi ? `, ${c.aiCount} with AI config` : ""}`);
+  return el;
 }
 
 function GlobeLegend() {
