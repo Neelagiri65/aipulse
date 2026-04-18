@@ -124,7 +124,7 @@ function Brand() {
         <span className="flex items-baseline gap-2">
           <span className="text-sm font-semibold tracking-tight">AI Pulse</span>
           <span className="ap-label-sm" style={{ color: "var(--sev-pending)" }}>
-            mvp · 3 tools
+            mvp · 5 tracked · 1 gap
           </span>
         </span>
         <span className="ap-label-sm hidden md:inline-block">

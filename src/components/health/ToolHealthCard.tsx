@@ -18,14 +18,17 @@ export function ToolHealthCard({ config, data }: ToolHealthCardProps) {
   const sourceUrl = primarySourceUrl(config);
 
   // State precedence:
-  // 1. Source unverified → grey "pending verification" state (strongest message)
+  // 0. Config flags no public source → "no-data" card (honest gap, no pill)
+  // 1. Source unverified → grey "pending verification" state
   // 2. Source verified but no data yet → amber "awaiting first poll"
   // 3. Source verified + data present → render the live reading
-  const mode: "pending" | "awaiting" | "live" = !sourcesVerified
-    ? "pending"
-    : data === undefined
-      ? "awaiting"
-      : "live";
+  const mode: "no-data" | "pending" | "awaiting" | "live" = config.noPublicSource
+    ? "no-data"
+    : !sourcesVerified
+      ? "pending"
+      : data === undefined
+        ? "awaiting"
+        : "live";
 
   return (
     <Card className="relative gap-3 border-border/60 bg-card/40 py-3 backdrop-blur-sm">
@@ -41,6 +44,7 @@ export function ToolHealthCard({ config, data }: ToolHealthCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3 px-3">
+        {mode === "no-data" && <NoDataBody config={config} />}
         {mode === "pending" && <PendingSourceBody />}
         {mode === "awaiting" && <AwaitingBody />}
         {mode === "live" && data && <LiveBody data={data} />}
@@ -50,14 +54,42 @@ export function ToolHealthCard({ config, data }: ToolHealthCardProps) {
         {mode === "live" && !config.incidentsApiAvailable && (
           <IncidentsApiUnavailable sourceUrl={sourceUrl} />
         )}
-        <SourceFooter
-          mode={mode}
-          data={data}
-          sourceUrl={sourceUrl}
-          sourceLabel={config.sourceIds[0]}
-        />
+        {mode !== "no-data" && (
+          <SourceFooter
+            mode={mode}
+            data={data}
+            sourceUrl={sourceUrl}
+            sourceLabel={config.sourceIds[0] ?? "n/a"}
+          />
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+function NoDataBody({ config }: { config: ToolConfig }) {
+  return (
+    <div className="rounded-md border border-border/40 bg-muted/20 p-2.5 text-[11px] leading-snug text-muted-foreground">
+      <p className="ap-label-sm" style={{ color: "var(--sev-pending)" }}>
+        No public source
+      </p>
+      <p className="mt-1">
+        {config.noSourceReason ??
+          "This tool has no publicly-hit-able status or issue endpoint. Card is shown so the gap is visible, not hidden."}
+      </p>
+      {config.publicPageUrl && (
+        <p className="mt-1.5">
+          <a
+            href={config.publicPageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+          >
+            {config.publicPageUrl.replace(/^https?:\/\//, "")}
+          </a>
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -132,7 +164,7 @@ export function SeverityPill({
   mode,
   status,
 }: {
-  mode: "pending" | "awaiting" | "live";
+  mode: "no-data" | "pending" | "awaiting" | "live";
   status?: ToolHealthStatus;
 }) {
   const { variant, label } = pillStyle(mode, status);
@@ -147,9 +179,10 @@ export function SeverityPill({
 type PillVariant = "outage" | "degrade" | "regress" | "op" | "info" | "pending";
 
 function pillStyle(
-  mode: "pending" | "awaiting" | "live",
+  mode: "no-data" | "pending" | "awaiting" | "live",
   status?: ToolHealthStatus,
 ): { variant: PillVariant; label: string } {
+  if (mode === "no-data") return { variant: "pending", label: "n/a" };
   if (mode === "pending") return { variant: "pending", label: "no source" };
   if (mode === "awaiting") return { variant: "degrade", label: "no data" };
   switch (status) {
@@ -232,7 +265,7 @@ function SourceFooter({
   sourceUrl,
   sourceLabel,
 }: {
-  mode: "pending" | "awaiting" | "live";
+  mode: "no-data" | "pending" | "awaiting" | "live";
   data?: ToolHealthData;
   sourceUrl?: string;
   sourceLabel: string;

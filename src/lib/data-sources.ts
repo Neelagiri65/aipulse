@@ -157,7 +157,7 @@ export const ANTHROPIC_STATUS: DataSource = {
 
 export const OPENAI_STATUS: DataSource = {
   id: "openai-status",
-  name: "OpenAI Status (ChatGPT + API)",
+  name: "OpenAI Status (summary)",
   category: "status-page",
   url: "https://status.openai.com",
   apiUrl: "https://status.openai.com/api/v2/summary.json",
@@ -168,13 +168,69 @@ export const OPENAI_STATUS: DataSource = {
   },
   auth: "none",
   measures:
-    "Current status and incidents for OpenAI-operated components, including ChatGPT and the OpenAI API.",
+    "Per-component status for every OpenAI-operated component including ChatGPT, the OpenAI API, Codex Web, Codex API, CLI, and the VS Code extension. summary.json returns `{page, status, components}` only — see `openai-incidents` for the incidents feed.",
   sanityCheck: {
     description:
-      "Same Statuspage.io v2 schema as Anthropic. `status.indicator` ∈ {none, minor, major, critical}.",
+      "Response must include a `components` array with entries named exactly `Codex Web` and `Codex API` (verified literals, 2026-04-18). If either is missing on a future poll, the affected card falls to graceful degradation.",
   },
   verifiedAt: "2026-04-18",
-  powersFeature: ["tool-health-openai-api"],
+  caveat:
+    "status.openai.com is a custom Next.js page, not Statuspage.io. It does NOT expose `incidents` in summary.json — that array is served separately at /api/v2/incidents.json (see `openai-incidents`).",
+  powersFeature: [
+    "tool-health-openai-api",
+    "tool-health-codex-web",
+    "tool-health-codex-api",
+  ],
+};
+
+export const OPENAI_INCIDENTS: DataSource = {
+  id: "openai-incidents",
+  name: "OpenAI Status (incidents)",
+  category: "status-page",
+  url: "https://status.openai.com",
+  apiUrl: "https://status.openai.com/api/v2/incidents.json",
+  responseFormat: "json",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "No documented limit. Poll every 5 min via edge cache.",
+  },
+  auth: "none",
+  measures:
+    "Array of OpenAI status-page incidents with `{id, name, status, created_at, resolved_at}`. Used to surface active incidents (status ∈ {investigating, identified, monitoring}) on OpenAI-powered cards — the field summary.json does not expose.",
+  sanityCheck: {
+    description:
+      "Response includes an `incidents` array. Each incident has `status` ∈ {investigating, identified, monitoring, resolved, postmortem}. Verified 2026-04-18: 25 historical incidents returned, 0 currently active.",
+  },
+  verifiedAt: "2026-04-18",
+  caveat:
+    "Closes the OpenAI incidents gap flagged in session 6.1. Independent of summary.json — poll both endpoints to build full card state.",
+  powersFeature: [
+    "tool-health-openai-api",
+    "tool-health-codex-web",
+    "tool-health-codex-api",
+  ],
+};
+
+export const WINDSURF_STATUS: DataSource = {
+  id: "windsurf-status",
+  name: "Windsurf Status",
+  category: "status-page",
+  url: "https://status.windsurf.com",
+  apiUrl: "https://status.windsurf.com/api/v2/summary.json",
+  responseFormat: "json",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "No documented limit. Poll every 5 min via edge cache.",
+  },
+  auth: "none",
+  measures:
+    "Overall page status and incidents for Windsurf (formerly Codeium). Full Statuspage.io v2 schema including an `incidents` array. status.codeium.com redirects here.",
+  sanityCheck: {
+    description:
+      "Statuspage.io v2 schema. `status.indicator` ∈ {none, minor, major, critical}. Response includes components (Cascade, Windsurf Tab, plus Netlify hosting plumbing) and an incidents array.",
+  },
+  verifiedAt: "2026-04-18",
+  powersFeature: ["tool-health-windsurf"],
 };
 
 // ---------------------------------------------------------------------------
@@ -235,9 +291,11 @@ export const GITHUB_STATUS: DataSource = {
   powersFeature: ["tool-health-copilot"],
 };
 
-// CURSOR_STATUS removed 2026-04-18 per user direction: "drop the Cursor status
-// card for now if there's no confirmed public status page endpoint. Trustworthiness
-// over completeness." Add back when a verified endpoint is found.
+// CURSOR: no public Statuspage endpoint; no public GitHub bug tracker
+// (getcursor org: 0 public repos; anysphere org hosts adjacent tooling but
+// not the Cursor editor bug tracker — verified 2026-04-18). The Cursor card
+// therefore renders in explicit no-data mode rather than silently showing
+// green. Reinstate metrics only when a verifiable public source appears.
 
 // ---------------------------------------------------------------------------
 // Exports
@@ -248,8 +306,10 @@ export const ALL_SOURCES: readonly DataSource[] = [
   GITHUB_CONTENTS,
   ANTHROPIC_STATUS,
   OPENAI_STATUS,
+  OPENAI_INCIDENTS,
   GITHUB_ISSUES_CLAUDE_CODE,
   GITHUB_STATUS,
+  WINDSURF_STATUS,
 ] as const;
 
 export const VERIFIED_SOURCES: readonly DataSource[] = ALL_SOURCES.filter(

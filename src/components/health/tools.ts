@@ -46,24 +46,46 @@ export type ToolHealthData = {
   lastKnownAt?: string;
 };
 
+export type ToolId =
+  | "claude-code"
+  | "copilot"
+  | "openai-api"
+  | "codex"
+  | "windsurf"
+  | "cursor";
+
 export type ToolConfig = {
-  id: "claude-code" | "copilot" | "openai-api";
+  id: ToolId;
   name: string;
   subtitle: string;
-  /** Source IDs this card relies on (in descending priority). */
+  /** Source IDs this card relies on (in descending priority). Empty for no-data cards. */
   sourceIds: string[];
   /**
    * False when the upstream status page does not expose an `incidents` array
-   * in its JSON API. We surface this on the card so a green pill is not
-   * silently hiding an unresolved incident the user could read on the public
-   * status page (e.g. OpenAI moved off Statuspage to a custom page that only
-   * exposes per-component status).
+   * via any endpoint we can consume. We surface this on the card so a green
+   * pill is not silently hiding an unresolved incident the user could read on
+   * the public status page.
    */
   incidentsApiAvailable: boolean;
+  /**
+   * True when no verifiable public source exists for this tool. The card
+   * renders an explicit "no public source" body rather than fabricating a
+   * status pill. Currently only Cursor.
+   */
+  noPublicSource?: boolean;
+  /**
+   * Public page the user can visit to see status manually. Used on no-data
+   * cards and as a fallback citation link.
+   */
+  publicPageUrl?: string;
+  /**
+   * Short explanation shown on no-data cards. Why the card exists despite
+   * lacking a verifiable source (so the gap is visible, not hidden).
+   */
+  noSourceReason?: string;
 };
 
-// Cursor intentionally omitted 2026-04-18 — no confirmed public status page.
-// Will be reinstated only when a verified endpoint is found.
+// Tool registry — order reflects card layout priority.
 export const TOOLS: readonly ToolConfig[] = [
   {
     id: "claude-code",
@@ -83,17 +105,40 @@ export const TOOLS: readonly ToolConfig[] = [
     id: "openai-api",
     name: "OpenAI API",
     subtitle: "OpenAI · hosted models",
-    sourceIds: ["openai-status"],
-    // status.openai.com is a custom Next.js page (not Statuspage.io). Its
-    // summary.json exposes per-component status only — no `incidents` array.
-    // We mark this honestly on the card so users know to check the public
-    // page for any ongoing incident the JSON can't show us.
+    // summary.json → status; incidents.json → active incidents. Both verified.
+    sourceIds: ["openai-status", "openai-incidents"],
+    incidentsApiAvailable: true,
+  },
+  {
+    id: "codex",
+    name: "OpenAI Codex",
+    subtitle: "OpenAI · Codex Web + Codex API",
+    sourceIds: ["openai-status", "openai-incidents"],
+    incidentsApiAvailable: true,
+  },
+  {
+    id: "windsurf",
+    name: "Windsurf",
+    subtitle: "Windsurf · IDE (formerly Codeium)",
+    sourceIds: ["windsurf-status"],
+    incidentsApiAvailable: true,
+  },
+  {
+    id: "cursor",
+    name: "Cursor",
+    subtitle: "Anysphere · IDE",
+    sourceIds: [],
     incidentsApiAvailable: false,
+    noPublicSource: true,
+    publicPageUrl: "https://status.cursor.com",
+    noSourceReason:
+      "No public status API and no public GitHub issue tracker. Card is surfaced so the gap is visible, not hidden.",
   },
 ] as const;
 
 /** True when every source this card depends on is verified in data-sources.ts. */
 export function allSourcesVerified(tool: ToolConfig): boolean {
+  if (tool.sourceIds.length === 0) return false;
   return tool.sourceIds.every((id) => {
     const src = getSourceById(id);
     return src !== undefined && src.verifiedAt !== "";
@@ -102,6 +147,7 @@ export function allSourcesVerified(tool: ToolConfig): boolean {
 
 /** Primary (status) source URL for the citation link. */
 export function primarySourceUrl(tool: ToolConfig): string | undefined {
+  if (tool.sourceIds.length === 0) return tool.publicPageUrl;
   const src = getSourceById(tool.sourceIds[0]);
   return src?.url;
 }

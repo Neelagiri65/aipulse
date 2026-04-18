@@ -49,17 +49,32 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - **Powers:** Tool health card — Claude Code · Tool health card — Claude API
 - **Last verified:** 2026-04-18
 
-### OpenAI Status (ChatGPT + API)
+### OpenAI Status — summary
 - **ID:** `openai-status`
 - **Public URL:** https://status.openai.com
 - **API endpoint:** `https://status.openai.com/api/v2/summary.json`
-- **Response format:** JSON (Statuspage.io v2 schema)
+- **Response format:** JSON (Statuspage.io v2-compatible for `page`, `status`, `components` — but note caveat)
 - **Update frequency:** Minutely (polled every 5 minutes via edge cache)
 - **Rate limit:** None documented; polling budgeted to 5-minute intervals
 - **Auth:** None
-- **What it measures:** Current status and incidents for OpenAI-operated components including ChatGPT and the OpenAI API.
-- **Sanity check:** Same Statuspage.io v2 schema as Anthropic.
-- **Powers:** Tool health card — OpenAI API
+- **What it measures:** Per-component status for every OpenAI-operated component. Verified components (2026-04-18) include `Login`, `Responses`, `Fine-tuning`, `Images`, `Batch`, `Audio`, `Moderations`, `Sora`, `Conversations`, `Voice mode`, `Agent`, `Connectors/Apps`, `Codex Web`, `App`, `Codex API`, `CLI`, `VS Code extension`, `Compliance API`, `Video viewing`, `ChatGPT Atlas`, `Video generation`, `Feed`, `Image Generation`, `FedRAMP`.
+- **Sanity check:** Response must include a `components` array containing entries named exactly `Codex Web` and `Codex API` (verified literals). Absence of either falls the affected card to graceful degradation.
+- **Caveat:** `status.openai.com` is a custom Next.js page, not Statuspage.io. summary.json returns `{page, status, components}` only — it does NOT include an `incidents` array. That feed lives at a separate endpoint; see `openai-incidents`.
+- **Powers:** Tool health card — OpenAI API · Tool health card — OpenAI Codex (worst-of `Codex Web` + `Codex API`)
+- **Last verified:** 2026-04-18
+
+### OpenAI Status — incidents
+- **ID:** `openai-incidents`
+- **Public URL:** https://status.openai.com
+- **API endpoint:** `https://status.openai.com/api/v2/incidents.json`
+- **Response format:** JSON (`{page, incidents[]}`)
+- **Update frequency:** Minutely (polled every 5 minutes via edge cache)
+- **Rate limit:** None documented; polling budgeted to 5-minute intervals
+- **Auth:** None
+- **What it measures:** OpenAI status-page incidents — historical and active. Each entry exposes `{id, name, status, created_at, resolved_at}`. Active incidents are those with `status ∈ {investigating, identified, monitoring}`.
+- **Sanity check:** Verified 2026-04-18: 25 incidents returned, 0 currently active. Active-count of zero is normal; the card surfaces active ones only.
+- **Caveat:** Fills the gap flagged in session 6.1 — OpenAI's `summary.json` omits the `incidents` array, but this sibling endpoint still exposes it. Poll both endpoints to build full card state.
+- **Powers:** Tool health card — OpenAI API · Tool health card — OpenAI Codex (active-incident list)
 - **Last verified:** 2026-04-18
 
 ### GitHub Issues — anthropics/claude-code
@@ -89,13 +104,28 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - **Powers:** Tool health card — GitHub Copilot
 - **Last verified:** 2026-04-18
 
+### Windsurf Status
+- **ID:** `windsurf-status`
+- **Public URL:** https://status.windsurf.com
+- **API endpoint:** `https://status.windsurf.com/api/v2/summary.json`
+- **Response format:** JSON (Statuspage.io v2 schema)
+- **Update frequency:** Minutely (polled every 5 minutes via edge cache)
+- **Rate limit:** None documented
+- **Auth:** None
+- **What it measures:** Overall page status and incidents for Windsurf (formerly Codeium). Components include `Cascade`, `Windsurf Tab`, plus the underlying Netlify hosting stack. `status.codeium.com` 302-redirects to this page.
+- **Sanity check:** Statuspage.io v2. `status.indicator` ∈ {none, minor, major, critical}. Verified 2026-04-18: `indicator="none"`, all components operational.
+- **Powers:** Tool health card — Windsurf
+- **Last verified:** 2026-04-18
+
 ---
 
-## Dropped / not yet sourced
+## Tracked without a verifiable source (gap surfaced, not hidden)
 
 ### Cursor
-- **Status (2026-04-18):** No confirmed public Statuspage endpoint. `status.cursor.com` was speculative and has been removed from the registry to protect the trust contract ("trustworthiness over completeness").
-- **Reinstatement criterion:** A publicly hit-able status endpoint with a stable JSON schema. When found, add to `data-sources.ts` and re-add the Cursor health card to `TOOLS`.
+- **Status (2026-04-18):** No public Statuspage endpoint and no public GitHub issue tracker. The `getcursor` GitHub org is empty (0 public repos) and `anysphere` hosts adjacent tooling but not the Cursor editor's bug tracker. Checked 2026-04-18.
+- **Public page:** https://status.cursor.com (human-readable only; no JSON API).
+- **Why we still show the card:** To keep the gap visible. A dashboard that silently omits Cursor reads as "Cursor is not an AI coding tool worth tracking", which is wrong. An explicit "no public source" card is more honest than a missing one.
+- **Reinstatement criterion:** A publicly hit-able endpoint with a stable JSON schema (Statuspage v2 ideally), OR a public issue tracker with `total_count` via the GitHub Search API. When found, add to `data-sources.ts` and drop `noPublicSource: true` from the Cursor entry in `TOOLS`.
 
 ---
 
@@ -106,4 +136,4 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - Any source that returns data outside its sanity-check range is treated as broken — the affected feature falls back to graceful degradation, and the discrepancy is investigated before the metric returns to the UI.
 - Widening a sanity-check range after verification is allowed and must be documented (see `gh-issues-claude-code` caveat). Recalibrating a range to chase a narrative is forbidden.
 
-_Last updated: 2026-04-18_
+_Last updated: 2026-04-18 (session 7 — added Windsurf, OpenAI incidents endpoint, Codex component mapping; promoted Cursor from "dropped" to "tracked gap")_
