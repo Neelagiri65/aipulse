@@ -32,6 +32,12 @@ function SiteHeader() {
           <span>{VERIFIED_SOURCES.length} sources verified</span>
           <span>{PENDING_SOURCES.length} pending</span>
           <a
+            href="/audit"
+            className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+          >
+            audit
+          </a>
+          <a
             href="/data-sources.md"
             className="underline decoration-dotted underline-offset-2 hover:text-foreground"
             target="_blank"
