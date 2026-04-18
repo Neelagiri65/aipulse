@@ -2,32 +2,81 @@
 
 ## Current state (2026-04-18)
 
-### Session 5 — globe density + calmer dots · awaiting user review
+### Session 6 — wmsample design system port · awaiting user review
 
-**User report going in:**
-> Only 20-25 dots visible; the globe looks broken. Dots pulsing is causing eye strain — want something like a World Monitor style, calm but alive.
+**User request going in (`/session-start`):**
+> Implement the AI Pulse design system from `~/aipulse/wmsample/` over the
+> existing dashboard. Floating draggable panels, clustered globe dots,
+> severity-coded badges, fractal background + cursor-tracking glow, softer
+> typography, World Monitor layout. Do NOT rebuild — upgrade the existing
+> components. Data layer (status API, globe events, /audit) is correct, only
+> change the visual layer. Deploy after each major change.
 
-**Done this session:**
-- **4× rolling window + near-zero steady-state probe cost.**
-  - `WINDOW_MINUTES` 15 → 60, cap 1000 → 5000. With a sustained ~10 placeable events per 30s poll, the window now accumulates ~200-400+ unique points at steady state instead of ~12-25.
-  - New module-scoped `aiConfigCache` (`Map<owner/repo, boolean>`) that persists for the serverless instance lifetime. Every subsequent poll skips the Contents-API probe for any repo already classified. Probing cost after warm-up is dominated by brand-new repos only.
-  - Contents-API `next.revalidate` 24h → 30d. Repos don't toggle `CLAUDE.md` / `.cursorrules` hourly.
-  - Backfill pass on every poll recolours any cached point whose repo has since been classified as AI-configured. Covers (a) events emitted before their probe resolved, (b) repos that 403'd transiently and succeeded later.
-  - Commit `d2a75c1`.
-- **Calmer dots.**
-  - `pointRadius` halved (0.4× → 0.18× multiplier); default sizes 0.5/0.8 → 0.35/0.7.
-  - `pointAltitude` 0.02 → 0.005 — dots sit flush with the globe surface, no longer float.
-  - `atmosphereAltitude` 0.15 → 0.12.
-  - White dots softened to slate `#cbd5e1` — readable on dark globe, no harsh glare.
-  - `pointsTransitionDuration={2500}` — dots fade in smoothly instead of popping on each poll.
-  - Legend swatch halo halved + 60% alpha to match.
-  - Commit `d2a75c1`.
+**Done this session — Pass 1 (commit `6499ca7`):**
+- **Fonts.** Inter/Geist → DM Sans (sans) + JetBrains Mono (mono) via
+  `next/font/google`. Wired into `--font-dm-sans` / `--font-jetbrains-mono`,
+  consumed by `--font-sans` / `--font-mono` tokens.
+- **Stage background.** New `.ap-stage-bg` (cool `#06080a` base + warm radial
+  vignettes + SVG fractalNoise data-uri at opacity 0.30 mix-blend-mode
+  overlay). Fixed inset, z-index 0. Lives behind every page.
+- **Cursor-tracking glow.** New `<CursorGlow />` client component sets
+  `--ap-mx`/`--ap-my` on `<html>` from mousemove; CSS `.ap-cursor-glow` paints
+  a 720×720 warm-orange radial gradient at the cursor with `mix-blend-mode:
+  screen`. Sits at z-index 1, above stage, below content.
+- **Floating window chrome.** New `<Win />` component — draggable + resizable +
+  min/max/close, z-order tracking, restores prev pos on max → restore. CSS
+  `.ap-win`, `.ap-win__titlebar`, `.ap-win__buttons`, `.ap-win__resize`.
+- **Top bar.** New `<TopBar />` — brand (teal pulsing dot + wordmark + tagline),
+  nav tabs (Live / Audit / Sources), severity summary derived from real
+  `/api/status` data (falls back to `—` if status not loaded — never fakes
+  zeros), source count, UTC clock via `useUtcClock()`.
+- **Left nav.** New `<LeftNav />` overlay bottom-left with category list (wire,
+  tools, audit) + count badges. CSS `.ap-leftnav`, `.ap-leftnav__item`,
+  `.ap-leftnav__count`.
+- **Dashboard refactor.** Removed the static 320/1fr/360 grid. Globe now
+  full-bleed in an absolute-positioned section; LiveFeed and HealthCardGrid
+  live inside floating Win panels (initial pos: wire 24/76, tools right-edge);
+  LeftNav overlay bottom-left; MetricTicker at bottom.
+- **Component re-fit.** LiveFeed lost its fixed-height aside wrapper (now
+  `flex h-full min-h-0 flex-col p-3`). HealthCardGrid lost `sm:grid-cols-2`
+  (single column inside narrow floating panel).
+- **Build hygiene.** `tsconfig.json` excludes `wmsample/`; `.gitignore`
+  ignores `wmsample/` (the Vite handoff bundle is reference, not part of the
+  build).
+- Live deploy: https://aipulse-pi.vercel.app at commit `6499ca7`.
 
-**Live prod verification (fresh instance, 1 poll after deploy):**
-- `/api/globe-events` returned `coverage.windowMinutes: 60`, `windowSize: 10`, `eventsReceived: 88`, `locationCoveragePct: 11%`, failures `0`.
-- 10 points: 2 teal, 8 slate. Expect window to grow to 200+ over ~10-20 min of continuous polling.
+**Done this session — Pass 2 (commit `57e909a`):**
+- **Globe clustering.** New `clusterPoints()` in `Globe.tsx`. 4° lat/lng grid
+  collapses overlapping events into weighted clusters; size scales with
+  `log2(1 + count)` (cap 1.6×). Bucket colour is TEAL if any event in the
+  bucket has AI config, else SLATE. Visual aggregation only — underlying point
+  count, classification, and metadata unchanged.
+- **Globe status overlay.** Now reads `Live · {clusters} cluster · {events} evt
+  · {timestamp}` so density at a glance reflects both physical clusters on the
+  globe and the raw window count.
+- **Severity pills.** Single source of truth — `.ap-sev-pill--{op|degrade|
+  regress|outage|info|pending}` already lived in globals.css. This pass wires
+  every status surface to it:
+  - `ToolHealthCard` — `<StatusDot />` → `<SeverityPill />`. `partial_outage`
+    → `regress`, `major_outage` → `outage`, `degraded` → `degrade`,
+    `operational` → `op`, awaiting → `degrade`, no source → `pending`.
+  - `LiveFeed` rows — coloured dot → `ap-sev-pill--info` (ai-cfg) /
+    `ap-sev-pill--pending` (no-cfg). Timestamps + event types use
+    `ap-label-sm`.
+- **Card padding pass.** ToolHealthCard now `py-3` outer + `px-3` inner — fits
+  the narrow floating panel without horizontal scroll.
+- Build: `next build` clean (1.7s compile, 1.3s typecheck, 5/5 pages).
+- Live deploy: pushed to `main` at commit `57e909a`. Verify at
+  https://aipulse-pi.vercel.app once Vercel finishes building.
 
-**Honesty audit:** no data fabricated; dots that can't be classified still render as white (slate) instead of being dropped; cache is a cost optimisation not a signal change.
+**Honesty audit (both passes):**
+- TopBar severity counts derived from real `/api/status`, never fabricated.
+  Falls back to `—` if status not loaded.
+- Globe clustering is visual aggregation only — no events invented, no
+  classification altered, coverage % unchanged in the API.
+- LeftNav `count` and `hot` badges are wired to real `events.coverage.windowSize`
+  and real status data; nothing hardcoded.
+- No fake ticker rows, no synthetic globe seeds, no LLM-inferred status.
 
 ## Auditor checkpoints
 
@@ -37,43 +86,93 @@
 | 2 | Globe renders with real data + health cards show live status | REACHED (session 2) | |
 | 2.1 | OpenAI fix · rolling window · 6-metric ticker · lean cards | REACHED (session 3) | |
 | 2.2 | Geocoder expansion + `/audit` page | REACHED (session 4) | |
-| 2.3 | 60m window · permanent config cache · calmer visuals | **REACHED — awaiting user review** | Density uplift verifiable at next poll snapshot |
+| 2.3 | 60m window · permanent config cache · calmer visuals | REACHED (session 5) | |
+| 2.4 | wmsample design system port — fonts, fractal bg, floating panels, globe clustering, severity pills | **REACHED — awaiting user review** | Visual layer only; data pipeline untouched |
 | 3 | Pre-launch review | NOT STARTED | |
 
 ## Open items — for review or next session
 
-1. **Cold-start density.** The `aiConfigCache` and `eventCache` both reset on a new serverless instance. A cold globe will look thin for ~10-20 min of polling. When traffic justifies it: move these to Upstash Redis (free tier: 10k cmd/day, shared across instances) or pre-seed on module init with a synchronous first poll.
-2. **Staleness trade-off for 30-day Contents cache.** A repo that adds `CLAUDE.md` mid-window won't reflect until the next cold start (or until it's manually invalidated). Acceptable for an aggregator; not acceptable for a per-repo audit timeline if that ever ships.
-3. **Coverage still ~11-15%.** Session 4 geocoder expansion took us off the floor; the next lever is ISO country-code matching ("DE" → Germany), diacritic normalisation, and a hand-curated alias list ("Bay Area", "NCR"). Discrete PR.
-4. **Event-type filter still excludes stars/forks/watches.** Deliberate (they spam without signal), but if density still feels thin after 60-min steady state, relaxing to include `ForkEvent`/`WatchEvent` would roughly double the raw funnel.
-5. **Preview env still missing `GH_TOKEN`** — set before the first PR preview is relied on.
-6. **`~/.secrets/populate-env.sh` doesn't know about `aipulse`** — extend with a branch that writes `GH_TOKEN` to `~/aipulse/.env.local`. Blocks local API-route dev.
-7. **Globe texture still on unpkg** — self-host before public launch.
-8. **`GEMINI_API_KEY`** — not needed unless `/audit` deep scan opt-in ships.
-9. **Upstash Redis not provisioned** — see item #1.
+1. **Visual review of pass 2.** Confirm: (a) clusters read as denser without
+   feeling fake, (b) severity pills are legible at the small font size on the
+   tools panel, (c) no dot grouping lies (e.g. trans-Atlantic clusters merging
+   USA + Europe — at 4° they shouldn't, but verify on a wide window).
+2. **Cluster click-through / hover.** Current globe shows `pointsMerge` so the
+   clusters lose individual hover targets. If we want click-to-see-events-in-
+   region, drop `pointsMerge` and add `onPointClick` that opens a side panel
+   listing the bucket's underlying events. Discrete PR.
+3. **Window persistence.** Floating panel positions reset every page load. If
+   the user values their layout, persist `panels` + `zorder` + `initialPos` to
+   `localStorage`. Discrete PR.
+4. **MetricTicker styling.** Pass 2 left it on the original tone classes
+   (`text-emerald-400` etc.). Could swap to `.ap-sev-pill` for the value chip
+   and tighten spacing. Cosmetic, not blocking.
+5. **/audit page** still uses pre-redesign chrome — the new TopBar + stage bg
+   are visible (since they're in `layout.tsx`), but `/audit` itself wasn't
+   restyled this session. Worth a third pass before launch.
+6. **Self-host globe texture** (carryover from session 5).
+7. **Coverage still ~11–15%** (carryover from session 5). Geocoder ISO-code +
+   alias expansion is still a discrete win.
+8. **`~/.secrets/populate-env.sh` doesn't know about `aipulse`** (carryover).
+9. **Preview env still missing `GH_TOKEN`** (carryover).
 
 ## Decisions made without Auditor sign-off — flag for review
 
-- **30-day Contents-API revalidate.** Trade-off documented above. The counter-argument is that an aggregator that lags real-world tool adoption by up to 30 days can no longer be called "real-time" — but since the dashboard's actual claim is event-level recency (per-poll refresh), and AI-config classification is a secondary layer, 30d feels safe. Reverting to 24h is a one-line change if needed.
-- **Process-lifetime `aiConfigCache`.** Same trade-off; same one-line revert.
-- **Slate (`#cbd5e1`) for "no AI config".** Technically editorialises by making the non-AI signal visually subordinate to the AI signal (which is brighter teal). Counter-argument: pure-white dots on a dark globe were causing actual eye strain per user report, so the call is readability-first.
+- **4° lat/lng clustering bucket size.** Smaller (2°) keeps more clusters
+  separate but loses density signal; bigger (8°) merges across countries which
+  could read as misleading. 4° feels like the sweet spot but is a judgment
+  call.
+- **Cluster colour = `aiDominant ? TEAL : SLATE`** (pure-AI logic). A bucket
+  with 1 AI + 99 non-AI shows teal — could over-claim AI saturation. Counter:
+  any teal in a region IS a real AI-config signal in that region. Counter-
+  counter: a "weighted average" colour (lerp by AI ratio) would be more honest.
+  Flagged for review; one-line change to swap.
+- **Severity pill colour mapping.** `partial_outage` → `regress` (yellow) and
+  `major_outage` → `outage` (red) — chosen because the design system only
+  defines six pill variants. Statuspage.io has two distinct outage tiers; we
+  collapse the visual but keep the label. Acceptable.
 
 ## Environment notes
 - Prod URL: **https://aipulse-pi.vercel.app**
 - Deploy: push to `main` via connected GitHub integration.
 - `GH_TOKEN` on Vercel: Production + Development.
-- Latest commit on main: `d2a75c1 feat(globe): 60m window + permanent repo-config cache + calmer dots`.
+- Latest commits on main:
+  - `57e909a feat(design): wmsample design system pass 2 — globe clustering + severity pills`
+  - `6499ca7 feat(design): wmsample design system pass 1 — fonts, fractal bg, floating panels`
 
 ## Next action (on resume)
-1. Open the live dashboard after ~10-20 min of warm polling and visually confirm: (a) 200+ dots, (b) they no longer feel jarring, (c) teal-vs-slate ratio feels honest.
-2. If density still looks thin, pull open item #4 (include `ForkEvent`/`WatchEvent`) or item #1 (Upstash-backed shared window).
-3. Populate `.env.local` via extended `populate-env.sh` branch (item #6).
-4. Phase 1 closeout: self-host globe texture (item #7), decide whether `audit-catalogue` needs a registry entry, then Checkpoint 3 (pre-launch review).
+1. Open https://aipulse-pi.vercel.app and visually verify pass 2: clustering
+   density, severity pill legibility, top bar / left nav fit, no scroll bugs
+   inside floating panels.
+2. If layout reads well, address open item #5 (`/audit` restyle) and item #4
+   (MetricTicker pill styling) for visual consistency. Then Checkpoint 3.
+3. If cluster colour rule reads as misleading (open item flagged), switch
+   `aiDominant` to a weighted-average lerp.
+4. Phase 1 closeout: items #6 (self-host texture), #7 (geocoder ISO codes), then
+   pre-launch review (Checkpoint 3).
 
-## Files changed this session (session 5)
-Modified (3):
-- `src/lib/data/fetch-events.ts` — 60m window, aiConfigCache, probe skip, colour backfill.
-- `src/lib/github.ts` — pathExists revalidate 24h → 30d.
-- `src/components/globe/Globe.tsx` — smaller/softer dots, slower transitions, legend glow halved.
+## Files changed this session (session 6)
+Created (4):
+- `src/components/chrome/CursorGlow.tsx`
+- `src/components/chrome/TopBar.tsx`
+- `src/components/chrome/Win.tsx`
+- `src/components/chrome/LeftNav.tsx`
 
-Commit: `d2a75c1`.
+Modified (8):
+- `src/app/globals.css` — design system tokens, stage bg, cursor glow,
+  severity pills, window chrome, left nav, typography utilities.
+- `src/app/layout.tsx` — DM Sans + JetBrains Mono, stage bg + cursor glow
+  wrappers.
+- `src/app/page.tsx` — removed SiteHeader (TopBar lives in Dashboard now).
+- `src/components/dashboard/Dashboard.tsx` — full refactor to floating-panel
+  stage with TopBar, LeftNav, MetricTicker.
+- `src/components/dashboard/LiveFeed.tsx` — root chrome dropped (now lives
+  inside Win); rows use `ap-sev-pill`.
+- `src/components/health/HealthCardGrid.tsx` — single column for narrow panel.
+- `src/components/health/ToolHealthCard.tsx` — `SeverityPill`, tightened
+  padding.
+- `src/components/globe/Globe.tsx` — 4° clustering, log-scaled cluster size,
+  cluster + event count in status overlay.
+- `tsconfig.json` — exclude `wmsample/`.
+- `.gitignore` — ignore `/wmsample`.
+
+Commits: `6499ca7` (pass 1), `57e909a` (pass 2).
