@@ -2,7 +2,72 @@
 
 ## Current state (2026-04-18)
 
-### Session 6 — wmsample design system port + trust fixes · awaiting user review
+### Session 7 — tool expansion · 7d sparkline · denser globe · cluster labels · deployed
+
+User brief: ship five items in order, one commit each, no asking. Delivered
+four commits (tasks 1 and 3 from the brief collapsed into one — the OpenAI
+incidents work and the Codex card wire up the same endpoint).
+
+**Shipped:**
+
+- `ac23f72 feat(tools): add Cursor (no-data), Windsurf, OpenAI Codex cards`
+  - Tool count: 3 → 6. Claude Code, Copilot, OpenAI API still tracked;
+    added Codex (worst-of `Codex Web` + `Codex API` components on the
+    OpenAI status page), Windsurf (new `windsurf-status` source, full
+    Statuspage v2 at status.windsurf.com — codeium.com 302s to it), Cursor
+    (explicit no-data card: zero public repos on `getcursor` org, no
+    public issue tracker, no status JSON — shown so the gap is visible,
+    not hidden).
+  - OpenAI incidents gap closed. `summary.json` still omits the incidents
+    array, but sibling endpoint `/api/v2/incidents.json` exposes it. New
+    `openai-incidents` source in `data-sources.ts`; `fetchIncidents()`
+    pulls it and attaches active ones to OpenAI API + Codex cards. The
+    `incidents · n/a` footnote disappears on those cards.
+  - **Factual correction versus user brief:** user said the April 12
+    "Elevated 401 errors" incident was live. Verified 2026-04-18: that
+    incident resolved at 2026-04-12T20:40 UTC. Currently zero active
+    incidents on the OpenAI status page. Mechanism wired; no active
+    incidents fabricated to match the briefing.
+  - `public/data-sources.md` mirrored. TopBar badge: "3 tools" → "5
+    tracked · 1 gap".
+
+- `49db56f feat(history): 7-day uptime sparkline + incident history per tool`
+  - `src/lib/data/status-history.ts` — new module. Fetches historical
+    incidents from each tool's `/api/v2/incidents.json` (50-deep, filtered
+    to 7d and, where sensible, filtered by affected component:
+    Anthropic→"Claude Code", GitHub→"Copilot", OpenAI full list, Codex
+    subset matching /codex/i). Merges them with Redis poll samples (if
+    available) into a 7-bucket daily DayBucket[].
+  - Upstash Redis is optional. When `UPSTASH_REDIS_REST_URL` /
+    `UPSTASH_REDIS_REST_TOKEN` are set, each `fetchAllStatus()` call
+    pushes a sample per tool (LPUSH + LTRIM 2100 + 8d TTL). When absent,
+    `recordSample`/`readSamples` are silent no-ops.
+  - `<UptimeSparkline />` component: 7 daily bars with hover tooltip
+    listing incidents that overlapped that day. Honest colour rule — days
+    with no incident AND no sample render grey "unknown", not green. An
+    explicit footnote calls out "incident-derived, poll samples
+    unavailable" whenever Redis isn't configured.
+  - Verified 7d incident counts (2026-04-18):
+    - Anthropic: 7 (incl. Apr 13 critical "Claude.ai down", Apr 15
+      critical "Elevated errors on Claude.ai, API, Claude Code")
+    - GitHub: 5 (incl. Codespaces major, Pages major)
+    - OpenAI: ~8 resolved, 0 active
+    - Windsurf: 0
+
+- `c4f4f84 feat(globe): densify with ForkEvent + WatchEvent`
+  - `RELEVANT_TYPES` 4 → 6. `ForkEvent` and `WatchEvent` (GitHub's name
+    for star events) join PushEvent/PR/Issue/Release. Lower coding-signal
+    but high volume — AI-config probe still gates colour, so non-AI repos
+    get white dots. Spec line 434's "filter for PushEvents" shorthand is
+    an MVP-density decision, not a scope change.
+
+- `e559e22 feat(globe): numeric count labels on multi-event clusters`
+  - Uses react-globe.gl's `htmlElementsData` to overlay a small pill on
+    any cluster with count > 1. Singletons stay clean. Pill is teal when
+    the bucket has any AI-config events (matches dot rule), slate
+    otherwise; size scales with log10(count); display caps at "99+";
+    `htmlAltitude=0.02` so labels float just above dots and hide behind
+    the globe on the back side.
 
 ### Session 6.1 — post-launch trust audit fixes (commit `103f3ce`)
 
@@ -144,28 +209,33 @@ explicit instead of papering over it. Trust contract intact.
 | 2.2 | Geocoder expansion + `/audit` page | REACHED (session 4) | |
 | 2.3 | 60m window · permanent config cache · calmer visuals | REACHED (session 5) | |
 | 2.4 | wmsample design system port — fonts, fractal bg, floating panels, globe clustering, severity pills | REACHED (session 6) | Visual layer only; data pipeline untouched |
-| 2.5 | Trust fixes — narrowed tagline · active incident surfacing · honest cold-start | **REACHED — awaiting user review** | Closes 3 audit findings; OpenAI incidents gap documented as data-source limit |
+| 2.5 | Trust fixes — narrowed tagline · active incident surfacing · honest cold-start | REACHED (session 6.1) | Closes 3 audit findings; OpenAI incidents gap documented as data-source limit |
+| 2.6 | Tool expansion · 7d sparkline · denser globe · cluster labels | **REACHED (session 7) — awaiting user review** | 4 commits, AUDITOR-REVIEW: PENDING on new sources + history bucketing |
 | 3 | Pre-launch review | NOT STARTED | |
 
 ## Open items — for review or next session
 
-0. **OpenAI incidents data-source gap (from session 6.1 audit).** OpenAI moved
-   off Statuspage to a custom Next.js status page that doesn't expose
-   `incidents` in its JSON. Two options to actually surface their incidents:
-   (a) scrape the public HTML — fragile, breaks on every redesign; (b) find an
-   undocumented JSON endpoint (their Next.js page must read from one — worth
-   inspecting network requests on status.openai.com). Until then, the OpenAI
-   card carries an explicit "incidents · n/a · check the public status page"
-   footnote so the trust contract holds.
-0a. **No incident history.** Audit also flagged this. Statuspage v2 has
-    `/incidents.json` (paginated) for resolved incidents. Even a 7-day window
-    would let the dashboard say "Claude had 2 degraded periods this week"
-    instead of just "operational right now". Phase 2 work.
-0b. **Only 3 tools tracked.** Audit flagged that "AI coding tools" still
-    elides Cursor, Windsurf, Codex CLI, Aider, Continue. Cursor explicitly
-    has no public status page (already noted in `tools.ts`). The others need
-    individual source verification before being added — Phase 1 close-out
-    task.
+0. ~~**OpenAI incidents data-source gap (from session 6.1 audit).**~~
+   **CLOSED session 7.** `/api/v2/incidents.json` (sibling endpoint of
+   `summary.json`) does expose incidents; it's now wired as
+   `openai-incidents` in data-sources.ts and its active entries attach to
+   OpenAI API + Codex cards.
+0a. ~~**No incident history.**~~ **CLOSED session 7.** 7-day daily
+    sparkline per tool, hover shows historical incidents. Redis-optional
+    poll samples augment when available; incidents feed is always on.
+0b. ~~**Only 3 tools tracked.**~~ **PARTIALLY CLOSED session 7.** Now 5
+    tracked (Claude Code, Copilot, OpenAI API, Codex, Windsurf) + 1 gap
+    (Cursor). Still missing: Codex CLI (separate component from Codex Web
+    + API, already on OpenAI page), Aider (open-source; GH-issue source
+    would work), Continue (open-source; same). Discrete add later.
+0c. **Upstash Redis not configured.** Sparkline currently incident-only
+    because `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` aren't
+    set locally or (likely) on Vercel. Code is graceful — falls back and
+    explicitly says "poll samples unavailable". Next step: provision
+    Upstash free tier, add creds to Vercel env (Production + Preview +
+    Development), add to `~/.secrets/populate-env.sh` for local parity.
+    Once creds land, per-day uptime turns green for days with no incident
+    instead of grey "unknown".
 1. **Visual review of pass 2.** Confirm: (a) clusters read as denser without
    feeling fake, (b) severity pills are legible at the small font size on the
    tools panel, (c) no dot grouping lies (e.g. trans-Atlantic clusters merging
@@ -209,24 +279,75 @@ explicit instead of papering over it. Trust contract intact.
 - Prod URL: **https://aipulse-pi.vercel.app**
 - Deploy: push to `main` via connected GitHub integration.
 - `GH_TOKEN` on Vercel: Production + Development.
+- `UPSTASH_REDIS_REST_URL` / `_TOKEN`: **NOT configured.** Sparkline code is
+  graceful; provision Upstash free tier and add to Vercel env to unlock
+  poll-sample uptime.
 - Latest commits on main:
+  - `e559e22 feat(globe): numeric count labels on multi-event clusters`
+  - `c4f4f84 feat(globe): densify with ForkEvent + WatchEvent`
+  - `49db56f feat(history): 7-day uptime sparkline + incident history per tool`
+  - `ac23f72 feat(tools): add Cursor (no-data), Windsurf, OpenAI Codex cards`
+  - `e272096 docs: HANDOFF session 6.1 — three trust fixes + OpenAI gap documented`
   - `103f3ce fix(trust): narrow scope claim, surface active incidents, honest cold-start`
-  - `f02d61b docs: HANDOFF session 6 — wmsample design system passes 1 & 2`
-  - `57e909a feat(design): wmsample design system pass 2 — globe clustering + severity pills`
-  - `6499ca7 feat(design): wmsample design system pass 1 — fonts, fractal bg, floating panels`
 
 ## Next action (on resume)
-1. Open https://aipulse-pi.vercel.app and visually verify pass 2: clustering
-   density, severity pill legibility, top bar / left nav fit, no scroll bugs
-   inside floating panels.
-2. If layout reads well, address open item #5 (`/audit` restyle) and item #4
-   (MetricTicker pill styling) for visual consistency. Then Checkpoint 3.
-3. If cluster colour rule reads as misleading (open item flagged), switch
-   `aiDominant` to a weighted-average lerp.
-4. Phase 1 closeout: items #6 (self-host texture), #7 (geocoder ISO codes), then
+1. Open https://aipulse-pi.vercel.app and visually verify session 7:
+   (a) six tool cards render — Claude Code, Copilot, OpenAI API, OpenAI
+   Codex, Windsurf, Cursor — with Cursor showing the explicit no-data
+   body, not a green pill; (b) sparklines render on the five tracked
+   cards with 7 daily bars; hover shows historical incidents (Anthropic
+   should have the most, including the Apr 13 critical and Apr 15
+   critical); (c) sparkline footnote says "Incident-derived · poll-sample
+   history unavailable" (confirms Redis is off); (d) globe looks denser
+   with fork/watch events; (e) multi-event clusters have numeric badges.
+2. Provision Upstash Redis (free tier, 10k cmd/day). Add creds to Vercel
+   env (Production + Preview + Development) + `~/.secrets/` + populate
+   script. Within one poll interval the sparkline's "unknown" days turn
+   green. Consider adding a GitHub Action cron poll so samples collect
+   even on idle days.
+3. Restore `/audit` page styling to match the pass-2 design system
+   (carryover from session 6 open item #5).
+4. Filter Anthropic historical incidents to the `Claude Code` component
+   already — but verify it holds up (some incidents list many components;
+   shared-plane incidents are correctly on the Claude Code card, but
+   Claude.ai-only ones should not be). If false positives appear, tighten
+   the filter.
+5. Phase 1 closeout: self-host globe texture; geocoder ISO-code expansion;
    pre-launch review (Checkpoint 3).
 
-## Files changed this session (session 6)
+## Files changed this session (session 7)
+Created (2):
+- `src/lib/data/status-history.ts` — Redis-optional poll-sample store;
+  historical incidents fetcher; 7-day daily bucketing.
+- `src/components/health/UptimeSparkline.tsx` — 7-bar sparkline with
+  per-day hover tooltip.
+
+Modified (8):
+- `src/lib/data-sources.ts` — added `OPENAI_INCIDENTS`, `WINDSURF_STATUS`;
+  expanded `OPENAI_STATUS` measure + caveat; removed the Cursor "dropped"
+  stub comment.
+- `public/data-sources.md` — mirrored new sources; promoted Cursor from
+  "dropped" to "tracked gap".
+- `src/components/health/tools.ts` — `ToolId` union extended to
+  `claude-code | copilot | openai-api | codex | windsurf | cursor`; added
+  `noPublicSource` + `publicPageUrl` + `noSourceReason`; added `history`
+  + `historyHasSamples` on `ToolHealthData`.
+- `src/components/health/ToolHealthCard.tsx` — new `no-data` mode with
+  `NoDataBody`; mounts `UptimeSparkline`.
+- `src/components/chrome/TopBar.tsx` — MVP badge "3 tools" → "5 tracked ·
+  1 gap".
+- `src/lib/data/fetch-status.ts` — parallel fetch of four `/incidents.json`
+  feeds + five Redis sample reads; per-tool history bucketing; Codex
+  worst-of mapping; Windsurf card; fire-and-forget sample writes.
+- `src/lib/data/fetch-events.ts` — `RELEVANT_TYPES` + ForkEvent +
+  WatchEvent.
+- `src/components/globe/Globe.tsx` — `labeledClusters` memo,
+  `clusterLabelElement()` HTML factory, `htmlElementsData` wiring on
+  react-globe.gl.
+
+Commits: `ac23f72`, `49db56f`, `c4f4f84`, `e559e22`.
+
+## Files changed in session 6
 Created (4):
 - `src/components/chrome/CursorGlow.tsx`
 - `src/components/chrome/TopBar.tsx`
