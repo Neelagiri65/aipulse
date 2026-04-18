@@ -20,14 +20,14 @@ export default function AuditPage() {
           &ldquo;trust score&rdquo;, no editorial judgement. Each pattern cites
           the public source that makes it redundant.
         </p>
-        <div className="flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          <span className="rounded-md border border-border/60 bg-muted/30 px-2 py-1">
+        <div className="flex flex-wrap gap-2">
+          <span className="ap-sev-pill ap-sev-pill--info">
             deterministic pattern matching
           </span>
-          <span className="rounded-md border border-border/60 bg-muted/30 px-2 py-1">
+          <span className="ap-sev-pill ap-sev-pill--pending">
             no LLM calls
           </span>
-          <span className="rounded-md border border-border/60 bg-muted/30 px-2 py-1">
+          <span className="ap-sev-pill ap-sev-pill--pending">
             runs in your browser
           </span>
         </div>

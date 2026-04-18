@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
   bucketForScore,
@@ -58,10 +57,7 @@ export function AuditClient() {
   return (
     <div className="space-y-6">
       <div>
-        <label
-          htmlFor="audit-input"
-          className="mb-2 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
-        >
+        <label htmlFor="audit-input" className="ap-label-sm mb-2 block">
           Paste CLAUDE.md content
         </label>
         <textarea
@@ -71,9 +67,9 @@ export function AuditClient() {
           rows={14}
           spellCheck={false}
           placeholder="# My Project\n\n- Be concise.\n- No emojis.\n- Don't use placeholder values…"
-          className="w-full resize-y rounded-lg border border-border/60 bg-muted/20 p-3 font-mono text-xs leading-relaxed text-foreground/90 outline-none ring-ring/0 transition-colors focus:border-ring/60"
+          className="w-full resize-y rounded border border-white/10 bg-white/[0.02] p-3 font-mono text-xs leading-relaxed text-foreground/90 outline-none transition-colors focus:border-[var(--ap-accent)]/50"
         />
-        <div className="mt-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        <div className="ap-label-sm mt-1 flex items-center justify-between">
           <span>{content.length.toLocaleString()} chars</span>
           {catalogueMeta && (
             <span>
@@ -85,19 +81,17 @@ export function AuditClient() {
       </div>
 
       {cat.status === "loading" && (
-        <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Loading catalogue…
-        </p>
+        <p className="ap-label-sm">Loading catalogue…</p>
       )}
 
       {cat.status === "error" && (
-        <p className="font-mono text-[10px] uppercase tracking-wider text-rose-400">
+        <p className="ap-label-sm text-[var(--sev-outage)]">
           Catalogue failed to load: {cat.message}
         </p>
       )}
 
       {cat.status === "ready" && !card && (
-        <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        <p className="ap-label-sm">
           Paste a file above to see its redundancy score.
         </p>
       )}
@@ -127,61 +121,56 @@ function ScoreSection({
 
   return (
     <div className="space-y-4">
-      <Card className="gap-3 border-border/60 bg-card/40 backdrop-blur-sm">
-        <CardHeader className="gap-1">
-          <CardTitle className="text-sm font-semibold tracking-tight">
-            Redundancy score
-          </CardTitle>
-          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            Share of catalogue weight matched in your file
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="rounded-md border border-[var(--ap-border-strong)] bg-[rgba(11,15,18,0.94)] backdrop-blur-sm shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8),0_0_60px_-20px_var(--ap-accent-glow)]">
+        <div className="flex h-7 items-center gap-2 border-b border-[var(--ap-border)] bg-[var(--ap-bg-head)] px-3">
+          <span className="h-2 w-2 rounded-full bg-[var(--ap-accent)] shadow-[0_0_6px_var(--ap-accent-glow)]" />
+          <span className="ap-label-sm">score · CLAUDE.md audit</span>
+        </div>
+        <div className="space-y-4 p-4">
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold tracking-tight text-foreground">
+              Redundancy score
+            </h3>
+            <p className="ap-label-sm">
+              Share of catalogue weight matched in your file
+            </p>
+          </div>
           <div className="flex items-baseline gap-4">
             <span className={cn("text-5xl font-semibold tabular-nums", tone.value)}>
               {card.redundancyScore}
             </span>
-            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              / 100
-            </span>
-            <span
-              className={cn(
-                "rounded-md border px-2 py-1 font-mono text-[10px] uppercase tracking-wider",
-                tone.badge,
-              )}
-            >
-              {bucket}
-            </span>
+            <span className="ap-label-sm">/ 100</span>
+            <span className={tone.pillClass}>{bucket}</span>
           </div>
-          <div className="grid grid-cols-3 gap-3 border-t border-border/30 pt-3 font-mono text-[10px] uppercase tracking-wider">
+          <div className="grid grid-cols-3 gap-3 border-t border-white/5 pt-3">
             <div>
-              <div className="text-muted-foreground">Patterns matched</div>
+              <div className="ap-label-sm">Patterns matched</div>
               <div className="mt-0.5 text-sm tabular-nums text-foreground">
                 {card.matches.length} / {catalogue.length}
               </div>
             </div>
             <div>
-              <div className="text-muted-foreground">Est. token cost</div>
+              <div className="ap-label-sm">Est. token cost</div>
               <div className="mt-0.5 text-sm tabular-nums text-foreground">
                 {card.tokenCost.toLocaleString()}
               </div>
             </div>
             <div>
-              <div className="text-muted-foreground">Skipped (regex err)</div>
+              <div className="ap-label-sm">Skipped (regex err)</div>
               <div className="mt-0.5 text-sm tabular-nums text-foreground">
                 {card.skipped.length}
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <section>
-        <h2 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        <h2 className="ap-label-sm mb-2">
           Matched patterns ({card.matches.length})
         </h2>
         {card.matches.length === 0 ? (
-          <p className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+          <p className="rounded border border-white/10 bg-white/[0.02] p-3 text-xs text-muted-foreground">
             No catalogue patterns matched. Either the file is clean, or its
             redundancies aren&rsquo;t in the current catalogue.
           </p>
@@ -202,14 +191,14 @@ function ScoreSection({
 
 function MatchRow({ match, pattern }: { match: Match; pattern?: Pattern }) {
   return (
-    <li className="rounded-lg border border-border/60 bg-card/40 p-3 backdrop-blur-sm">
+    <li className="rounded border border-white/10 bg-white/[0.02] p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs font-semibold tracking-tight text-foreground">
               {match.patternId}
             </span>
-            <span className="rounded-md border border-border/40 bg-muted/40 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+            <span className="rounded border border-white/15 bg-white/[0.03] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--ap-fg-muted)]">
               weight {match.weight}
             </span>
           </div>
@@ -218,7 +207,7 @@ function MatchRow({ match, pattern }: { match: Match; pattern?: Pattern }) {
               {pattern.reason}
             </p>
           )}
-          <div className="mt-2 rounded-md border border-border/30 bg-muted/20 p-2 font-mono text-[11px] leading-relaxed text-foreground/80">
+          <div className="mt-2 rounded border border-white/5 bg-black/20 p-2 font-mono text-[11px] leading-relaxed text-foreground/80">
             …{match.excerpt}…
           </div>
         </div>
@@ -227,7 +216,7 @@ function MatchRow({ match, pattern }: { match: Match; pattern?: Pattern }) {
             href={pattern.source_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground"
+            className="ap-label-sm shrink-0 underline decoration-dotted underline-offset-2 transition-colors hover:text-[var(--ap-accent)]"
           >
             source
           </a>
@@ -237,29 +226,24 @@ function MatchRow({ match, pattern }: { match: Match; pattern?: Pattern }) {
   );
 }
 
-function scoreTone(score: number): { value: string; badge: string } {
-  if (score < 10)
-    return {
-      value: "text-emerald-400",
-      badge: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
-    };
+function scoreTone(score: number): { value: string; pillClass: string } {
   if (score < 25)
     return {
-      value: "text-emerald-300",
-      badge: "border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
+      value: "text-[var(--sev-op)]",
+      pillClass: "ap-sev-pill ap-sev-pill--op",
     };
   if (score < 50)
     return {
-      value: "text-amber-300",
-      badge: "border-amber-500/40 bg-amber-500/10 text-amber-200",
+      value: "text-[var(--sev-regress)]",
+      pillClass: "ap-sev-pill ap-sev-pill--regress",
     };
   if (score < 75)
     return {
-      value: "text-orange-300",
-      badge: "border-orange-500/40 bg-orange-500/10 text-orange-200",
+      value: "text-[var(--sev-degrade)]",
+      pillClass: "ap-sev-pill ap-sev-pill--degrade",
     };
   return {
-    value: "text-rose-400",
-    badge: "border-rose-500/40 bg-rose-500/10 text-rose-200",
+    value: "text-[var(--sev-outage)]",
+    pillClass: "ap-sev-pill ap-sev-pill--outage",
   };
 }
