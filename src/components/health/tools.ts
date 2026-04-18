@@ -31,25 +31,21 @@ export type ToolHealthData = {
 };
 
 export type ToolConfig = {
-  id: "claude-code" | "cursor" | "copilot" | "openai-api";
+  id: "claude-code" | "copilot" | "openai-api";
   name: string;
   subtitle: string;
   /** Source IDs this card relies on (in descending priority). */
   sourceIds: string[];
 };
 
+// Cursor intentionally omitted 2026-04-18 — no confirmed public status page.
+// Will be reinstated only when a verified endpoint is found.
 export const TOOLS: readonly ToolConfig[] = [
   {
     id: "claude-code",
     name: "Claude Code",
     subtitle: "Anthropic · CLI",
     sourceIds: ["anthropic-status", "gh-issues-claude-code"],
-  },
-  {
-    id: "cursor",
-    name: "Cursor",
-    subtitle: "Anysphere · IDE",
-    sourceIds: ["cursor-status"],
   },
   {
     id: "copilot",

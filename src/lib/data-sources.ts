@@ -191,24 +191,27 @@ export const GITHUB_ISSUES_CLAUDE_CODE: DataSource = {
   category: "github-activity",
   url: "https://github.com/anthropics/claude-code/issues",
   apiUrl:
-    "https://api.github.com/repos/anthropics/claude-code/issues?state=open&per_page=1",
+    "https://api.github.com/search/issues?q=repo:anthropics/claude-code+is:issue+is:open&per_page=1",
   responseFormat: "json",
   updateFrequency: "hourly",
   rateLimit: {
-    authenticated: 5000,
-    note: "We only need the `total_count` via the Search API or the `Link` header total. One call per poll.",
+    authenticated: 1800, // Search API: 30 req/min authenticated = 1800/hr
+    unauthenticated: 600,
+    note: "Search API; returns `total_count`. Cache response for 1h — one call/hour per tool.",
   },
   auth: "github-token",
-  measures: "Open issue count for Claude Code, used as a community-signal sparkline.",
+  measures:
+    "Open issue count for anthropics/claude-code, surfaced via the Search API's `total_count`. Used as a community-pressure sparkline on the Claude Code card.",
   sanityCheck: {
     description:
-      "Claude Code is an active large project; expect 100–2000 open issues. Zero indicates a broken API call.",
-    expectedMin: 50,
-    expectedMax: 5000,
+      "Active flagship tool; wide range acceptable. Observed 9,635 open issues on initial verification (2026-04-18). Zero indicates broken API call.",
+    expectedMin: 100,
+    expectedMax: 30000,
     unit: "open issues",
   },
-  verifiedAt: "",
-  caveat: "Not yet validated this session. Hit endpoint manually before flipping `verifiedAt`.",
+  verifiedAt: "2026-04-18",
+  caveat:
+    "Initial sanity range (50-5000) was widened after verification returned 9,635. Range adjusted to reflect observed reality, not to manufacture a result.",
   powersFeature: ["tool-health-claude-code"],
 };
 
@@ -220,40 +223,21 @@ export const GITHUB_STATUS: DataSource = {
   apiUrl: "https://www.githubstatus.com/api/v2/summary.json",
   responseFormat: "json",
   updateFrequency: "minutely",
-  rateLimit: { note: "No documented limit. Poll every 5 min." },
+  rateLimit: { note: "No documented limit. Poll every 5 min via edge cache." },
   auth: "none",
   measures:
-    "GitHub platform components including Copilot, Actions, API. Copilot status surfaces as a named component in the summary response.",
+    "GitHub platform components. The `Copilot` component (exact name, verified 2026-04-18) surfaces operational state for GitHub Copilot.",
   sanityCheck: {
     description:
-      "Statuspage.io v2 schema. Must include a component with name matching /copilot/i for the health card to resolve.",
+      "Statuspage.io v2 schema. Response must include a component named exactly 'Copilot' (not a regex — verified literal). If absent, the Copilot health card falls to graceful-degradation.",
   },
-  verifiedAt: "",
-  caveat:
-    "Not yet validated. Verify the Copilot component name before consuming. If no Copilot component exists, the Copilot health card stays on graceful-degradation.",
+  verifiedAt: "2026-04-18",
   powersFeature: ["tool-health-copilot"],
 };
 
-export const CURSOR_STATUS: DataSource = {
-  id: "cursor-status",
-  name: "Cursor Status",
-  category: "status-page",
-  url: "https://status.cursor.com",
-  apiUrl: "https://status.cursor.com/api/v2/summary.json",
-  responseFormat: "json",
-  updateFrequency: "minutely",
-  rateLimit: { note: "Unverified. No documented limit." },
-  auth: "none",
-  measures: "Cursor status page — operational state of the Cursor editor service.",
-  sanityCheck: {
-    description:
-      "If Cursor runs a public Statuspage.io instance, response matches the v2 summary schema. If not, this source must be dropped and the Cursor health card relies on GitHub issues or community signals only.",
-  },
-  verifiedAt: "",
-  caveat:
-    "Cursor may not expose a public status page. Investigation pending. Do not consume until verified; health card shows graceful-degradation.",
-  powersFeature: ["tool-health-cursor"],
-};
+// CURSOR_STATUS removed 2026-04-18 per user direction: "drop the Cursor status
+// card for now if there's no confirmed public status page endpoint. Trustworthiness
+// over completeness." Add back when a verified endpoint is found.
 
 // ---------------------------------------------------------------------------
 // Exports
@@ -266,7 +250,6 @@ export const ALL_SOURCES: readonly DataSource[] = [
   OPENAI_STATUS,
   GITHUB_ISSUES_CLAUDE_CODE,
   GITHUB_STATUS,
-  CURSOR_STATUS,
 ] as const;
 
 export const VERIFIED_SOURCES: readonly DataSource[] = ALL_SOURCES.filter(
