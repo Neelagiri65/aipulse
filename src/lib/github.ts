@@ -71,7 +71,9 @@ function authHeaders(token: string) {
 
 export async function fetchRecentEvents(): Promise<GitHubEvent[]> {
   const token = requireToken();
-  const res = await fetch(`${GITHUB_BASE}/events?per_page=30`, {
+  // per_page=100 is the documented max for /events. Widens the funnel for
+  // the geocoder (which has ~10-20% hit rate on GitHub profile strings).
+  const res = await fetch(`${GITHUB_BASE}/events?per_page=100`, {
     headers: authHeaders(token),
     next: { revalidate: 30, tags: ["gh-events"] },
   });
