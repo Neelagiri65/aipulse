@@ -131,66 +131,38 @@ function AwaitingBody() {
 }
 
 function LiveBody({ data }: { data: ToolHealthData }) {
+  // Only render rows for metrics we actually have a source for right now.
+  // Uptime/version/sentiment return when the pipelines for them land; until
+  // then an empty row would read as "broken", not "intentionally minimal".
+  const rows: Array<{ label: string; value: string }> = [];
+  if (data.openIssues !== undefined) {
+    rows.push({ label: "Open issues", value: data.openIssues.toLocaleString() });
+  }
+
+  if (rows.length === 0) {
+    return (
+      <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        Status only · additional metrics pending dedicated sources
+      </p>
+    );
+  }
+
   return (
     <div className="space-y-2.5">
-      <MetricRow
-        label="Uptime (30d)"
-        value={data.uptimePct30d !== undefined ? `${data.uptimePct30d.toFixed(2)}%` : "—"}
-      />
-      <MetricRow label="Version" value={data.version ?? "—"} mono />
-      <MetricRow
-        label="Open issues"
-        value={data.openIssues !== undefined ? data.openIssues.toLocaleString() : "—"}
-      />
-      <SentimentBar sentiment={data.sentiment} />
+      {rows.map((r) => (
+        <MetricRow key={r.label} label={r.label} value={r.value} />
+      ))}
     </div>
   );
 }
 
-function MetricRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function MetricRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-border/30 pb-1.5 last:border-0 last:pb-0">
+    <div className="flex items-baseline justify-between gap-3">
       <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
-      <span className={cn("text-sm tabular-nums", mono && "font-mono text-xs")}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function SentimentBar({
-  sentiment,
-}: {
-  sentiment?: ToolHealthData["sentiment"];
-}) {
-  if (!sentiment || sentiment.sampleSize === 0) {
-    return (
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Sentiment
-        </span>
-        <span className="text-sm text-muted-foreground">—</span>
-      </div>
-    );
-  }
-  const total = sentiment.positive + sentiment.neutral + sentiment.negative;
-  const posPct = (sentiment.positive / total) * 100;
-  const neuPct = (sentiment.neutral / total) * 100;
-  const negPct = (sentiment.negative / total) * 100;
-  return (
-    <div className="space-y-1">
-      <div className="flex items-baseline justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Sentiment · {sentiment.windowHours}h · n={sentiment.sampleSize}
-        </span>
-      </div>
-      <div className="flex h-1.5 overflow-hidden rounded-full bg-muted/40">
-        <div className="bg-emerald-500" style={{ width: `${posPct}%` }} />
-        <div className="bg-zinc-500" style={{ width: `${neuPct}%` }} />
-        <div className="bg-rose-500" style={{ width: `${negPct}%` }} />
-      </div>
+      <span className="text-sm tabular-nums">{value}</span>
     </div>
   );
 }
