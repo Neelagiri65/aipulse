@@ -89,22 +89,49 @@ export const GITHUB_EVENTS: DataSource = {
   rateLimit: {
     authenticated: 5000,
     unauthenticated: 60,
-    note: "Per-hour, per-token. Events API returns a rolling window (~5 min); poll every 30s.",
+    note: "Per-hour, per-token. Events API returns a rolling window (~5 min); each ingest pulls 5 pages of 100 events. At the 5-min cron cadence that is ~60 authenticated requests/hr — comfortably under budget.",
   },
   auth: "github-token",
   measures:
-    "Public GitHub events (push, PR, issue, fork, star) across all public repos. Firehose; not filtered for AI relevance at source.",
+    "Public GitHub events across all public repos. We accept nine types on the globe: PushEvent, PullRequestEvent, IssuesEvent, IssueCommentEvent, PullRequestReviewEvent, ReleaseEvent, CreateEvent, ForkEvent, WatchEvent. The endpoint returns a firehose sample, not the full stream.",
   sanityCheck: {
     description:
-      "A single page should return 30 events. Total volume across public GitHub is millions/day.",
-    expectedMin: 1,
-    expectedMax: 100,
-    unit: "events per response page",
+      "A 5-page poll should return ~300–500 events (upstream caps the visible feed around 300). Zero indicates either rate-limit exhaustion or GH outage; investigate before attributing to a slow day.",
+    expectedMin: 50,
+    expectedMax: 500,
+    unit: "events per multi-page poll",
   },
   verifiedAt: "2026-04-18",
   caveat:
-    "Events do not include author geolocation directly; we resolve it from the user profile's city/country field, which is optional. Globe coverage will be a fraction of total events.",
+    "Events do not include author geolocation; we resolve it from the user profile's optional city/country field. Typical placement coverage 15–25% of raw events. Low density between polls is filled in by GH Archive hourly dumps (see `gharchive`).",
   powersFeature: ["globe", "live-feed"],
+};
+
+export const GHARCHIVE: DataSource = {
+  id: "gharchive",
+  name: "GH Archive — hourly public-event dumps",
+  category: "github-activity",
+  url: "https://www.gharchive.org",
+  apiUrl: "https://data.gharchive.org/{YYYY-MM-DD-H}.json.gz",
+  responseFormat: "json",
+  updateFrequency: "hourly",
+  rateLimit: {
+    note: "No documented limit on the static gzip CDN. We download at most 6 hours per cold-start backfill (~900MB gzipped worst case, typically <200MB after type filtering).",
+  },
+  auth: "none",
+  measures:
+    "Hourly archive of every public GitHub event — complete, unsampled. Used to backfill the globe on cold start (empty Redis) so the last 6 hours of real activity appear immediately rather than trickling in over two hours.",
+  sanityCheck: {
+    description:
+      "Each hour file decompresses to ~100–150MB and yields 20–80k events across our nine relevant types (after inline filter). A successful fetch returns 200 with content-type application/gzip. Published ~30 minutes after the hour ends; we always skip the current hour.",
+    expectedMin: 5000,
+    expectedMax: 200000,
+    unit: "relevant events per hour file",
+  },
+  verifiedAt: "2026-04-18",
+  caveat:
+    "Archive events carry sourceKind='gharchive' internally; they are real events with real created_at timestamps, not synthesised. The public /data-sources page surfaces this distinction so users can see which portion of the globe comes from live polls vs hourly dumps.",
+  powersFeature: ["globe-coldstart-backfill"],
 };
 
 export const GITHUB_CONTENTS: DataSource = {
@@ -303,6 +330,7 @@ export const GITHUB_STATUS: DataSource = {
 
 export const ALL_SOURCES: readonly DataSource[] = [
   GITHUB_EVENTS,
+  GHARCHIVE,
   GITHUB_CONTENTS,
   ANTHROPIC_STATUS,
   OPENAI_STATUS,

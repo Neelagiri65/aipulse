@@ -13,13 +13,27 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - **Public URL:** https://docs.github.com/en/rest/activity/events
 - **API endpoint:** `https://api.github.com/events`
 - **Response format:** JSON
-- **Update frequency:** Realtime (polled every 30 seconds, authenticated)
-- **Rate limit:** 5,000 requests per hour authenticated · 60 unauthenticated
+- **Update frequency:** Realtime (5-page poll every 5 min via GH Actions → Vercel → Redis)
+- **Rate limit:** 5,000 requests per hour authenticated · 60 unauthenticated. 5 pages × 12 polls/hr = 60 authenticated requests/hr — comfortably under budget.
 - **Auth:** GitHub personal access token (server-side only)
-- **What it measures:** Public GitHub events (push, pull request, issue, fork, star) across every public repository. It is a firehose; AI-tool signal detection happens downstream via `gh-contents`.
-- **Sanity check:** One page returns 30 events. Expected per-response range: 1–100 events. Zero means the API call is broken.
-- **Caveat:** Events do not carry geolocation. Location is resolved from the author's GitHub profile city/country field, which is optional. Expect the globe to show a fraction of total events.
+- **What it measures:** Public GitHub events across every public repository. The globe accepts nine event types: `PushEvent`, `PullRequestEvent`, `IssuesEvent`, `IssueCommentEvent`, `PullRequestReviewEvent`, `ReleaseEvent`, `CreateEvent`, `ForkEvent`, `WatchEvent`. The endpoint returns a firehose sample, not the full stream.
+- **Sanity check:** A 5-page poll should return 300–500 events (upstream caps the visible feed ~300). Expected range: 50–500 events per multi-page poll. Zero indicates rate-limit exhaustion or GitHub outage — investigate before attributing to a slow day.
+- **Caveat:** Events do not carry geolocation. Location is resolved from the author's GitHub profile city/country field (optional). Typical placement coverage is 15–25% of raw events. Low density between polls is filled in by GH Archive hourly dumps (see `gharchive`).
 - **Powers:** Globe activity dots · live event feed
+- **Last verified:** 2026-04-18
+
+### GH Archive — hourly public-event dumps
+- **ID:** `gharchive`
+- **Public URL:** https://www.gharchive.org
+- **API endpoint:** `https://data.gharchive.org/{YYYY-MM-DD-H}.json.gz`
+- **Response format:** JSON Lines, gzipped
+- **Update frequency:** Hourly (published ~30 min after the hour ends; current hour is always skipped)
+- **Rate limit:** None documented on the static gzip CDN. Cold-start backfill fetches at most 6 hours (~900 MB gzipped worst case, typically <200 MB after type filtering).
+- **Auth:** None
+- **What it measures:** Hourly archive of every public GitHub event — complete, unsampled. AI Pulse uses it only to backfill the globe on cold start (empty Redis) so the last 6 hours of real activity appear immediately rather than trickling in over two hours.
+- **Sanity check:** Each hour file decompresses to ~100–150 MB and yields 20,000–80,000 events across our nine relevant types (after inline filter). A successful fetch returns HTTP 200 with `content-type: application/gzip`. Expected range: 5,000–200,000 relevant events per hour file.
+- **Caveat:** Archive events carry `sourceKind='gharchive'` internally; they are real events with real `created_at` timestamps, not synthesised. This page surfaces the distinction so users can see which portion of the globe comes from live polls vs hourly dumps. Live-API events take precedence on dedupe (same event id).
+- **Powers:** Globe cold-start backfill
 - **Last verified:** 2026-04-18
 
 ### GitHub Contents API
@@ -136,4 +150,4 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - Any source that returns data outside its sanity-check range is treated as broken — the affected feature falls back to graceful degradation, and the discrepancy is investigated before the metric returns to the UI.
 - Widening a sanity-check range after verification is allowed and must be documented (see `gh-issues-claude-code` caveat). Recalibrating a range to chase a narrative is forbidden.
 
-_Last updated: 2026-04-18 (session 7 — added Windsurf, OpenAI incidents endpoint, Codex component mapping; promoted Cursor from "dropped" to "tracked gap")_
+_Last updated: 2026-04-18 (session 7 — added Windsurf, OpenAI incidents endpoint, Codex component mapping; promoted Cursor from "dropped" to "tracked gap"; added GH Archive hourly dumps for globe cold-start backfill; expanded GitHub Events API to 5-page poll + 9 event types)_

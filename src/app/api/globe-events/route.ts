@@ -1,10 +1,11 @@
 import { fetchGlobeEvents } from "@/lib/data/fetch-events";
 
-// Node runtime (not edge) — fetchGlobeEvents does up to ~30 parallel GitHub
-// calls on a cold cache; Node has a generous CPU/time budget on Vercel's
-// serverless functions and the Data Cache is shared across runtimes.
+// Node runtime. Read path is cheap (Redis LRANGE + JSON parse) when the
+// ingest cron is healthy; falls back to an in-process poll when Redis is
+// empty or unconfigured, which may fan out to GitHub so we stay on Node.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function GET() {
   const result = await fetchGlobeEvents();

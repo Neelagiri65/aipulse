@@ -70,15 +70,50 @@ function authHeaders(token: string) {
 }
 
 export async function fetchRecentEvents(): Promise<GitHubEvent[]> {
+  return fetchRecentEventsPaged(1);
+}
+
+/**
+ * Fetch up to `pages` pages (100 events each) from the firehose /events
+ * endpoint. GitHub caps the usable page count around 10 (the same 300
+ * events max documented in their API). We default to 5 so each ingest
+ * widens the funnel to ~500 events without burning rate budget — at
+ * 5000/hr authenticated, a 5-page poll every 5 minutes costs 60/hr.
+ *
+ * The Data Cache revalidate is per-URL, so /events?page=1 and
+ * /events?page=2 each cache independently with the same tag.
+ */
+export async function fetchRecentEventsPaged(
+  pages: number,
+): Promise<GitHubEvent[]> {
   const token = requireToken();
-  // per_page=100 is the documented max for /events. Widens the funnel for
-  // the geocoder (which has ~10-20% hit rate on GitHub profile strings).
-  const res = await fetch(`${GITHUB_BASE}/events?per_page=100`, {
-    headers: authHeaders(token),
-    next: { revalidate: 30, tags: ["gh-events"] },
-  });
+  const clamped = Math.max(1, Math.min(10, Math.floor(pages)));
+  const reqs: Promise<GitHubEvent[]>[] = [];
+  for (let i = 1; i <= clamped; i++) {
+    reqs.push(fetchEventsPage(i, token));
+  }
+  const results = await Promise.all(reqs);
+  const flat: GitHubEvent[] = [];
+  for (const page of results) flat.push(...page);
+  return flat;
+}
+
+async function fetchEventsPage(
+  page: number,
+  token: string,
+): Promise<GitHubEvent[]> {
+  const res = await fetch(
+    `${GITHUB_BASE}/events?per_page=100&page=${page}`,
+    {
+      headers: authHeaders(token),
+      next: { revalidate: 30, tags: ["gh-events"] },
+    },
+  );
   if (!res.ok) {
-    throw new Error(`GitHub events API returned ${res.status}`);
+    // Upstream sometimes 422s on deep pages when the feed shrinks; treat as
+    // empty rather than failing the whole ingest.
+    if (res.status === 422 && page > 1) return [];
+    throw new Error(`GitHub events API page ${page} returned ${res.status}`);
   }
   return (await res.json()) as GitHubEvent[];
 }

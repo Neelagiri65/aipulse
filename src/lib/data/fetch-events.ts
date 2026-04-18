@@ -1,58 +1,66 @@
 /**
- * Globe-events pipeline. Takes raw GitHub Events → resolves author
- * locations via profile lookup → geocodes → probes the repo for AI
- * config files → emits GlobePoint[] with a coverage summary.
+ * Globe-events pipeline. Two phases now:
  *
- * Honesty rules:
- *   - Events without a geocodable location are dropped, not placed
- *     arbitrarily. Coverage % is reported to the UI.
- *   - Repos whose AI config probe fails are rendered white (no signal),
- *     not guessed teal.
- *   - All fetches are cached via Next's Data Cache; rate budget is
- *     comfortably under 5000/hr after warm-up.
+ *   1. INGEST  — runs on the cron (via /api/ingest). Pulls raw events from
+ *                GH Archive (cold-start backfill) and the live Events API,
+ *                geocodes authors, probes AI config, writes processed points
+ *                to Upstash Redis.
+ *
+ *   2. READ    — runs on /api/globe-events. Reads the Redis LIST, dedupes,
+ *                filters to the 120-min window, returns to the client. Cheap
+ *                by design — all expensive work happens at ingest time.
+ *
+ * Honesty rules (unchanged from prior revisions):
+ *   - Events without a geocodable location are dropped, never placed
+ *     arbitrarily. Coverage % reported to the UI.
+ *   - Repos whose AI-config probe fails render white (no signal), not
+ *     guessed teal.
+ *   - Archive events carry sourceKind='gharchive'; live-poll events carry
+ *     sourceKind='events-api'. Client can label either separately.
+ *   - Redis optional — absence falls back to the legacy in-process pipeline
+ *     so the globe is never blank just because infra is misconfigured.
  */
 
 import {
-  fetchRecentEvents,
+  fetchRecentEventsPaged,
   fetchUser,
   probeAIConfig,
   type GitHubEvent,
 } from "@/lib/github";
 import { geocode } from "@/lib/geocoding";
 import type { GlobePoint } from "@/components/globe/Globe";
+import {
+  fetchArchiveHour,
+  recentArchiveHours,
+} from "@/lib/data/gharchive";
+import {
+  isGlobeStoreAvailable,
+  readMeta,
+  readWindow,
+  writeMeta,
+  writePoints,
+  type IngestMeta,
+  type StoredGlobePoint,
+} from "@/lib/data/globe-store";
 
 export type GlobeEventsResult = {
   points: GlobePoint[];
-  /** ISO of this server-side poll. */
   polledAt: string;
-  /** Coverage diagnostics — displayed to the user honestly. */
   coverage: {
-    /** Events received on the most recent poll (before filtering). */
     eventsReceived: number;
-    /** Placeable events added on the most recent poll (net of dedupe). */
     eventsWithLocation: number;
-    /** % of the most recent poll's events that were placeable. */
     locationCoveragePct: number;
-    /** Total placeable events in the accumulated window. */
     windowSize: number;
-    /** Events in the window with AI-tool config files detected. */
     windowAiConfig: number;
-    /** Window length in minutes (accumulator horizon). */
     windowMinutes: number;
   };
   failures: Array<{ step: string; message: string }>;
+  source: "redis" | "inprocess-fallback";
 };
 
-const TEAL = "#2dd4bf"; // AI-config detected
-const WHITE = "#cbd5e1"; // no AI config — soft slate, not harsh pure white
+const TEAL = "#2dd4bf";
+const WHITE = "#cbd5e1";
 
-/**
- * Event types considered for placement on the globe. PushEvent / PRs / issues
- * / releases are direct coding signals; ForkEvent + WatchEvent (WatchEvent is
- * the GitHub Events API's name for a star) are lower-signal but high-volume,
- * so they densify the globe without overwhelming it — signal is still gated
- * by the AI-config probe (white dot unless the repo has CLAUDE.md etc.).
- */
 const RELEVANT_TYPES = new Set([
   "PushEvent",
   "PullRequestEvent",
@@ -60,84 +68,212 @@ const RELEVANT_TYPES = new Set([
   "ReleaseEvent",
   "ForkEvent",
   "WatchEvent",
+  "CreateEvent",
+  "IssueCommentEvent",
+  "PullRequestReviewEvent",
 ]);
 
-const WINDOW_MINUTES = 60;
+const WINDOW_MINUTES = 120;
 const WINDOW_MS = WINDOW_MINUTES * 60 * 1000;
-const WINDOW_CAP = 5000; // hard upper bound to prevent runaway memory
+const WINDOW_CAP = 10000;
 
-type CachedPoint = GlobePoint & { firstSeenAt: number };
+// Number of Events-API pages to pull per ingest run. 5 pages = ~500 raw
+// events, ~60 authenticated requests/hour at a 5-minute cadence.
+const EVENTS_API_PAGES = 5;
+
+// Archive hours pulled on cold-start backfill. 6h is enough to seed the
+// globe densely without blowing the Vercel serverless timeout (each hour
+// is parsed + processed separately).
+const ARCHIVE_BACKFILL_HOURS = 6;
 
 /**
- * Module-scoped rolling window. Survives across requests within one warm
- * Node serverless instance. Each instance has its own cache — that's fine:
- * the Globe shows a dense recent view from whichever instance the client
- * hits. Single-threaded JS guarantees no concurrent-write races.
- */
-const eventCache = new Map<string, CachedPoint>();
-
-/**
- * Permanent per-instance cache of AI-config status, keyed by "owner/repo".
- * Repos rarely toggle AI tooling, so caching until process death is a
- * correctness-preserving speedup — and it means the Contents API probe is
- * only paid once per repo per warm instance, not once per 24h. This is the
- * big unblock for globe density: we stop re-probing repos we've already
- * classified, so the probing phase becomes near-free after warm-up.
+ * Permanent per-instance cache of AI-config results. Repos rarely toggle
+ * tooling, so caching across the process lifetime turns repeat probes into
+ * no-ops and keeps us comfortably under the 5000-req/hr budget even with
+ * the widened ingest.
  */
 const aiConfigCache = new Map<string, boolean>();
 
-function pruneAndCap(now: number) {
-  for (const [id, entry] of eventCache) {
-    if (now - entry.firstSeenAt > WINDOW_MS) eventCache.delete(id);
-  }
-  if (eventCache.size > WINDOW_CAP) {
-    // Evict oldest until under cap.
-    const sorted = Array.from(eventCache.entries()).sort(
-      (a, b) => a[1].firstSeenAt - b[1].firstSeenAt,
-    );
-    const toRemove = sorted.length - WINDOW_CAP;
-    for (let i = 0; i < toRemove; i++) eventCache.delete(sorted[i][0]);
-  }
-}
+// ---------------------------------------------------------------------------
+// READ PATH — called by /api/globe-events
+// ---------------------------------------------------------------------------
 
+/**
+ * Read the last WINDOW_MINUTES of processed events from Redis. If Redis
+ * isn't configured or the store is empty, fall back to running one
+ * in-process ingest so the caller never sees a blank globe.
+ */
 export async function fetchGlobeEvents(): Promise<GlobeEventsResult> {
   const polledAt = new Date().toISOString();
-  const now = Date.now();
-  const failures: GlobeEventsResult["failures"] = [];
 
-  // Prune stale entries even if the upstream fetch fails — the window should
-  // never show points older than WINDOW_MINUTES regardless of poll health.
-  pruneAndCap(now);
+  if (!isGlobeStoreAvailable()) {
+    return runInProcessFallback(polledAt, "redis not configured");
+  }
 
-  let events: GitHubEvent[];
+  const stored = await readWindow(WINDOW_MINUTES);
+  if (stored.length === 0) {
+    // Empty store — either cold start, or ingest hasn't caught up yet.
+    return runInProcessFallback(polledAt, "redis empty");
+  }
+
+  const points = stored.map(toGlobePoint);
+  const meta = await readMeta();
+  const windowAiConfig = stored.reduce(
+    (n, p) => n + ((p.meta as { hasAiConfig?: boolean } | undefined)?.hasAiConfig ? 1 : 0),
+    0,
+  );
+  return {
+    points,
+    polledAt: meta?.lastIngestAt ?? polledAt,
+    coverage: {
+      eventsReceived: meta?.eventsReceived ?? 0,
+      eventsWithLocation: meta?.eventsWithLocation ?? stored.length,
+      locationCoveragePct: meta?.locationCoveragePct ?? 0,
+      windowSize: stored.length,
+      windowAiConfig,
+      windowMinutes: WINDOW_MINUTES,
+    },
+    failures: meta?.failures ?? [],
+    source: "redis",
+  };
+}
+
+async function runInProcessFallback(
+  polledAt: string,
+  reason: string,
+): Promise<GlobeEventsResult> {
+  const failures: GlobeEventsResult["failures"] = [
+    { step: "store", message: `falling back to in-process ingest (${reason})` },
+  ];
   try {
-    events = await fetchRecentEvents();
-  } catch (err) {
-    failures.push({
-      step: "fetch-events",
-      message: err instanceof Error ? err.message : String(err),
-    });
+    const processed = await runIngest({ archiveBackfill: false });
+    const cutoffMs = Date.now() - WINDOW_MS;
+    const windowed = processed.points.filter(
+      (p) => Date.parse(p.eventAt) >= cutoffMs,
+    );
     return {
-      points: cachedPointsArray(),
+      points: windowed.map(toGlobePoint),
+      polledAt,
+      coverage: {
+        eventsReceived: processed.meta.eventsReceived,
+        eventsWithLocation: processed.meta.eventsWithLocation,
+        locationCoveragePct: processed.meta.locationCoveragePct,
+        windowSize: windowed.length,
+        windowAiConfig: windowed.reduce(
+          (n, p) =>
+            n + ((p.meta as { hasAiConfig?: boolean } | undefined)?.hasAiConfig ? 1 : 0),
+          0,
+        ),
+        windowMinutes: WINDOW_MINUTES,
+      },
+      failures: [...failures, ...processed.meta.failures],
+      source: "inprocess-fallback",
+    };
+  } catch (err) {
+    return {
+      points: [],
       polledAt,
       coverage: {
         eventsReceived: 0,
         eventsWithLocation: 0,
         locationCoveragePct: 0,
-        windowSize: eventCache.size,
-        windowAiConfig: countAiConfigInCache(),
+        windowSize: 0,
+        windowAiConfig: 0,
         windowMinutes: WINDOW_MINUTES,
       },
-      failures,
+      failures: [
+        ...failures,
+        {
+          step: "inprocess-fallback",
+          message: err instanceof Error ? err.message : String(err),
+        },
+      ],
+      source: "inprocess-fallback",
     };
   }
+}
 
-  const relevant = events.filter((e) => RELEVANT_TYPES.has(e.type));
-  const eventsReceived = relevant.length;
+function toGlobePoint(p: StoredGlobePoint): GlobePoint {
+  // Strip the storage-only fields so the client contract is unchanged.
+  const { eventAt: _eventAt, eventId: _eventId, sourceKind: _sourceKind, ...pub } = p;
+  void _eventAt;
+  void _eventId;
+  void _sourceKind;
+  return pub;
+}
 
-  // Resolve author locations (deduped — cached 7 days per login so repeat
-  // authors hit cache).
-  const uniqueLogins = Array.from(new Set(relevant.map((e) => e.actor.login)));
+// ---------------------------------------------------------------------------
+// WRITE PATH — called by /api/ingest (cron)
+// ---------------------------------------------------------------------------
+
+export type IngestOptions = {
+  /**
+   * When true, pulls the last ARCHIVE_BACKFILL_HOURS of gharchive data in
+   * addition to the live /events poll. Used on cold start (empty Redis) and
+   * occasionally on a manual "refresh" to widen density.
+   */
+  archiveBackfill?: boolean;
+  /** Override the default page count for the live Events API poll. */
+  apiPages?: number;
+};
+
+export type IngestResult = {
+  points: StoredGlobePoint[];
+  meta: IngestMeta;
+};
+
+/**
+ * Run one full ingest pass — fetch raw events, process them into points,
+ * and write to Redis (when available). Returns the processed points so
+ * the caller can inspect results without a separate read.
+ */
+export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult> {
+  const startedAt = new Date();
+  const failures: Array<{ step: string; message: string }> = [];
+  const rawEvents: Array<{ event: GitHubEvent; source: "gharchive" | "events-api" }> = [];
+
+  // 1) Archive backfill (optional).
+  if (opts.archiveBackfill) {
+    const hours = recentArchiveHours(ARCHIVE_BACKFILL_HOURS, startedAt);
+    for (const hour of hours) {
+      try {
+        const events = await fetchArchiveHour(hour);
+        for (const e of events) rawEvents.push({ event: e, source: "gharchive" });
+      } catch (err) {
+        failures.push({
+          step: `gharchive:${hour}`,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+  }
+
+  // 2) Live Events API (always).
+  try {
+    const pages = opts.apiPages ?? EVENTS_API_PAGES;
+    const apiEvents = await fetchRecentEventsPaged(pages);
+    for (const e of apiEvents) rawEvents.push({ event: e, source: "events-api" });
+  } catch (err) {
+    failures.push({
+      step: "fetch-events",
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  // 3) Type-filter + dedupe by event id.
+  const byId = new Map<string, { event: GitHubEvent; source: "gharchive" | "events-api" }>();
+  for (const r of rawEvents) {
+    if (!RELEVANT_TYPES.has(r.event.type)) continue;
+    // Live-api takes precedence over archive for the same id (same event,
+    // but live has the freshest representation).
+    const prev = byId.get(r.event.id);
+    if (prev && prev.source === "events-api") continue;
+    byId.set(r.event.id, r);
+  }
+  const eventsReceived = byId.size;
+
+  // 4) Geocode unique actors.
+  const uniqueLogins = Array.from(new Set(Array.from(byId.values()).map((r) => r.event.actor.login)));
   const locationByLogin = new Map<string, [number, number]>();
   await Promise.all(
     uniqueLogins.map(async (login) => {
@@ -154,24 +290,21 @@ export async function fetchGlobeEvents(): Promise<GlobeEventsResult> {
     }),
   );
 
-  // Filter to events we can place on the globe.
-  const placeable = relevant.filter((e) => locationByLogin.has(e.actor.login));
+  // 5) Keep only placeable events.
+  const placeable: Array<{ event: GitHubEvent; source: "gharchive" | "events-api" }> = [];
+  for (const r of byId.values()) {
+    if (locationByLogin.has(r.event.actor.login)) placeable.push(r);
+  }
 
-  // Probe AI config for unique repos we haven't classified yet. Any repo
-  // already in aiConfigCache is skipped entirely — that's the unblock that
-  // lets polling stay cheap as the cache fills.
-  const uniqueRepos = Array.from(new Set(placeable.map((e) => e.repo.name)));
-  const reposToProbe = uniqueRepos.filter((r) => !aiConfigCache.has(r));
+  // 6) Probe AI config for unique repos not already classified.
+  const uniqueRepos = Array.from(new Set(placeable.map((r) => r.event.repo.name)));
+  const reposToProbe = uniqueRepos.filter((repo) => !aiConfigCache.has(repo));
   await Promise.all(
     reposToProbe.map(async (repoFullName) => {
       try {
         const signal = await probeAIConfig(repoFullName);
         aiConfigCache.set(repoFullName, signal.hasAnyConfig);
       } catch (err) {
-        // Don't poison the cache on a transient probe failure — leave the
-        // entry unset so the next poll retries. The event still gets emitted
-        // as white below; if the repo is truly AI-configured, a later probe
-        // will upgrade it via the backfill pass.
         failures.push({
           step: `probe-ai-config:${repoFullName}`,
           message: err instanceof Error ? err.message : String(err),
@@ -180,86 +313,54 @@ export async function fetchGlobeEvents(): Promise<GlobeEventsResult> {
     }),
   );
 
-  // Build globe points from this poll and merge into the rolling cache.
-  // Repos whose probe hasn't resolved yet (failed, or brand new) render white;
-  // the backfill pass below recolours them once the cache catches up.
-  let newThisPoll = 0;
-  for (const event of placeable) {
-    if (eventCache.has(event.id)) continue;
-    const coords = locationByLogin.get(event.actor.login)!;
-    const hasConfig = aiConfigCache.get(event.repo.name) === true;
-    eventCache.set(event.id, {
+  // 7) Build processed points.
+  const points: StoredGlobePoint[] = placeable.map((r) => {
+    const coords = locationByLogin.get(r.event.actor.login)!;
+    const hasConfig = aiConfigCache.get(r.event.repo.name) === true;
+    return {
       lat: coords[0],
       lng: coords[1],
       color: hasConfig ? TEAL : WHITE,
       size: hasConfig ? 0.7 : 0.35,
-      firstSeenAt: now,
+      eventAt: r.event.created_at,
+      eventId: r.event.id,
+      sourceKind: r.source,
       meta: {
-        eventId: event.id,
-        type: event.type,
-        actor: event.actor.login,
-        repo: event.repo.name,
-        createdAt: event.created_at,
+        eventId: r.event.id,
+        type: r.event.type,
+        actor: r.event.actor.login,
+        repo: r.event.repo.name,
+        createdAt: r.event.created_at,
         hasAiConfig: hasConfig,
+        sourceKind: r.source,
       },
-    });
-    newThisPoll++;
-  }
+    };
+  });
 
-  // Backfill: recolour any cached point whose repo has since been classified
-  // as AI-configured. Covers (a) events emitted before their probe resolved,
-  // (b) repos that 403'd on one poll and succeeded on a later one.
-  for (const [id, point] of eventCache) {
-    const repo = (point.meta as { repo?: string } | undefined)?.repo;
-    if (!repo) continue;
-    if (aiConfigCache.get(repo) !== true) continue;
-    if (point.color === TEAL) continue;
-    eventCache.set(id, {
-      ...point,
-      color: TEAL,
-      size: 0.7,
-      meta: { ...(point.meta ?? {}), hasAiConfig: true },
-    });
-  }
+  // Cap storage before writing.
+  const capped = points.slice(0, WINDOW_CAP);
 
-  pruneAndCap(now);
+  // 8) Write to Redis (no-op if unavailable).
+  await writePoints(capped);
 
-  const points = cachedPointsArray();
-  const coverage = {
+  // 9) Meta.
+  const meta: IngestMeta = {
+    lastIngestAt: startedAt.toISOString(),
+    lastIngestSource: opts.archiveBackfill
+      ? `gharchive-backfill+events-api(${opts.apiPages ?? EVENTS_API_PAGES}p)`
+      : `events-api(${opts.apiPages ?? EVENTS_API_PAGES}p)`,
     eventsReceived,
     eventsWithLocation: placeable.length,
     locationCoveragePct:
       eventsReceived > 0
         ? Math.round((placeable.length / eventsReceived) * 100)
         : 0,
-    windowSize: eventCache.size,
-    windowAiConfig: countAiConfigInCache(),
+    windowSize: capped.length,
+    windowAiConfig: capped.reduce((n, p) => n + (p.sourceKind && (p.meta as { hasAiConfig?: boolean } | undefined)?.hasAiConfig ? 1 : 0), 0),
     windowMinutes: WINDOW_MINUTES,
+    failures,
   };
+  await writeMeta(meta);
 
-  // Surface a signal if this poll added zero new placeable events AND the
-  // cache is empty — useful for noticing the geocoder is starving.
-  if (newThisPoll === 0 && eventCache.size === 0 && eventsReceived > 0) {
-    failures.push({
-      step: "coverage",
-      message: `poll returned ${eventsReceived} relevant events but none were placeable (geocoder miss)`,
-    });
-  }
-
-  return { points, polledAt, coverage, failures };
-}
-
-function cachedPointsArray(): GlobePoint[] {
-  return Array.from(eventCache.values()).map(({ firstSeenAt: _ignored, ...p }) => {
-    void _ignored;
-    return p;
-  });
-}
-
-function countAiConfigInCache(): number {
-  let n = 0;
-  for (const p of eventCache.values()) {
-    if ((p.meta as { hasAiConfig?: boolean } | undefined)?.hasAiConfig) n++;
-  }
-  return n;
+  return { points: capped, meta };
 }

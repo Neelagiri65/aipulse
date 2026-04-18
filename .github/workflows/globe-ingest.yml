@@ -1,0 +1,65 @@
+name: globe-ingest
+
+# Pulls raw GitHub public events (live API + GH Archive backfill) and writes
+# processed globe points to Upstash Redis via the /api/ingest endpoint on the
+# deployed Vercel app. Runs every 5 minutes. On cold start (empty Redis) the
+# first run of the day does a 6-hour archive backfill; subsequent runs just
+# poll the live Events API.
+#
+# Required repo secrets:
+#   INGEST_URL      — full URL to the deployed /api/ingest route
+#                     e.g. https://aipulse-pi.vercel.app/api/ingest
+#   INGEST_SECRET   — shared secret matching the INGEST_SECRET env var on
+#                     Vercel
+#
+# Failure policy: a single failed run is tolerated (we retry next tick). Two
+# consecutive failures will surface in the Actions log; density problem will
+# resurface in the UI coverage meter.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # every 5 minutes
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: "Include 6h GH Archive backfill (expensive — use manually on cold start)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+concurrency:
+  group: globe-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger ingest on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          BACKFILL: ${{ github.event_name == 'workflow_dispatch' && inputs.backfill || 'false' }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          URL="$INGEST_URL"
+          if [ "$BACKFILL" = "true" ]; then
+            URL="$URL?backfill=1"
+            echo "Running ingest with 6h archive backfill."
+          else
+            echo "Running light ingest (live events API only)."
+          fi
+          # -sS: silent but still show errors. -f: fail on HTTP >=400. --max-time
+          # gives us headroom for archive backfill runs.
+          RESPONSE=$(curl -sS -f --max-time 120 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"
