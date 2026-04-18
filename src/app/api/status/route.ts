@@ -1,11 +1,10 @@
 import { fetchAllStatus } from "@/lib/data/fetch-status";
 
-// Edge runtime: keeps latency low, fits Vercel Hobby free tier, reads the
-// cached fetch responses without a Node runtime cold start.
-export const runtime = "edge";
-// Allow the route to be dynamic — we want to serve per-client responses
-// reading from the shared Data Cache rather than generating a single
-// static response at build time.
+// Node runtime: matches globe-events for consistency. An earlier edge-runtime
+// deploy returned `unknown` for OpenAI while local curl to the same endpoint
+// succeeded — likely an edge-fetch quirk with status.openai.com. Node avoids
+// the divergence; the 5-min Data Cache keeps the cost trivial.
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {

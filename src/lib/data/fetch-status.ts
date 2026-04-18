@@ -101,11 +101,21 @@ export async function fetchAllStatus(): Promise<StatusResult> {
   if (openai instanceof Error) {
     failures.push({ toolId: "openai-api", sourceId: OPENAI_STATUS.id, message: openai.message });
   } else {
+    const status = overallStatus(openai);
     data["openai-api"] = {
-      status: overallStatus(openai),
+      status,
       statusSourceId: OPENAI_STATUS.id,
       lastCheckedAt: polledAt,
     };
+    // Diagnostic: if the upstream shape drifts we want to know rather than
+    // silently show "unknown". Surface the raw indicator on mismatch.
+    if (status === "unknown") {
+      failures.push({
+        toolId: "openai-api",
+        sourceId: OPENAI_STATUS.id,
+        message: `raw indicator="${openai.status?.indicator ?? "<missing>"}" page.name="${openai.page?.name ?? "<missing>"}"`,
+      });
+    }
   }
 
   // Copilot card: specific `Copilot` component from GitHub status.
