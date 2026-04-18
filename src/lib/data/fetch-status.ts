@@ -28,6 +28,14 @@ import type {
   ToolIncident,
   ToolHealthStatus,
 } from "@/components/health/tools";
+import {
+  bucketToDays,
+  fetchHistoricalIncidents,
+  hasRedisConfigured,
+  readSamples,
+  recordSample,
+  type DayBucket,
+} from "@/lib/data/status-history";
 
 const REVALIDATE_SECONDS = 300;
 
@@ -162,15 +170,55 @@ export async function fetchAllStatus(): Promise<StatusResult> {
   const polledAt = new Date().toISOString();
   const failures: StatusResult["failures"] = [];
 
-  const [anthropic, openai, openaiIncidents, github, windsurf, claudeIssues] =
-    await Promise.all([
-      fetchStatuspage(ANTHROPIC_STATUS),
-      fetchStatuspage(OPENAI_STATUS),
-      fetchIncidents(OPENAI_INCIDENTS),
-      fetchStatuspage(GITHUB_STATUS),
-      fetchStatuspage(WINDSURF_STATUS),
-      fetchClaudeCodeIssues(),
-    ]);
+  const [
+    anthropic,
+    openai,
+    openaiIncidents,
+    github,
+    windsurf,
+    claudeIssues,
+    anthropicHistory,
+    openaiHistory,
+    githubHistory,
+    windsurfHistory,
+    claudeSamples,
+    openaiApiSamples,
+    codexSamples,
+    copilotSamples,
+    windsurfSamples,
+  ] = await Promise.all([
+    fetchStatuspage(ANTHROPIC_STATUS),
+    fetchStatuspage(OPENAI_STATUS),
+    fetchIncidents(OPENAI_INCIDENTS),
+    fetchStatuspage(GITHUB_STATUS),
+    fetchStatuspage(WINDSURF_STATUS),
+    fetchClaudeCodeIssues(),
+    fetchHistoricalIncidents({
+      incidentsApiUrl: "https://status.claude.com/api/v2/incidents.json?limit=50",
+      cacheTag: `${ANTHROPIC_STATUS.id}-history`,
+      componentFilter: ["Claude Code"],
+    }),
+    fetchHistoricalIncidents({
+      incidentsApiUrl: "https://status.openai.com/api/v2/incidents.json?limit=50",
+      cacheTag: `${OPENAI_INCIDENTS.id}-history`,
+    }),
+    fetchHistoricalIncidents({
+      incidentsApiUrl: "https://www.githubstatus.com/api/v2/incidents.json?limit=50",
+      cacheTag: `${GITHUB_STATUS.id}-history`,
+      componentFilter: ["Copilot"],
+    }),
+    fetchHistoricalIncidents({
+      incidentsApiUrl: "https://status.windsurf.com/api/v2/incidents.json?limit=50",
+      cacheTag: `${WINDSURF_STATUS.id}-history`,
+    }),
+    readSamples("claude-code"),
+    readSamples("openai-api"),
+    readSamples("codex"),
+    readSamples("copilot"),
+    readSamples("windsurf"),
+  ]);
+
+  const redisOn = hasRedisConfigured();
 
   const data: StatusResult["data"] = {};
 
@@ -198,6 +246,8 @@ export async function fetchAllStatus(): Promise<StatusResult> {
       lastCheckedAt: polledAt,
       openIssues: claudeIssues instanceof Error ? undefined : claudeIssues,
       activeIncidents: activeIncidentsOf(anthropic),
+      history: bucketToDays(anthropicHistory, claudeSamples),
+      historyHasSamples: redisOn,
     };
     if (claudeIssues instanceof Error) {
       failures.push({ toolId: "claude-code", sourceId: "gh-issues-claude-code", message: claudeIssues.message });
@@ -209,11 +259,16 @@ export async function fetchAllStatus(): Promise<StatusResult> {
     failures.push({ toolId: "openai-api", sourceId: OPENAI_STATUS.id, message: openai.message });
   } else {
     const status = overallStatus(openai);
+    // OpenAI API card history: include all historical incidents for the page —
+    // their incidents.json doesn't consistently populate components[], and most
+    // incidents affect API endpoints anyway.
     data["openai-api"] = {
       status,
       statusSourceId: OPENAI_STATUS.id,
       lastCheckedAt: polledAt,
       activeIncidents: openaiActive,
+      history: bucketToDays(openaiHistory, openaiApiSamples),
+      historyHasSamples: redisOn,
     };
     if (status === "unknown") {
       failures.push({
@@ -236,11 +291,20 @@ export async function fetchAllStatus(): Promise<StatusResult> {
         message: "neither `Codex Web` nor `Codex API` component found on OpenAI status page",
       });
     } else {
+      // Filter history to incidents referencing Codex components when possible.
+      const codexHistory = openaiHistory.filter(
+        (i) =>
+          !i.name ||
+          /codex/i.test(i.name) ||
+          /codex/i.test(JSON.stringify((i as unknown as { components?: { name?: string }[] }).components ?? "")),
+      );
       data["codex"] = {
         status: worstStatus(codexParts),
         statusSourceId: OPENAI_STATUS.id,
         lastCheckedAt: polledAt,
         activeIncidents: openaiActive,
+        history: bucketToDays(codexHistory, codexSamples),
+        historyHasSamples: redisOn,
       };
     }
   }
@@ -254,6 +318,8 @@ export async function fetchAllStatus(): Promise<StatusResult> {
       statusSourceId: GITHUB_STATUS.id,
       lastCheckedAt: polledAt,
       activeIncidents: activeIncidentsOf(github),
+      history: bucketToDays(githubHistory, copilotSamples),
+      historyHasSamples: redisOn,
     };
   }
 
@@ -266,7 +332,23 @@ export async function fetchAllStatus(): Promise<StatusResult> {
       statusSourceId: WINDSURF_STATUS.id,
       lastCheckedAt: polledAt,
       activeIncidents: activeIncidentsOf(windsurf),
+      history: bucketToDays(windsurfHistory, windsurfSamples),
+      historyHasSamples: redisOn,
     };
+  }
+
+  // Fire-and-forget: record each tool's current sample into Redis (no-op when
+  // env vars absent). We don't await these — the dashboard response doesn't
+  // need to wait for a write to be durable.
+  if (redisOn) {
+    for (const [toolId, payload] of Object.entries(data)) {
+      if (!payload) continue;
+      void recordSample(toolId, {
+        ts: polledAt,
+        status: payload.status,
+        activeIncidents: payload.activeIncidents?.length ?? 0,
+      });
+    }
   }
 
   return { data, polledAt, failures };

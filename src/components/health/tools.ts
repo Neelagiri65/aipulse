@@ -1,4 +1,5 @@
 import { getSourceById } from "@/lib/data-sources";
+import type { DayBucket } from "@/lib/data/status-history";
 
 export type ToolHealthStatus =
   | "operational"
@@ -40,6 +41,15 @@ export type ToolHealthData = {
   sentiment?: ToolSentiment;
   /** Active incidents from the status page (not in resolved/postmortem). */
   activeIncidents?: ToolIncident[];
+  /**
+   * 7-day daily buckets (oldest → newest), each showing worst status for that
+   * day. Built from the status page's historical incidents feed merged with
+   * any Redis-stored poll samples. Undefined when neither source is available
+   * (e.g. cursor has no source at all).
+   */
+  history?: DayBucket[];
+  /** Whether Redis poll samples are feeding the history. False → incidents only. */
+  historyHasSamples?: boolean;
   /** ISO timestamp of last time we successfully polled this tool's status. */
   lastCheckedAt: string;
   /** ISO timestamp of the last known good reading if current poll failed. */

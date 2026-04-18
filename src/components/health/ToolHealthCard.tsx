@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { UptimeSparkline } from "./UptimeSparkline";
 import {
   allSourcesVerified,
   primarySourceUrl,
@@ -53,6 +54,12 @@ export function ToolHealthCard({ config, data }: ToolHealthCardProps) {
         )}
         {mode === "live" && !config.incidentsApiAvailable && (
           <IncidentsApiUnavailable sourceUrl={sourceUrl} />
+        )}
+        {mode === "live" && data?.history && data.history.length > 0 && (
+          <UptimeSparkline
+            days={data.history}
+            hasSamples={data.historyHasSamples ?? false}
+          />
         )}
         {mode !== "no-data" && (
           <SourceFooter
