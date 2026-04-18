@@ -2,6 +2,98 @@
 
 ## Current state (2026-04-18)
 
+### Session 8 — globe density pipeline + click-to-reveal event card · deployed
+
+User brief: "Ship density first, tooltip second. Go." Two separate
+commits on `main`, both green builds before push.
+
+**Shipped:**
+
+- `450446d feat(globe): density pipeline — GH Archive + 5-page Events API + Redis buffer`
+  - Split `fetch-events.ts` into a read path (`fetchGlobeEvents`) and a
+    write path (`runIngest`). Read path is cheap Redis `LRANGE` +
+    JSON.parse and falls back to the in-process legacy pipeline when
+    Upstash is empty or unconfigured, so misconfigured infra never
+    blanks the globe.
+  - `src/lib/data/globe-store.ts` (NEW) — Upstash-backed store of
+    processed globe points. `aipulse:globe-events` list (LPUSH newest
+    first, LTRIM 20k, 4h TTL), `aipulse:globe-ingest-meta` JSON string.
+    Batched LPUSH keeps each ingest run to ~3 Redis commands — well
+    under the 10k/day free-tier budget (~864 runs/day × ~3 ≈ 2.6k).
+  - `src/lib/data/gharchive.ts` (NEW) — hourly archive fetcher for
+    `https://data.gharchive.org/{YYYY-MM-DD-H}.json.gz`. zlib gunzip +
+    JSONL parse + inline filter to the nine RELEVANT_TYPES.
+    `recentArchiveHours()` skips the current hour (archive publishes
+    ~30 min after the hour ends). Used only when `?backfill=1` is
+    passed to `/api/ingest` (cold start, manual debug).
+  - `src/lib/github.ts` — added `fetchRecentEventsPaged(pages)`. 5 pages
+    × 100 events per poll. 422 on deep pages (beyond the firehose
+    depth GitHub serves publicly) is handled as empty, not an error.
+  - `src/app/api/ingest/route.ts` (NEW) — POST/GET endpoint. Requires
+    `x-ingest-secret` header matching `INGEST_SECRET`. `?backfill=1`
+    triggers 6-hour archive backfill; `?pages=N` overrides the default
+    5-page Events API poll. `runtime="nodejs"`, `maxDuration=60`.
+  - `.github/workflows/globe-ingest.yml` (NEW) — `*/5 * * * *` cron +
+    manual dispatch with backfill toggle. Concurrency-guarded
+    (`cancel-in-progress: false`) so overlapping runs queue rather
+    than race.
+  - Trust contract preserved: every dot is a real GitHub event (live
+    API or archive dump) with a real `created_at`. No synthesis. Same-id
+    events across sources dedupe with live-API precedence. Source of
+    each point tracked internally as `sourceKind: "events-api" | "gharchive"`.
+  - `src/lib/data-sources.ts` + `public/data-sources.md` — added
+    `GHARCHIVE` source entry; updated `GITHUB_EVENTS` caveat and sanity
+    range (50–500 events per multi-page poll) and expanded measures to
+    list all nine accepted event types.
+
+- `a52ff9c feat(globe): click-to-reveal event card with top-5 + overflow`
+  - Dropped `pointsMerge` from react-globe.gl (merged-mesh optimisation
+    disables per-point click). Cluster count is already capped upstream
+    so the perf delta is not noticeable.
+  - `clusterPoints` now carries the underlying `events: GlobePoint[]`
+    through each bucket; sorted newest-first so the card leads with the
+    freshest activity.
+  - Floating `<EventCard>` anchored near cursor, clamped to container
+    bounds (flips left of cursor if it would overflow right). 28px
+    titlebar (teal dot + "N events · X w/ AI cfg" + close button), then
+    up to 5 event rows with `ap-sev-pill` event-type tag, AI-CFG vs
+    NO-CFG pill, repo link to github.com/{owner}/{repo}, actor handle,
+    relative timestamp. Archive-sourced events wear an explicit
+    "archive" tag. Overflow reads "and N more in this region".
+  - Dismiss on Escape, outside-click (mousedown capture so the card
+    closes before the next point-click fires), close button, or when
+    the dataset rotates (stale eventIds wouldn't match what's on the
+    globe).
+
+**Pending user action (infra — both PRs ship degraded until this lands):**
+
+1. Vercel project env vars (production + preview):
+   - `UPSTASH_REDIS_REST_URL`
+   - `UPSTASH_REDIS_REST_TOKEN`
+   - `INGEST_SECRET` (new — any high-entropy string)
+2. GitHub repo secrets (used by `.github/workflows/globe-ingest.yml`):
+   - `INGEST_URL` (e.g. `https://aipulse-pi.vercel.app/api/ingest`)
+   - `INGEST_SECRET` (same value as Vercel)
+3. Local `.env.local`: replace `PASTE_TOKEN_HERE` for `UPSTASH_REDIS_REST_TOKEN`
+   so local `npm run dev` can exercise the Redis read path (optional —
+   in-process fallback still works without it).
+
+Once (1)+(2) land and the cron fires once with `?backfill=1`, the globe
+goes from ~15 points/60min (live API only, no geocoding cache, no window
+buffer) to several hundred points sustained across a 120-minute window.
+
+**Next:**
+
+- Flip on GH Actions workflow_dispatch with `backfill=true` as first run
+  after secrets land → validates archive path end to end.
+- Re-measure globe density on a real load. If the 120-min window still
+  looks sparse, widen to 240 min (`WINDOW_MINUTES` in fetch-events.ts)
+  or raise page count to 8 (rate budget still fine: 8 × 12 = 96 req/hr).
+- Click-card keyboard nav (↑↓ between rows, Enter to open repo) once a
+  user requests it — not in scope for this session.
+
+Commits: `450446d`, `a52ff9c`.
+
 ### Session 7 — tool expansion · 7d sparkline · denser globe · cluster labels · deployed
 
 User brief: ship five items in order, one commit each, no asking. Delivered
