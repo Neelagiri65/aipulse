@@ -2,24 +2,32 @@
 
 ## Current state (2026-04-18)
 
-### Session 4 — geocoder expansion + `/audit` page shipped · awaiting user review
+### Session 5 — globe density + calmer dots · awaiting user review
+
+**User report going in:**
+> Only 20-25 dots visible; the globe looks broken. Dots pulsing is causing eye strain — want something like a World Monitor style, calm but alive.
 
 **Done this session:**
-- **Geocoder dictionary 95 → ~225 entries.** Added second-tier cities globally (NA/EU/UK/Asia/Oceania/MEA/SA) + ~60 country-level centroids as fallbacks ("Germany" → [51.17, 10.45], "India" → [20.59, 78.96], "USA" → [39.5, -98.35], etc.). Longest-needle-wins tiebreak kept, so "san francisco" still beats "usa" for the same string.
-  - **Live result: coverage 5% → 15%** (fresh prod snapshot: 78 received / 12 placeable). Hits the 15-25% target band on the low end; more aggressive uplift would require fuzzy matching or an actual gazetteer.
-  - Commit `75d5e12`.
-- **`/audit` page shipped.** Ported CodePulse scoring engine verbatim (framework-agnostic `score(content, catalogue)`) to `src/lib/audit/score.ts`. 82-pattern catalogue v3 served from `public/audit/catalogue.json` and fetched client-side on mount.
-  - Page: paste CLAUDE.md → redundancy score (0-100), bucket label (clean/mostly clean/some redundancy/notable redundancy/severe), matched patterns sorted by weight with public source citations per match, estimated token cost (ceil(chars/4)), skipped-regex count.
-  - Labelling hammered three ways — page copy, header chips ("deterministic pattern matching · no LLM calls · runs in your browser"), and per-match source links. No editorial judgement per CLAUDE.md non-negotiables.
-  - Nav link added from main header.
-  - Commit `75d5e12`.
+- **4× rolling window + near-zero steady-state probe cost.**
+  - `WINDOW_MINUTES` 15 → 60, cap 1000 → 5000. With a sustained ~10 placeable events per 30s poll, the window now accumulates ~200-400+ unique points at steady state instead of ~12-25.
+  - New module-scoped `aiConfigCache` (`Map<owner/repo, boolean>`) that persists for the serverless instance lifetime. Every subsequent poll skips the Contents-API probe for any repo already classified. Probing cost after warm-up is dominated by brand-new repos only.
+  - Contents-API `next.revalidate` 24h → 30d. Repos don't toggle `CLAUDE.md` / `.cursorrules` hourly.
+  - Backfill pass on every poll recolours any cached point whose repo has since been classified as AI-configured. Covers (a) events emitted before their probe resolved, (b) repos that 403'd transiently and succeeded later.
+  - Commit `d2a75c1`.
+- **Calmer dots.**
+  - `pointRadius` halved (0.4× → 0.18× multiplier); default sizes 0.5/0.8 → 0.35/0.7.
+  - `pointAltitude` 0.02 → 0.005 — dots sit flush with the globe surface, no longer float.
+  - `atmosphereAltitude` 0.15 → 0.12.
+  - White dots softened to slate `#cbd5e1` — readable on dark globe, no harsh glare.
+  - `pointsTransitionDuration={2500}` — dots fade in smoothly instead of popping on each poll.
+  - Legend swatch halo halved + 60% alpha to match.
+  - Commit `d2a75c1`.
 
-**Live prod verification (2026-04-18):**
-- `https://aipulse-pi.vercel.app/audit` — 200, renders, catalogue v3 loads.
-- `/api/globe-events` — `eventsReceived: 78, eventsWithLocation: 12, locationCoveragePct: 15, windowSize: 12/15m` (cold-start building after deploy).
-- `/api/status` — unchanged, three tools still operational.
+**Live prod verification (fresh instance, 1 poll after deploy):**
+- `/api/globe-events` returned `coverage.windowMinutes: 60`, `windowSize: 10`, `eventsReceived: 88`, `locationCoveragePct: 11%`, failures `0`.
+- 10 points: 2 teal, 8 slate. Expect window to grow to 200+ over ~10-20 min of continuous polling.
 
-**Honesty audit:** score engine is deterministic bytes-in/bytes-out (verifiable by reading `score.ts`); catalogue patterns each cite a public URL; no LLM is called anywhere on the page.
+**Honesty audit:** no data fabricated; dots that can't be classified still render as white (slate) instead of being dropped; cache is a cost optimisation not a signal change.
 
 ## Auditor checkpoints
 
@@ -28,48 +36,44 @@
 | 1 | data-sources.ts + Globe stub + health cards committed | REACHED (session 1) | |
 | 2 | Globe renders with real data + health cards show live status | REACHED (session 2) | |
 | 2.1 | OpenAI fix · rolling window · 6-metric ticker · lean cards | REACHED (session 3) | |
-| 2.2 | Geocoder expansion (5% → 15% coverage) · `/audit` page with CodePulse engine | **REACHED — awaiting user review** | Prod live |
+| 2.2 | Geocoder expansion + `/audit` page | REACHED (session 4) | |
+| 2.3 | 60m window · permanent config cache · calmer visuals | **REACHED — awaiting user review** | Density uplift verifiable at next poll snapshot |
 | 3 | Pre-launch review | NOT STARTED | |
 
 ## Open items — for review or next session
 
-1. **Coverage is 15%, not 25%.** Substring match on free-text profile strings caps out without fuzzy matching. Next lever (when traffic warrants): add ISO-3166 code matching ("DE" → Germany centroid), diacritic-insensitive normalisation, and a small hand-curated alias list for common metros ("Bay Area", "NCR", "DMV"). Not hard; discrete PR.
-2. **`/audit` is client-side only.** The catalogue JSON is fetched from the same origin; no user content ever leaves the browser. Worth a small note in the page copy before public launch for privacy-conscious users.
-3. **`/audit` has no share / permalink.** Paste-only is fine for MVP but a `?content=` or `#gist=` mode would help when users want to cite a score.
-4. **Cold-start globe sparsity.** Unchanged from session 3 — module cache resets on new Node serverless instances. First ~5 min after a redeploy shows fewer dots. Fix options: (a) Upstash Redis, (b) pre-seed on cold start, (c) relax relevance filter.
+1. **Cold-start density.** The `aiConfigCache` and `eventCache` both reset on a new serverless instance. A cold globe will look thin for ~10-20 min of polling. When traffic justifies it: move these to Upstash Redis (free tier: 10k cmd/day, shared across instances) or pre-seed on module init with a synchronous first poll.
+2. **Staleness trade-off for 30-day Contents cache.** A repo that adds `CLAUDE.md` mid-window won't reflect until the next cold start (or until it's manually invalidated). Acceptable for an aggregator; not acceptable for a per-repo audit timeline if that ever ships.
+3. **Coverage still ~11-15%.** Session 4 geocoder expansion took us off the floor; the next lever is ISO country-code matching ("DE" → Germany), diacritic normalisation, and a hand-curated alias list ("Bay Area", "NCR"). Discrete PR.
+4. **Event-type filter still excludes stars/forks/watches.** Deliberate (they spam without signal), but if density still feels thin after 60-min steady state, relaxing to include `ForkEvent`/`WatchEvent` would roughly double the raw funnel.
 5. **Preview env still missing `GH_TOKEN`** — set before the first PR preview is relied on.
-6. **`~/.secrets/populate-env.sh` doesn't know about `aipulse`** — extend with a branch that writes `GH_TOKEN=$(security find-generic-password -a neelagiri -s github-pat -w)` to `~/aipulse/.env.local`.
+6. **`~/.secrets/populate-env.sh` doesn't know about `aipulse`** — extend with a branch that writes `GH_TOKEN` to `~/aipulse/.env.local`. Blocks local API-route dev.
 7. **Globe texture still on unpkg** — self-host before public launch.
-8. **`GEMINI_API_KEY` not yet on Vercel** — only needed if `/audit` ever gets a deep-scan opt-in (not in Phase 1).
-9. **Upstash Redis not provisioned** — current design uses Vercel Data Cache + module-scoped memory.
+8. **`GEMINI_API_KEY`** — not needed unless `/audit` deep scan opt-in ships.
+9. **Upstash Redis not provisioned** — see item #1.
 
 ## Decisions made without Auditor sign-off — flag for review
 
-- **Audit catalogue bundled as a static asset, not in `data-sources.ts`.** It's an internal dictionary ported from CodePulse, not a polled external feed, so it doesn't belong in the source registry. The patterns themselves each cite an external URL — that's the verification surface. If this is wrong, the fix is to add `audit-catalogue` as a self-referential source like `registry`.
-- **Audit runs client-side.** Faster, cheaper, private by default. Trade-off: the pattern catalogue is public (anyone can read it by fetching `/audit/catalogue.json`). That's fine — the patterns are derived from a public system prompt repo anyway.
-- **Geocoder country-level centroids.** A commit pinned to a country centroid is editorial ("this commit happened in Germany") when the profile only says "Germany". Accepted the trade because the globe was reading empty; the alternative of continuing to drop 95% of events was worse. UI copy doesn't claim city precision, only "placeable".
+- **30-day Contents-API revalidate.** Trade-off documented above. The counter-argument is that an aggregator that lags real-world tool adoption by up to 30 days can no longer be called "real-time" — but since the dashboard's actual claim is event-level recency (per-poll refresh), and AI-config classification is a secondary layer, 30d feels safe. Reverting to 24h is a one-line change if needed.
+- **Process-lifetime `aiConfigCache`.** Same trade-off; same one-line revert.
+- **Slate (`#cbd5e1`) for "no AI config".** Technically editorialises by making the non-AI signal visually subordinate to the AI signal (which is brighter teal). Counter-argument: pure-white dots on a dark globe were causing actual eye strain per user report, so the call is readability-first.
 
 ## Environment notes
 - Prod URL: **https://aipulse-pi.vercel.app**
 - Deploy: push to `main` via connected GitHub integration.
 - `GH_TOKEN` on Vercel: Production + Development.
-- Latest commit on main: `75d5e12 feat(audit): /audit page + geocoder dictionary expansion`.
+- Latest commit on main: `d2a75c1 feat(globe): 60m window + permanent repo-config cache + calmer dots`.
 
 ## Next action (on resume)
-1. Sanity-check `/audit` with a real CLAUDE.md paste — does the score feel right? Do the excerpts land where you expect?
-2. Spot-check globe visual density now that coverage is 15% — with ~12 placeable / poll the globe should feel noticeably more alive than session 3.
-3. Populate `.env.local` via extended `populate-env.sh` branch (open item #6) — still blocking local API-route dev.
-4. If `/audit` and the globe both look right, next milestone is Phase 1 closeout: self-host globe texture, add `audit-catalogue` to the source registry if needed, then stamp Checkpoint 3 (pre-launch review).
+1. Open the live dashboard after ~10-20 min of warm polling and visually confirm: (a) 200+ dots, (b) they no longer feel jarring, (c) teal-vs-slate ratio feels honest.
+2. If density still looks thin, pull open item #4 (include `ForkEvent`/`WatchEvent`) or item #1 (Upstash-backed shared window).
+3. Populate `.env.local` via extended `populate-env.sh` branch (item #6).
+4. Phase 1 closeout: self-host globe texture (item #7), decide whether `audit-catalogue` needs a registry entry, then Checkpoint 3 (pre-launch review).
 
-## Files changed this session (session 4)
-Modified (2):
-- `src/lib/geocoding.ts` — dictionary 95 → ~225 entries, country centroids.
-- `src/app/page.tsx` — header nav link to `/audit`.
+## Files changed this session (session 5)
+Modified (3):
+- `src/lib/data/fetch-events.ts` — 60m window, aiConfigCache, probe skip, colour backfill.
+- `src/lib/github.ts` — pathExists revalidate 24h → 30d.
+- `src/components/globe/Globe.tsx` — smaller/softer dots, slower transitions, legend glow halved.
 
-New (4):
-- `src/lib/audit/score.ts` — ported scoring engine (Pattern, Match, Scorecard, `score()`, `bucketForScore()`).
-- `src/app/audit/page.tsx` — server component with metadata + layout shell.
-- `src/components/audit/AuditClient.tsx` — client component: textarea, score pill, match list, source links.
-- `public/audit/catalogue.json` — 82 patterns, v3 (copied from CodePulse).
-
-Commit: `75d5e12`.
+Commit: `d2a75c1`.
