@@ -103,8 +103,8 @@ export const GITHUB_EVENTS: DataSource = {
   },
   verifiedAt: "2026-04-18",
   caveat:
-    "Events do not include author geolocation; we resolve it from the user profile's optional city/country field. Typical placement coverage 15–25% of raw events. Low density between polls is filled in by GH Archive hourly dumps (see `gharchive`).",
-  powersFeature: ["globe", "live-feed"],
+    "Events do not include author geolocation; we resolve it from the user profile's optional city/country field. Typical placement coverage 15–25% of raw events. Low density between polls is filled in by GH Archive hourly dumps (see `gharchive`). The same buffer also feeds `repo-registry` via the events-backfill discovery path: every repo seen in the last 240 minutes with `meta.hasAiConfig=true` becomes a registry candidate, re-using the live pipeline's AI-config probe at zero new Search-API cost.",
+  powersFeature: ["globe", "live-feed", "repo-registry"],
 };
 
 export const GHARCHIVE: DataSource = {

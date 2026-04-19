@@ -18,8 +18,8 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - **Auth:** GitHub personal access token (server-side only)
 - **What it measures:** Public GitHub events across every public repository. The globe accepts nine event types: `PushEvent`, `PullRequestEvent`, `IssuesEvent`, `IssueCommentEvent`, `PullRequestReviewEvent`, `ReleaseEvent`, `CreateEvent`, `ForkEvent`, `WatchEvent`. The endpoint returns a firehose sample, not the full stream.
 - **Sanity check:** An 8-page poll should return ~500–800 events. Expected range: 100–800 events per multi-page poll. Zero indicates rate-limit exhaustion or GitHub outage — investigate before attributing to a slow day.
-- **Caveat:** Events do not carry geolocation. Location is resolved from the author's GitHub profile city/country field (optional). Typical placement coverage is 15–25% of raw events. Low density between polls is filled in by GH Archive hourly dumps (see `gharchive`).
-- **Powers:** Globe activity dots · live event feed
+- **Caveat:** Events do not carry geolocation. Location is resolved from the author's GitHub profile city/country field (optional). Typical placement coverage is 15–25% of raw events. Low density between polls is filled in by GH Archive hourly dumps (see `gharchive`). The same buffer also feeds `repo-registry` via the events-backfill discovery path — every repo seen in the last 240 minutes whose meta carries `hasAiConfig=true` becomes a registry candidate, re-using the live pipeline's AI-config probe at zero new Search-API cost.
+- **Powers:** Globe activity dots · live event feed · repo registry (events-backfill)
 - **Last verified:** 2026-04-18
 
 ### GH Archive — hourly public-event dumps
@@ -164,6 +164,8 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - Any source that returns data outside its sanity-check range is treated as broken — the affected feature falls back to graceful degradation, and the discrepancy is investigated before the metric returns to the UI.
 - Widening a sanity-check range after verification is allowed and must be documented (see `gh-issues-claude-code` caveat). Recalibrating a range to chase a narrative is forbidden.
 
-_Last updated: 2026-04-19 (session 9.3 / Phase B — added GitHub Code Search for repo-registry discovery; expanded GitHub Contents API entry to document its dual use by the globe existence-probe and the registry shape-verifier)._
+_Last updated: 2026-04-19 (session 12 — expanded GitHub Events API entry to document the events-backfill discovery path that re-uses the existing globe buffer to grow `repo-registry` at zero new Search-API cost)._
+
+_Previous: 2026-04-19 (session 9.3 / Phase B — added GitHub Code Search for repo-registry discovery; expanded GitHub Contents API entry to document its dual use by the globe existence-probe and the registry shape-verifier)._
 
 _Previous: 2026-04-18 (session 7 — added Windsurf, OpenAI incidents endpoint, Codex component mapping; promoted Cursor from "dropped" to "tracked gap"; added GH Archive hourly dumps for globe cold-start backfill; expanded GitHub Events API to 5-page poll + 9 event types)_
