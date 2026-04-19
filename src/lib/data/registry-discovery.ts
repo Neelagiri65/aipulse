@@ -109,22 +109,27 @@ export async function runRegistryDiscovery(
     return emptyResult(failures);
   }
 
-  // 1. Collect candidates via Code Search.
+  // 1. Collect candidates via Code Search. Each kind runs sequentially
+  //    with a small inter-kind pause so we don't trip the 30 req/min
+  //    secondary rate limit when sweeping all 6 kinds in a row.
   const allCandidates: Candidate[] = [];
-  for (const kind of kinds) {
+  const recordFailure = (step: string, message: string) => {
+    failures.push({ step, message });
+  };
+  for (let i = 0; i < kinds.length; i++) {
+    const kind = kinds[i];
+    if (i > 0) await delay(1500);
     try {
       const found = await searchCodeByFilename(
         kind,
         CONFIG_PATHS[kind],
         token,
         searchPagesPerKind,
+        recordFailure,
       );
       allCandidates.push(...found);
     } catch (err) {
-      failures.push({
-        step: `search:${kind}`,
-        message: (err as Error).message,
-      });
+      recordFailure(`search:${kind}`, (err as Error).message);
     }
   }
 
@@ -270,19 +275,23 @@ async function searchCodeByFilename(
   canonicalPath: string,
   token: string,
   maxPages: number,
+  onFailure: (step: string, message: string) => void,
 ): Promise<Candidate[]> {
-  // For nested paths (.github/copilot-instructions.md, .continue/config.json)
-  // we combine filename: + path: to narrow results. For flat names
-  // (CLAUDE.md, AGENTS.md, .cursorrules, .windsurfrules) filename: alone is
-  // enough and returns more results (path: requires matching the full path).
+  // Nested paths (.github/copilot-instructions.md, .continue/config.json):
+  // use filename: + path:<dir>. GitHub's path: qualifier matches the parent
+  // directory, NOT the full file path — passing the full path returns 404.
+  // Flat names (CLAUDE.md, AGENTS.md, .cursorrules, .windsurfrules):
+  // filename: alone is distinctive.
   const segs = canonicalPath.split("/");
   const filename = segs[segs.length - 1];
-  const q = segs.length > 1
-    ? `filename:${filename} path:${canonicalPath}`
-    : `filename:${filename}`;
+  const dir = segs.length > 1 ? segs.slice(0, -1).join("/") : "";
+  const q = dir ? `filename:${filename} path:${dir}` : `filename:${filename}`;
 
   const out: Candidate[] = [];
   for (let page = 1; page <= maxPages; page++) {
+    // Stay under the 30 req/min Search API cap: ~2s between calls is safe.
+    if (page > 1) await delay(1500);
+
     const url = `https://api.github.com/search/code?q=${encodeURIComponent(q)}&per_page=100&page=${page}`;
     const res = await fetch(url, {
       headers: {
@@ -292,15 +301,19 @@ async function searchCodeByFilename(
       },
       cache: "no-store",
     });
+    // All non-ok responses are "stop paginating for this kind" — never fatal.
+    // We preserve the items already collected from earlier pages.
     if (res.status === 422) break; // past the deepest usable page
-    if (res.status === 403) {
-      // Secondary rate limit. Back off and stop.
-      throw new Error(
-        `search rate limited (page ${page}) — will retry next run`,
-      );
+    if (res.status === 403 || res.status === 429) {
+      onFailure(`search:${kind}`, `rate limited at page ${page}`);
+      break;
     }
     if (!res.ok) {
-      throw new Error(`search page ${page} returned ${res.status}`);
+      onFailure(
+        `search:${kind}`,
+        `page ${page} returned ${res.status} — keeping ${out.length} earlier items`,
+      );
+      break;
     }
     const body = (await res.json()) as CodeSearchResponse;
     const items = body.items ?? [];
@@ -314,6 +327,10 @@ async function searchCodeByFilename(
     if (items.length < 100) break;
   }
   return out;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 type RepoMeta = {
