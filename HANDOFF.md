@@ -2,6 +2,152 @@
 
 ## Current state (2026-04-19)
 
+### Session 10 — Phase B · repo registry foundation (4 commits)
+
+User unblocked session: "Both [fixes + Phase B]. Start Phase B now —
+the registry foundation is the architectural shift that makes
+everything else work. Models tab after. ... fetch first 500 bytes and
+check for config-shaped structure. Decay = dimmer dot + 'Last
+activity: Xd ago' on hover card. Target = 2k high-quality verified
+repos. Go."
+
+Four atomic commits, all green builds. The registry is the long-term
+memory layer: where today's globe shows activity in the last 4 hours,
+the registry persists *every* repo with a verified AI-tool config,
+decay-coded by last pushed_at. Ecosystem map, not just firehose.
+
+**Shipped:**
+
+- `7d1e57e feat(registry): Upstash-backed store for verified AI-config repos`
+  - `src/lib/data/repo-registry.ts` (NEW). Types: `ConfigKind` (6
+    filenames), `DetectedConfig`, `RegistryEntry`, `RegistryMeta`.
+    Storage = single Upstash HASH `aipulse:registry:entries` keyed
+    by `full_name`. One HSET per discovery run (Upstash counts it
+    as 1 command regardless of field count); one HGETALL per read.
+    14-day TTL so dead registries auto-expire. Meta in a separate
+    STRING key. All functions are silent no-ops when Redis is
+    unconfigured.
+  - Decay scoring — step function not exponential so bands are
+    explainable: ≤24h → 1.0, ≤7d → 0.85, ≤30d → 0.55, ≤90d → 0.25,
+    >90d → 0.10. `formatAgeLabel()` returns "Last activity: Xd ago"
+    matching the exact copy spec'd.
+
+- `35d0ac4 feat(registry): content verifier — first-500-bytes shape heuristic`
+  - `src/lib/data/config-verifier.ts` (NEW). Fetches via the
+    GitHub Contents API (handles default branch automatically,
+    reuses GH_TOKEN budget). Base64-decoded first 500 bytes run
+    through deterministic heuristics — no LLM, per the project
+    non-negotiable.
+  - Markdown/text scorer bands: +0.2 size ≥50 non-ws bytes, +0.2
+    markdown header, +0.3 instruction verbs, +0.2 role/context
+    labels, +0.1 code references. Verified threshold 0.4.
+  - JSON scorer (for `.continue/config.json`): parses or matches
+    a valid-JSON-prefix with expected keys (models, rules,
+    customCommands, contextProviders, slashCommands, systemMessage).
+  - Disqualifiers (hard reject): <30 non-ws bytes, >10 non-printable
+    bytes (binary), template stubs ("lorem ipsum", "TODO: write your
+    rules here", "[your instructions here]", lone-header stubs).
+  - `sample` field preserves verbatim bytes for transparency.
+
+- `5ec2399 feat(registry): discovery pipeline + /api/registry read+write routes`
+  - `src/lib/data/registry-discovery.ts` (NEW). Pipeline per run:
+    Code Search for each ConfigKind → dedupe by (fullName, path) →
+    optional skip of known repos → bounded verify pass (group by
+    repo so one `/repos/{owner}/{name}` meta call covers all configs
+    for that repo) → upsert verified entries preserving existing
+    `firstSeen` stamps → write meta.
+  - Budget: 40 candidate cap on cron (~80 GH calls, 60s window
+    safe); 200 cap on seed runs (300s maxDuration). Search costs
+    6 kinds × N pages, bounded to 30 req/min. 422 (deep page
+    exhausted) and 403 (secondary rate limit) handled as "break
+    and retry" — never fatal.
+  - `src/app/api/registry/discover` (NEW). Auth via INGEST_SECRET
+    (reused — cron-side writes share the same secret class).
+    Query params: `source`, `maxVerify`, `pages`, `skipKnown`.
+    `maxDuration=300` so seed dispatches have room.
+  - `src/app/api/registry` (NEW, public read). Returns
+    `{ entries, meta, generatedAt }`. CDN cache: `public, max-age=60,
+    s-maxage=300, stale-while-revalidate=30` so UI polls don't
+    hammer Upstash.
+
+- `d4afc2d feat(registry): cron workflow + data-sources entries`
+  - `.github/workflows/registry-discover.yml` (NEW). Cron every 6h
+    with defaults (maxVerify=40, pages=3, skipKnown=1) — bounded
+    per-run. `workflow_dispatch` inputs let a manual seed push to
+    maxVerify=200, pages=10. Reuses existing INGEST_URL +
+    INGEST_SECRET repo secrets (strips `/api/ingest` suffix and
+    appends `/api/registry/discover`); no new secrets needed.
+  - `src/lib/data-sources.ts` + `public/data-sources.md`:
+    - **NEW** `GITHUB_CODE_SEARCH` (`gh-code-search`). 30 req/min
+      Search API. Sanity range: 100–10k candidates per full sweep,
+      60–80% verify-pass rate expected. Caveat makes explicit: a
+      Search hit is NOT evidence of a real config — shape
+      verification must pass first.
+    - **EXPANDED** `GITHUB_CONTENTS`. Measures now documents both
+      uses — (1) globe existence check cached 30d, (2) registry
+      verifier reading first 500 bytes of the same files for
+      shape match. Both deterministic. `powersFeature` adds
+      `repo-registry`.
+
+**Trust contract check:**
+
+- Nothing enters the registry without passing shape verification.
+  Score (0..1) and verbatim 500-byte sample stored per config so
+  future /archives can show "this is the text that made us count it".
+- `lastActivity` comes straight from GitHub's `pushed_at` — never
+  synthesised. Decay bands are explainable (step function, not a
+  hidden exponential).
+- Code Search and Contents API are both on the Verified list in
+  data-sources.ts with pre-committed sanity ranges.
+- Graceful degradation intact: Redis off → registry is empty, globe
+  keeps its 4h live-activity pipeline unaffected.
+
+**Phase B is ready to run. Operations plan:**
+
+1. Verify `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` are
+   set on Vercel (Production + Development — already done for the
+   globe pipeline per session 8 notes). Registry shares the same
+   instance but distinct keys (`aipulse:registry:*`).
+2. First manual seed dispatch (user to run locally or via the gh
+   CLI — I do not hold write access to the repo's Actions):
+   ```
+   gh workflow run registry-discover.yml \
+     -f source=manual-seed \
+     -f maxVerify=200 \
+     -f pages=10 \
+     -f skipKnown=1
+   ```
+   Expect ~200 new verified entries per run. Run it ~10 times spread
+   over a day to reach the 2k target (each run picks up new
+   candidates because `skipKnown=1`).
+3. After the seed, the 6h cron self-sustains — pulls new repos
+   with AI configs as code search finds them.
+4. Monitor via `GET /api/registry` once deployed:
+   `curl https://aipulse-pi.vercel.app/api/registry | jq
+   '.entries | length, (.[0] | keys)'`. If verified/attempted
+   ratio drops below 60%, tighten verifier heuristics before
+   widening reach.
+
+**Deferred to session 11 (visual layer for the registry + Models):**
+
+- Globe consumes `/api/registry` alongside `/api/globe-events`.
+  Registry entries render as decay-coded dots (brightness from
+  `decayScore(lastActivity)`); EventCard hover line "Last activity:
+  Xd ago" from `formatAgeLabel()`. Live events still take visual
+  priority when both datasets overlap on the same repo.
+- `/archives` page — weekly snapshots of `RegistryMeta`. Requires
+  an additional weekly cron that writes snapshots to a rolling list
+  (`aipulse:registry:snapshots:YYYY-WW`). Out of scope for this
+  session.
+- **Models tab** — queued per user direction. HuggingFace
+  `/api/models` top-20 by 30-day downloads (text-generation + code).
+  Floating panel pattern like Tools; LeftNav "SOON" → count badge.
+  **Only start after the registry is seeded and the globe layer
+  consumes it** — sequenced ship per user's "Models is expansion,
+  fix the foundation first".
+
+Commits: `7d1e57e`, `35d0ac4`, `5ec2399`, `d4afc2d`.
+
 ### Session 9.3 — flat-map click cards restored (one-commit hotfix)
 
 User blocker: clicks on markers and clusters on THE MAP tab did
