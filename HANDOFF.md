@@ -2,6 +2,154 @@
 
 ## Current state (2026-04-19)
 
+### Session 12 — registry discovery expansion · source #1 + geocoder (2 commits)
+
+User pivot: `/session-start` opened on a location-enrichment debug
+that resolved cleanly (the pipeline was working — 117/351 entries
+had location at session start, and the missing-key band cleared on
+the next cron). User then expanded scope: add 6 new discovery
+sources to the registry pipeline, plus expand the geocoder
+dictionary, plus a long brief about Models/Agents/Research tabs.
+
+Sequenced per project discipline ("one checkpoint per PR"): only
+source #1 (Events backfill) + geocoder expansion landed this
+session. Sources #3 (topics), #6 (npm), #2 (trending), #4/#5
+(compound discovery) queued. Models tab waits until registry
+crosses 1000 verified entries — user's own bar from the brief.
+
+**Shipped:**
+
+- `9d53782 feat(registry): events-backfill discovery — reuse globe
+  buffer at zero search cost`
+  - `src/lib/data/registry-events-backfill.ts` (NEW). Pipeline:
+    `readWindow(240)` from globe-events Upstash list → group by
+    `meta.repo` (full_name) → prefer `hasAiConfig=true` (live
+    pipeline already paid the gating cost) → newest event first
+    within band → skip repos already in registry → bounded verify
+    pass (cap default 100, hard max 300). Per candidate: probe
+    all 6 ConfigKind paths via `pathExists` (30-day Next.js Data
+    Cache fronts these — most replays free), verify each existing
+    path via the same shape verifier as Code Search discovery,
+    fetch repo meta, resolve owner location through the shared
+    cache. Upsert via existing path; firstSeen + location
+    preserved on re-discovery.
+  - `src/app/api/registry/backfill-events/route.ts` (NEW). Auth
+    via shared INGEST_SECRET. Query params: source, cap,
+    windowMinutes. `maxDuration=120` — between Code Search seed
+    (300) and ingest (60).
+  - `src/lib/data-sources.ts` + `public/data-sources.md`:
+    GITHUB_EVENTS now declares `repo-registry` as powered feature
+    and the caveat documents the events-backfill reuse
+    explicitly. No new top-level source — the feed is the same
+    GitHub Events API already documented.
+  - **Trust contract:** if all 6 probes return false (typically
+    rate-limit / transient), candidate is SKIPPED rather than
+    written as no-config stub — preserves chance to discover on
+    next run. lastActivity comes from pushed_at, not the event
+    timestamp (a fork/watch event doesn't move the commit-
+    freshness band).
+
+- `4c1c025 feat(geocoding): expand dictionary — Chinese metros, US
+  state suffixes, ZIP-3 fallback`
+  - 30 Chinese metros (Changsha + ChangSha alias, Wuhan, Nanjing,
+    Tianjin, Chongqing, Suzhou, Xiamen, Qingdao, Dalian, Shenyang,
+    Harbin, Zhengzhou, Jinan, Hefei, Fuzhou, Nanchang, Kunming,
+    Guiyang, Lanzhou, Urumqi, Lhasa, Ningbo, Wenzhou, Foshan,
+    Dongguan, Zhuhai, Taipei, Taichung, Tainan).
+  - 41 US state ", XX" patterns. Comma-prefix is the safety net;
+    longest-first sort ensures "Casablanca" still wins over
+    ", ca" (10 chars vs 4). Smoke-tested: Fresno, CA → CA
+    centroid (correct fallback); Berkeley, CA → still Berkeley
+    (city wins); Casablanca → still Casablanca.
+  - ZIP3_COORDS table (~110 entries) covering top-population
+    metros (NYC, NJ, Boston, Philly, DC/MD/VA, Atlanta, FL,
+    Chicago, Dallas, Austin, Houston, Denver, LA, San Diego, SF
+    Bay, San Jose, Sacramento, Portland, Seattle). `ZIP_PATTERN
+    = /^\d{5}(?:-\d{4})?$/` — only fires when the *entire*
+    haystack is a ZIP, never as substring inside longer strings.
+    Smoke-tested: 22602 → DC area (Winchester, VA); 94110 → SF;
+    98101-2345 → Seattle (ZIP+4 supported); 12345 → null
+    (correctly absent from top-50).
+  - **Pre-existing limitation surfaced (not introduced):**
+    "Charlottesville, VA" → Charlotte NC because "charlotte" is
+    in the dict and "charlottesville" isn't. Word-boundary
+    matching would fix it but that's a geocoder rewrite, not a
+    dictionary expansion. Defer.
+
+**Live verification (post-deploy, single backfill at cap=80):**
+
+```
+{
+  "ok": true,
+  "result": {
+    "candidatesFound": 258,
+    "candidatesAfterSkipKnown": 258,
+    "verifiesAttempted": 80,
+    "written": 66,
+    "failures": []
+  }
+}
+```
+
+Then `GET /api/registry`:
+- Total: 381 → 447 (+66, +17% in one backfill run)
+- With location: 156 → 208 (+52)
+- Coverage: 41% → 47% (+6pp)
+- Notable new entries: Netflix/metaflow, siropkin/budi, plus dozens
+  of mid-tier active repos that Code Search's 1000-result-per-query
+  cap had been missing.
+
+178 candidates remain in the events buffer ready for the next
+backfill cap. Each subsequent run will keep adding ~50-70 entries
+until the buffer's unique-repo set is exhausted (4h rolling, so
+new candidates appear continuously).
+
+**AUDITOR-REVIEW: PENDING** on:
+1. Source #1 design — is the "all-probes-false → skip" path
+   masking a real config-removal event for repos that legitimately
+   deleted their AI config? Today it can't distinguish transient
+   throttle from genuine deletion.
+2. State-suffix collision matrix — verified locally for Casablanca
+   and Costa Rica but the matrix of city/country names containing
+   ", XX" substrings is wide.
+3. ZIP3 centroid accuracy — a Winchester-VA repo now renders in
+   DC. Acceptable for ecosystem-density visualisation; potentially
+   misleading for region-specific claims.
+
+**Next action (priority order):**
+
+1. Wire a workflow file `registry-backfill-events.yml` (cron every
+   1h since the events buffer rolls in 4h windows; cap=100 per run
+   to stay under maxDuration). Until then, manual dispatch via
+   `curl` covers it.
+2. Source #3 (GitHub Topics search). New file
+   `src/lib/data/registry-topics.ts`. Topics list: `claude`,
+   `cursor`, `ai-coding`, `llm`, `copilot`, `ai-agent`, `langchain`,
+   `crewai`, `aider`, `windsurf`, `agents-md`. Each topic search
+   feeds into the same verifier + registry path. Same
+   AUDITOR-REVIEW pattern.
+3. Source #6 (npm dependents). Different API shape (npmjs.com
+   search by `keywords:llm` then resolve `repository.url`). More
+   plumbing; one commit when it lands.
+4. Once registry crosses 1000 entries, build the Models tab from
+   the user's brief — HuggingFace `/api/models` top-20 by 30d
+   downloads, floating panel like Tools.
+
+```
+# Manual one-off backfill (until workflow file lands):
+SECRET=$(security find-generic-password -s aipulse-ingest-secret -w)
+curl -sS -X POST -H "x-ingest-secret: $SECRET" \
+  "https://aipulse-pi.vercel.app/api/registry/backfill-events?cap=100"
+```
+
+Files created (2): `src/lib/data/registry-events-backfill.ts`,
+`src/app/api/registry/backfill-events/route.ts`.
+Files modified (3): `src/lib/data-sources.ts`,
+`public/data-sources.md`, `src/lib/geocoding.ts`.
+Files deleted: 0.
+
+Commits: `9d53782`, `4c1c025`.
+
 ### Session 11.2 — registry visual pivot · decay-coded base layer (1 commit)
 
 The architectural pivot shipped. Globe + flat map now read
