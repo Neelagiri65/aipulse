@@ -1,0 +1,68 @@
+name: registry-backfill-events
+
+# Cheap discovery path: reuse the globe-events Upstash buffer (already
+# ingested, already probed for hasAiConfig) as a candidate list, verify
+# each via the Contents API, and upsert into the repo registry.
+#
+# Cadence: every 1 hour. The globe events buffer holds a 4h rolling
+# window; a 1h cadence lets each backfill see fresh unique repos without
+# thrashing the same candidates. Cap=100 per run stays comfortably
+# inside the route's maxDuration=120 and the 5000/hr GH authed budget
+# (worst case ~600 fresh calls per run when the Next.js Data Cache is
+# cold).
+#
+# Required repo secrets (shared with globe-ingest + registry-discover):
+#   INGEST_URL     — e.g. https://aipulse-pi.vercel.app/api/ingest
+#                    (we strip /api/ingest and append the backfill path)
+#   INGEST_SECRET  — shared secret matching the Vercel env var
+
+on:
+  schedule:
+    - cron: "15 * * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Meta label for RegistryMeta.lastDiscoverySource"
+        required: false
+        default: "manual-backfill"
+        type: string
+      cap:
+        description: "Max verifications per run (1-300; cron default 100)"
+        required: false
+        default: "100"
+        type: string
+      windowMinutes:
+        description: "Events buffer window to scan (60-720; default 240)"
+        required: false
+        default: "240"
+        type: string
+
+concurrency:
+  group: registry-backfill-events
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Trigger events backfill on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.source || 'cron-backfill' }}
+          CAP: ${{ github.event_name == 'workflow_dispatch' && inputs.cap || '100' }}
+          WINDOW_MINUTES: ${{ github.event_name == 'workflow_dispatch' && inputs.windowMinutes || '240' }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/registry/backfill-events?source=$SOURCE&cap=$CAP&windowMinutes=$WINDOW_MINUTES"
+          echo "POST $URL"
+          RESPONSE=$(curl -sS -f --max-time 150 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"
