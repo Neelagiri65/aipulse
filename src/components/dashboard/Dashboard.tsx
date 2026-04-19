@@ -36,11 +36,13 @@ import { usePolledEndpoint } from "@/lib/hooks/use-polled-endpoint";
 import { PENDING_SOURCES, VERIFIED_SOURCES } from "@/lib/data-sources";
 import type { GlobeEventsResult } from "@/lib/data/fetch-events";
 import type { StatusResult } from "@/lib/data/fetch-status";
+import type { ModelsResult } from "@/lib/data/fetch-models";
 import {
   decayScore,
   type RegistryEntry,
   type RegistryMeta,
 } from "@/lib/data/registry-shared";
+import { ModelsPanel } from "@/components/models/ModelsPanel";
 
 const STATUS_POLL_MS = 5 * 60 * 1000;
 const EVENTS_POLL_MS = 30 * 1000;
@@ -48,6 +50,10 @@ const EVENTS_POLL_MS = 30 * 1000;
 // the base layer fresh without hammering the endpoint — registry only
 // grows every 6h (cron) so sub-minute cadence would be wasteful.
 const REGISTRY_POLL_MS = 2 * 60 * 1000;
+// Models: HF downloads move on weeks; 10-min poll is well above the
+// 15-min server cache TTL so every visible update reflects a real
+// upstream refresh rather than churn.
+const MODELS_POLL_MS = 10 * 60 * 1000;
 
 type RegistryResult = {
   ok: boolean;
@@ -56,7 +62,7 @@ type RegistryResult = {
   generatedAt: string;
 };
 
-type PanelId = "wire" | "tools";
+type PanelId = "wire" | "tools" | "models";
 
 export function Dashboard() {
   const status = usePolledEndpoint<StatusResult>("/api/status", STATUS_POLL_MS);
@@ -68,6 +74,7 @@ export function Dashboard() {
     "/api/registry",
     REGISTRY_POLL_MS,
   );
+  const models = usePolledEndpoint<ModelsResult>("/api/models", MODELS_POLL_MS);
 
   const rawPoints: GlobePoint[] = events.data?.points ?? [];
   const lastUpdatedAt = events.data?.polledAt;
@@ -147,11 +154,17 @@ export function Dashboard() {
   // feed without any geospatial stage.
   const [activeTab, setActiveTab] = useState<ViewTabId>("map");
 
-  // Floating panel layout state
+  // Floating panel layout state. Models starts closed so the default
+  // view on first load is the same three-surface layout (wire + tools)
+  // the existing users know; Models opens on demand via the left nav.
   const [panels, setPanels] = useState<Record<PanelId, { open: boolean; min: boolean }>>(
-    { wire: { open: true, min: false }, tools: { open: true, min: false } },
+    {
+      wire: { open: true, min: false },
+      tools: { open: true, min: false },
+      models: { open: false, min: false },
+    },
   );
-  const [zorder, setZorder] = useState<PanelId[]>(["wire", "tools"]);
+  const [zorder, setZorder] = useState<PanelId[]>(["wire", "tools", "models"]);
   const [maxId, setMaxId] = useState<PanelId | null>(null);
 
   // Initial panel positions — set after mount (window-relative). Moved
@@ -159,12 +172,17 @@ export function Dashboard() {
   const [initialPos, setInitialPos] = useState<{
     wire: { x: number; y: number; w: number; h: number };
     tools: { x: number; y: number; w: number; h: number };
+    models: { x: number; y: number; w: number; h: number };
   } | null>(null);
   useEffect(() => {
     const W = typeof window !== "undefined" ? window.innerWidth : 1440;
     setInitialPos({
       wire: { x: 64, y: 72, w: 380, h: 540 },
       tools: { x: Math.max(460, W - 420), y: 72, w: 376, h: 540 },
+      // Models floats slightly down-left of Tools so opening it doesn't
+      // stack directly on top of the default layout. Still anchored to
+      // the right half; Wire owns the left.
+      models: { x: Math.max(440, W - 440), y: 132, w: 376, h: 520 },
     });
   }, []);
 
@@ -182,7 +200,12 @@ export function Dashboard() {
       icon: "tools",
       count: status.data ? Object.keys(status.data.data).length : null,
     },
-    { id: "models", label: "Models", icon: "models", soon: true },
+    {
+      id: "models",
+      label: "Models",
+      icon: "models",
+      count: models.data?.models.length ?? null,
+    },
     { id: "agents", label: "Agents", icon: "agents", soon: true },
     { id: "research", label: "Research", icon: "research", soon: true },
     { id: "audit", label: "Audit", icon: "audit" },
@@ -196,7 +219,7 @@ export function Dashboard() {
       window.location.href = "/audit";
       return;
     }
-    if (id !== "wire" && id !== "tools") return;
+    if (id !== "wire" && id !== "tools" && id !== "models") return;
     const pid = id as PanelId;
     setPanels((p) => {
       const cur = p[pid];
@@ -337,6 +360,34 @@ export function Dashboard() {
                   </p>
                 )}
               </div>
+            </Win>
+          )}
+
+          {initialPos && panels.models.open && (
+            <Win
+              id="models"
+              title="Top models · hf-downloads"
+              initial={initialPos.models}
+              zIndex={z("models")}
+              minimized={panels.models.min}
+              maximized={maxId === "models"}
+              onFocus={() => focus("models")}
+              onClose={() =>
+                setPanels((p) => ({ ...p, models: { open: false, min: false } }))
+              }
+              onMinimize={() =>
+                setPanels((p) => ({
+                  ...p,
+                  models: { ...p.models, min: !p.models.min },
+                }))
+              }
+              onMaximize={() => setMaxId((m) => (m === "models" ? null : "models"))}
+            >
+              <ModelsPanel
+                data={models.data}
+                error={models.error}
+                isInitialLoading={models.isInitialLoading}
+              />
             </Win>
           )}
         </>

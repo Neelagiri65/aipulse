@@ -27,6 +27,7 @@ export type DataSourceCategory =
   | "status-page" // uptime / incidents
   | "github-activity" // events, issues, contents
   | "model-benchmark"
+  | "model-distribution" // download / adoption signals for specific models
   | "community-sentiment"
   | "published-research"
   | "regulatory"
@@ -317,6 +318,34 @@ export const WINDSURF_STATUS: DataSource = {
   powersFeature: ["tool-health-windsurf"],
 };
 
+export const HUGGINGFACE_MODELS: DataSource = {
+  id: "hf-models",
+  name: "HuggingFace Models API (text-generation by downloads)",
+  category: "model-distribution",
+  url: "https://huggingface.co/models?pipeline_tag=text-generation&sort=downloads",
+  apiUrl:
+    "https://huggingface.co/api/models?sort=downloads&direction=-1&filter=text-generation&limit=20",
+  responseFormat: "json",
+  updateFrequency: "hourly",
+  rateLimit: {
+    note: "HuggingFace doesn't document a per-IP limit for public listings. We cache server-side via the Next.js Data Cache for 15 min; the client polls every 10 min. Worst case: one upstream call per 15 min per server region.",
+  },
+  auth: "none",
+  measures:
+    "Top 20 text-generation models on HuggingFace Hub ranked by 30-day downloads. Each row surfaces: model id (org/name), author, 30d download count, heart-like count, last-modified timestamp, pipeline tag. No re-ranking — ordering comes straight from HF's sort=downloads.",
+  sanityCheck: {
+    description:
+      "20 models returned. Top-5 downloads should be in the 1M–100M range for established leaders (BERT/GPT2/LLaMA variants); tail 5 typically 100k–1M. A zero-length response indicates the endpoint shape changed or a transient HF outage — the tab falls back to an error state rather than empty.",
+    expectedMin: 5,
+    expectedMax: 20,
+    unit: "models per response",
+  },
+  verifiedAt: "2026-04-19",
+  caveat:
+    "`downloads` is HF's own 30-day rolling count; it includes `huggingface_hub` SDK pulls, `transformers.AutoModel.from_pretrained(...)` loads, and browser fetches. It is NOT unique-user count and is NOT comparable to OpenRouter/Anthropic API usage. A spike in downloads does not imply a spike in inference traffic.",
+  powersFeature: ["models-panel"],
+};
+
 // ---------------------------------------------------------------------------
 // PENDING VERIFICATION — DO NOT CONSUME IN DASHBOARD
 // These sources are referenced in the spec but have not been Phase-0 validated
@@ -397,6 +426,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   GITHUB_ISSUES_CLAUDE_CODE,
   GITHUB_STATUS,
   WINDSURF_STATUS,
+  HUGGINGFACE_MODELS,
 ] as const;
 
 export const VERIFIED_SOURCES: readonly DataSource[] = ALL_SOURCES.filter(

@@ -159,6 +159,20 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - **Powers:** Tool health card — Windsurf
 - **Last verified:** 2026-04-18
 
+### HuggingFace Models API (text-generation by downloads)
+- **ID:** `hf-models`
+- **Public URL:** https://huggingface.co/models?pipeline_tag=text-generation&sort=downloads
+- **API endpoint:** `https://huggingface.co/api/models?sort=downloads&direction=-1&filter=text-generation&limit=20`
+- **Response format:** JSON
+- **Update frequency:** Hourly (upstream); AI Pulse caches server-side 15 min; client polls every 10 min
+- **Rate limit:** Not documented for public listings. Our call budget: ~one upstream request per 15 min per server region.
+- **Auth:** None
+- **What it measures:** Top 20 text-generation models on HuggingFace Hub ranked by 30-day downloads. Each row surfaces `id`, `author`, 30d download count, heart-like count, last-modified timestamp. No re-ranking — the order is HuggingFace's own `sort=downloads`.
+- **Sanity check:** 20 models returned. Top 5 downloads should be in the 1M–100M range for established leaders; tail 5 typically 100k–1M. Expected range: 5–20 models per response. Zero-length response indicates an endpoint shape change or transient HF outage — the tab falls to an error state rather than blanking to zero.
+- **Caveat:** `downloads` is HuggingFace's own 30-day rolling count. It includes `huggingface_hub` SDK pulls, `transformers.AutoModel.from_pretrained(...)` loads, and browser fetches. It is NOT unique-user count and is NOT comparable to OpenRouter/Anthropic API traffic. A spike in downloads does not imply a spike in inference traffic.
+- **Powers:** Models panel (top-20 leaderboard on the dashboard)
+- **Last verified:** 2026-04-19
+
 ---
 
 ## Tracked without a verifiable source (gap surfaced, not hidden)
