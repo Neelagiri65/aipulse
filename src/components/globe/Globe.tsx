@@ -253,7 +253,10 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
           pointLng={(d) => (d as Cluster).lng}
           pointColor={(d) => (d as Cluster).color}
           pointAltitude={0.005}
-          pointRadius={(d) => (d as Cluster).size * 0.18}
+          // Smaller base radius so zoomed-in dots read as data points not
+          // paint blobs. react-globe.gl interprets pointRadius in degrees,
+          // so a small number here = small footprint at all zoom levels.
+          pointRadius={(d) => Math.min(0.22, (d as Cluster).size * 0.09)}
           pointsTransitionDuration={2500}
           onPointClick={handlePointClick}
           htmlElementsData={labeledClusters}
@@ -282,7 +285,9 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
 }
 
 const CARD_WIDTH = 360;
-const CARD_MARGIN = 12;
+// Wider offset so the card never sits on top of the numbered cluster
+// badge (which can be up to ~30px wide at high zoom).
+const CARD_MARGIN = 48;
 const MAX_VISIBLE_EVENTS = 5;
 
 type EventCardProps = {
