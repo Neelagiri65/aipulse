@@ -8,6 +8,13 @@ import { MetricTicker } from "@/components/dashboard/MetricTicker";
 import { TopBar, type ViewTabId } from "@/components/chrome/TopBar";
 import { Win } from "@/components/chrome/Win";
 import { LeftNav, type NavItem } from "@/components/chrome/LeftNav";
+import {
+  FilterPanel,
+  DEFAULT_FILTERS,
+  eventTypeToFilterId,
+  type FilterLayerId,
+  type FilterState,
+} from "@/components/chrome/FilterPanel";
 import { usePolledEndpoint } from "@/lib/hooks/use-polled-endpoint";
 import { PENDING_SOURCES, VERIFIED_SOURCES } from "@/lib/data-sources";
 import type { GlobeEventsResult } from "@/lib/data/fetch-events";
@@ -25,8 +32,23 @@ export function Dashboard() {
     EVENTS_POLL_MS,
   );
 
-  const points: GlobePoint[] = events.data?.points ?? [];
+  const rawPoints: GlobePoint[] = events.data?.points ?? [];
   const lastUpdatedAt = events.data?.polledAt;
+
+  // Globe filters — client-side only. Filter the point list before it
+  // reaches the globe; coverage/count in CoverageBadge stays honest to
+  // the upstream pipeline (so the filter doesn't mask real data).
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const toggleFilter = (id: FilterLayerId) =>
+    setFilters((f) => ({ ...f, [id]: !f[id] }));
+  const resetFilters = () => setFilters(DEFAULT_FILTERS);
+  const points = rawPoints.filter((p) => {
+    const meta = p.meta as { type?: string; hasAiConfig?: boolean } | undefined;
+    if (filters["ai-config-only"] && !meta?.hasAiConfig) return false;
+    const fid = eventTypeToFilterId(meta?.type);
+    if (fid && !filters[fid]) return false;
+    return true;
+  });
 
   // View tab state (globe vs wire). The wire view replaces the globe stage
   // with a full-viewport chronological feed; panels still render on top.
@@ -138,6 +160,15 @@ export function Dashboard() {
 
       {/* Left-edge icon nav */}
       <LeftNav items={navItems} openIds={openIds} onToggle={toggle} />
+
+      {/* Right-edge filter panel — only meaningful on the globe view */}
+      {activeTab === "globe" && (
+        <FilterPanel
+          filters={filters}
+          onToggle={toggleFilter}
+          onReset={resetFilters}
+        />
+      )}
 
       {/* Floating panels — only render in globe view (wire view is its own
           full-screen surface, so floating panels would be redundant). */}
