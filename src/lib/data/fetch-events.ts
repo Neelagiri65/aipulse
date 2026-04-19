@@ -96,6 +96,13 @@ const ARCHIVE_BACKFILL_HOURS = 3;
 // 60s serverless invocation. Cap to the newest N so coverage is bounded.
 const POST_DEDUPE_CAP = 2000;
 
+// Upper bound on concurrent fetchUser / probeAIConfig requests. Vercel's
+// serverless runtime can't cope with thousands of parallel sockets — the
+// prior uncapped Promise.all produced ~1000 "fetch failed" errors per
+// run. 20 is empirically enough to keep a 60s budget busy without
+// exhausting the HTTP agent pool.
+const MAX_CONCURRENT_REQUESTS = 20;
+
 /**
  * Permanent per-instance cache of AI-config results. Repos rarely toggle
  * tooling, so caching across the process lifetime turns repeat probes into
@@ -103,6 +110,39 @@ const POST_DEDUPE_CAP = 2000;
  * the widened ingest.
  */
 const aiConfigCache = new Map<string, boolean>();
+
+/**
+ * Per-instance cache of resolved author locations. GitHub profile
+ * location rarely changes on human-scale timescales, so caching across
+ * the lifetime of a warm serverless instance sharply reduces the
+ * fetchUser fan-out on repeat runs. Null-value entries mean "looked up,
+ * no geocodable location" — also worth caching so we don't retry.
+ */
+const userLocationCache = new Map<string, [number, number] | null>();
+
+/**
+ * Minimal bounded-concurrency runner. Runs `worker(item)` for every item
+ * but never more than `limit` at a time. Returns once all have settled.
+ */
+async function runBounded<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> {
+  let cursor = 0;
+  const runners: Promise<void>[] = [];
+  const spawn = async (): Promise<void> => {
+    while (true) {
+      const idx = cursor++;
+      if (idx >= items.length) return;
+      await worker(items[idx]);
+    }
+  };
+  for (let i = 0; i < Math.min(limit, items.length); i++) {
+    runners.push(spawn());
+  }
+  await Promise.all(runners);
+}
 
 // ---------------------------------------------------------------------------
 // READ PATH — called by /api/globe-events
@@ -293,23 +333,36 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
   const cappedById = new Map(capped.map((r) => [r.event.id, r]));
   const eventsReceived = cappedById.size;
 
-  // 4) Geocode unique actors.
+  // 4) Geocode unique actors. Bounded concurrency + cross-run cache.
   const uniqueLogins = Array.from(new Set(Array.from(cappedById.values()).map((r) => r.event.actor.login)));
   const locationByLogin = new Map<string, [number, number]>();
-  await Promise.all(
-    uniqueLogins.map(async (login) => {
-      try {
-        const user = await fetchUser(login);
-        const coords = geocode(user?.location);
-        if (coords) locationByLogin.set(login, coords);
-      } catch (err) {
-        failures.push({
-          step: `fetch-user:${login}`,
-          message: err instanceof Error ? err.message : String(err),
-        });
+  // Seed from cache; only fan out for unknowns.
+  const loginsToFetch: string[] = [];
+  for (const login of uniqueLogins) {
+    const cached = userLocationCache.get(login);
+    if (cached === undefined) {
+      loginsToFetch.push(login);
+    } else if (cached !== null) {
+      locationByLogin.set(login, cached);
+    }
+  }
+  await runBounded(loginsToFetch, MAX_CONCURRENT_REQUESTS, async (login) => {
+    try {
+      const user = await fetchUser(login);
+      const coords = geocode(user?.location);
+      if (coords) {
+        locationByLogin.set(login, coords);
+        userLocationCache.set(login, coords);
+      } else {
+        userLocationCache.set(login, null);
       }
-    }),
-  );
+    } catch (err) {
+      failures.push({
+        step: `fetch-user:${login}`,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  });
 
   // 5) Keep only placeable events.
   const placeable: Array<{ event: GitHubEvent; source: "gharchive" | "events-api" }> = [];
@@ -317,22 +370,21 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
     if (locationByLogin.has(r.event.actor.login)) placeable.push(r);
   }
 
-  // 6) Probe AI config for unique repos not already classified.
+  // 6) Probe AI config for unique repos not already classified. Same
+  // bounded-concurrency pattern as the user fetch above.
   const uniqueRepos = Array.from(new Set(placeable.map((r) => r.event.repo.name)));
   const reposToProbe = uniqueRepos.filter((repo) => !aiConfigCache.has(repo));
-  await Promise.all(
-    reposToProbe.map(async (repoFullName) => {
-      try {
-        const signal = await probeAIConfig(repoFullName);
-        aiConfigCache.set(repoFullName, signal.hasAnyConfig);
-      } catch (err) {
-        failures.push({
-          step: `probe-ai-config:${repoFullName}`,
-          message: err instanceof Error ? err.message : String(err),
-        });
-      }
-    }),
-  );
+  await runBounded(reposToProbe, MAX_CONCURRENT_REQUESTS, async (repoFullName) => {
+    try {
+      const signal = await probeAIConfig(repoFullName);
+      aiConfigCache.set(repoFullName, signal.hasAnyConfig);
+    } catch (err) {
+      failures.push({
+        step: `probe-ai-config:${repoFullName}`,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  });
 
   // 7) Build processed points.
   const points: StoredGlobePoint[] = placeable.map((r) => {
