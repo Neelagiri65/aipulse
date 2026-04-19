@@ -2,6 +2,46 @@
 
 ## Current state (2026-04-19)
 
+### Session 11 — registry search hotfix (1 commit)
+
+First seed dispatch (run 24636800837) returned `candidatesFound: 0`
+despite the endpoint returning 200 OK. Root cause was three bugs in
+`src/lib/data/registry-discovery.ts`, all fixed in `05f413a`:
+
+1. **`path:` qualifier was fed full file paths.** GitHub's Code Search
+   `path:` matches a directory, not a file. `path:.github/copilot-
+   instructions.md` → 404 "Not Found". Changed to parent directory:
+   `path:.github` → 40k results; `path:.continue` → 147 results (all
+   `.continue/config.json`).
+2. **Throw-on-any-error wiped collected pages.** A rate-limit or flaky
+   404 on page N discarded pages 1..N-1 of the same kind. Changed to
+   `break` + record the failure; partial results survive the sweep.
+3. **Burst-all-six-kinds tripped secondary rate limits.** Added 1.5s
+   delays between pages and between kinds; at the 30 req/min auth cap
+   we stay safe and a worst-case 60-call sweep still fits inside 300s.
+
+Verified every filename variant locally with curl + github-pat before
+deploying (numbers in the commit body). Build clean (1.95s compile +
+1.38s TS). Push to `main` triggers Vercel auto-deploy.
+
+**Next action:** re-run the seed dispatch once the `05f413a` deploy
+lands. Command unchanged from session 10:
+
+```
+gh workflow run registry-discover.yml \
+  -f source=manual-seed \
+  -f maxVerify=200 \
+  -f pages=10 \
+  -f skipKnown=1
+```
+
+Expected after fix: ~6 kinds × up to 10 pages × 100 items = 6k
+candidates, deduped to a few thousand, bounded-verified to 200 per
+run (the seed cap). Monitor:
+`curl https://aipulse-pi.vercel.app/api/registry | jq '.entries | length'`.
+
+Commits: `05f413a`.
+
 ### Session 10 — Phase B · repo registry foundation (4 commits)
 
 User unblocked session: "Both [fixes + Phase B]. Start Phase B now —
