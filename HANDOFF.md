@@ -2,6 +2,92 @@
 
 ## Current state (2026-04-19)
 
+### Session 9.2 — flat-map tab (default) · 3D globe polish · shared event-card
+
+Two commits, both green builds. The 3D globe's grainy-at-zoom texture
+and oversized dots were the presenting complaints; the Leaflet flat
+map makes those symptoms disappear by swapping to progressive-
+resolution tiles. The globe polish lands alongside it as an interim
+fix for users who open the secondary view.
+
+**Shipped:**
+
+- `728e015 fix(globe): cap dot radius at zoom, widen card margin to clear cluster badge`
+  - `pointRadius` capped at 0.22° with a lower multiplier (0.09 vs
+    0.18) — dots read as data points at every zoom instead of
+    balloon-scaling with camera distance.
+  - `CARD_MARGIN` 12px → 48px so the floating EventCard never sits
+    on top of a numeric cluster badge (badges reach ~30px at high
+    zoom).
+
+- `428aee6 feat(map): 2D Leaflet flat map tab, now the default view`
+  - `src/components/map/FlatMap.tsx` (NEW). CartoDB Dark Matter
+    raster tiles (free, no API key). MarkerClusterGroup with a
+    custom `iconCreateFunction` that picks the cluster colour from
+    the dominant event type of its children and glows amber when
+    any child has AI config. Leaflet is `await import`ed inside the
+    mount effect and the whole component is pulled in via
+    `next/dynamic({ ssr: false })` so SSR never touches `window`.
+  - Shared event-card extracted: `src/components/globe/event-detail.tsx`
+    exports `EVENT_TYPE_COLOR`, `colorForType`, `hexA`, `Cluster`,
+    `EventMeta`, `EventCard`, `shortEventType`, `formatRelative`.
+    Globe.tsx trimmed to import from it; FlatMap consumes the same
+    card via a singleton-cluster wrapper so clicking a single
+    marker feels identical to clicking a globe dot.
+  - `TopBar.tsx`: `ViewTabId` = `map | wire | globe`. Tabs re-
+    ordered "The Map · The Wire · The Globe"; map is the default.
+  - `Dashboard.tsx`: three-branch stage render. FilterPanel +
+    floating Wire/Tools panels render on both geospatial views
+    (map + globe). Wire view is its own full-screen surface.
+  - `globals.css`: Leaflet dark-theme overrides — transparent
+    divIcon bg (else Leaflet paints white), dark attribution + zoom
+    controls matching HUD chrome.
+  - Deps: `leaflet` 1.9, `leaflet.markercluster` 1.5, types.
+
+**Trust contract:**
+
+- FlatMap reads the same `/api/globe-events` pipeline. Every marker
+  is one real event — no map-specific synthesis, no fabricated
+  coordinates. AI-config detection is still file-presence-only.
+  CoverageBadge hovers over the map too, so the honest denominator
+  (eventsReceived / placeable / window size) stays visible.
+
+**Deferred to session 10 (registry foundation — Phase B):**
+
+- Upstash schema `aipulse:repo-registry` for persistent AI-config
+  repos. Discovery cron (every 6h, date-sliced GitHub Search API),
+  content verification (fetch first 500 bytes, check for config-
+  shaped markers — lines starting with #, instruction verbs, known
+  headers). Target: 2,000 high-quality repos in week 1, not 10,000
+  noisy ones.
+- `/archives` page reading weekly snapshots: "Week of April 7:
+  3,200 repos tracked, 420 new configs, 89 deleted, top growing
+  tool: Claude Code (+180)".
+- Signal decay: full-brightness ≤24h → progressively dimmer at 7d,
+  30d, 90d. Hover card says "Last activity: 43 days ago" — no
+  fabricated presence.
+- Decision logged: agreed with user to fetch-and-verify rather
+  than trust filename alone. Quality over speed.
+
+**Next actions (session 10 opening move):**
+
+1. Open https://aipulse-pi.vercel.app after Vercel rebuilds. Verify
+   (a) THE MAP tab loads by default with CartoDB dark tiles and
+   numbered clusters; (b) clicking a marker opens the shared
+   EventCard; (c) filter panel toggles change visible markers
+   live; (d) THE GLOBE tab still works and dots now stay small at
+   zoom; (e) THE WIRE tab unchanged.
+2. Draft a short PRD for the repo registry: data model (hash +
+   per-repo snapshots), discovery cron cadence, Upstash budget
+   (5k reads/day + 1k writes/day well under 10k free tier), and
+   the content-verification heuristic.
+3. Seed the registry with a first discovery batch (manual dispatch
+   via `gh workflow run`) before the first cron cycle so the map
+   has immediate registry data to fall back on when event window
+   is quiet.
+
+Commits: `728e015`, `428aee6`.
+
 ### Session 9.1 — visual bug fixes · colour coding + metrics visibility + density
 
 User flagged three blocking issues post-deploy: globe is monochrome,
