@@ -1,6 +1,111 @@
 # HANDOFF — AI Pulse
 
-## Current state (2026-04-18)
+## Current state (2026-04-19)
+
+### Session 9 — full UI rebuild · two-tab HUD · filters · metric cards · seven commits
+
+User brief: "Build. Seven commits. Ship." Kimi prototype at
+`~/aipulse/wmsample/app/` as visual reference only — no fake data
+copied across. Data pipeline untouched; presentation layer swapped.
+
+**Shipped (all on `main`, all builds green):**
+
+- `e9f5644 style(css): add icon-nav, panel-surface, grid-overlay, view-tabs tokens`
+  - Design tokens in `src/app/globals.css`: `.ap-stage-grid`,
+    `.ap-panel-surface`, `.ap-icon-nav` + `__item` + `__soon`,
+    `.ap-tabs` + `__item`. Every downstream chrome component reads
+    from these tokens — no inline colour literals in components.
+
+- `721e981 feat(left-nav): left-edge icon rail with expand/collapse + soon badge`
+  - `src/components/chrome/LeftNav.tsx` — 44px rail (176px expanded).
+    Items: Wire, Tools, Models, Agents, Research, Audit. Models /
+    Agents / Research render as disabled with a "soon" pill —
+    roadmap signalled, no empty panels. Wire + Tools carry live
+    counts sourced from `events.coverage.windowSize` and
+    `Object.keys(status.data).length`.
+
+- `bf7a347 feat(top-bar): centre tab switcher (THE GLOBE / THE WIRE) + full-width layout`
+  - `src/components/chrome/TopBar.tsx` — fixed 48px, full-width (no
+    max-w container so the left rail can pin to the viewport edge).
+    Layout: brand · absolute-centre tab switcher · right-side
+    {FreshnessPill, SeveritySummary, SourcesCount, /audit link, UTC
+    clock}. Tab switcher emits `ViewTabId = "globe" | "wire"`. Flat
+    2D MAP deferred per user direction (two tabs, not three).
+
+- `679f6bf feat(dashboard): full-viewport HUD layout + tabs + left-edge nav`
+  - `src/components/dashboard/Dashboard.tsx` — globe rendered
+    `fixed inset-0` behind floating chrome (48px top, 56px bottom).
+    `activeTab` state swaps globe stage for wire stage. Floating
+    Wins (Wire feed, Tool health) only render on the globe view.
+    `src/app/page.tsx` collapsed to `<Dashboard />` — SiteFooter and
+    flex wrapper removed (full-viewport HUD covers them).
+
+- `1c11aed feat(filter-panel): right-edge filters actually filter the globe`
+  - `src/components/chrome/FilterPanel.tsx` (NEW). Categories:
+    Event types (Push / PR / Issue / Release / Fork / Star) + Signal
+    (AI-config only). `DEFAULT_FILTERS` + `eventTypeToFilterId()`
+    exported for Dashboard. Filter is a view concern — applied to
+    `rawPoints` before passing to the globe, but the CoverageBadge
+    continues to read unfiltered `events.data.coverage` so the
+    transparency contract can't be masked by filter UI.
+
+- `215142a feat(metrics-row): 4 headline cards pinned above ticker`
+  - `src/components/dashboard/MetricsRow.tsx` (NEW). Four cards:
+    AI-cfg events · AI-cfg share · Events/window · Tools ops. Every
+    number comes from `/api/globe-events` or `/api/status` —
+    "loading…" shown on cold start rather than a zero that looks
+    like real data. Tools ops fold matches TopBar semantics:
+    operational + zero active incidents → counted OK. MetricsRow
+    complements the existing MetricTicker (glance vs strip).
+
+- `e9b47e0 feat(wire): full-viewport chronological feed replaces placeholder`
+  - `src/components/dashboard/WirePage.tsx` (NEW). THE WIRE tab
+    swaps the globe stage for a 960px-wide chronological feed.
+    Grid: 70px timestamp / 90px ai-cfg pill / 90px type / repo
+    link / auto actor + archive badge. Same extraction pattern as
+    LiveFeed (`events.data.points[].meta`) — no new data source.
+    Empty states explain why (loading / error / empty-window).
+
+**Research (parallel, approved, not yet built):**
+
+- GDELT as a globe data source. Conclusion: useful but risky — GKG
+  coordinates mark *places mentioned in articles*, not verifiable
+  event locations. User approved as a **separate layer with distinct
+  visual treatment, after UI rebuild ships**. Not in this session.
+  Will need its own `data-sources.ts` entry and a clear on-globe
+  distinction between "action happened here" (GitHub) vs "article
+  mentions here" (GDELT). `AUDITOR-REVIEW: PENDING`.
+
+**Files changed:**
+
+- Created: `FilterPanel.tsx`, `MetricsRow.tsx`, `WirePage.tsx`
+- Rewritten: `LeftNav.tsx`, `TopBar.tsx`, `Dashboard.tsx`, `page.tsx`
+- Modified: `globals.css`
+
+**Trust contract check:**
+
+- Every metric on MetricsRow cites a pipeline source (coverage or
+  status). No invented trust scores, no fake sparklines.
+- CoverageBadge reads unfiltered coverage — filter UI can't hide
+  the real denominator.
+- No data copied from Kimi mockup. Visual cues only.
+
+**Next actions for session 10:**
+
+- Open the deployed build in a browser and walk both tabs. Confirm
+  the filter panel actually changes point count live, and the
+  WirePage renders the same underlying events as LiveFeed.
+- If density feels right, start the GDELT separate-layer work as a
+  fresh feature branch. Lead with the honesty caveat in the UI.
+- MetricsRow sparklines when Redis has enough poll-sample history
+  to back a 24-hour trend. Currently too cold to be honest.
+- `/audit` page visual restyle to match new design tokens (carried
+  from session 6, still pending).
+- `AUDITOR-REVIEW: PENDING` on: two-tab view switch, filter layer
+  semantics, GDELT separate-layer decision.
+
+Commits: `e9f5644`, `721e981`, `bf7a347`, `679f6bf`, `1c11aed`,
+`215142a`, `e9b47e0`.
 
 ### Session 8 — globe density pipeline + click-to-reveal event card · deployed
 
