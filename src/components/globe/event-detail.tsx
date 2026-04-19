@@ -91,8 +91,12 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
       ref={ref}
       role="dialog"
       aria-label={`${cluster.count} event${cluster.count === 1 ? "" : "s"} in this region`}
-      style={{ left, top, width: CARD_WIDTH }}
-      className="absolute z-30 rounded-md border border-border/60 bg-background/95 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8),0_0_60px_-20px_rgba(45,212,191,0.25)] backdrop-blur-md"
+      // z-index 1200 sits above Leaflet's highest pane (controls at 800,
+      // popups at 700, markers at 600, tiles at 200) so the card isn't
+      // occluded by the map on the flat-map view. Safe on the globe too —
+      // no competing positioned siblings there.
+      style={{ left, top, width: CARD_WIDTH, zIndex: 1200 }}
+      className="absolute rounded-md border border-border/60 bg-background/95 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8),0_0_60px_-20px_rgba(45,212,191,0.25)] backdrop-blur-md"
     >
       <div className="flex h-7 items-center gap-2 border-b border-border/50 px-2.5 font-mono text-[10px] uppercase tracking-wider text-foreground/70">
         <span

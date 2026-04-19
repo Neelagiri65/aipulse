@@ -101,10 +101,43 @@ export function FlatMap({ points = [], lastUpdatedAt }: FlatMapProps) {
         spiderfyOnMaxZoom: true,
         disableClusteringAtZoom: 9,
         maxClusterRadius: 48,
+        // Disable the default zoom-to-bounds on cluster click so the
+        // shared EventCard can open instead. Users still zoom via
+        // wheel / zoom controls, matching globe parity (click reveals
+        // top events in the region, not a forced zoom).
+        zoomToBoundsOnClick: false,
         iconCreateFunction: (c: unknown) =>
           clusterIcon(L, c as MarkerClusterGroup),
       });
       cluster.addTo(map);
+
+      cluster.on("clusterclick", (ev: L.LeafletEvent) => {
+        const container = containerRef.current;
+        if (!container) return;
+        const clusterLayer = (ev as unknown as { layer: MarkerClusterGroup })
+          .layer;
+        const kids = (
+          clusterLayer as unknown as { getAllChildMarkers: () => L.Marker[] }
+        ).getAllChildMarkers();
+        const pts: GlobePoint[] = [];
+        for (const m of kids) {
+          const p = (m.options as unknown as { eventPoint?: GlobePoint })
+            .eventPoint;
+          if (p) pts.push(p);
+        }
+        if (pts.length === 0) return;
+
+        const rect = container.getBoundingClientRect();
+        const orig = (ev as unknown as { originalEvent?: MouseEvent })
+          .originalEvent;
+        setSelection({
+          cluster: clusterFromPoints(pts),
+          anchor: {
+            x: (orig?.clientX ?? rect.left + rect.width / 2) - rect.left,
+            y: (orig?.clientY ?? rect.top + rect.height / 2) - rect.top,
+          },
+        });
+      });
 
       leafletRef.current = L;
       mapRef.current = map;
@@ -301,6 +334,44 @@ function singletonCluster(
     count: 1,
     aiCount: hasAi ? 1 : 0,
     events: [p],
+  };
+}
+
+/**
+ * Aggregate a list of underlying events (the children of a Leaflet cluster)
+ * into a Cluster shape the shared EventCard can consume. Dominant type +
+ * colour match the cluster-icon rule so the badge the user just clicked is
+ * consistent with the card that opens. Events sorted newest-first.
+ */
+function clusterFromPoints(points: GlobePoint[]): Cluster {
+  const counts = new Map<string, number>();
+  let ai = 0;
+  let latSum = 0;
+  let lngSum = 0;
+  for (const p of points) {
+    const meta = (p.meta ?? {}) as EventMeta;
+    const t = meta.type ?? "unknown";
+    counts.set(t, (counts.get(t) ?? 0) + 1);
+    if (meta.hasAiConfig) ai += 1;
+    latSum += p.lat;
+    lngSum += p.lng;
+  }
+  const dominant = [...counts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0]
+    ?? "unknown";
+  const sorted = points.slice().sort((a, z) => {
+    const atA = (a.meta as EventMeta | undefined)?.createdAt ?? "";
+    const atZ = (z.meta as EventMeta | undefined)?.createdAt ?? "";
+    return atZ.localeCompare(atA);
+  });
+  return {
+    lat: latSum / points.length,
+    lng: lngSum / points.length,
+    color: colorForType(dominant),
+    dominantType: dominant,
+    size: 1,
+    count: points.length,
+    aiCount: ai,
+    events: sorted,
   };
 }
 
