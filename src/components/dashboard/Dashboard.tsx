@@ -6,6 +6,7 @@ import { HealthCardGrid } from "@/components/health/HealthCardGrid";
 import { LiveFeed } from "@/components/dashboard/LiveFeed";
 import { MetricTicker } from "@/components/dashboard/MetricTicker";
 import { MetricsRow } from "@/components/dashboard/MetricsRow";
+import { WirePage } from "@/components/dashboard/WirePage";
 import { TopBar, type ViewTabId } from "@/components/chrome/TopBar";
 import { Win } from "@/components/chrome/Win";
 import { LeftNav, type NavItem } from "@/components/chrome/LeftNav";
@@ -155,7 +156,11 @@ export function Dashboard() {
             <CoverageBadge events={events.data} />
           </div>
         ) : (
-          <WirePlaceholder events={events.data} />
+          <WirePage
+            events={events.data}
+            error={events.error}
+            isInitialLoading={events.isInitialLoading}
+          />
         )}
       </div>
 
@@ -271,24 +276,3 @@ function CoverageBadge({ events }: { events?: GlobeEventsResult }) {
   );
 }
 
-/** Placeholder until commit 7 ships the real full-viewport wire page. */
-function WirePlaceholder({ events }: { events?: GlobeEventsResult }) {
-  const n = events?.coverage.windowSize ?? 0;
-  return (
-    <div className="flex h-full w-full items-center justify-center">
-      <div className="ap-panel-surface max-w-xl px-6 py-5 text-center">
-        <div className="ap-label-sm mb-2" style={{ color: "var(--ap-accent)" }}>
-          The Wire
-        </div>
-        <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-          Full-viewport chronological feed ships next.
-        </p>
-        <p className="mt-2 text-xs text-muted-foreground/80">
-          {n > 0
-            ? `${n} events currently in the 120m window — use the Wire panel on The Globe for now.`
-            : "Waiting for the next cron cycle."}
-        </p>
-      </div>
-    </div>
-  );
-}
