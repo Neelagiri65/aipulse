@@ -39,6 +39,7 @@ import {
   type RegistryMeta,
 } from "./repo-registry";
 import { verifyConfigFile } from "./config-verifier";
+import { resolveOwnerLocation } from "./owner-location";
 
 const ALL_KINDS: ConfigKind[] = Object.keys(CONFIG_PATHS) as ConfigKind[];
 
@@ -110,15 +111,19 @@ export async function runRegistryDiscovery(
   }
 
   // 1. Collect candidates via Code Search. Each kind runs sequentially
-  //    with a small inter-kind pause so we don't trip the 30 req/min
-  //    secondary rate limit when sweeping all 6 kinds in a row.
+  //    with an inter-kind pause so we don't trip the 30 req/min secondary
+  //    rate limit when sweeping all 6 kinds in a row. First seed run on
+  //    a cold Vercel instance observed: claude-md alone (10 pages) can
+  //    exhaust the minute budget; later kinds then 403 on page 1. The
+  //    10s inter-kind gap lets the budget partially refill so at least
+  //    page 1 of each kind lands even under full load.
   const allCandidates: Candidate[] = [];
   const recordFailure = (step: string, message: string) => {
     failures.push({ step, message });
   };
   for (let i = 0; i < kinds.length; i++) {
     const kind = kinds[i];
-    if (i > 0) await delay(1500);
+    if (i > 0) await delay(10000);
     try {
       const found = await searchCodeByFilename(
         kind,
@@ -200,6 +205,12 @@ export async function runRegistryDiscovery(
 
     if (detected.length === 0) continue;
 
+    // Owner location lookup — cached in aipulse:registry:owner-location so
+    // the ~200 entries in a seed run only cost a fetchUser for each *new*
+    // owner, not per-repo. Silently resolves to null on rate limit /
+    // missing profile string; entry stores that null so UI can skip it.
+    const location = await resolveOwnerLocation(owner);
+
     verifiedEntries.push({
       fullName,
       owner,
@@ -212,21 +223,31 @@ export async function runRegistryDiscovery(
       language: meta.language ?? null,
       description: meta.description ?? null,
       configs: detected,
+      location,
     });
   }
 
   // 5. Upsert. Preserve firstSeen from existing entries so re-verification
-  //    doesn't reset the "discovered on X" stamp.
+  //    doesn't reset the "discovered on X" stamp. Also preserve an existing
+  //    resolved location when the new pass couldn't resolve one (transient
+  //    GH failure shouldn't blank out good data).
   if (verifiedEntries.length > 0) {
     const existing = await readAllEntries();
     const existingByName = new Map(existing.map((e) => [e.fullName, e]));
     const toWrite = verifiedEntries.map((e) => {
       const prev = existingByName.get(e.fullName);
-      if (prev) return { ...e, firstSeen: prev.firstSeen };
-      return e;
+      if (!prev) return e;
+      const location = e.location ?? prev.location;
+      return { ...e, firstSeen: prev.firstSeen, location };
     });
     await upsertEntries(toWrite);
   }
+
+  // 5b. Enrichment pass: geocode entries written *before* location support
+  //     existed (location === undefined). Bounded so a seed run doesn't
+  //     blow its budget on back-fill. Each subsequent run chips away.
+  const ENRICH_CAP = 100;
+  await enrichMissingLocations(ENRICH_CAP, failures);
 
   // 6. Meta write.
   const finalEntries = await readAllEntries();
@@ -331,6 +352,53 @@ async function searchCodeByFilename(
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Back-fill owner locations for entries written before location support
+ * existed (location === undefined). Tri-state semantics: we only retry
+ * entries where location is missing entirely, never ones where it was
+ * explicitly set to null (already looked up, dead end).
+ *
+ * Bounded to `cap` GH calls per run so a seed dispatch doesn't spend its
+ * whole budget here. Over ~5 runs the 2k target finishes back-filling.
+ */
+async function enrichMissingLocations(
+  cap: number,
+  failures: Array<{ step: string; message: string }>,
+): Promise<void> {
+  if (cap <= 0) return;
+  const entries = await readAllEntries();
+  const missing = entries.filter((e) => e.location === undefined);
+  if (missing.length === 0) return;
+
+  // Group by owner so one fetchUser covers every repo from that owner.
+  const byOwner = new Map<string, RegistryEntry[]>();
+  for (const e of missing) {
+    const list = byOwner.get(e.owner) ?? [];
+    list.push(e);
+    byOwner.set(e.owner, list);
+  }
+
+  const patched: RegistryEntry[] = [];
+  let lookups = 0;
+  for (const [owner, group] of byOwner) {
+    if (lookups >= cap) break;
+    lookups++;
+    let loc;
+    try {
+      loc = await resolveOwnerLocation(owner);
+    } catch (err) {
+      failures.push({
+        step: `enrich:${owner}`,
+        message: (err as Error).message,
+      });
+      continue;
+    }
+    for (const e of group) patched.push({ ...e, location: loc });
+  }
+
+  if (patched.length > 0) await upsertEntries(patched);
 }
 
 type RepoMeta = {

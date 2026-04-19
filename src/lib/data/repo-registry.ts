@@ -78,6 +78,13 @@ export type DetectedConfig = {
   verifiedAt: string;
 };
 
+export type RegistryLocation = {
+  lat: number;
+  lng: number;
+  /** The raw GitHub profile location string that geocoded to these coords. */
+  label: string;
+};
+
 export type RegistryEntry = {
   /** "owner/name" — the stable identifier. */
   fullName: string;
@@ -92,6 +99,15 @@ export type RegistryEntry = {
   description?: string | null;
   /** One entry per detected & verified config file. */
   configs: DetectedConfig[];
+  /**
+   * Owner's geocoded location. Tri-state:
+   *   - undefined → location lookup not yet attempted
+   *   - null      → looked up, owner has no geocodable location string
+   *   - object    → resolved lat/lng with raw GitHub profile string
+   * Lets the UI render the dot only when coords exist without re-trying
+   * dead lookups every discovery run.
+   */
+  location?: RegistryLocation | null;
 };
 
 export type RegistryMeta = {
