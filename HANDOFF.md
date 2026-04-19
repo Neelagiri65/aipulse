@@ -2,6 +2,65 @@
 
 ## Current state (2026-04-19)
 
+### Session 9.1 — visual bug fixes · colour coding + metrics visibility + density
+
+User flagged three blocking issues post-deploy: globe is monochrome,
+metric cards hidden behind ticker, density still sparse.
+
+**Fixes shipped:**
+
+- `f7e36ea fix(globe,metrics): event-type colour coding + surface metrics row`
+  - Globe dots now encode event type via colour (matches FilterPanel
+    legend). Push=teal, PR=blue, Issue=purple, Release=amber,
+    Fork=green, Star=yellow. AI-config signal moves to a bright
+    halo ring — thicker border + outer glow on count badges, and a
+    standalone 14px ring on singleton AI-config dots.
+  - `src/components/globe/Globe.tsx`: new `EVENT_TYPE_COLOR` map +
+    `colorForType()` helper. `clusterPoints()` tallies event-type
+    frequencies per bucket and picks the dominant for colour;
+    `isAi` signal now reads `meta.hasAiConfig` directly instead of
+    inferring from `p.color` (which no longer encodes AI status).
+  - `clusterLabelElement()` rewritten to render two shapes: numeric
+    badge (count>1) vs ring-only halo (count==1 && aiCount>0).
+    `hexA()` helper for rgba conversion with opacity.
+  - `GlobeLegend` updated to show six event-type swatches plus a
+    note that "bright ring = repo has AI config".
+  - MetricsRow was sitting behind the MetricTicker (ticker is ~84px
+    tall; row was at bottom-56 with z-30 under ticker's z-40).
+    Moved to bottom-96 z-50. Globe stage `paddingBottom` bumped
+    from 56 to 168 so CoverageBadge doesn't collide with the cards.
+
+- `0f64c06 fix(ingest): widen window + larger per-poll page count for density`
+  - Root cause of sparseness: GH Actions cron is best-effort, skips
+    slots on free tier (observed 30–40m gaps between runs, not 5m).
+  - `WINDOW_MINUTES` 120 → 240 — events linger twice as long.
+  - `EVENTS_API_PAGES` 5 → 8 — ~500–800 raw events per successful
+    run instead of ~300–500. 96 req/hr auth budget used at the
+    advertised cadence (trivial vs 5000/hr limit).
+  - `data-sources.ts` sanity range widened to 100–800. Mirrored to
+    `public/data-sources.md` — never let the registry drift.
+  - Expected sustained density with 14% geocoder coverage: 500–1000
+    placeable points (vs ~95 observed at session start).
+
+**Verification pending (next wake-up window):**
+
+- Backfill run 24633423728 fired at 16:11 UTC after config deploy.
+  Post-run, query `/api/globe-events`, confirm `coverage.windowSize >
+  200` (ideally 500+). If still sparse with 8-page + 240min window
+  live, the geocoder coverage is the next bottleneck to address
+  (current 14% → raise via richer city/country lookup table).
+
+**Known, not-yet-fixed:**
+
+- MetricsRow hint strings still fall back to "120m" when coverage
+  is missing. Purely cosmetic (only shows on cold start) but would
+  be worth patching to 240m on the next touch.
+- GH Actions cron intermittency is structural to the free tier.
+  Moving to Vercel Cron would be more reliable but requires a new
+  function entry point; out of scope for this hotfix.
+
+Commits: `f7e36ea`, `0f64c06`.
+
 ### Session 9 — full UI rebuild · two-tab HUD · filters · metric cards · seven commits
 
 User brief: "Build. Seven commits. Ship." Kimi prototype at
