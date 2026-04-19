@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { Globe, type GlobePoint } from "@/components/globe/Globe";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
@@ -8,6 +9,20 @@ import { MetricTicker } from "@/components/dashboard/MetricTicker";
 import { MetricsRow } from "@/components/dashboard/MetricsRow";
 import { WirePage } from "@/components/dashboard/WirePage";
 import { TopBar, type ViewTabId } from "@/components/chrome/TopBar";
+
+// Leaflet is client-only (touches `window` at import). Lazy-load with
+// ssr:false so the map bundle + its CSS only ship to the browser.
+const FlatMap = dynamic(
+  () => import("@/components/map/FlatMap").then((m) => m.FlatMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full w-full items-center justify-center font-mono text-xs text-muted-foreground">
+        Loading map…
+      </div>
+    ),
+  },
+);
 import { Win } from "@/components/chrome/Win";
 import { LeftNav, type NavItem } from "@/components/chrome/LeftNav";
 import {
@@ -52,9 +67,11 @@ export function Dashboard() {
     return true;
   });
 
-  // View tab state (globe vs wire). The wire view replaces the globe stage
-  // with a full-viewport chronological feed; panels still render on top.
-  const [activeTab, setActiveTab] = useState<ViewTabId>("globe");
+  // View tab state. Default to the flat map — its progressive-resolution
+  // tiles stay crisp at every zoom level, where the 3D globe texture goes
+  // grainy. Globe stays as a secondary view; Wire is the chronological
+  // feed without any geospatial stage.
+  const [activeTab, setActiveTab] = useState<ViewTabId>("map");
 
   // Floating panel layout state
   const [panels, setPanels] = useState<Record<PanelId, { open: boolean; min: boolean }>>(
@@ -143,19 +160,27 @@ export function Dashboard() {
       {/* Grid lattice overlay — decorative, above globe but below chrome. */}
       <div className="ap-stage-grid" aria-hidden />
 
-      {/* Full-viewport stage. The globe occupies the entire viewport
-          behind floating chrome; the wire view swaps in a full-screen
-          chronological feed (commit 7 replaces the placeholder). */}
+      {/* Full-viewport stage. MAP (default) and GLOBE render a geospatial
+          canvas behind floating chrome; WIRE swaps in a full-screen
+          chronological feed. CoverageBadge hovers over both map + globe
+          so the transparency contract stays visible regardless of view. */}
       <div
         className="fixed inset-0"
         style={{ paddingTop: 48, paddingBottom: 168, zIndex: 3 }}
       >
-        {activeTab === "globe" ? (
+        {activeTab === "map" && (
+          <div className="relative h-full w-full">
+            <FlatMap points={points} lastUpdatedAt={lastUpdatedAt} />
+            <CoverageBadge events={events.data} />
+          </div>
+        )}
+        {activeTab === "globe" && (
           <div className="relative h-full w-full">
             <Globe points={points} lastUpdatedAt={lastUpdatedAt} />
             <CoverageBadge events={events.data} />
           </div>
-        ) : (
+        )}
+        {activeTab === "wire" && (
           <WirePage
             events={events.data}
             error={events.error}
@@ -167,8 +192,9 @@ export function Dashboard() {
       {/* Left-edge icon nav */}
       <LeftNav items={navItems} openIds={openIds} onToggle={toggle} />
 
-      {/* Right-edge filter panel — only meaningful on the globe view */}
-      {activeTab === "globe" && (
+      {/* Right-edge filter panel — renders on both map + globe (they share
+          the filtered point set). Wire view has its own filter semantics. */}
+      {(activeTab === "map" || activeTab === "globe") && (
         <FilterPanel
           filters={filters}
           onToggle={toggleFilter}
@@ -176,9 +202,10 @@ export function Dashboard() {
         />
       )}
 
-      {/* Floating panels — only render in globe view (wire view is its own
-          full-screen surface, so floating panels would be redundant). */}
-      {activeTab === "globe" && (
+      {/* Floating panels — renders on map + globe (geospatial views where
+          side panels add context). Wire is its own full-screen feed, so
+          floating panels would be redundant. */}
+      {(activeTab === "map" || activeTab === "globe") && (
         <>
           {initialPos && panels.wire.open && (
             <Win

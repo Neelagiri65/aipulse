@@ -15,7 +15,7 @@ export type FreshnessState = {
   error?: string;
 };
 
-export type ViewTabId = "globe" | "wire";
+export type ViewTabId = "map" | "wire" | "globe";
 
 export type TopBarProps = {
   status?: StatusResult;
@@ -26,15 +26,17 @@ export type TopBarProps = {
 };
 
 /**
- * Fixed-top header. Left: brand. Centre: view-tab switcher (THE GLOBE /
- * THE WIRE). Right: freshness pill + severity summary + sources count +
- * UTC clock. Full-width (no max-w container) so the LeftNav rail can
- * pin to the literal viewport edge beneath it.
+ * Fixed-top header. Left: brand. Centre: view-tab switcher (THE MAP /
+ * THE WIRE / THE GLOBE — map is the default because progressive-tile
+ * rendering holds up at zoom where the 3D globe texture goes grainy).
+ * Right: freshness pill + severity summary + sources count + UTC clock.
+ * Full-width (no max-w container) so the LeftNav rail can pin to the
+ * literal viewport edge beneath it.
  */
 export function TopBar({
   status,
   freshness,
-  activeTab = "globe",
+  activeTab = "map",
   onTabChange,
 }: TopBarProps) {
   const now = useUtcClock();
@@ -53,15 +55,21 @@ export function TopBar({
       <div className="pointer-events-none absolute left-1/2 -translate-x-1/2">
         <div className="pointer-events-auto ap-tabs" role="tablist" aria-label="View">
           <TabButton
-            id="globe"
-            label="The Globe"
-            active={activeTab === "globe"}
+            id="map"
+            label="The Map"
+            active={activeTab === "map"}
             onSelect={handleTab}
           />
           <TabButton
             id="wire"
             label="The Wire"
             active={activeTab === "wire"}
+            onSelect={handleTab}
+          />
+          <TabButton
+            id="globe"
+            label="The Globe"
+            active={activeTab === "globe"}
             onSelect={handleTab}
           />
         </div>

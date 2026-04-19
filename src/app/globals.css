@@ -531,3 +531,39 @@
   background: rgba(45, 212, 191, 0.06);
   border-bottom-color: var(--ap-accent);
 }
+
+/* ============================================================================
+   FLAT MAP — Leaflet dark-theme overrides. CartoDB tiles are the canvas;
+   these rules just dress the default Leaflet controls + marker wrappers so
+   they read as HUD chrome instead of a stock web-map.
+   ============================================================================ */
+.ap-fm-root .leaflet-container {
+  background: #06080a;
+  font-family: var(--font-mono);
+}
+.ap-fm-root .leaflet-div-icon,
+.ap-fm-marker,
+.ap-fm-cluster {
+  background: transparent;
+  border: 0;
+}
+.ap-fm-root .leaflet-control-attribution {
+  background: rgba(8, 14, 20, 0.8) !important;
+  color: rgba(226, 232, 240, 0.55);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+}
+.ap-fm-root .leaflet-control-attribution a {
+  color: rgba(226, 232, 240, 0.75);
+}
+.ap-fm-root .leaflet-control-zoom a {
+  background: rgba(8, 14, 20, 0.85);
+  color: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.25);
+}
+.ap-fm-root .leaflet-control-zoom a:hover {
+  background: rgba(45, 212, 191, 0.12);
+  color: #f0fdfa;
+}
