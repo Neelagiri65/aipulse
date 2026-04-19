@@ -15,57 +15,105 @@ export type FreshnessState = {
   error?: string;
 };
 
+export type ViewTabId = "globe" | "wire";
+
 export type TopBarProps = {
   status?: StatusResult;
-  /** Status-poll freshness — drives the live/stale/connecting indicator. */
   freshness: FreshnessState;
+  /** Current dashboard view. Defaults to "globe" if caller hasn't wired tabs yet. */
+  activeTab?: ViewTabId;
+  onTabChange?: (tab: ViewTabId) => void;
 };
 
 /**
- * Sticky dashboard top bar. Brand + severity summary (from real /api/status,
- * with active incidents folded into "degraded") + freshness pill + sources
- * count + UTC clock. The freshness pill replaces the static "LIVE" lie:
- * CONNECTING during initial poll, LIVE · {age} when fresh, STALE when older
- * than 2× the poll interval.
+ * Fixed-top header. Left: brand. Centre: view-tab switcher (THE GLOBE /
+ * THE WIRE). Right: freshness pill + severity summary + sources count +
+ * UTC clock. Full-width (no max-w container) so the LeftNav rail can
+ * pin to the literal viewport edge beneath it.
  */
-export function TopBar({ status, freshness }: TopBarProps) {
+export function TopBar({
+  status,
+  freshness,
+  activeTab = "globe",
+  onTabChange,
+}: TopBarProps) {
   const now = useUtcClock();
   const sev = deriveSeverity(status);
+  const handleTab = (t: ViewTabId) => onTabChange?.(t);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-[1600px] items-center gap-4 px-4 py-2.5">
+    <header
+      className="fixed left-0 right-0 top-0 z-40 flex items-center border-b border-border/60 bg-background/80 backdrop-blur-md"
+      style={{ height: 48 }}
+    >
+      <div className="flex items-center pl-4 pr-2">
         <Brand />
+      </div>
 
-        <nav className="ml-4 hidden items-center gap-1 md:flex">
-          <NavTab href="/" active>
-            Live
-          </NavTab>
-          <NavTab href="/audit">Audit</NavTab>
-          <NavTab href="/data-sources.md" external>
-            Sources
-          </NavTab>
-        </nav>
-
-        <div className="ml-auto flex items-center gap-4">
-          <FreshnessPill freshness={freshness} />
-          <SeveritySummary sev={sev} loaded={status !== undefined} />
-          <SourcesCount
-            verified={VERIFIED_SOURCES.length}
-            pending={PENDING_SOURCES.length}
+      <div className="pointer-events-none absolute left-1/2 -translate-x-1/2">
+        <div className="pointer-events-auto ap-tabs" role="tablist" aria-label="View">
+          <TabButton
+            id="globe"
+            label="The Globe"
+            active={activeTab === "globe"}
+            onSelect={handleTab}
           />
-          <span className="hidden font-mono text-[11px] tracking-wider text-muted-foreground sm:inline">
-            {now}
-          </span>
+          <TabButton
+            id="wire"
+            label="The Wire"
+            active={activeTab === "wire"}
+            onSelect={handleTab}
+          />
         </div>
+      </div>
+
+      <div className="ml-auto flex items-center gap-3 pr-4">
+        <FreshnessPill freshness={freshness} />
+        <SeveritySummary sev={sev} loaded={status !== undefined} />
+        <SourcesCount
+          verified={VERIFIED_SOURCES.length}
+          pending={PENDING_SOURCES.length}
+        />
+        <a
+          href="/audit"
+          className="hidden font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground md:inline"
+        >
+          Audit
+        </a>
+        <span className="hidden font-mono text-[11px] tracking-wider text-teal-300 sm:inline">
+          {now}
+        </span>
       </div>
     </header>
   );
 }
 
+function TabButton({
+  id,
+  label,
+  active,
+  onSelect,
+}: {
+  id: ViewTabId;
+  label: string;
+  active: boolean;
+  onSelect: (id: ViewTabId) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      className={`ap-tabs__item ${active ? "ap-tabs__item--active" : ""}`}
+      onClick={() => onSelect(id)}
+    >
+      {label}
+    </button>
+  );
+}
+
 function FreshnessPill({ freshness }: { freshness: FreshnessState }) {
   const [, force] = useState(0);
-  // Re-render every second so the age display ticks. Cheap (<1ms).
   useEffect(() => {
     const t = setInterval(() => force((n) => n + 1), 1000);
     return () => clearInterval(t);
@@ -113,57 +161,14 @@ function formatAge(ms: number): string {
 
 function Brand() {
   return (
-    <a href="/" className="flex items-center gap-3">
-      <span
-        className="flex h-6 w-6 items-center justify-center rounded-full"
-        style={{ background: "rgba(45, 212, 191, 0.18)" }}
-      >
-        <span className="ap-live-dot" />
+    <a href="/" className="flex items-center gap-2">
+      <span className="font-mono text-[11px] font-bold tracking-[0.16em] text-foreground">
+        AI PULSE
       </span>
-      <span>
-        <span className="flex items-baseline gap-2">
-          <span className="text-sm font-semibold tracking-tight">AI Pulse</span>
-          <span className="ap-label-sm" style={{ color: "var(--sev-pending)" }}>
-            mvp · 5 tracked · 1 gap
-          </span>
-        </span>
-        <span className="ap-label-sm hidden md:inline-block">
-          Live status &amp; activity monitor · AI coding tools
-        </span>
+      <span className="ap-live-dot" />
+      <span className="ap-label-sm hidden md:inline" style={{ color: "var(--ap-fg-dim)" }}>
+        BETA
       </span>
-    </a>
-  );
-}
-
-function NavTab({
-  href,
-  children,
-  active,
-  external,
-}: {
-  href: string;
-  children: React.ReactNode;
-  active?: boolean;
-  external?: boolean;
-}) {
-  return (
-    <a
-      href={href}
-      target={external ? "_blank" : undefined}
-      rel={external ? "noopener noreferrer" : undefined}
-      className={
-        "px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors " +
-        (active
-          ? "text-teal-400"
-          : "text-muted-foreground hover:text-foreground")
-      }
-      style={
-        active
-          ? { borderBottom: "2px solid #2dd4bf", boxShadow: "0 1px 0 0 rgba(45,212,191,0.2)" }
-          : undefined
-      }
-    >
-      {children}
     </a>
   );
 }
@@ -184,12 +189,12 @@ function SeveritySummary({
       />
       <SevSummaryItem
         color="var(--sev-degrade)"
-        label="degraded"
+        label="deg"
         value={loaded ? sev.degraded : "—"}
       />
       <SevSummaryItem
         color="var(--sev-op)"
-        label="operational"
+        label="op"
         value={loaded ? sev.operational : "—"}
       />
     </div>
@@ -225,15 +230,21 @@ function SourcesCount({
   pending: number;
 }) {
   return (
-    <span className="hidden font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground md:inline">
-      <span className="text-foreground tabular-nums">{verified}</span> verified
+    <a
+      href="/data-sources.md"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="hidden font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground md:inline"
+      title="Source registry"
+    >
+      <span className="text-foreground tabular-nums">{verified}</span> src
       {pending > 0 ? (
         <>
           {" · "}
-          <span className="text-amber-400 tabular-nums">{pending}</span> pending
+          <span className="text-amber-400 tabular-nums">{pending}</span> pend
         </>
       ) : null}
-    </span>
+    </a>
   );
 }
 
@@ -241,9 +252,6 @@ function deriveSeverity(status?: StatusResult) {
   const counts = { outage: 0, degraded: 0, operational: 0, unknown: 0 };
   if (!status) return counts;
   for (const v of Object.values(status.data)) {
-    // A tool with active unresolved incidents is NOT operational, even if the
-    // upstream component status says so. Statuspage flips components green
-    // during the `monitoring` phase before the incident is resolved.
     const hasActiveIncident = (v?.activeIncidents?.length ?? 0) > 0;
     switch (v?.status) {
       case "operational":
@@ -275,5 +283,5 @@ function useUtcClock(): string {
 
 function fmtUtc(d: Date): string {
   const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`;
+  return `${p(d.getUTCMonth() + 1)}/${p(d.getUTCDate())}/${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`;
 }
