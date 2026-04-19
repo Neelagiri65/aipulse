@@ -29,13 +29,33 @@ export type GlobeProps = {
   lastUpdatedAt?: string;
 };
 
-const TEAL = "#2dd4bf";
 const SLATE = "#cbd5e1";
+
+// Event-type colour map. Must match src/components/chrome/FilterPanel.tsx
+// so the dots on the globe read the same as the filter legend.
+const EVENT_TYPE_COLOR: Record<string, string> = {
+  PushEvent: "#2dd4bf", // teal
+  PullRequestEvent: "#60a5fa", // blue
+  PullRequestReviewEvent: "#60a5fa",
+  IssuesEvent: "#a78bfa", // purple
+  IssueCommentEvent: "#a78bfa",
+  ReleaseEvent: "#f59e0b", // amber
+  ForkEvent: "#4ade80", // green
+  WatchEvent: "#fbbf24", // yellow (Star)
+  CreateEvent: "#cbd5e1", // slate
+};
+
+function colorForType(type?: string): string {
+  if (!type) return SLATE;
+  return EVENT_TYPE_COLOR[type] ?? SLATE;
+}
 
 type Cluster = {
   lat: number;
   lng: number;
   color: string;
+  /** Dominant event type in the bucket (most events). Drives colour + legend. */
+  dominantType: string;
   size: number;
   count: number;
   aiCount: number;
@@ -71,7 +91,11 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
     const by = Math.round(p.lat / BUCKET_DEG);
     const bx = Math.round(p.lng / BUCKET_DEG);
     const key = `${by}:${bx}`;
-    const isAi = p.color === TEAL;
+    // AI-config is a separate signal from event-type colour — use the meta
+    // flag directly rather than inferring from p.color, because p.color now
+    // encodes event type, not AI-config status.
+    const meta = p.meta as EventMeta | undefined;
+    const isAi = meta?.hasAiConfig === true;
     const b = buckets.get(key);
     if (b) {
       b.lats.push(p.lat);
@@ -94,6 +118,17 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
   for (const b of buckets.values()) {
     const lat = b.lats.reduce((s, v) => s + v, 0) / b.lats.length;
     const lng = b.lngs.reduce((s, v) => s + v, 0) / b.lngs.length;
+
+    // Dominant event type → cluster colour. Ties broken by insertion order.
+    const typeCounts = new Map<string, number>();
+    for (const ev of b.events) {
+      const t = (ev.meta as EventMeta | undefined)?.type ?? "unknown";
+      typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1);
+    }
+    const dominantType =
+      [...typeCounts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0] ?? "unknown";
+    const color = colorForType(dominantType);
+
     const aiDominant = b.ai > 0;
     const base = aiDominant ? 0.55 : 0.32;
     const size = Math.min(1.6, base + Math.log2(1 + b.total) * 0.22);
@@ -107,7 +142,8 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
     clusters.push({
       lat,
       lng,
-      color: aiDominant ? TEAL : SLATE,
+      color,
+      dominantType,
       size,
       count: b.total,
       aiCount: b.ai,
@@ -142,9 +178,11 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
   }, []);
 
   const clusters = useMemo(() => clusterPoints(points), [points]);
-  // Only clusters with >1 event get a numeric badge — keeps singleton dots clean.
+  // Clusters with >1 event get a numeric badge; singleton AI-config dots
+  // also render an HTML overlay so they read as a bright halo ring against
+  // the event-type colour dot.
   const labeledClusters = useMemo(
-    () => clusters.filter((c) => c.count > 1),
+    () => clusters.filter((c) => c.count > 1 || c.aiCount > 0),
     [clusters],
   );
   const hasData = points.length > 0;
@@ -423,14 +461,39 @@ function clusterLabelElement(c: Cluster): HTMLElement {
   const el = document.createElement("div");
   const isAi = c.aiCount > 0;
   const count = c.count;
-  const border = isAi ? "rgba(45, 212, 191, 0.85)" : "rgba(148, 163, 184, 0.75)";
-  const glow = isAi ? "rgba(45, 212, 191, 0.35)" : "rgba(148, 163, 184, 0.25)";
-  const text = isAi ? "#ccfbf1" : "#e2e8f0";
-  const bg = isAi ? "rgba(15, 42, 39, 0.82)" : "rgba(15, 23, 28, 0.82)";
-  // Scale slightly by count: 2→smallest, 50+→largest.
-  const scale = Math.min(1.25, 0.9 + Math.log10(count) * 0.22);
+  const color = c.color;
+
+  // Singleton AI-config dot → render as a halo ring, no numeric badge.
+  // That's what visually distinguishes "has AI config" from "no AI config"
+  // when there's only one event at the location.
+  if (count === 1 && isAi) {
+    el.style.cssText = [
+      "pointer-events:none",
+      "position:relative",
+      "transform:translate(-50%,-50%)",
+      "width:14px",
+      "height:14px",
+      "border-radius:9999px",
+      "background:transparent",
+      `border:1.5px solid ${hexA(color, 0.95)}`,
+      `box-shadow:0 0 10px ${hexA(color, 0.55)}, inset 0 0 4px ${hexA(color, 0.35)}`,
+    ].join(";");
+    el.setAttribute("aria-label", "1 AI-config event in this region");
+    return el;
+  }
+
+  // Numbered badge. AI-config clusters get a thicker border + outer ring.
+  const scale = Math.min(1.35, 0.9 + Math.log10(count) * 0.22);
   const size = Math.round(22 * scale);
   const fontSize = Math.round(10.5 + (scale - 0.9) * 4);
+  const border = isAi ? hexA(color, 0.95) : hexA(color, 0.6);
+  const glow = isAi ? hexA(color, 0.55) : hexA(color, 0.25);
+  const bg = "rgba(8, 14, 20, 0.82)";
+  const text = isAi ? "#f0fdfa" : "#e2e8f0";
+  const shadow = isAi
+    ? `0 0 ${Math.round(18 * scale)}px ${glow}, 0 0 0 2px ${hexA(color, 0.25)}`
+    : `0 0 ${Math.round(10 * scale)}px ${glow}`;
+
   el.style.cssText = [
     "pointer-events:none",
     "position:relative",
@@ -442,8 +505,8 @@ function clusterLabelElement(c: Cluster): HTMLElement {
     "align-items:center",
     "justify-content:center",
     `background:${bg}`,
-    `border:1px solid ${border}`,
-    `box-shadow:0 0 ${Math.round(12 * scale)}px ${glow}`,
+    `border:${isAi ? "1.5px" : "1px"} solid ${border}`,
+    `box-shadow:${shadow}`,
     `color:${text}`,
     "font-family:var(--font-mono, ui-monospace, monospace)",
     `font-size:${fontSize}px`,
@@ -453,20 +516,37 @@ function clusterLabelElement(c: Cluster): HTMLElement {
     "backdrop-filter:blur(2px)",
   ].join(";");
   el.textContent = count > 99 ? "99+" : String(count);
-  el.setAttribute("aria-label", `${count} events in this region${isAi ? `, ${c.aiCount} with AI config` : ""}`);
+  el.setAttribute(
+    "aria-label",
+    `${count} events in this region${isAi ? `, ${c.aiCount} with AI config` : ""}`,
+  );
   return el;
+}
+
+function hexA(hex: string, alpha: number): string {
+  const m = /^#([0-9a-fA-F]{6})$/.exec(hex);
+  if (!m) return `rgba(45,212,191,${alpha})`;
+  const r = parseInt(m[1].slice(0, 2), 16);
+  const g = parseInt(m[1].slice(2, 4), 16);
+  const b = parseInt(m[1].slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 
 function GlobeLegend() {
   return (
     <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border/40 bg-background/70 p-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground backdrop-blur-sm">
-      <div className="mb-1.5 text-[9px] text-foreground/60">Dot legend</div>
+      <div className="mb-1.5 text-[9px] text-foreground/60">Event type</div>
       <ul className="space-y-1">
-        <LegendRow color="#2dd4bf" label="Repo has AI config (CLAUDE.md / .cursorrules / …)" />
-        <LegendRow color="#cbd5e1" label="Public commit, no AI config detected" />
-        <LegendRow color="#60a5fa" label="Tool migration signal (config rename within 7d)" />
-        <LegendRow color="#f87171" label="Region affected by tool outage" />
+        <LegendRow color="#2dd4bf" label="Push" />
+        <LegendRow color="#60a5fa" label="Pull request" />
+        <LegendRow color="#a78bfa" label="Issue" />
+        <LegendRow color="#f59e0b" label="Release" />
+        <LegendRow color="#4ade80" label="Fork" />
+        <LegendRow color="#fbbf24" label="Star" />
       </ul>
+      <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
+        Bright ring = repo has AI config
+      </div>
     </div>
   );
 }

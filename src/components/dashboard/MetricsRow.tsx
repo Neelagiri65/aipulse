@@ -38,7 +38,7 @@ export function MetricsRow({
 
   return (
     <div
-      className="pointer-events-none fixed bottom-[56px] left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 pb-1"
+      className="pointer-events-none fixed bottom-[96px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 pb-1"
       aria-label="Headline metrics"
     >
       {cards.map((card, i) => (

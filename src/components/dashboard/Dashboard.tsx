@@ -148,7 +148,7 @@ export function Dashboard() {
           chronological feed (commit 7 replaces the placeholder). */}
       <div
         className="fixed inset-0"
-        style={{ paddingTop: 48, paddingBottom: 56, zIndex: 3 }}
+        style={{ paddingTop: 48, paddingBottom: 168, zIndex: 3 }}
       >
         {activeTab === "globe" ? (
           <div className="relative h-full w-full">
