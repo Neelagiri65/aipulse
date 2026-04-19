@@ -2,6 +2,144 @@
 
 ## Current state (2026-04-19)
 
+### Session 13 — backfill cron + topics discovery + Models tab (3 commits)
+
+User flag from session 12: backfill-events API route shipped but no
+workflow wired it, so registry growth still required manual curl.
+This session closes that gap and pushes forward on two more things
+the session 12 HANDOFF listed as queued: source #3 (topics
+discovery) and the Models tab. Ship-deploy-move-on — no asks
+between steps.
+
+**Shipped (3 PRs / commits):**
+
+1. `322f3c1 feat(registry): wire backfill-events cron (1h, cap=100)`
+   - `.github/workflows/registry-backfill-events.yml` (NEW). 1h cron
+     at :15 past, cap=100, source=cron-backfill. Auth via shared
+     INGEST_SECRET; strips `/api/ingest` off INGEST_URL to reach the
+     backfill path. Matches the same-shaped workflow pattern as
+     registry-discover.yml.
+   - Manual dispatch verified 20s duration. Registry backfill now
+     grows without human intervention.
+
+2. `559d367 feat(registry): topics discovery — self-declared AI repos
+   via search/repositories`
+   - `src/lib/data/registry-topics.ts` (NEW). 11 topics (claude,
+     cursor, ai-coding, copilot, aider, windsurf, ai-agent, llm,
+     langchain, crewai, agents-md). Per-topic search hits
+     `/search/repositories?q=topic:X&sort=stars&order=desc`,
+     deduped across topics by full_name. Each candidate still goes
+     through the same 6-filename Contents-probe + shape verifier as
+     Code Search discovery — topic tag alone never lands an entry.
+   - `src/app/api/registry/topics/route.ts` (NEW). Auth via
+     INGEST_SECRET. Query params: source, cap, pagesPerTopic, topics
+     (csv). maxDuration=120.
+   - `.github/workflows/registry-discover-topics.yml` (NEW). 2h
+     cron at :45 past (offset from backfill-events' :15 to avoid
+     Search-API collision), cap=60, pagesPerTopic=2.
+   - `src/lib/data-sources.ts` + `public/data-sources.md`:
+     GITHUB_REPO_SEARCH_TOPICS source entry. Same shape as
+     GITHUB_CODE_SEARCH; verified 2026-04-19. Caveat documents
+     verify-pass rate expectation (~20-40% on broad topics like
+     `llm`, `ai-agent`; ~60-80% on tool-specific ones).
+   - Live verification (cap=40, pagesPerTopic=1, 1m4s duration):
+     `{topicsSwept:11, candidatesFound:1100, candidatesAfterDedupe:960,
+     candidatesAfterSkipKnown:957, verifiesAttempted:40, written:21,
+     failures:[]}`. Verify-pass rate ~52% on the top-stars slice —
+     in-range.
+
+3. `cfe4a96 feat(models): top-20 HuggingFace models panel —
+   hf-downloads source`
+   - `src/lib/data/fetch-models.ts` (NEW). Calls
+     `https://huggingface.co/api/models?sort=downloads&direction=-1&filter=text-generation&limit=20`.
+     No auth. 15-min Next.js Data Cache. Echoes downloads/likes
+     verbatim — no re-ranking, no composite score.
+   - `src/app/api/models/route.ts` (NEW). 5-min CDN s-maxage,
+     15-min stale-while-revalidate. Node runtime for consistency
+     with /api/status and /api/registry.
+   - `src/components/models/ModelsPanel.tsx` (NEW). Rank / model
+     name / author / 30d downloads (formatted) / ♥ / last-modified.
+     Links each row out to huggingface.co. Awaiting-poll and
+     error states explicit; no silent zeros.
+   - `src/components/dashboard/Dashboard.tsx` wired: new PanelId
+     "models", polling hook at 10-min, initial position at
+     right-half (y=132 offset from Tools), nav item flips from
+     `soon: true` to active with count badge.
+   - `src/lib/data-sources.ts` + `public/data-sources.md`:
+     HUGGINGFACE_MODELS source entry + new "model-distribution"
+     category. Caveat: downloads ≠ inference traffic; ≠ unique
+     users.
+   - Live verification (`/api/models`): 20 models returned,
+     top-3: `Qwen/Qwen3-0.6B` (15.8M), `openai-community/gpt2`
+     (13.9M), `Qwen/Qwen2.5-7B-Instruct` (12.5M). In-range per
+     sanity check (5–20 models, top-5 in 1M–100M).
+
+**Registry state at session end (pre-CDN-refresh snapshot):**
+- Total entries: 456 (up from 447 at session 12 end)
+- With location: 212 (up from 208)
+- Latest source: cron-backfill at 22:42Z + topics run wrote 21
+  more at ~22:51Z (not yet reflected in the 5-min CDN-cached
+  /api/registry response when this HANDOFF was written).
+
+**AUDITOR-REVIEW: PENDING** on:
+1. Topics discovery verify-pass rate — observed 52% on a
+   top-stars-sorted 40-sample pass; will skew lower on broader
+   topics like `llm` after the tool-specific ones exhaust. Watch
+   the first three cron runs; if pass rate <25%, drop
+   `llm`/`ai-agent`/`langchain` from the default list and keep
+   the tool-anchored ones (claude, cursor, aider, windsurf,
+   copilot, agents-md, crewai).
+2. Topics × Code Search Search-API budget collision. Topics runs
+   at :45 past the hour, registry-discover at the top of the 6h
+   boundary, backfill-events at :15 past. No hour has all three
+   colliding in the 30 req/min window but if cron drift changes
+   that, the 10s inter-kind gap plus 2.2s inter-page delay should
+   still keep us under.
+3. Models tab uses HuggingFace's `filter=text-generation` —
+   intentional v1 scope. Misses multimodal leaders (LLaVA,
+   Whisper, etc). Acceptable for launch; revisit if the panel
+   earns a second row.
+
+**Next action (priority order, queued):**
+1. Source #6 (npm dependents). `npmjs.com` search with
+   `keywords:llm` OR `dependents:@anthropic-ai/sdk`; resolve each
+   hit's `repository.url`, unique-by-owner/repo, then feed the
+   same verifier pipe. One commit when it lands.
+2. Source #2 (GitHub Trending). The `/trending` page isn't an
+   API — scrape the HTML (~weekly cron, not hourly) via the
+   same verifier pipe. Rate budget is fine; cadence needs to
+   match trending-window refresh (weekly, monthly).
+3. Sources #4 (stargazers) and #5 (HF Spaces → GitHub) are
+   compound discovery and slower-growth — defer until 1+2 are
+   in.
+4. Agents tab (similar shape to Models) once the registry
+   meaningfully clears 1000.
+
+```
+# Manual one-off backfill / topics trigger (workflows do it on
+# cron now, but keep for debugging):
+SECRET=$(security find-generic-password -s aipulse-ingest-secret -w)
+curl -sS -X POST -H "x-ingest-secret: $SECRET" \
+  "https://aipulse-pi.vercel.app/api/registry/backfill-events?cap=100"
+curl -sS -X POST -H "x-ingest-secret: $SECRET" \
+  "https://aipulse-pi.vercel.app/api/registry/topics?cap=60&pagesPerTopic=2"
+```
+
+Files created (5): `.github/workflows/registry-backfill-events.yml`,
+`.github/workflows/registry-discover-topics.yml`,
+`src/lib/data/registry-topics.ts`,
+`src/app/api/registry/topics/route.ts`,
+`src/lib/data/fetch-models.ts`,
+`src/app/api/models/route.ts`,
+`src/components/models/ModelsPanel.tsx`.
+Files modified (3): `src/lib/data-sources.ts`,
+`public/data-sources.md`, `src/components/dashboard/Dashboard.tsx`.
+Files deleted: 0.
+
+Commits: `322f3c1`, `559d367`, `cfe4a96`.
+
+---
+
 ### Session 12 — registry discovery expansion · source #1 + geocoder (2 commits)
 
 User pivot: `/session-start` opened on a location-enrichment debug
