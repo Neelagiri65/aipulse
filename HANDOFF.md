@@ -65,34 +65,86 @@ commits on `main`, both green builds before push.
     the dataset rotates (stale eventIds wouldn't match what's on the
     globe).
 
-**Pending user action (infra — both PRs ship degraded until this lands):**
+**Infra wired (2026-04-19):**
 
-1. Vercel project env vars (production + preview):
-   - `UPSTASH_REDIS_REST_URL`
-   - `UPSTASH_REDIS_REST_TOKEN`
-   - `INGEST_SECRET` (new — any high-entropy string)
-2. GitHub repo secrets (used by `.github/workflows/globe-ingest.yml`):
-   - `INGEST_URL` (e.g. `https://aipulse-pi.vercel.app/api/ingest`)
-   - `INGEST_SECRET` (same value as Vercel)
-3. Local `.env.local`: replace `PASTE_TOKEN_HERE` for `UPSTASH_REDIS_REST_TOKEN`
-   so local `npm run dev` can exercise the Redis read path (optional —
-   in-process fallback still works without it).
+- Vercel env vars (production + development):
+  - `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` (set by user
+    via `vercel env add` ~1h before this session)
+  - `INGEST_SECRET` generated via `openssl rand -hex 32`, stored in
+    macOS Keychain as `aipulse-ingest-secret`, piped into Vercel via
+    stdin (value never printed).
+  - Preview target: partial — `UPSTASH_REDIS_REST_URL` and
+    `INGEST_SECRET` not added because the Vercel CLI's "all preview
+    branches" non-interactive path has a bug (returns git_branch_required
+    despite `--yes --value` matching its own suggested command).
+    Preview deploys are a nice-to-have, not required for the cron.
+- GitHub repo secrets:
+  - `INGEST_URL = https://aipulse-pi.vercel.app/api/ingest`
+  - `INGEST_SECRET` mirrored from Keychain via stdin pipe.
+- Production redeploys: `dpl_4WHW9AnjGgP1KDWP3Ai6kcbXfPga` (initial),
+  then two iterations for bug fixes below.
+- Cron (`*/5 * * * *`) is live; first manual dispatch with
+  `backfill=true` succeeded on the third try (two bugs en route).
 
-Once (1)+(2) land and the cron fires once with `?backfill=1`, the globe
-goes from ~15 points/60min (live API only, no geocoding cache, no window
-buffer) to several hundred points sustained across a 120-minute window.
+**Bugs surfaced during cutover + fixed:**
+
+- `4a8e79e fix(ingest): archive backfill 500 — cache opt-out + post-dedupe cap`
+  - Run 24613522421 returned HTTP 500. Root cause #1:
+    `fetch(gharchive, { next: { revalidate: 86400 } })` tried to push a
+    ~100MB response into Next.js Data Cache, which enforces a 2MB
+    per-entry limit — throws as 500. Fix: `cache: 'no-store'`.
+  - Root cause #2: unbounded post-dedupe set. 3 archive hours produced
+    440k raw events → too many unique actors to geocode in 60s. Added
+    `POST_DEDUPE_CAP = 2000` (newest-first) before the geocoding phase.
+    `eventsReceived` in meta still reflects the pre-cap volume for
+    observability.
+  - `ARCHIVE_BACKFILL_HOURS` 6 → 3 (with the cap, more hours just
+    widens a reservoir that doesn't reach the globe anyway).
+
+- `84351d3 fix(ingest): bounded concurrency on fetchUser + probeAIConfig`
+  - Run 24630484250 succeeded but produced 961 "fetch failed" errors
+    and only 18 placeable events from 2000 survivors. Uncapped
+    `Promise.all` was firing ~1500 parallel fetchUser sockets,
+    overwhelming the serverless HTTP agent pool. Fix: `runBounded()`
+    helper capping parallelism at `MAX_CONCURRENT_REQUESTS = 20` for
+    both user profile lookups and AI-config probes.
+  - Added `userLocationCache` mirroring `aiConfigCache` — null-value
+    entries mean "looked up, no geocodable location", so warm
+    instances skip the bulk of the fetch on subsequent runs.
+
+**Live verification (after three deploys + three `backfill=true` runs):**
+
+`GET /api/globe-events`:
+```
+source: redis
+points: 278
+coverage: { eventsReceived: 439879, eventsWithLocation: 242, locationCoveragePct: 12, windowSize: 278, windowAiConfig: 43, windowMinutes: 120 }
+failures: 0
+by source: { gharchive: 192, events-api: 86 }
+ai-cfg dots: 43
+```
+
+Up from ~15 pre-session. Trust contract intact: every dot is a real
+GitHub event (live API or archive), sourceKind distinguishable, AI-cfg
+detection deterministic (file-presence only), no fabricated data.
 
 **Next:**
 
-- Flip on GH Actions workflow_dispatch with `backfill=true` as first run
-  after secrets land → validates archive path end to end.
-- Re-measure globe density on a real load. If the 120-min window still
-  looks sparse, widen to 240 min (`WINDOW_MINUTES` in fetch-events.ts)
-  or raise page count to 8 (rate budget still fine: 8 × 12 = 96 req/hr).
-- Click-card keyboard nav (↑↓ between rows, Enter to open repo) once a
-  user requests it — not in scope for this session.
+- Let the `*/5` cron accumulate on its own for 30-60 min to gauge
+  sustained density (each light poll adds ~80-120 placeable points
+  from the live API; WINDOW_MINUTES=120 gives ~1500-2500 sustained).
+- If the globe still reads sparse after the cron has cycled, widen
+  `WINDOW_MINUTES` to 180 or bump `EVENTS_API_PAGES` to 8 (rate
+  budget: 8 × 12 polls/hr = 96 req/hr, well under 5000/hr auth limit).
+- Optional: finish the Preview env vars by hand in the Vercel web UI
+  so PR-preview deploys also exercise the Redis path.
+- Coverage metric naming in `IngestMeta` is now slightly misleading
+  (eventsReceived is pre-cap, coverage% is post-cap). Worth clarifying
+  in a future pass if it confuses operators.
+- Click-card keyboard nav (↑↓ between rows, Enter to open repo) —
+  deferred, no user request yet.
 
-Commits: `450446d`, `a52ff9c`.
+Commits: `450446d`, `a52ff9c`, `cf884fc`, `4a8e79e`, `84351d3`.
 
 ### Session 7 — tool expansion · 7d sparkline · denser globe · cluster labels · deployed
 
