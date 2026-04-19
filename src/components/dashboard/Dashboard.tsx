@@ -36,9 +36,25 @@ import { usePolledEndpoint } from "@/lib/hooks/use-polled-endpoint";
 import { PENDING_SOURCES, VERIFIED_SOURCES } from "@/lib/data-sources";
 import type { GlobeEventsResult } from "@/lib/data/fetch-events";
 import type { StatusResult } from "@/lib/data/fetch-status";
+import {
+  decayScore,
+  type RegistryEntry,
+  type RegistryMeta,
+} from "@/lib/data/registry-shared";
 
 const STATUS_POLL_MS = 5 * 60 * 1000;
 const EVENTS_POLL_MS = 30 * 1000;
+// Registry is long-lived + CDN-cached for 5min. Polling every 2min keeps
+// the base layer fresh without hammering the endpoint — registry only
+// grows every 6h (cron) so sub-minute cadence would be wasteful.
+const REGISTRY_POLL_MS = 2 * 60 * 1000;
+
+type RegistryResult = {
+  ok: boolean;
+  entries: RegistryEntry[];
+  meta: RegistryMeta | null;
+  generatedAt: string;
+};
 
 type PanelId = "wire" | "tools";
 
@@ -48,9 +64,48 @@ export function Dashboard() {
     "/api/globe-events",
     EVENTS_POLL_MS,
   );
+  const registry = usePolledEndpoint<RegistryResult>(
+    "/api/registry",
+    REGISTRY_POLL_MS,
+  );
 
   const rawPoints: GlobePoint[] = events.data?.points ?? [];
   const lastUpdatedAt = events.data?.polledAt;
+
+  // Map registry entries → base-layer GlobePoints.
+  //   - Entries without a resolved location are dropped (can't plot
+  //     without lat/lng; trust contract says no made-up coords).
+  //   - Each registry point carries kind="registry", decayScore, and
+  //     the config kinds that verified the repo — enough for the
+  //     EventCard's RegistryRow to render context on hover.
+  //   - hasAiConfig = true by definition (every registry entry has ≥1
+  //     verified config file), so filters["ai-config-only"] keeps the
+  //     entire registry layer when toggled on.
+  const registryPoints: GlobePoint[] = (registry.data?.entries ?? [])
+    .filter((e) => e.location && Number.isFinite(e.location.lat))
+    .map((e) => {
+      const decay = decayScore(e.lastActivity);
+      const kinds = e.configs.map((c) => c.kind);
+      return {
+        lat: e.location!.lat,
+        lng: e.location!.lng,
+        color: "#cbd5e1",
+        size: 0.4,
+        meta: {
+          kind: "registry",
+          fullName: e.fullName,
+          repo: e.fullName,
+          stars: e.stars,
+          language: e.language,
+          description: e.description,
+          lastActivity: e.lastActivity,
+          decayScore: decay,
+          configKinds: kinds,
+          locationLabel: e.location!.label,
+          hasAiConfig: true,
+        },
+      };
+    });
 
   // Globe filters — client-side only. Filter the point list before it
   // reaches the globe; coverage/count in CoverageBadge stays honest to
@@ -59,13 +114,32 @@ export function Dashboard() {
   const toggleFilter = (id: FilterLayerId) =>
     setFilters((f) => ({ ...f, [id]: !f[id] }));
   const resetFilters = () => setFilters(DEFAULT_FILTERS);
-  const points = rawPoints.filter((p) => {
+  const livePoints = rawPoints.filter((p) => {
     const meta = p.meta as { type?: string; hasAiConfig?: boolean } | undefined;
     if (filters["ai-config-only"] && !meta?.hasAiConfig) return false;
     const fid = eventTypeToFilterId(meta?.type);
     if (fid && !filters[fid]) return false;
     return true;
   });
+
+  // Dedup: if a registry repo also has a live event in the current
+  // window, keep only the live event — it's the stronger signal and
+  // its card row includes a live pill. RegistryRow would be redundant.
+  const liveRepoSet = new Set<string>();
+  for (const p of livePoints) {
+    const repo = (p.meta as { repo?: string } | undefined)?.repo;
+    if (repo) liveRepoSet.add(repo);
+  }
+  const dedupedRegistry = registryPoints.filter((p) => {
+    const fn = (p.meta as { fullName?: string } | undefined)?.fullName;
+    return !fn || !liveRepoSet.has(fn);
+  });
+
+  // Registry layer respects the ai-config-only filter (tautologically
+  // true — every registry entry has AI config) but not event-type
+  // filters (registry points have no `type`). Registry is the base
+  // map; event-type filters only narrow the live pulse layer.
+  const points: GlobePoint[] = [...livePoints, ...dedupedRegistry];
 
   // View tab state. Default to the flat map — its progressive-resolution
   // tiles stay crisp at every zoom level, where the 3D globe texture goes

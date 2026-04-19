@@ -41,85 +41,24 @@
 
 import { Redis } from "@upstash/redis";
 
-export type ConfigKind =
-  | "claude-md" // CLAUDE.md (Anthropic Claude Code)
-  | "agents-md" // AGENTS.md (OpenAI Codex convention)
-  | "cursorrules" // .cursorrules (Cursor)
-  | "windsurfrules" // .windsurfrules (Windsurf)
-  | "copilot-instructions" // .github/copilot-instructions.md
-  | "continue-config"; // .continue/config.json (Continue)
+// Types + pure helpers are defined in `registry-shared.ts` so client
+// components can import them without pulling in the Upstash SDK. This
+// module adds the Redis-backed read/write path on top.
+export {
+  CONFIG_PATHS,
+  decayScore,
+  formatAgeLabel,
+  type ConfigKind,
+  type DetectedConfig,
+  type RegistryEntry,
+  type RegistryLocation,
+  type RegistryMeta,
+} from "./registry-shared";
 
-/**
- * Map a ConfigKind back to its canonical on-disk path. Single source of
- * truth — used by discovery queries and the verifier.
- */
-export const CONFIG_PATHS: Record<ConfigKind, string> = {
-  "claude-md": "CLAUDE.md",
-  "agents-md": "AGENTS.md",
-  cursorrules: ".cursorrules",
-  windsurfrules: ".windsurfrules",
-  "copilot-instructions": ".github/copilot-instructions.md",
-  "continue-config": ".continue/config.json",
-};
-
-export type DetectedConfig = {
-  kind: ConfigKind;
-  /** Exact path in repo where the file was found. */
-  path: string;
-  /**
-   * UTF-8 first 500 bytes of the file, truncated. Used for transparency —
-   * downstream surfaces (/archives, /sources) can show the quoted sample
-   * so users see WHY we counted this file as a real AI-config.
-   */
-  sample: string;
-  /** Verifier score 0..1. ≥0.4 means "shape looks like a real config". */
-  score: number;
-  /** ISO timestamp of last verification pass. */
-  verifiedAt: string;
-};
-
-export type RegistryLocation = {
-  lat: number;
-  lng: number;
-  /** The raw GitHub profile location string that geocoded to these coords. */
-  label: string;
-};
-
-export type RegistryEntry = {
-  /** "owner/name" — the stable identifier. */
-  fullName: string;
-  owner: string;
-  name: string;
-  /** ISO — first time this repo passed verification and entered the registry. */
-  firstSeen: string;
-  /** ISO — repo's `pushed_at` from the GitHub API. Drives decay. */
-  lastActivity: string;
-  stars?: number;
-  language?: string | null;
-  description?: string | null;
-  /** One entry per detected & verified config file. */
-  configs: DetectedConfig[];
-  /**
-   * Owner's geocoded location. Tri-state:
-   *   - undefined → location lookup not yet attempted
-   *   - null      → looked up, owner has no geocodable location string
-   *   - object    → resolved lat/lng with raw GitHub profile string
-   * Lets the UI render the dot only when coords exist without re-trying
-   * dead lookups every discovery run.
-   */
-  location?: RegistryLocation | null;
-};
-
-export type RegistryMeta = {
-  totalEntries: number;
-  verifiedEntries: number;
-  /** ISO of the most recent discovery run (any trigger). */
-  lastDiscoveryRun: string;
-  /** Human label: "cron" | "manual-seed" | etc. */
-  lastDiscoverySource: string;
-  /** Non-fatal errors surfaced during the most recent run. */
-  failures: Array<{ step: string; message: string }>;
-};
+import type {
+  RegistryEntry,
+  RegistryMeta,
+} from "./registry-shared";
 
 const ENTRIES_KEY = "aipulse:registry:entries";
 const META_KEY = "aipulse:registry:meta";
@@ -238,56 +177,6 @@ function parseEntry(raw: unknown): RegistryEntry | null {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Decay scoring
-// ---------------------------------------------------------------------------
-
-/**
- * Map a repo's last pushed_at to a 0..1 brightness / confidence score.
- *
- * Bands match the spec's decay contract:
- *   - ≤24h       → 1.0  (full brightness, "active now")
- *   - ≤7d        → 0.85 ("active recently")
- *   - ≤30d       → 0.55 ("quiet but not dormant")
- *   - ≤90d       → 0.25 ("fading")
- *   - >90d       → 0.10 ("archival presence — we still know it exists")
- *
- * Step function rather than exponential so the mapping stays explainable:
- * users can see the band in a legend instead of guessing why a dot is 47%
- * bright.
- */
-export function decayScore(
-  lastActivityIso: string,
-  nowMs: number = Date.now(),
-): number {
-  const t = Date.parse(lastActivityIso);
-  if (Number.isNaN(t)) return 0;
-  const ageHours = Math.max(0, (nowMs - t) / (1000 * 60 * 60));
-  if (ageHours <= 24) return 1.0;
-  if (ageHours <= 24 * 7) return 0.85;
-  if (ageHours <= 24 * 30) return 0.55;
-  if (ageHours <= 24 * 90) return 0.25;
-  return 0.1;
-}
-
-/**
- * Human-readable age label for the EventCard hover: "Last activity: 43d ago".
- * Keeps the exact units the spec calls out (hours, days, months, years) so
- * copy tests can match on known strings.
- */
-export function formatAgeLabel(
-  lastActivityIso: string,
-  nowMs: number = Date.now(),
-): string {
-  const t = Date.parse(lastActivityIso);
-  if (Number.isNaN(t)) return "unknown";
-  const ageMs = Math.max(0, nowMs - t);
-  const hours = ageMs / (1000 * 60 * 60);
-  if (hours < 1) return "Last activity: <1h ago";
-  if (hours < 24) return `Last activity: ${Math.round(hours)}h ago`;
-  const days = hours / 24;
-  if (days < 30) return `Last activity: ${Math.round(days)}d ago`;
-  const months = days / 30;
-  if (months < 12) return `Last activity: ${Math.round(months)}mo ago`;
-  return `Last activity: ${Math.round(months / 12)}y ago`;
-}
+// decayScore + formatAgeLabel live in `registry-shared.ts` and are
+// re-exported from the top of this file so client code can import them
+// without pulling in the Upstash SDK.

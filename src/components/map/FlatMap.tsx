@@ -167,14 +167,19 @@ export function FlatMap({ points = [], lastUpdatedAt }: FlatMapProps) {
 
     for (const p of points) {
       const meta = (p.meta ?? {}) as EventMeta;
-      const color = colorForType(meta.type);
+      const isRegistry = meta.kind === "registry";
+      const color = isRegistry ? "#cbd5e1" : colorForType(meta.type);
       const hasAi = meta.hasAiConfig === true;
+      const decay =
+        typeof meta.decayScore === "number" ? meta.decayScore : 0;
 
       const icon = L.divIcon({
-        html: markerHtml(color, hasAi),
+        html: isRegistry
+          ? registryMarkerHtml(decay)
+          : markerHtml(color, hasAi),
         className: "ap-fm-marker",
-        iconSize: hasAi ? [16, 16] : [10, 10],
-        iconAnchor: hasAi ? [8, 8] : [5, 5],
+        iconSize: isRegistry ? [8, 8] : hasAi ? [16, 16] : [10, 10],
+        iconAnchor: isRegistry ? [4, 4] : hasAi ? [8, 8] : [5, 5],
       });
       const marker = L.marker([p.lat, p.lng], {
         icon,
@@ -263,6 +268,18 @@ function markerHtml(color: string, hasAi: boolean): string {
   return `<span style="display:flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:9999px;border:1.5px solid ${hexA(color, 0.95)};box-shadow:0 0 8px ${hexA(color, 0.5)};">${dot}</span>`;
 }
 
+/**
+ * Registry base-layer marker — slate dot, alpha driven by decay score.
+ *   ≤24h → ~0.7 alpha, >90d → ~0.07 alpha. Matches Globe's
+ *   `avgDecay × 0.7` clamp so the two views read identically.
+ */
+function registryMarkerHtml(decay: number): string {
+  const alpha = Math.max(0.07, Math.min(0.7, decay * 0.7));
+  const bg = hexA("#cbd5e1", alpha);
+  const glow = hexA("#cbd5e1", alpha * 0.5);
+  return `<span style="display:block;width:6px;height:6px;border-radius:9999px;background:${bg};box-shadow:0 0 3px ${glow};margin:1px"></span>`;
+}
+
 /** Dominant-colour + numeric-count icon for a Leaflet marker cluster. */
 function clusterIcon(L: typeof import("leaflet"), cluster: MarkerClusterGroup): L.DivIcon {
   const kids = (cluster as unknown as { getAllChildMarkers: () => L.Marker[] })
@@ -270,22 +287,57 @@ function clusterIcon(L: typeof import("leaflet"), cluster: MarkerClusterGroup): 
   const count = kids.length;
   const counts = new Map<string, number>();
   let ai = 0;
+  let live = 0;
+  let registry = 0;
+  let decaySum = 0;
   for (const m of kids) {
     const p = (m.options as unknown as { eventPoint?: GlobePoint }).eventPoint;
-    const t = (p?.meta as EventMeta | undefined)?.type ?? "unknown";
-    counts.set(t, (counts.get(t) ?? 0) + 1);
-    if ((p?.meta as EventMeta | undefined)?.hasAiConfig) ai += 1;
+    const meta = p?.meta as EventMeta | undefined;
+    const isRegistry = meta?.kind === "registry";
+    if (isRegistry) {
+      registry += 1;
+      decaySum += typeof meta?.decayScore === "number" ? meta.decayScore : 0;
+    } else {
+      live += 1;
+      const t = meta?.type ?? "unknown";
+      counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
+    if (meta?.hasAiConfig) ai += 1;
   }
-  const dominant = [...counts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0];
-  const color = colorForType(dominant);
-  const isAi = ai > 0;
+  const dominant =
+    live > 0
+      ? [...counts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0]
+      : undefined;
+  const avgDecay = registry > 0 ? decaySum / registry : 0;
+  const registryOnly = live === 0 && registry > 0;
+  const color = registryOnly ? "#cbd5e1" : colorForType(dominant);
+  const isAi = ai > 0 && !registryOnly;
 
-  const scale = Math.min(1.4, 0.9 + Math.log10(count) * 0.22);
-  const size = Math.round(26 * scale);
+  // Registry-only clusters render quieter: smaller, no bold AI ring, and
+  // the border alpha scales with avgDecay so a dormant region reads as
+  // faded density, not as "activity."
+  const scale = registryOnly
+    ? Math.min(1.0, 0.7 + Math.log10(count) * 0.18)
+    : Math.min(1.4, 0.9 + Math.log10(count) * 0.22);
+  const size = Math.round((registryOnly ? 22 : 26) * scale);
   const fontSize = Math.round(11 + (scale - 0.9) * 4);
-  const border = isAi ? hexA(color, 0.95) : hexA(color, 0.6);
-  const glow = isAi ? hexA(color, 0.55) : hexA(color, 0.25);
-  const textColor = isAi ? "#f0fdfa" : "#e2e8f0";
+  const borderAlpha = registryOnly
+    ? Math.max(0.15, Math.min(0.6, avgDecay * 0.7))
+    : isAi
+      ? 0.95
+      : 0.6;
+  const glowAlpha = registryOnly
+    ? borderAlpha * 0.5
+    : isAi
+      ? 0.55
+      : 0.25;
+  const border = hexA(color, borderAlpha);
+  const glow = hexA(color, glowAlpha);
+  const textColor = registryOnly
+    ? "#cbd5e1"
+    : isAi
+      ? "#f0fdfa"
+      : "#e2e8f0";
   const label = count > 99 ? "99+" : String(count);
 
   const html = `
@@ -324,7 +376,10 @@ function singletonCluster(
   color: string,
   type: string | undefined,
 ): Cluster {
-  const hasAi = ((p.meta ?? {}) as EventMeta).hasAiConfig === true;
+  const meta = (p.meta ?? {}) as EventMeta;
+  const hasAi = meta.hasAiConfig === true;
+  const isRegistry = meta.kind === "registry";
+  const decay = typeof meta.decayScore === "number" ? meta.decayScore : 0;
   return {
     lat: p.lat,
     lng: p.lng,
@@ -333,6 +388,9 @@ function singletonCluster(
     size: 1,
     count: 1,
     aiCount: hasAi ? 1 : 0,
+    liveCount: isRegistry ? 0 : 1,
+    registryCount: isRegistry ? 1 : 0,
+    avgDecay: isRegistry ? decay : 0,
     events: [p],
   };
 }
@@ -341,36 +399,58 @@ function singletonCluster(
  * Aggregate a list of underlying events (the children of a Leaflet cluster)
  * into a Cluster shape the shared EventCard can consume. Dominant type +
  * colour match the cluster-icon rule so the badge the user just clicked is
- * consistent with the card that opens. Events sorted newest-first.
+ * consistent with the card that opens. Live events sort before registry
+ * entries, each group newest-first (matches Globe.tsx semantics).
  */
 function clusterFromPoints(points: GlobePoint[]): Cluster {
   const counts = new Map<string, number>();
   let ai = 0;
+  let live = 0;
+  let registry = 0;
+  let decaySum = 0;
   let latSum = 0;
   let lngSum = 0;
   for (const p of points) {
     const meta = (p.meta ?? {}) as EventMeta;
-    const t = meta.type ?? "unknown";
-    counts.set(t, (counts.get(t) ?? 0) + 1);
+    const isRegistry = meta.kind === "registry";
+    if (isRegistry) {
+      registry += 1;
+      decaySum += typeof meta.decayScore === "number" ? meta.decayScore : 0;
+    } else {
+      live += 1;
+      const t = meta.type ?? "unknown";
+      counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
     if (meta.hasAiConfig) ai += 1;
     latSum += p.lat;
     lngSum += p.lng;
   }
-  const dominant = [...counts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0]
-    ?? "unknown";
+  const dominant =
+    live > 0
+      ? [...counts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0] ?? "unknown"
+      : "registry";
+  const color = live > 0 ? colorForType(dominant) : "#cbd5e1";
   const sorted = points.slice().sort((a, z) => {
-    const atA = (a.meta as EventMeta | undefined)?.createdAt ?? "";
-    const atZ = (z.meta as EventMeta | undefined)?.createdAt ?? "";
+    const am = a.meta as EventMeta | undefined;
+    const zm = z.meta as EventMeta | undefined;
+    const aLive = am?.kind !== "registry";
+    const zLive = zm?.kind !== "registry";
+    if (aLive !== zLive) return aLive ? -1 : 1;
+    const atA = am?.createdAt ?? am?.lastActivity ?? "";
+    const atZ = zm?.createdAt ?? zm?.lastActivity ?? "";
     return atZ.localeCompare(atA);
   });
   return {
     lat: latSum / points.length,
     lng: lngSum / points.length,
-    color: colorForType(dominant),
+    color,
     dominantType: dominant,
     size: 1,
     count: points.length,
     aiCount: ai,
+    liveCount: live,
+    registryCount: registry,
+    avgDecay: registry > 0 ? decaySum / registry : 0,
     events: sorted,
   };
 }
@@ -381,7 +461,7 @@ function MapLegend() {
       className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border/40 bg-background/70 p-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground backdrop-blur-sm"
       style={{ zIndex: 1000 }}
     >
-      <div className="mb-1.5 text-[9px] text-foreground/60">Event type</div>
+      <div className="mb-1.5 text-[9px] text-foreground/60">Live event type</div>
       <ul className="space-y-1">
         <LegendRow color="#2dd4bf" label="Push" />
         <LegendRow color="#60a5fa" label="Pull request" />
@@ -393,7 +473,33 @@ function MapLegend() {
       <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
         Bright ring = repo has AI config
       </div>
+      <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
+        Registry decay (AI-cfg repos)
+      </div>
+      <ul className="mt-1 space-y-1">
+        <DecayRow opacity={0.7} label="≤24h" />
+        <DecayRow opacity={0.6} label="≤7d" />
+        <DecayRow opacity={0.4} label="≤30d" />
+        <DecayRow opacity={0.18} label="≤90d" />
+        <DecayRow opacity={0.08} label=">90d" />
+      </ul>
     </div>
+  );
+}
+
+function DecayRow({ opacity, label }: { opacity: number; label: string }) {
+  return (
+    <li className="flex items-center gap-2">
+      <span
+        className="inline-block h-2 w-2 rounded-full"
+        style={{
+          backgroundColor: `rgba(203,213,225,${opacity})`,
+          boxShadow: `0 0 4px rgba(203,213,225,${opacity * 0.6})`,
+        }}
+        aria-hidden
+      />
+      <span>{label}</span>
+    </li>
   );
 }
 

@@ -36,35 +36,58 @@ export type GlobeProps = {
   lastUpdatedAt?: string;
 };
 
+const SLATE = "#cbd5e1";
+
 /**
- * Bucket points into a coarse lat/lng grid. Two events whose authors geocoded
- * to the same approximate region collapse into one weighted dot — readability
- * over raw count. Bucket centres become the cluster's lat/lng (averaged), and
- * size scales with log(count) so single events stay tiny while concentrations
- * read as bigger glow without overwhelming the globe.
+ * Bucket points into a coarse lat/lng grid. Points come from two sources:
+ *   - Live events (meta.kind === "event") — the 4-hour pulse layer.
+ *     Bright; colour by dominant event type; bucket size scales with
+ *     count; AI-cfg drives the halo ring.
+ *   - Registry entries (meta.kind === "registry") — the persistent
+ *     base layer. Dim slate; opacity = avg decayScore of bucket. A
+ *     registry-only bucket renders smaller and quieter than a live one.
+ *
+ * A bucket with both layers is a "live" cluster: a registry repo that
+ * also had a real event in the current window. It takes the bright
+ * live colour + event-type pills in the card, with registry rows
+ * visible below live rows for context.
  */
 function clusterPoints(points: GlobePoint[]): Cluster[] {
   const BUCKET_DEG = 4;
   const buckets = new Map<
     string,
-    { lats: number[]; lngs: number[]; ai: number; total: number; events: GlobePoint[] }
+    {
+      lats: number[];
+      lngs: number[];
+      ai: number;
+      total: number;
+      live: number;
+      registry: number;
+      decaySum: number;
+      events: GlobePoint[];
+    }
   >();
 
   for (const p of points) {
     const by = Math.round(p.lat / BUCKET_DEG);
     const bx = Math.round(p.lng / BUCKET_DEG);
     const key = `${by}:${bx}`;
-    // AI-config is a separate signal from event-type colour — use the meta
-    // flag directly rather than inferring from p.color, because p.color now
-    // encodes event type, not AI-config status.
     const meta = p.meta as EventMeta | undefined;
+    const kind = meta?.kind;
+    const isLive = kind !== "registry";
     const isAi = meta?.hasAiConfig === true;
+    const decay = typeof meta?.decayScore === "number" ? meta.decayScore : 0;
     const b = buckets.get(key);
     if (b) {
       b.lats.push(p.lat);
       b.lngs.push(p.lng);
       b.total += 1;
       if (isAi) b.ai += 1;
+      if (isLive) b.live += 1;
+      else {
+        b.registry += 1;
+        b.decaySum += decay;
+      }
       b.events.push(p);
     } else {
       buckets.set(key, {
@@ -72,6 +95,9 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
         lngs: [p.lng],
         ai: isAi ? 1 : 0,
         total: 1,
+        live: isLive ? 1 : 0,
+        registry: isLive ? 0 : 1,
+        decaySum: isLive ? 0 : decay,
         events: [p],
       });
     }
@@ -82,24 +108,59 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
     const lat = b.lats.reduce((s, v) => s + v, 0) / b.lats.length;
     const lng = b.lngs.reduce((s, v) => s + v, 0) / b.lngs.length;
 
-    // Dominant event type → cluster colour. Ties broken by insertion order.
-    const typeCounts = new Map<string, number>();
-    for (const ev of b.events) {
-      const t = (ev.meta as EventMeta | undefined)?.type ?? "unknown";
-      typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1);
+    // Bucket colour:
+    // - Any live activity → dominant live event type
+    // - Registry-only → slate, opacity driven by avg decay
+    let color: string;
+    let dominantType: string;
+    if (b.live > 0) {
+      const typeCounts = new Map<string, number>();
+      for (const ev of b.events) {
+        const m = ev.meta as EventMeta | undefined;
+        if (m?.kind === "registry") continue;
+        const t = m?.type ?? "unknown";
+        typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1);
+      }
+      dominantType =
+        [...typeCounts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0] ??
+        "unknown";
+      color = colorForType(dominantType);
+    } else {
+      dominantType = "registry";
+      color = SLATE;
     }
-    const dominantType =
-      [...typeCounts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0] ?? "unknown";
-    const color = colorForType(dominantType);
 
-    const aiDominant = b.ai > 0;
-    const base = aiDominant ? 0.55 : 0.32;
-    const size = Math.min(1.6, base + Math.log2(1 + b.total) * 0.22);
-    // Sort events newest-first so the "top N" list in the click card leads
-    // with the freshest activity rather than arbitrary insertion order.
+    const avgDecay = b.registry > 0 ? b.decaySum / b.registry : 0;
+
+    // Size:
+    //   Live buckets — existing rule, scales with live count.
+    //   Registry-only — smaller floor, scaled by registry count and the
+    //   avg decay so dormant regions read dimmer + smaller than active
+    //   regions with comparable registry density.
+    let size: number;
+    if (b.live > 0) {
+      const aiDominant = b.ai > 0;
+      const base = aiDominant ? 0.55 : 0.32;
+      size = Math.min(1.6, base + Math.log2(1 + b.live) * 0.22);
+    } else {
+      const decayWeight = 0.35 + avgDecay * 0.5; // 0.35..0.85
+      size = Math.min(
+        1.1,
+        0.22 + Math.log2(1 + b.registry) * 0.16 * decayWeight,
+      );
+    }
+
+    // Sort: live events first (newest-first by createdAt), then registry
+    // entries (newest-first by lastActivity). Card leads with the freshest
+    // live action and falls back to "here's who lives in this region".
     const sortedEvents = b.events.slice().sort((a, z) => {
-      const atA = (a.meta as EventMeta | undefined)?.createdAt ?? "";
-      const atZ = (z.meta as EventMeta | undefined)?.createdAt ?? "";
+      const am = a.meta as EventMeta | undefined;
+      const zm = z.meta as EventMeta | undefined;
+      const aLive = am?.kind !== "registry";
+      const zLive = zm?.kind !== "registry";
+      if (aLive !== zLive) return aLive ? -1 : 1;
+      const atA = am?.createdAt ?? am?.lastActivity ?? "";
+      const atZ = zm?.createdAt ?? zm?.lastActivity ?? "";
       return atZ.localeCompare(atA);
     });
     clusters.push({
@@ -110,6 +171,9 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       size,
       count: b.total,
       aiCount: b.ai,
+      liveCount: b.live,
+      registryCount: b.registry,
+      avgDecay,
       events: sortedEvents,
     });
   }
@@ -141,11 +205,16 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
   }, []);
 
   const clusters = useMemo(() => clusterPoints(points), [points]);
-  // Clusters with >1 event get a numeric badge; singleton AI-config dots
-  // also render an HTML overlay so they read as a bright halo ring against
-  // the event-type colour dot.
+  // Clusters we adorn with an HTML element:
+  //   - Any multi-event cluster (numeric badge).
+  //   - Singleton live AI-config dots (halo ring).
+  // Registry-only singleton dots are left unlabelled — they're the
+  // quiet base layer, meant to read as density, not call attention.
   const labeledClusters = useMemo(
-    () => clusters.filter((c) => c.count > 1 || c.aiCount > 0),
+    () =>
+      clusters.filter(
+        (c) => c.liveCount > 1 || (c.liveCount === 1 && c.aiCount > 0),
+      ),
     [clusters],
   );
   const hasData = points.length > 0;
@@ -214,7 +283,18 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
           pointsData={clusters}
           pointLat={(d) => (d as Cluster).lat}
           pointLng={(d) => (d as Cluster).lng}
-          pointColor={(d) => (d as Cluster).color}
+          // Per-cluster colour:
+          //   Live bucket      → full-opacity event-type colour.
+          //   Registry-only    → slate with alpha = avgDecay × 0.7 so
+          //                      a 90-day-old cluster reads ~7% and a
+          //                      24h cluster reads ~70% — dim base vs
+          //                      fresh base at a glance.
+          pointColor={(d) => {
+            const c = d as Cluster;
+            if (c.liveCount > 0) return c.color;
+            const alpha = Math.max(0.07, Math.min(0.7, c.avgDecay * 0.7));
+            return hexA(c.color, alpha);
+          }}
           pointAltitude={0.005}
           // Smaller base radius so zoomed-in dots read as data points not
           // paint blobs. react-globe.gl interprets pointRadius in degrees,
@@ -316,7 +396,7 @@ function clusterLabelElement(c: Cluster): HTMLElement {
 function GlobeLegend() {
   return (
     <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border/40 bg-background/70 p-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground backdrop-blur-sm">
-      <div className="mb-1.5 text-[9px] text-foreground/60">Event type</div>
+      <div className="mb-1.5 text-[9px] text-foreground/60">Live event type</div>
       <ul className="space-y-1">
         <LegendRow color="#2dd4bf" label="Push" />
         <LegendRow color="#60a5fa" label="Pull request" />
@@ -328,7 +408,33 @@ function GlobeLegend() {
       <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
         Bright ring = repo has AI config
       </div>
+      <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
+        Registry decay (AI-cfg repos)
+      </div>
+      <ul className="mt-1 space-y-1">
+        <DecayRow opacity={0.7} label="≤24h" />
+        <DecayRow opacity={0.6} label="≤7d" />
+        <DecayRow opacity={0.4} label="≤30d" />
+        <DecayRow opacity={0.18} label="≤90d" />
+        <DecayRow opacity={0.08} label=">90d" />
+      </ul>
     </div>
+  );
+}
+
+function DecayRow({ opacity, label }: { opacity: number; label: string }) {
+  return (
+    <li className="flex items-center gap-2">
+      <span
+        className="inline-block h-2 w-2 rounded-full"
+        style={{
+          backgroundColor: `rgba(203,213,225,${opacity})`,
+          boxShadow: `0 0 4px rgba(203,213,225,${opacity * 0.6})`,
+        }}
+        aria-hidden
+      />
+      <span>{label}</span>
+    </li>
   );
 }
 

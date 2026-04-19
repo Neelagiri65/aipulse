@@ -2,8 +2,18 @@
 
 import { forwardRef } from "react";
 import type { GlobePoint } from "./Globe";
+import { formatAgeLabel } from "@/lib/data/registry-shared";
+import type { ConfigKind } from "@/lib/data/registry-shared";
 
+/**
+ * Point meta payload shared across live events (kind="event") and
+ * registry entries (kind="registry"). The union of fields lets a single
+ * EventCard render both rows without branching at the component boundary.
+ */
 export type EventMeta = {
+  /** Present on both kinds. */
+  kind?: "event" | "registry";
+  /** Live-event fields. */
   eventId?: string;
   type?: string;
   actor?: string;
@@ -11,6 +21,15 @@ export type EventMeta = {
   createdAt?: string;
   hasAiConfig?: boolean;
   sourceKind?: "events-api" | "gharchive";
+  /** Registry fields (kind === "registry"). */
+  fullName?: string;
+  stars?: number;
+  language?: string | null;
+  description?: string | null;
+  lastActivity?: string;
+  decayScore?: number;
+  configKinds?: ConfigKind[];
+  locationLabel?: string;
 };
 
 export type Cluster = {
@@ -22,6 +41,11 @@ export type Cluster = {
   size: number;
   count: number;
   aiCount: number;
+  /** How many of `events` are live events vs registry-base entries. */
+  liveCount: number;
+  registryCount: number;
+  /** Avg decayScore across registry entries in this bucket (0..1). */
+  avgDecay: number;
   /** Underlying events that collapsed into this cluster. Sorted newest-first. */
   events: GlobePoint[];
 };
@@ -108,9 +132,24 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
           aria-hidden
         />
         <span className="flex-1 truncate">
-          {cluster.count} event{cluster.count === 1 ? "" : "s"}
-          {cluster.aiCount > 0 && (
-            <span className="text-[#2dd4bf]"> · {cluster.aiCount} w/ AI cfg</span>
+          {cluster.liveCount > 0 && (
+            <>
+              {cluster.liveCount} live
+              {cluster.aiCount > 0 && (
+                <span className="text-[#2dd4bf]"> · {cluster.aiCount} w/ AI cfg</span>
+              )}
+            </>
+          )}
+          {cluster.liveCount > 0 && cluster.registryCount > 0 && (
+            <span className="text-foreground/50"> · </span>
+          )}
+          {cluster.registryCount > 0 && (
+            <span className="text-foreground/70">
+              {cluster.registryCount} registry
+            </span>
+          )}
+          {cluster.liveCount === 0 && cluster.registryCount === 0 && (
+            <>{cluster.count} event{cluster.count === 1 ? "" : "s"}</>
           )}
         </span>
         <button
@@ -123,9 +162,14 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
         </button>
       </div>
       <ul className="divide-y divide-border/40">
-        {visible.map((p, i) => (
-          <EventRow key={eventKey(p, i)} point={p} />
-        ))}
+        {visible.map((p, i) => {
+          const kind = (p.meta as EventMeta | undefined)?.kind;
+          return kind === "registry" ? (
+            <RegistryRow key={eventKey(p, i)} point={p} />
+          ) : (
+            <EventRow key={eventKey(p, i)} point={p} />
+          );
+        })}
       </ul>
       {overflow > 0 && (
         <div className="border-t border-border/40 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -193,6 +237,88 @@ function EventRow({ point }: { point: GlobePoint }) {
 
 function EventTypePill({ type }: { type: string }) {
   return <span className="ap-sev-pill ap-sev-pill--info">{shortEventType(type)}</span>;
+}
+
+/**
+ * Registry-entry row: base-layer context for a repo that has a verified
+ * AI-config file but no live event in the current window. The "Last
+ * activity: Xd ago" line tells the user exactly how cold this dot is,
+ * so a 90-day-old repo next to a push-today repo is legible at a glance.
+ */
+function RegistryRow({ point }: { point: GlobePoint }) {
+  const meta = (point.meta ?? {}) as EventMeta;
+  const repo = meta.fullName ?? meta.repo ?? "(unknown repo)";
+  const repoHref = meta.fullName
+    ? `https://github.com/${meta.fullName}`
+    : undefined;
+  const age = meta.lastActivity ? formatAgeLabel(meta.lastActivity) : null;
+  const kinds = meta.configKinds ?? [];
+  const stars = meta.stars;
+  const lang = meta.language;
+
+  return (
+    <li className="px-2.5 py-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="ap-sev-pill ap-sev-pill--pending">REGISTRY</span>
+        {kinds.map((k) => (
+          <span key={k} className="ap-sev-pill ap-sev-pill--info">
+            {shortConfigKind(k)}
+          </span>
+        ))}
+      </div>
+      <div className="mt-1.5 truncate font-mono text-[12px] text-foreground">
+        {repoHref ? (
+          <a
+            href={repoHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[#2dd4bf] hover:underline"
+          >
+            {repo}
+          </a>
+        ) : (
+          repo
+        )}
+      </div>
+      {meta.description && (
+        <div className="mt-0.5 line-clamp-1 font-mono text-[10px] text-muted-foreground">
+          {meta.description}
+        </div>
+      )}
+      <div className="mt-0.5 flex items-center justify-between font-mono text-[10px] text-muted-foreground">
+        <span className="truncate">
+          {lang ?? "—"}
+          {typeof stars === "number" && stars > 0 && (
+            <span className="ml-1.5 tabular-nums">★ {formatStars(stars)}</span>
+          )}
+        </span>
+        {age && <span className="ml-2 shrink-0 tabular-nums">{age}</span>}
+      </div>
+    </li>
+  );
+}
+
+function shortConfigKind(kind: ConfigKind): string {
+  switch (kind) {
+    case "claude-md":
+      return "CLAUDE.MD";
+    case "agents-md":
+      return "AGENTS.MD";
+    case "cursorrules":
+      return ".CURSORRULES";
+    case "windsurfrules":
+      return ".WINDSURFRULES";
+    case "copilot-instructions":
+      return "COPILOT";
+    case "continue-config":
+      return "CONTINUE";
+  }
+}
+
+function formatStars(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 10000) return `${(n / 1000).toFixed(1)}k`;
+  return `${Math.round(n / 1000)}k`;
 }
 
 export function shortEventType(type: string): string {
