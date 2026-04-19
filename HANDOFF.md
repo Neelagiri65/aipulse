@@ -74,12 +74,16 @@ between steps.
      (13.9M), `Qwen/Qwen2.5-7B-Instruct` (12.5M). In-range per
      sanity check (5–20 models, top-5 in 1M–100M).
 
-**Registry state at session end (pre-CDN-refresh snapshot):**
-- Total entries: 456 (up from 447 at session 12 end)
-- With location: 212 (up from 208)
-- Latest source: cron-backfill at 22:42Z + topics run wrote 21
-  more at ~22:51Z (not yet reflected in the 5-min CDN-cached
-  /api/registry response when this HANDOFF was written).
+**Registry state at session end (cache-busted):**
+- Total entries: **477** (up from 447 at session 12 end → +30 this
+  session across backfill + topics)
+- With location: 212 (up from 208; location enrichment lags the
+  write and catches up on the next discovery cron)
+- Latest source: `manual-topics` at 2026-04-19T22:51:27Z
+- Note: `/api/registry` carries a 5-min CDN s-maxage so the
+  unbusted reading during mid-session verification reported 456;
+  cache-busted query against the live Upstash-backed route
+  returns 477.
 
 **AUDITOR-REVIEW: PENDING** on:
 1. Topics discovery verify-pass rate — observed 52% on a
