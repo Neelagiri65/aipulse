@@ -2,7 +2,90 @@
 
 ## Current state (2026-04-19)
 
-### Session 11 — registry search hotfix (1 commit)
+### Session 11.2 — registry visual pivot · decay-coded base layer (1 commit)
+
+The architectural pivot shipped. Globe + flat map now read
+`/api/registry` as a persistent base layer alongside the 4-hour live
+pulse. A repo that pushed last week stays visible on the map even after
+its live event falls off. Live pulse keeps its bright event-type colours
+on top.
+
+**Shipped (`7461fee feat(globe,map): registry base layer — decay-coded
+dots + merged card`):**
+
+- `src/lib/data/registry-shared.ts` (NEW). Client-safe types
+  (`RegistryEntry`, `RegistryLocation`, `ConfigKind`) + pure helpers
+  (`decayScore`, `formatAgeLabel`). `repo-registry.ts` re-exports so the
+  Redis/Upstash import stays server-only and the client bundle stays
+  lean.
+- `Cluster` shape extended: adds `liveCount`, `registryCount`,
+  `avgDecay`. `clusterPoints()` (Globe.tsx) splits live vs registry per
+  bucket; colour = dominant live event type if any live, else slate;
+  registry-only buckets size-scale by `log2(count) × decayWeight`.
+  `pointColor` emits live colour at full alpha and slate at
+  `avgDecay × 0.7` alpha for registry-only clusters.
+  `labeledClusters` filter narrowed so registry singletons stay
+  unlabelled (quiet base).
+- `EventCard` titlebar: `"N live · M w/ AI cfg · K registry"`. New
+  `RegistryRow` renders config-kind pills + repo link + description +
+  `language · ★ stars` + `"Last activity: Xd ago"` via `formatAgeLabel`.
+  Live rows still sort first.
+- FlatMap: registry markers at 6px with slate + decay-alpha. Cluster
+  icon splits live vs registry counts; registry-only clusters render
+  smaller + fade the border alpha by `avgDecay`. Legend gains a 5-band
+  decay strip parallel to the Globe legend.
+- Dashboard polls `/api/registry` every 2 min (5-min CDN cache on the
+  endpoint keeps Upstash cheap). Registry entries without resolved
+  location are dropped client-side (no fake coords). Repos that also
+  have a live event in the current window are deduped out of the
+  registry layer — the live card row already encodes their presence.
+
+**Trust contract preserved:** no synthetic coords (registry entries
+without location are dropped), decay is a pure function of GitHub's
+`pushed_at` (no inferred freshness), live events still sort first and
+take the full-colour dot.
+
+**Seed state (2026-04-19 19:16 UTC):** 167 entries from run
+24636800837, all pre-dating owner-location support so none carry a
+`location` field yet. Next seed dispatch (`24637258198`) will run the
+enrichment pass (`ENRICH_CAP=100`) to backfill lat/lng for
+owner-resolvable entries. Once 2+ seeds have landed, the globe base
+layer should render a visible decay-coded cluster pattern.
+
+Build clean: 1.95s compile, 1.28s typecheck. No new runtime deps.
+
+**AUDITOR-REVIEW: PENDING** — visual pivot, needs live verification
+that registry + live layers read legibly side-by-side once registry
+entries have location data.
+
+**Next action:** re-run the seed dispatch until the registry has ≥800
+entries with resolved locations, then open the deployed site and
+verify: (a) registry dots visible as quiet slate base-layer density,
+(b) live events sit bright on top, (c) EventCard shows both layers
+when a region has mixed content, (d) decay legend reads correctly.
+
+```
+gh workflow run registry-discover.yml \
+  -f source=manual-seed \
+  -f maxVerify=200 \
+  -f pages=10 \
+  -f skipKnown=1 \
+  --repo Neelagiri65/aipulse
+```
+
+Monitor resolved-location count:
+
+```
+curl -s https://aipulse-pi.vercel.app/api/registry | jq '{
+  total: (.entries | length),
+  withLocation: [.entries[] | select(.location != null)] | length,
+  null: [.entries[] | select(.location == null)] | length
+}'
+```
+
+Commit: `7461fee`.
+
+### Session 11.1 — registry search hotfix (1 commit)
 
 First seed dispatch (run 24636800837) returned `candidatesFound: 0`
 despite the endpoint returning 200 OK. Root cause was three bugs in
