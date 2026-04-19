@@ -5,6 +5,7 @@ import { Globe, type GlobePoint } from "@/components/globe/Globe";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
 import { LiveFeed } from "@/components/dashboard/LiveFeed";
 import { MetricTicker } from "@/components/dashboard/MetricTicker";
+import { MetricsRow } from "@/components/dashboard/MetricsRow";
 import { TopBar, type ViewTabId } from "@/components/chrome/TopBar";
 import { Win } from "@/components/chrome/Win";
 import { LeftNav, type NavItem } from "@/components/chrome/LeftNav";
@@ -234,6 +235,14 @@ export function Dashboard() {
           )}
         </>
       )}
+
+      {/* Four-card glance row above the scrolling ticker. */}
+      <MetricsRow
+        status={status.data}
+        events={events.data}
+        statusLoading={status.isInitialLoading}
+        eventsLoading={events.isInitialLoading}
+      />
 
       {/* Bottom metric ticker — pinned below the stage. */}
       <div className="fixed bottom-0 left-0 right-0 z-40">
