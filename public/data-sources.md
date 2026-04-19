@@ -173,6 +173,20 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - **Powers:** Models panel (top-20 leaderboard on the dashboard)
 - **Last verified:** 2026-04-19
 
+### arXiv API (cs.AI + cs.LG, recent)
+- **ID:** `arxiv-papers`
+- **Public URL:** https://arxiv.org/list/cs.AI/recent
+- **API endpoint:** `https://export.arxiv.org/api/query?search_query=cat:cs.AI+OR+cat:cs.LG&sortBy=submittedDate&sortOrder=descending&max_results=20`
+- **Response format:** Atom 1.0 XML
+- **Update frequency:** Daily (arXiv batches new submissions ~20:00 UTC); AI Pulse caches server-side 30 min, CDN s-maxage 15 min, client polls every 15 min.
+- **Rate limit:** arXiv asks for a 3s inter-call courtesy window ([TOU](https://info.arxiv.org/help/api/tou.html)). Our caching keeps us two orders of magnitude under that — one upstream call per 30 min per server region in the worst case.
+- **Auth:** None
+- **What it measures:** Top 20 most recent cs.AI / cs.LG submissions, newest first. Each row surfaces arxiv id, title, author list, primary category, submission date, and a link to the abstract page. Sort order is arXiv's own `sortByDate=desc` — no re-ranking.
+- **Sanity check:** 20 entries returned. cs.AI + cs.LG see 100–400 submissions per weekday, so 20 rows is a small recent slice. Expected range: 5–20 papers per response. Zero-length parse indicates Atom shape drift or a transient arxiv outage — the tab falls to an error state rather than blanking.
+- **Caveat:** cs.AI / cs.LG are broad umbrella categories; filtering is by arxiv's own tags as the author selected them. No institutional enrichment, no citation count, no quality filter — recency is the only v1 signal. Citation + institutional context are queued for v2 behind Semantic Scholar / OpenAlex once we're clear on those rate-limit stories.
+- **Powers:** Research panel (top-20 recent-papers feed on the dashboard)
+- **Last verified:** 2026-04-19
+
 ---
 
 ## Tracked without a verifiable source (gap surfaced, not hidden)

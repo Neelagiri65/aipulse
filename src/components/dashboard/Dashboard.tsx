@@ -37,12 +37,14 @@ import { PENDING_SOURCES, VERIFIED_SOURCES } from "@/lib/data-sources";
 import type { GlobeEventsResult } from "@/lib/data/fetch-events";
 import type { StatusResult } from "@/lib/data/fetch-status";
 import type { ModelsResult } from "@/lib/data/fetch-models";
+import type { ResearchResult } from "@/lib/data/fetch-research";
 import {
   decayScore,
   type RegistryEntry,
   type RegistryMeta,
 } from "@/lib/data/registry-shared";
 import { ModelsPanel } from "@/components/models/ModelsPanel";
+import { ResearchPanel } from "@/components/research/ResearchPanel";
 
 const STATUS_POLL_MS = 5 * 60 * 1000;
 const EVENTS_POLL_MS = 30 * 1000;
@@ -54,6 +56,11 @@ const REGISTRY_POLL_MS = 2 * 60 * 1000;
 // 15-min server cache TTL so every visible update reflects a real
 // upstream refresh rather than churn.
 const MODELS_POLL_MS = 10 * 60 * 1000;
+// Research: arxiv publishes a daily batch around 20:00 UTC; paper list
+// churns in minutes-on-the-hour only. 15-min poll sits above the
+// 30-min server cache TTL so the UI catches every real upstream flip
+// without hitting arxiv more than once per TTL.
+const RESEARCH_POLL_MS = 15 * 60 * 1000;
 
 type RegistryResult = {
   ok: boolean;
@@ -62,7 +69,7 @@ type RegistryResult = {
   generatedAt: string;
 };
 
-type PanelId = "wire" | "tools" | "models";
+type PanelId = "wire" | "tools" | "models" | "research";
 
 export function Dashboard() {
   const status = usePolledEndpoint<StatusResult>("/api/status", STATUS_POLL_MS);
@@ -75,6 +82,10 @@ export function Dashboard() {
     REGISTRY_POLL_MS,
   );
   const models = usePolledEndpoint<ModelsResult>("/api/models", MODELS_POLL_MS);
+  const research = usePolledEndpoint<ResearchResult>(
+    "/api/research",
+    RESEARCH_POLL_MS,
+  );
 
   const rawPoints: GlobePoint[] = events.data?.points ?? [];
   const lastUpdatedAt = events.data?.polledAt;
@@ -162,9 +173,15 @@ export function Dashboard() {
       wire: { open: true, min: false },
       tools: { open: true, min: false },
       models: { open: false, min: false },
+      research: { open: false, min: false },
     },
   );
-  const [zorder, setZorder] = useState<PanelId[]>(["wire", "tools", "models"]);
+  const [zorder, setZorder] = useState<PanelId[]>([
+    "wire",
+    "tools",
+    "models",
+    "research",
+  ]);
   const [maxId, setMaxId] = useState<PanelId | null>(null);
 
   // Initial panel positions — set after mount (window-relative). Moved
@@ -173,6 +190,7 @@ export function Dashboard() {
     wire: { x: number; y: number; w: number; h: number };
     tools: { x: number; y: number; w: number; h: number };
     models: { x: number; y: number; w: number; h: number };
+    research: { x: number; y: number; w: number; h: number };
   } | null>(null);
   useEffect(() => {
     const W = typeof window !== "undefined" ? window.innerWidth : 1440;
@@ -183,6 +201,10 @@ export function Dashboard() {
       // stack directly on top of the default layout. Still anchored to
       // the right half; Wire owns the left.
       models: { x: Math.max(440, W - 440), y: 132, w: 376, h: 520 },
+      // Research opens beside Wire on the left half so paper rows (long
+      // titles) get comfortable width without clashing with Models on
+      // the right. Staggered y=160 so a two-panel open doesn't stack.
+      research: { x: 92, y: 160, w: 420, h: 540 },
     });
   }, []);
 
@@ -207,7 +229,12 @@ export function Dashboard() {
       count: models.data?.models.length ?? null,
     },
     { id: "agents", label: "Agents", icon: "agents", soon: true },
-    { id: "research", label: "Research", icon: "research", soon: true },
+    {
+      id: "research",
+      label: "Research",
+      icon: "research",
+      count: research.data?.papers.length ?? null,
+    },
     { id: "audit", label: "Audit", icon: "audit" },
   ];
 
@@ -219,7 +246,8 @@ export function Dashboard() {
       window.location.href = "/audit";
       return;
     }
-    if (id !== "wire" && id !== "tools" && id !== "models") return;
+    if (id !== "wire" && id !== "tools" && id !== "models" && id !== "research")
+      return;
     const pid = id as PanelId;
     setPanels((p) => {
       const cur = p[pid];
@@ -387,6 +415,39 @@ export function Dashboard() {
                 data={models.data}
                 error={models.error}
                 isInitialLoading={models.isInitialLoading}
+              />
+            </Win>
+          )}
+
+          {initialPos && panels.research.open && (
+            <Win
+              id="research"
+              title="Recent papers · arxiv"
+              initial={initialPos.research}
+              zIndex={z("research")}
+              minimized={panels.research.min}
+              maximized={maxId === "research"}
+              onFocus={() => focus("research")}
+              onClose={() =>
+                setPanels((p) => ({
+                  ...p,
+                  research: { open: false, min: false },
+                }))
+              }
+              onMinimize={() =>
+                setPanels((p) => ({
+                  ...p,
+                  research: { ...p.research, min: !p.research.min },
+                }))
+              }
+              onMaximize={() =>
+                setMaxId((m) => (m === "research" ? null : "research"))
+              }
+            >
+              <ResearchPanel
+                data={research.data}
+                error={research.error}
+                isInitialLoading={research.isInitialLoading}
               />
             </Win>
           )}

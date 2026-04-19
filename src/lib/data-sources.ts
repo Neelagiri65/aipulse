@@ -318,6 +318,34 @@ export const WINDSURF_STATUS: DataSource = {
   powersFeature: ["tool-health-windsurf"],
 };
 
+export const ARXIV_PAPERS: DataSource = {
+  id: "arxiv-papers",
+  name: "arXiv API (cs.AI + cs.LG, recent)",
+  category: "published-research",
+  url: "https://arxiv.org/list/cs.AI/recent",
+  apiUrl:
+    "https://export.arxiv.org/api/query?search_query=cat:cs.AI+OR+cat:cs.LG&sortBy=submittedDate&sortOrder=descending&max_results=20",
+  responseFormat: "rss",
+  updateFrequency: "daily",
+  rateLimit: {
+    note: "arXiv asks for a 3s inter-call courtesy window per https://info.arxiv.org/help/api/tou.html. We cache server-side via the Next.js Data Cache for 30 min and CDN s-maxage 15 min; worst case is one upstream call per 30 min per region — two orders of magnitude under the stated courtesy rate.",
+  },
+  auth: "none",
+  measures:
+    "Top 20 most recent cs.AI / cs.LG submissions on arXiv, newest first. Each row surfaces arxiv id, title, author list, primary category, submission date, and a direct link to the abstract page. Sort order comes straight from arXiv's sortByDate=desc — we don't re-rank.",
+  sanityCheck: {
+    description:
+      "20 entries returned. cs.AI + cs.LG see 100–400 submissions per weekday, so a 20-row cap is a small recent slice. A zero-length parse indicates feed shape drift (atom tags or namespace changed) or a transient arxiv outage; the tab falls back to an error state rather than empty.",
+    expectedMin: 5,
+    expectedMax: 20,
+    unit: "papers per response",
+  },
+  verifiedAt: "2026-04-19",
+  caveat:
+    "cs.AI / cs.LG are broad umbrella categories; filtering is by arxiv's own category tags as the author selected them. No institutional enrichment, no citation count, no quality filter — recency is the only signal. v2 will add citation/institution context via Semantic Scholar or OpenAlex once we're clear on the rate-limit story for those APIs.",
+  powersFeature: ["research-panel"],
+};
+
 export const HUGGINGFACE_MODELS: DataSource = {
   id: "hf-models",
   name: "HuggingFace Models API (text-generation by downloads)",
@@ -427,6 +455,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   GITHUB_STATUS,
   WINDSURF_STATUS,
   HUGGINGFACE_MODELS,
+  ARXIV_PAPERS,
 ] as const;
 
 export const VERIFIED_SOURCES: readonly DataSource[] = ALL_SOURCES.filter(
