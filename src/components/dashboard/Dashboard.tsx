@@ -5,7 +5,7 @@ import { Globe, type GlobePoint } from "@/components/globe/Globe";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
 import { LiveFeed } from "@/components/dashboard/LiveFeed";
 import { MetricTicker } from "@/components/dashboard/MetricTicker";
-import { TopBar } from "@/components/chrome/TopBar";
+import { TopBar, type ViewTabId } from "@/components/chrome/TopBar";
 import { Win } from "@/components/chrome/Win";
 import { LeftNav, type NavItem } from "@/components/chrome/LeftNav";
 import { usePolledEndpoint } from "@/lib/hooks/use-polled-endpoint";
@@ -28,6 +28,10 @@ export function Dashboard() {
   const points: GlobePoint[] = events.data?.points ?? [];
   const lastUpdatedAt = events.data?.polledAt;
 
+  // View tab state (globe vs wire). The wire view replaces the globe stage
+  // with a full-viewport chronological feed; panels still render on top.
+  const [activeTab, setActiveTab] = useState<ViewTabId>("globe");
+
   // Floating panel layout state
   const [panels, setPanels] = useState<Record<PanelId, { open: boolean; min: boolean }>>(
     { wire: { open: true, min: false }, tools: { open: true, min: false } },
@@ -35,7 +39,8 @@ export function Dashboard() {
   const [zorder, setZorder] = useState<PanelId[]>(["wire", "tools"]);
   const [maxId, setMaxId] = useState<PanelId | null>(null);
 
-  // Initial panel positions — set after mount (window-relative)
+  // Initial panel positions — set after mount (window-relative). Moved
+  // right to sit inside the viewport once the left rail claims 44px.
   const [initialPos, setInitialPos] = useState<{
     wire: { x: number; y: number; w: number; h: number };
     tools: { x: number; y: number; w: number; h: number };
@@ -43,25 +48,28 @@ export function Dashboard() {
   useEffect(() => {
     const W = typeof window !== "undefined" ? window.innerWidth : 1440;
     setInitialPos({
-      wire: { x: 24, y: 76, w: 360, h: 560 },
-      tools: { x: Math.max(420, W - 400), y: 76, w: 376, h: 560 },
+      wire: { x: 64, y: 72, w: 380, h: 540 },
+      tools: { x: Math.max(460, W - 420), y: 72, w: 376, h: 540 },
     });
   }, []);
 
   const navItems: NavItem[] = [
     {
       id: "wire",
-      label: "Live feed",
+      label: "Wire",
       icon: "wire",
       count: events.data?.coverage.windowSize ?? null,
       hot: (events.data?.coverage.windowSize ?? 0) > 0,
     },
     {
       id: "tools",
-      label: "Tool health",
+      label: "Tools",
       icon: "tools",
       count: status.data ? Object.keys(status.data.data).length : null,
     },
+    { id: "models", label: "Models", icon: "models", soon: true },
+    { id: "agents", label: "Agents", icon: "agents", soon: true },
+    { id: "research", label: "Research", icon: "research", soon: true },
     { id: "audit", label: "Audit", icon: "audit" },
   ];
 
@@ -77,7 +85,10 @@ export function Dashboard() {
     const pid = id as PanelId;
     setPanels((p) => {
       const cur = p[pid];
-      const next = cur.open && !cur.min ? { open: false, min: false } : { open: true, min: false };
+      const next =
+        cur.open && !cur.min
+          ? { open: false, min: false }
+          : { open: true, min: false };
       return { ...p, [pid]: next };
     });
     focus(pid);
@@ -101,97 +112,109 @@ export function Dashboard() {
           intervalMs: STATUS_POLL_MS,
           error: status.error,
         }}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
 
-      {/* Full-bleed stage: globe behind, floating chrome on top */}
-      <div className="relative min-h-[calc(100vh-100px)]">
-        <div className="absolute inset-0 px-4 pt-4 pb-16">
-          <section
-            className="relative h-full w-full overflow-hidden rounded-lg border border-border/40"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(0,0,0,0.5), rgba(10,15,18,0.5))",
-            }}
-          >
+      {/* Grid lattice overlay — decorative, above globe but below chrome. */}
+      <div className="ap-stage-grid" aria-hidden />
+
+      {/* Full-viewport stage. The globe occupies the entire viewport
+          behind floating chrome; the wire view swaps in a full-screen
+          chronological feed (commit 7 replaces the placeholder). */}
+      <div
+        className="fixed inset-0"
+        style={{ paddingTop: 48, paddingBottom: 56, zIndex: 3 }}
+      >
+        {activeTab === "globe" ? (
+          <div className="relative h-full w-full">
             <Globe points={points} lastUpdatedAt={lastUpdatedAt} />
             <CoverageBadge events={events.data} />
-          </section>
-        </div>
-
-        {/* Left nav — overlay bottom-left */}
-        <div
-          className="absolute z-20"
-          style={{ left: 24, bottom: 80, width: 200 }}
-        >
-          <LeftNav items={navItems} openIds={openIds} onToggle={toggle} />
-        </div>
-
-        {/* Floating panels */}
-        {initialPos && panels.wire.open && (
-          <Win
-            id="wire"
-            title="● Live feed · gh-events"
-            initial={initialPos.wire}
-            zIndex={z("wire")}
-            minimized={panels.wire.min}
-            maximized={maxId === "wire"}
-            onFocus={() => focus("wire")}
-            onClose={() =>
-              setPanels((p) => ({ ...p, wire: { open: false, min: false } }))
-            }
-            onMinimize={() =>
-              setPanels((p) => ({ ...p, wire: { ...p.wire, min: !p.wire.min } }))
-            }
-            onMaximize={() => setMaxId((m) => (m === "wire" ? null : "wire"))}
-          >
-            <LiveFeed
-              events={events.data}
-              error={events.error}
-              isInitialLoading={events.isInitialLoading}
-            />
-          </Win>
-        )}
-
-        {initialPos && panels.tools.open && (
-          <Win
-            id="tools"
-            title="● Tool health"
-            initial={initialPos.tools}
-            zIndex={z("tools")}
-            minimized={panels.tools.min}
-            maximized={maxId === "tools"}
-            onFocus={() => focus("tools")}
-            onClose={() =>
-              setPanels((p) => ({ ...p, tools: { open: false, min: false } }))
-            }
-            onMinimize={() =>
-              setPanels((p) => ({
-                ...p,
-                tools: { ...p.tools, min: !p.tools.min },
-              }))
-            }
-            onMaximize={() => setMaxId((m) => (m === "tools" ? null : "tools"))}
-          >
-            <div className="p-3">
-              <HealthCardGrid data={status.data?.data} />
-              {status.error && (
-                <p className="mt-2 font-mono text-[9px] uppercase tracking-wider text-amber-400/80">
-                  Status poll error: {status.error}
-                </p>
-              )}
-            </div>
-          </Win>
+          </div>
+        ) : (
+          <WirePlaceholder events={events.data} />
         )}
       </div>
 
-      <MetricTicker
-        status={status.data}
-        events={events.data}
-        verifiedSourceCount={VERIFIED_SOURCES.length}
-        pendingSourceCount={PENDING_SOURCES.length}
-        statusLoading={status.isInitialLoading}
-        eventsLoading={events.isInitialLoading}
-      />
+      {/* Left-edge icon nav */}
+      <LeftNav items={navItems} openIds={openIds} onToggle={toggle} />
+
+      {/* Floating panels — only render in globe view (wire view is its own
+          full-screen surface, so floating panels would be redundant). */}
+      {activeTab === "globe" && (
+        <>
+          {initialPos && panels.wire.open && (
+            <Win
+              id="wire"
+              title="Live feed · gh-events"
+              initial={initialPos.wire}
+              zIndex={z("wire")}
+              minimized={panels.wire.min}
+              maximized={maxId === "wire"}
+              onFocus={() => focus("wire")}
+              onClose={() =>
+                setPanels((p) => ({ ...p, wire: { open: false, min: false } }))
+              }
+              onMinimize={() =>
+                setPanels((p) => ({
+                  ...p,
+                  wire: { ...p.wire, min: !p.wire.min },
+                }))
+              }
+              onMaximize={() => setMaxId((m) => (m === "wire" ? null : "wire"))}
+            >
+              <LiveFeed
+                events={events.data}
+                error={events.error}
+                isInitialLoading={events.isInitialLoading}
+              />
+            </Win>
+          )}
+
+          {initialPos && panels.tools.open && (
+            <Win
+              id="tools"
+              title="Tool health"
+              initial={initialPos.tools}
+              zIndex={z("tools")}
+              minimized={panels.tools.min}
+              maximized={maxId === "tools"}
+              onFocus={() => focus("tools")}
+              onClose={() =>
+                setPanels((p) => ({ ...p, tools: { open: false, min: false } }))
+              }
+              onMinimize={() =>
+                setPanels((p) => ({
+                  ...p,
+                  tools: { ...p.tools, min: !p.tools.min },
+                }))
+              }
+              onMaximize={() => setMaxId((m) => (m === "tools" ? null : "tools"))}
+            >
+              <div className="p-3">
+                <HealthCardGrid data={status.data?.data} />
+                {status.error && (
+                  <p className="mt-2 font-mono text-[9px] uppercase tracking-wider text-amber-400/80">
+                    Status poll error: {status.error}
+                  </p>
+                )}
+              </div>
+            </Win>
+          )}
+        </>
+      )}
+
+      {/* Bottom metric ticker — pinned below the stage. */}
+      <div className="fixed bottom-0 left-0 right-0 z-40">
+        <MetricTicker
+          status={status.data}
+          events={events.data}
+          verifiedSourceCount={VERIFIED_SOURCES.length}
+          pendingSourceCount={PENDING_SOURCES.length}
+          statusLoading={status.isInitialLoading}
+          eventsLoading={events.isInitialLoading}
+        />
+      </div>
     </>
   );
 }
@@ -201,9 +224,31 @@ function CoverageBadge({ events }: { events?: GlobeEventsResult }) {
   const { coverage } = events;
   if (coverage.windowSize === 0 && coverage.eventsReceived === 0) return null;
   return (
-    <div className="pointer-events-none absolute bottom-3 right-3 rounded-md border border-border/40 bg-background/70 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground backdrop-blur-sm">
+    <div className="pointer-events-none absolute bottom-4 right-4 rounded-md border border-border/40 bg-background/70 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground backdrop-blur-sm">
       <span className="text-foreground/80">{coverage.windowSize}</span> events ·{" "}
       {coverage.windowMinutes}m window · {coverage.locationCoveragePct}% placeable
+    </div>
+  );
+}
+
+/** Placeholder until commit 7 ships the real full-viewport wire page. */
+function WirePlaceholder({ events }: { events?: GlobeEventsResult }) {
+  const n = events?.coverage.windowSize ?? 0;
+  return (
+    <div className="flex h-full w-full items-center justify-center">
+      <div className="ap-panel-surface max-w-xl px-6 py-5 text-center">
+        <div className="ap-label-sm mb-2" style={{ color: "var(--ap-accent)" }}>
+          The Wire
+        </div>
+        <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          Full-viewport chronological feed ships next.
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground/80">
+          {n > 0
+            ? `${n} events currently in the 120m window — use the Wire panel on The Globe for now.`
+            : "Waiting for the next cron cycle."}
+        </p>
+      </div>
     </div>
   );
 }
