@@ -1,0 +1,81 @@
+name: registry-discover
+
+# Discovers public repos whose default branch contains a known AI-tool
+# config file and, after first-500-bytes content verification, writes them
+# into the Upstash-backed repo registry.
+#
+# Cron cadence: every 6 hours (a conservative pace — the registry is a
+# long-term memory layer, not a live feed). Each cron run processes up to
+# 40 new candidates (~80 GitHub API calls) so it finishes well inside
+# Vercel's 60s window.
+#
+# For the initial seed, use `workflow_dispatch` with maxVerify=200 and
+# pages=10 — that sweeps all six filenames to their 1000-result caps and
+# verifies up to 200 new repos per dispatch (the seed takes several
+# dispatches to reach the 2k target; each run picks up new candidates).
+#
+# Required repo secrets (reused from globe-ingest.yml):
+#   INGEST_URL     — base ingest URL, e.g.
+#                    https://aipulse-pi.vercel.app/api/ingest
+#                    (we strip /api/ingest and append /api/registry/discover)
+#   INGEST_SECRET  — shared secret matching the Vercel env var
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Meta label for RegistryMeta.lastDiscoverySource"
+        required: false
+        default: "manual-seed"
+        type: string
+      maxVerify:
+        description: "Max verifications per run (1-500; cron default 40)"
+        required: false
+        default: "200"
+        type: string
+      pages:
+        description: "Code-search pages per kind (1-10; cron default 3)"
+        required: false
+        default: "10"
+        type: string
+      skipKnown:
+        description: "1=skip repos already in registry, 0=re-verify all"
+        required: false
+        default: "1"
+        type: string
+
+concurrency:
+  group: registry-discover
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Trigger registry discovery on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.source || 'cron' }}
+          MAX_VERIFY: ${{ github.event_name == 'workflow_dispatch' && inputs.maxVerify || '40' }}
+          PAGES: ${{ github.event_name == 'workflow_dispatch' && inputs.pages || '3' }}
+          SKIP_KNOWN: ${{ github.event_name == 'workflow_dispatch' && inputs.skipKnown || '1' }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          # Strip the "/api/ingest" suffix to get the app base, then append
+          # the registry discover path. Keeps us to a single repo secret
+          # that both workflows share.
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/registry/discover?source=$SOURCE&maxVerify=$MAX_VERIFY&pages=$PAGES&skipKnown=$SKIP_KNOWN"
+          echo "POST $URL"
+          RESPONSE=$(curl -sS -f --max-time 300 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"

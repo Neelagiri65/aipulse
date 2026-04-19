@@ -145,19 +145,47 @@ export const GITHUB_CONTENTS: DataSource = {
   rateLimit: {
     authenticated: 5000,
     unauthenticated: 60,
-    note: "Each AI-config probe is one request. Cache aggressively (24h).",
+    note: "Each probe is one request. The globe pipeline caches existence 30d. The registry verifier reads the base64 `content` field and slices the first 500 bytes for shape detection — no multi-fetch loop, one call = one verdict.",
   },
   auth: "github-token",
   measures:
-    "File existence in a repo. We use it only to detect AI tool config files (CLAUDE.md, .cursorrules, .github/copilot-instructions.md, .continue/, .windsurfrules). Deterministic; never inferred.",
+    "Two uses, both deterministic: (1) globe pipeline — file existence check for AI tool configs (CLAUDE.md, .cursorrules, .github/copilot-instructions.md, .continue/, .windsurfrules). (2) registry verifier — first 500 bytes of the same files, shape-matched against pre-committed heuristics (markdown headers, instruction verbs, role labels). Neither use calls an LLM.",
   sanityCheck: {
     description:
-      "Response is 200 with file metadata OR 404 when absent. Anything else is a source problem.",
+      "Response is 200 with file metadata (size, encoding, content) OR 404 when absent. Anything else is a source problem. Files >1MB return `encoding: 'none'` with an empty content field — verifier records 'file too large' and the repo is skipped (AI configs are rarely 1MB; we'd rather skip than follow the download_url tail).",
   },
   verifiedAt: "2026-04-18",
   caveat:
-    "Renames of config files (e.g., .cursorrules → CLAUDE.md within 7 days) are treated as 'migration signals' only when both deltas are observed within the window. Never inferred from a single snapshot.",
-  powersFeature: ["globe-colouring", "migration-arcs"],
+    "Renames of config files (e.g., .cursorrules → CLAUDE.md within 7 days) are treated as 'migration signals' only when both deltas are observed within the window. Never inferred from a single snapshot. The registry verifier's shape check is deterministic pattern-match — it scores content, never interprets it.",
+  powersFeature: ["globe-colouring", "migration-arcs", "repo-registry"],
+};
+
+export const GITHUB_CODE_SEARCH: DataSource = {
+  id: "gh-code-search",
+  name: "GitHub Code Search (filename discovery)",
+  category: "github-activity",
+  url: "https://docs.github.com/en/rest/search/search#search-code",
+  apiUrl: "https://api.github.com/search/code?q=filename:CLAUDE.md",
+  responseFormat: "json",
+  updateFrequency: "six-hourly",
+  rateLimit: {
+    authenticated: 1800,
+    note: "Search API is capped at 30 req/min authenticated. A full seed sweep (6 filenames × 10 pages = 60 calls) finishes in ~2 min at max burst. Cron runs use 3 pages × 6 kinds = 18 calls, well clear of the limit.",
+  },
+  auth: "github-token",
+  measures:
+    "Finds public repos that contain one of six known AI-tool config filenames on their default branch: CLAUDE.md (Anthropic Claude Code), AGENTS.md (OpenAI Codex), .cursorrules (Cursor), .windsurfrules (Windsurf), .github/copilot-instructions.md (Copilot), .continue/config.json (Continue). The Search API returns repo + path only; candidates then get fetched via the Contents API and shape-verified before entering the registry.",
+  sanityCheck: {
+    description:
+      "A full seed sweep across the six filenames should return 3,000–8,000 unique candidate repos (before dedupe-by-name). Shape verification typically passes 60–80% of candidates. A zero-candidate return on any single filename indicates query-shape drift, rate-limit exhaustion, or a secondary abuse-protection kick — investigate before attributing to a dead convention.",
+    expectedMin: 100,
+    expectedMax: 10000,
+    unit: "candidate repos per full sweep",
+  },
+  verifiedAt: "2026-04-19",
+  caveat:
+    "Search scope is every public repo the token owner can access (all public code by default for classic PATs). A candidate is not promoted to a registry entry until its content passes the deterministic shape heuristic in config-verifier.ts — Search alone is not evidence of a real config.",
+  powersFeature: ["repo-registry"],
 };
 
 export const ANTHROPIC_STATUS: DataSource = {
@@ -332,6 +360,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   GITHUB_EVENTS,
   GHARCHIVE,
   GITHUB_CONTENTS,
+  GITHUB_CODE_SEARCH,
   ANTHROPIC_STATUS,
   OPENAI_STATUS,
   OPENAI_INCIDENTS,

@@ -41,14 +41,28 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - **Public URL:** https://docs.github.com/en/rest/repos/contents
 - **API endpoint:** `https://api.github.com/repos/{owner}/{repo}/contents/{path}`
 - **Response format:** JSON
-- **Update frequency:** Event-driven (on each Event-triggered probe, cached 24h)
-- **Rate limit:** 5,000 per hour authenticated — cache aggressively
+- **Update frequency:** Event-driven (globe) / six-hourly (registry verifier)
+- **Rate limit:** 5,000 per hour authenticated — globe cache is 30d, registry verifier does one call per candidate per run
 - **Auth:** GitHub personal access token
-- **What it measures:** File existence in a repository. AI Pulse uses it only to check for the presence of AI tool configuration files (`CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, `.continue/`, `.windsurfrules`). The detection is deterministic file-existence only — never an LLM inferring intent from content.
-- **Sanity check:** Response is 200 with file metadata or 404 when absent. Any other status indicates a source change.
-- **Caveat:** File renames (e.g., `.cursorrules` deleted and `CLAUDE.md` created within 7 days) are treated as migration signals only when both deltas are observed in-window. Never inferred from a single snapshot.
-- **Powers:** Globe colour coding · migration arcs
+- **What it measures:** Two uses, both deterministic. **(1) Globe pipeline** — file existence check for AI tool configs (`CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, `.continue/`, `.windsurfrules`). **(2) Registry verifier** — the first 500 bytes of those same files, shape-matched against pre-committed heuristics (markdown headers, instruction verbs, role labels, code references). Neither use calls an LLM.
+- **Sanity check:** Response is 200 with file metadata (size, encoding, content) or 404 when absent. Files over 1 MB return `encoding: "none"` and an empty content field — the verifier records "file too large" and the repo is skipped. Any other status indicates a source change.
+- **Caveat:** File renames (e.g., `.cursorrules` deleted and `CLAUDE.md` created within 7 days) are treated as migration signals only when both deltas are observed in-window. Never inferred from a single snapshot. The registry verifier's shape scorer is deterministic pattern match — it scores content, it never interprets it.
+- **Powers:** Globe colour coding · migration arcs · repo registry
 - **Last verified:** 2026-04-18
+
+### GitHub Code Search (filename discovery)
+- **ID:** `gh-code-search`
+- **Public URL:** https://docs.github.com/en/rest/search/search#search-code
+- **API endpoint:** `https://api.github.com/search/code?q=filename:CLAUDE.md`
+- **Response format:** JSON
+- **Update frequency:** Every 6 hours (cron) + manual dispatch for seed sweeps
+- **Rate limit:** 30 requests per minute authenticated (1,800/hr). A full seed sweep (6 filenames × 10 pages = 60 calls) finishes in ~2 min at max burst. Cron runs use 3 pages × 6 kinds = 18 calls, well clear of the limit.
+- **Auth:** GitHub personal access token
+- **What it measures:** Finds public repositories that contain one of six known AI-tool config filenames on their default branch: `CLAUDE.md` (Anthropic Claude Code), `AGENTS.md` (OpenAI Codex convention), `.cursorrules` (Cursor), `.windsurfrules` (Windsurf), `.github/copilot-instructions.md` (Copilot), `.continue/config.json` (Continue). The Search API returns repo + path only; candidates are then fetched via the Contents API and shape-verified before entering the registry.
+- **Sanity check:** A full seed sweep should return 3,000–8,000 unique candidate repos (before dedupe by name). Expected range: 100–10,000 candidates per full sweep. Shape verification typically passes 60–80% of candidates. Zero on any single filename indicates query-shape drift or rate-limit kick — investigate before attributing to a dead convention.
+- **Caveat:** Search scope is every public repo the token owner can access (all public code by default for classic PATs). A candidate is not promoted to a registry entry until its content passes the deterministic shape heuristic in `config-verifier.ts` — Search alone is not evidence of a real config.
+- **Powers:** Repo registry (persistent, decay-coded view of the ecosystem beyond the globe's 4-hour live-activity window)
+- **Last verified:** 2026-04-19
 
 ### Anthropic Status (Claude Code + API)
 - **ID:** `anthropic-status`
@@ -150,4 +164,6 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - Any source that returns data outside its sanity-check range is treated as broken — the affected feature falls back to graceful degradation, and the discrepancy is investigated before the metric returns to the UI.
 - Widening a sanity-check range after verification is allowed and must be documented (see `gh-issues-claude-code` caveat). Recalibrating a range to chase a narrative is forbidden.
 
-_Last updated: 2026-04-18 (session 7 — added Windsurf, OpenAI incidents endpoint, Codex component mapping; promoted Cursor from "dropped" to "tracked gap"; added GH Archive hourly dumps for globe cold-start backfill; expanded GitHub Events API to 5-page poll + 9 event types)_
+_Last updated: 2026-04-19 (session 9.3 / Phase B — added GitHub Code Search for repo-registry discovery; expanded GitHub Contents API entry to document its dual use by the globe existence-probe and the registry shape-verifier)._
+
+_Previous: 2026-04-18 (session 7 — added Windsurf, OpenAI incidents endpoint, Codex component mapping; promoted Cursor from "dropped" to "tracked gap"; added GH Archive hourly dumps for globe cold-start backfill; expanded GitHub Events API to 5-page poll + 9 event types)_
