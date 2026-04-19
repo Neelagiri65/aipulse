@@ -42,13 +42,29 @@ metric cards hidden behind ticker, density still sparse.
   - Expected sustained density with 14% geocoder coverage: 500–1000
     placeable points (vs ~95 observed at session start).
 
-**Verification pending (next wake-up window):**
+**Verification — backfill 24633423728 completed at 16:12 UTC:**
 
-- Backfill run 24633423728 fired at 16:11 UTC after config deploy.
-  Post-run, query `/api/globe-events`, confirm `coverage.windowSize >
-  200` (ideally 500+). If still sparse with 8-page + 240min window
-  live, the geocoder coverage is the next bottleneck to address
-  (current 14% → raise via richer city/country lookup table).
+```
+source: redis
+points: 775
+coverage: {
+  eventsReceived: 448762,     // archive + live-API combined
+  eventsWithLocation: 321,
+  locationCoveragePct: 16,    // up from 14 last run
+  windowSize: 775,            // up from 95 at session start (+715%)
+  windowAiConfig: 187,        // 24% of placeable have AI config
+  windowMinutes: 240
+}
+```
+
+Target was 300+. We hit 775 on a single backfill run. The widened
+window + 8-page poll + gharchive backfill compound correctly. Globe
+should now read dense across every populated continent rather than
+a handful of teal dots.
+
+Geocoder coverage still the ceiling at 16% — next lever if density
+regresses (richer city/country lookup table, or fall back to repo
+owner org location when user location is absent).
 
 **Known, not-yet-fixed:**
 
