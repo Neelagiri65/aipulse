@@ -64,6 +64,20 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - **Powers:** Repo registry (persistent, decay-coded view of the ecosystem beyond the globe's 4-hour live-activity window)
 - **Last verified:** 2026-04-19
 
+### GitHub Repository Search (topics discovery)
+- **ID:** `gh-repo-search-topics`
+- **Public URL:** https://docs.github.com/en/rest/search/search#search-repositories
+- **API endpoint:** `https://api.github.com/search/repositories?q=topic:claude&sort=stars&order=desc`
+- **Response format:** JSON
+- **Update frequency:** Hourly (every 2h cron + manual dispatch)
+- **Rate limit:** Search API — 30 req/min authenticated, 1,800/hr. Shared budget with Code Search. A full cron sweep (11 topics × 2 pages = 22 calls) finishes in ~45 s at the 2.2 s inter-call spacing.
+- **Auth:** GitHub personal access token
+- **What it measures:** Repos that self-identify via the GitHub Topics field as one of 11 AI-tool / AI-framework topics: `claude`, `cursor`, `ai-coding`, `copilot`, `aider`, `windsurf`, `ai-agent`, `llm`, `langchain`, `crewai`, `agents-md`. Each candidate returned by search is gated through the same six-filename Contents-API probe and first-500-bytes shape verifier used by Code Search discovery — the topic tag alone never lands an entry in the registry.
+- **Sanity check:** A full sweep of the 11 topics at 2 pages each should return 800–2,000 unique repos (before dedupe). Per-topic counts vary from ~300 (niche: `aider`, `windsurf`) to the 1,000 result cap (broad: `llm`, `ai-agent`). Expected range: 50–2,500 candidates per sweep. Zero on any single topic indicates query-shape drift or a secondary rate-limit kick.
+- **Caveat:** Topic tags are self-declared by repo owners — they are evidence of intent, not of shape. Expect ~20–40% verify-pass rates on the broad topics (`llm`, `ai-agent`) versus 60–80% on the tool-specific ones (`claude`, `cursor`, `aider`). A repo tagged `claude` without a recognised config file never enters the registry.
+- **Powers:** Repo registry (source #3 — self-declared AI tooling)
+- **Last verified:** 2026-04-19
+
 ### Anthropic Status (Claude Code + API)
 - **ID:** `anthropic-status`
 - **Public URL:** https://status.claude.com

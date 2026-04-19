@@ -188,6 +188,35 @@ export const GITHUB_CODE_SEARCH: DataSource = {
   powersFeature: ["repo-registry"],
 };
 
+export const GITHUB_REPO_SEARCH_TOPICS: DataSource = {
+  id: "gh-repo-search-topics",
+  name: "GitHub Repository Search (topics discovery)",
+  category: "github-activity",
+  url: "https://docs.github.com/en/rest/search/search#search-repositories",
+  apiUrl:
+    "https://api.github.com/search/repositories?q=topic:claude&sort=stars&order=desc",
+  responseFormat: "json",
+  updateFrequency: "hourly",
+  rateLimit: {
+    authenticated: 1800,
+    note: "Search API is capped at 30 req/min authenticated (shared with code search — the two endpoints pull from the same secondary rate budget). Cron runs sweep 11 topics × 2 pages = 22 calls, ~45s at the 2.2s inter-call spacing we use. Well inside a 5-min budget window.",
+  },
+  auth: "github-token",
+  measures:
+    "Finds public repos that self-identify via the GitHub Topics field as claude / cursor / ai-coding / copilot / aider / windsurf / ai-agent / llm / langchain / crewai / agents-md projects. Each candidate returned by search is then gated through the same six-filename Contents-API probe and first-500-bytes shape verifier used by Code Search discovery — no entry reaches the registry on the topic alone.",
+  sanityCheck: {
+    description:
+      "A full sweep of the 11 topic list at 2 pages each should return 800–2000 unique repos (before dedupe). Per-topic result counts vary from ~300 (niche: aider, windsurf) to 1000 cap (broad: llm, ai-agent). A zero return on any single topic indicates query-shape drift or an abuse-protection kick — investigate before attributing to a dead topic.",
+    expectedMin: 50,
+    expectedMax: 2500,
+    unit: "candidate repos per sweep",
+  },
+  verifiedAt: "2026-04-19",
+  caveat:
+    "Topic tags are self-declared by repo owners and are evidence of intent, not of shape. Verifier gate still applies: a repo tagged `claude` with no recognised config file never enters the registry. Expect ~20–40% verify-pass rates on the broader topics (llm, ai-agent) vs 60–80% on the tool-specific ones (claude, cursor, aider).",
+  powersFeature: ["repo-registry"],
+};
+
 export const ANTHROPIC_STATUS: DataSource = {
   id: "anthropic-status",
   name: "Anthropic Status (Claude Code + API)",
@@ -361,6 +390,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   GHARCHIVE,
   GITHUB_CONTENTS,
   GITHUB_CODE_SEARCH,
+  GITHUB_REPO_SEARCH_TOPICS,
   ANTHROPIC_STATUS,
   OPENAI_STATUS,
   OPENAI_INCIDENTS,

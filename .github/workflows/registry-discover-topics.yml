@@ -1,0 +1,76 @@
+name: registry-discover-topics
+
+# Source #3: GitHub /search/repositories?q=topic:<name> discovery. Covers
+# repos that self-identify as AI-tool / AI-framework projects via the
+# GitHub topic field. Verifier gates each candidate the same way
+# Code Search discovery does — no entry reaches the registry without a
+# deterministic content match.
+#
+# Cadence: every 2 hours. The 1000-result-per-query search cap makes
+# this a relatively slow-growth source — a 2h cron lets cached pages
+# roll over enough for fresh candidates without thrashing the same
+# top-stars heads.
+#
+# Required repo secrets (shared with other registry workflows):
+#   INGEST_URL     — e.g. https://aipulse-pi.vercel.app/api/ingest
+#   INGEST_SECRET  — shared secret matching the Vercel env var
+
+on:
+  schedule:
+    - cron: "45 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Meta label for RegistryMeta.lastDiscoverySource"
+        required: false
+        default: "manual-topics"
+        type: string
+      cap:
+        description: "Max verifications per run (1-200; cron default 60)"
+        required: false
+        default: "60"
+        type: string
+      pagesPerTopic:
+        description: "Pages per topic (1-10; cron default 2)"
+        required: false
+        default: "2"
+        type: string
+      topics:
+        description: "Comma-separated topic subset (empty = full list)"
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  group: registry-discover-topics
+  cancel-in-progress: false
+
+jobs:
+  topics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger topics discovery on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.source || 'cron-topics' }}
+          CAP: ${{ github.event_name == 'workflow_dispatch' && inputs.cap || '60' }}
+          PAGES: ${{ github.event_name == 'workflow_dispatch' && inputs.pagesPerTopic || '2' }}
+          TOPICS: ${{ github.event_name == 'workflow_dispatch' && inputs.topics || '' }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/registry/topics?source=$SOURCE&cap=$CAP&pagesPerTopic=$PAGES"
+          if [ -n "$TOPICS" ]; then
+            URL="$URL&topics=$TOPICS"
+          fi
+          echo "POST $URL"
+          RESPONSE=$(curl -sS -f --max-time 150 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"
