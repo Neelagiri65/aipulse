@@ -73,13 +73,16 @@ const RELEVANT_TYPES = new Set([
   "PullRequestReviewEvent",
 ]);
 
-const WINDOW_MINUTES = 120;
+const WINDOW_MINUTES = 240;
 const WINDOW_MS = WINDOW_MINUTES * 60 * 1000;
 const WINDOW_CAP = 10000;
 
-// Number of Events-API pages to pull per ingest run. 5 pages = ~500 raw
-// events, ~60 authenticated requests/hour at a 5-minute cadence.
-const EVENTS_API_PAGES = 5;
+// Number of Events-API pages to pull per ingest run. 8 pages = ~800 raw
+// events. At the *advertised* 5-minute cadence that's ~96 req/hr against
+// the 5000/hr auth budget — plenty of headroom. Bumped from 5 because
+// GitHub Actions cron routinely skips slots on free tier, so we need
+// more volume per successful run to keep the window dense.
+const EVENTS_API_PAGES = 8;
 
 // Archive hours pulled on cold-start backfill. Each hour decompresses to
 // ~100-150 MB and yields tens of thousands of relevant events. We cap the

@@ -89,16 +89,16 @@ export const GITHUB_EVENTS: DataSource = {
   rateLimit: {
     authenticated: 5000,
     unauthenticated: 60,
-    note: "Per-hour, per-token. Events API returns a rolling window (~5 min); each ingest pulls 5 pages of 100 events. At the 5-min cron cadence that is ~60 authenticated requests/hr — comfortably under budget.",
+    note: "Per-hour, per-token. Events API returns a rolling window (~5 min); each ingest pulls 8 pages of 100 events. At the 5-min cron cadence that is ~96 authenticated requests/hr — comfortably under budget.",
   },
   auth: "github-token",
   measures:
     "Public GitHub events across all public repos. We accept nine types on the globe: PushEvent, PullRequestEvent, IssuesEvent, IssueCommentEvent, PullRequestReviewEvent, ReleaseEvent, CreateEvent, ForkEvent, WatchEvent. The endpoint returns a firehose sample, not the full stream.",
   sanityCheck: {
     description:
-      "A 5-page poll should return ~300–500 events (upstream caps the visible feed around 300). Zero indicates either rate-limit exhaustion or GH outage; investigate before attributing to a slow day.",
-    expectedMin: 50,
-    expectedMax: 500,
+      "An 8-page poll should return ~500–800 events. Zero indicates either rate-limit exhaustion or GH outage; investigate before attributing to a slow day.",
+    expectedMin: 100,
+    expectedMax: 800,
     unit: "events per multi-page poll",
   },
   verifiedAt: "2026-04-18",

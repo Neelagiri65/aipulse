@@ -13,11 +13,11 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - **Public URL:** https://docs.github.com/en/rest/activity/events
 - **API endpoint:** `https://api.github.com/events`
 - **Response format:** JSON
-- **Update frequency:** Realtime (5-page poll every 5 min via GH Actions → Vercel → Redis)
-- **Rate limit:** 5,000 requests per hour authenticated · 60 unauthenticated. 5 pages × 12 polls/hr = 60 authenticated requests/hr — comfortably under budget.
+- **Update frequency:** Realtime (8-page poll every 5 min via GH Actions → Vercel → Redis)
+- **Rate limit:** 5,000 requests per hour authenticated · 60 unauthenticated. 8 pages × 12 polls/hr = 96 authenticated requests/hr — comfortably under budget.
 - **Auth:** GitHub personal access token (server-side only)
 - **What it measures:** Public GitHub events across every public repository. The globe accepts nine event types: `PushEvent`, `PullRequestEvent`, `IssuesEvent`, `IssueCommentEvent`, `PullRequestReviewEvent`, `ReleaseEvent`, `CreateEvent`, `ForkEvent`, `WatchEvent`. The endpoint returns a firehose sample, not the full stream.
-- **Sanity check:** A 5-page poll should return 300–500 events (upstream caps the visible feed ~300). Expected range: 50–500 events per multi-page poll. Zero indicates rate-limit exhaustion or GitHub outage — investigate before attributing to a slow day.
+- **Sanity check:** An 8-page poll should return ~500–800 events. Expected range: 100–800 events per multi-page poll. Zero indicates rate-limit exhaustion or GitHub outage — investigate before attributing to a slow day.
 - **Caveat:** Events do not carry geolocation. Location is resolved from the author's GitHub profile city/country field (optional). Typical placement coverage is 15–25% of raw events. Low density between polls is filled in by GH Archive hourly dumps (see `gharchive`).
 - **Powers:** Globe activity dots · live event feed
 - **Last verified:** 2026-04-18
