@@ -2,6 +2,85 @@
 
 ## Current state (2026-04-19)
 
+### Session 9.3 — flat-map click cards restored (one-commit hotfix)
+
+User blocker: clicks on markers and clusters on THE MAP tab did
+nothing visible. Diagnosed as z-index (card rendered under Leaflet's
+800-cap pane stack) + Leaflet's default zoom-to-bounds hijacking
+cluster clicks. Both fixed in `bfc5320`.
+
+**Shipped:**
+
+- `bfc5320 fix(map): EventCard z-index + cluster-click handler on flat map`
+  - `src/components/globe/event-detail.tsx`: removed Tailwind `z-30`
+    from the floating card; set inline `zIndex: 1200`. Sits above
+    every Leaflet pane (tiles 200, overlays 400, markers 600,
+    popups 700, controls 800) and is safe on the globe too — no
+    competing positioned siblings there. Short WHY comment left
+    in-place so the next editor doesn't regress it.
+  - `src/components/map/FlatMap.tsx`:
+    - `zoomToBoundsOnClick: false` on the MarkerClusterGroup —
+      clusters no longer auto-zoom on click; user zooms via wheel
+      or the `+`/`−` controls. Trade-off flagged `AUDITOR-REVIEW:
+      PENDING` in the commit, but matches the globe UX (click
+      reveals region events, not a forced camera move).
+    - New `clusterclick` listener: pulls `getAllChildMarkers()`,
+      extracts each marker's stashed `eventPoint`, feeds them to
+      `clusterFromPoints()`, opens EventCard at the click anchor.
+    - New `clusterFromPoints(points)` helper: computes dominant
+      event type (frequency tally), centroid lat/lng, aiCount,
+      and sorts events newest-first — output shape identical to
+      what `clusterPoints()` emits on the globe so the shared
+      EventCard works byte-for-byte on both views.
+  - Singleton marker click handler (line 186) was already wired;
+    it just never rendered visibly because of the same z-index
+    issue. Unblocked automatically by the event-detail fix.
+
+**Trust contract check:**
+
+- Aggregator reads `p.meta` directly — no fabricated fields, no
+  inferred values. Same event-type dominant-colour rule as
+  `clusterIcon()` so the badge user clicks matches the card that
+  opens.
+- EventCard component itself unchanged apart from z-index; globe
+  behaviour byte-identical.
+
+**Verification (code-level):**
+
+- `next build` clean: 1.95s compile, 1.38s TypeScript, 5/5 pages.
+- No new deps, no API changes.
+
+**Verification (visual, user to confirm on Vercel rebuild):**
+
+- THE MAP tab: click a numbered cluster → card opens with its
+  aggregated events. Click a singleton marker → card opens with
+  one event. Escape + outside-click dismiss. Wheel + zoom controls
+  still zoom. Mobile: pinch-zoom unaffected.
+- THE GLOBE tab: click a dot → card opens as before (regression
+  check since we touched event-detail.tsx).
+
+**Next actions (session 10 opening move):**
+
+1. User verifies flat-map click behaviour on
+   https://aipulse-pi.vercel.app once Vercel rebuilds `bfc5320`.
+2. **Registry foundation (Phase B) — higher priority than new tabs.**
+   Upstash schema `aipulse:repo-registry`, discovery cron (6h,
+   date-sliced GitHub Search), content verification (first 500
+   bytes, config-shape markers). Target 2k high-quality repos.
+   Deferred from 9.2; still the right next step before any new
+   data-domain tab ships.
+3. **Models tab (deferred, expansion scope).** User-approved source
+   menu: HuggingFace `/api/models` (top 20 by 30-day downloads,
+   text-generation + code), with Open LLM Leaderboard + Chatbot
+   Arena as secondary sources. Floating panel like Tools, toggled
+   from LeftNav. `SOON` → active with count badge. One panel at a
+   time — Models first, then Agents (GitHub Search for AGENTS.md
+   + langchain/crewai framework repos), then Research (ArXiv +
+   Semantic Scholar + Papers With Code). Do NOT build all three
+   at once.
+
+Commits: `bfc5320`.
+
 ### Session 9.2 — flat-map tab (default) · 3D globe polish · shared event-card
 
 Two commits, both green builds. The 3D globe's grainy-at-zoom texture
