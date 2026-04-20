@@ -431,6 +431,62 @@ export const HN_AI_STORIES: DataSource = {
   powersFeature: ["the-wire", "flat-map", "globe"],
 };
 
+export const AI_LABS_REGISTRY: DataSource = {
+  id: "ai-labs-registry",
+  name: "AI Labs — curated HQ registry (internal JSON)",
+  category: "github-activity",
+  url: "https://github.com/Neelagiri65/aipulse/blob/main/data/ai-labs.json",
+  responseFormat: "json",
+  updateFrequency: "weekly",
+  rateLimit: {
+    note: "Static JSON checked into the repo. No runtime rate limit. Edited by hand when a lab joins/leaves the list or moves HQ; each entry carries an `hqSourceUrl` traceable to a public citation (Wikipedia infobox or the org's own about/contact page).",
+  },
+  auth: "none",
+  measures:
+    "32 curated AI labs across 10 countries, each with verifiable HQ coordinates and a list of flagship public GitHub orgs / repos. This registry is the *sourcing* step for the AI Labs globe layer — it does not score, rank, or rename labs. Inclusion criteria pre-committed at the file's top comment: (1) ≥1 public GH org or canonical flagship AI repo, (2) HQ coord traceable to a public source, (3) org publishes AI research/code (not merely consumes AI), (4) academic labs use their most-active AI subgroup org. The fetcher (`GITHUB_REPO_EVENTS_LABS`) joins this registry to live GH activity to size each dot.",
+  sanityCheck: {
+    description:
+      "30–40 entries at any given time. `validateLabsRegistry()` rejects: missing required fields, lat ∉ [-90, 90], lng ∉ [-180, 180], country_code !∈ /^[A-Z]{2}$/, duplicate ids, non-https hqSourceUrl, non-github sourceUrl, empty repos array. Country coverage ≥ 9 expected to avoid a US-monoculture read.",
+    expectedMin: 30,
+    expectedMax: 40,
+    unit: "labs in registry",
+  },
+  verifiedAt: "2026-04-20",
+  caveat:
+    "Curation is sourcing, not scoring. The list is editable by hand — if a notable lab is missing, add it with a verifiable HQ source. Every dot on the globe can be traced back to a row in this file, and every row cites its HQ source URL. Academic labs are represented by their most-active AI subgroup org (e.g. stanford-crfm for Stanford AI Lab) since universities don't centralise AI under one GitHub org; sibling subgroups are excluded to avoid double-counting, noted per-entry in the `notes` field.",
+  powersFeature: ["ai-labs-layer", "labs-panel"],
+};
+
+export const GITHUB_REPO_EVENTS_LABS: DataSource = {
+  id: "gh-repo-events-labs",
+  name: "GitHub Repository Events API (labs activity fetcher)",
+  category: "github-activity",
+  url: "https://docs.github.com/en/rest/activity/events#list-repository-events",
+  apiUrl:
+    "https://api.github.com/repos/{owner}/{repo}/events?per_page=100",
+  responseFormat: "json",
+  updateFrequency: "six-hourly",
+  rateLimit: {
+    authenticated: 5000,
+    unauthenticated: 60,
+    note: "Per-hour, per-token. 47 tracked repos across 32 labs × 4 cron runs/day = ~188 req/day — well under the 5000/hr authenticated budget. Next.js Data Cache holds per-repo responses for 6h; the client polls `/api/labs` every 10 min but CDN s-maxage=1800 means the edge absorbs most of that traffic. Per-repo failures isolate: one 404 or transient timeout marks that repo stale on its lab but never tanks the whole response.",
+  },
+  auth: "github-token",
+  measures:
+    "7-day public-event activity per tracked repo, bucketed by lab and by event type. The same nine types accepted by the globe pipeline (PushEvent / PullRequestEvent / IssuesEvent / IssueCommentEvent / PullRequestReviewEvent / ReleaseEvent / CreateEvent / ForkEvent / WatchEvent) are counted — so the labs layer never disagrees with the live pulse on what 'activity' means. The 7-day window is an exact 7 × 24 × 3600 × 1000 ms cutoff against `created_at`, not a fuzzy approximation.",
+  sanityCheck: {
+    description:
+      "A full refresh should return real counts for ≥ 80% of tracked repos (the rest marked stale on cron failure). Top-5 labs by 7d total typically land in the 500–5000 event range; median lab ~20–200; long tail sits near zero and those labs render as dim violet dots (still present, still clickable). A full-registry zero indicates GH rate-limit exhaustion or a cascading cron failure — investigate before attributing to 'quiet week'.",
+    expectedMin: 0,
+    expectedMax: 10000,
+    unit: "7d events per lab",
+  },
+  verifiedAt: "2026-04-20",
+  caveat:
+    "Per-repo endpoint returns the last ~300 events or the last 90 days, whichever is smaller — we filter server-side to the 7d window and the nine relevant types before summing. Repo rename/transfer will silently return 404 until `data/ai-labs.json` is updated; the repo shows `stale: true` until fixed. Aggregate only: no rescoring, no weighting, no merging across labs. The dot size is a function of the raw 7d event total with a log scale clamped at the p95 of the current run so one outlier lab can't squash the rest of the distribution.",
+  powersFeature: ["ai-labs-layer", "labs-panel"],
+};
+
 // ---------------------------------------------------------------------------
 // PENDING VERIFICATION — DO NOT CONSUME IN DASHBOARD
 // These sources are referenced in the spec but have not been Phase-0 validated
@@ -544,6 +600,8 @@ export const ALL_SOURCES: readonly DataSource[] = [
   ARXIV_PAPERS,
   HN_AI_STORIES,
   LMARENA_LEADERBOARD,
+  AI_LABS_REGISTRY,
+  GITHUB_REPO_EVENTS_LABS,
 ] as const;
 
 export const VERIFIED_SOURCES: readonly DataSource[] = ALL_SOURCES.filter(

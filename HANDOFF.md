@@ -2,6 +2,58 @@
 
 ## Current state (2026-04-20)
 
+### Session 20 — AI Labs layer (6 commits, feature branch `feature/ai-labs-layer`)
+
+Session brief (user, after the PRD review): *"PRD approved. Decompose and build."* — and earlier: *"Curation is not scoring — it's sourcing. Every lab has a verifiable HQ and public GitHub repos. The criteria are pre-committed. Confirmed. Violet is fine. … 6h cron confirmed. List confirmed."*
+
+**Shipped (6 commits on `feature/ai-labs-layer`, NOT yet merged to main):**
+
+1. `627b929` docs(labs): PRD (`docs/prd-ai-labs-layer.md`), 5-issue decomposition (`docs/issues-ai-labs-layer.md`), and two research briefs (`docs/research-openalex-integration.md`, `docs/research-semantic-scholar.md` — paper-geocoding paths investigated and ruled out: OpenAlex returns institution objects but they aren't consistently geocoded; Semantic Scholar's affiliation field is sparse enough that a 30-lab curated JSON is the more honest sourcing layer).
+2. `041b307` LABS-01 — `data/ai-labs.json` (32 labs × 47 flagship repos, 10 countries; every entry carries `hqSourceUrl` citation) + `src/lib/data/labs-registry.ts` with `validateLabsRegistry()` (rejects missing fields, lat/lng OOB, non-`^[A-Z]{2}$` country_code, dup ids, non-https `hqSourceUrl`, non-github `sourceUrl`, empty `repos` array). 152-line unit spec; TDD red→green.
+3. `fa39c03` LABS-02 — `src/lib/data/fetch-labs.ts` (bounded 10-way concurrent per-repo fetch, 7-day exact cutoff, same 9-event-type filter as `fetch-events.ts` so the labs layer never disagrees with live pulse on "activity") + `src/app/api/labs/route.ts` (Next.js Data Cache `revalidate: 21600` on upstream GH; CDN `s-maxage=1800, stale-while-revalidate=21600` on the route; graceful-degrade payload on exception). 269-line unit spec covering: bucket-by-event-type, 7d cutoff, stale propagation, per-repo failure isolation, empty-registry, bad-fetch, no-token-set.
+4. `3729069` LABS-03 — Globe + FlatMap violet layer. New `src/components/labs/labs-to-points.ts` exports `LABS_VIOLET = "#a855f7"`, `LABS_MIN_SIZE = 0.3`, `LABS_MAX_SIZE = 1.2`, `LABS_INACTIVE_OPACITY = 0.35`, and `labsToGlobePoints()` with p95-clamped log-linear sizing. Globe.tsx extended clusterPoints() with `lab`/`activeLab`/`maxLabSize` buckets and a new color/size branch (`else if b.lab > 0`); sort rank bumped to registry=3/lab=2/hn=1/live=0; lab-only clusters dim to `LABS_INACTIVE_OPACITY` when `activeLab === 0`. FlatMap.tsx mirrors the same logic via `labIconPx()` + `labMarkerHtml()` and a `labInactiveCluster` border/glow dim. GlobeLegend + MapLegend gained an "AI Labs · Lab HQ · 7d activity" row. 105-line `labs-to-points.test.ts` covering sizing, clamping, and activity-to-color.
+5. `28ef2e9` LABS-04 — Filter toggle + `LabCard`. `FilterPanel.tsx` added `ai-labs` id + "Layers" category (default ON; rationale: the layer's purpose is to show where labs are). New `src/components/labs/LabCard.tsx` (380px, forwardRef; renders kind pill, STALE/QUIET-7D, name, city/country, HQ source link, 7d total, per-type pills via `shortEventType`, tracked-repos list with per-repo stale, GH org links). `EventCard` delegates to `LabCard` for lab-only clusters (`cluster.labCount > 0 && liveCount === 0 && hnCount === 0 && registryCount === 0`); mixed clusters keep `LabRow` inline.
+6. `a41b353` LABS-05 — Panel + 8th LeftNav button + source registry + cron + smoke. `LabsPanel.tsx` (sorted by 7d desc, IND/ACA/NGO kind pill, violet share-bar proportional to panel max, source-cited footer citing `data/ai-labs.json` + GH Repo Events). `LeftNav.tsx` "AI Labs" row + new flask SVG icon. `Dashboard.tsx` wired (panel state, zorder, initialPos `{x:108,y:220,w:420,h:560}`, count badge reading `labs.data.labs.length`, 10-min client poll with `LABS_POLL_MS = 10*60*1000`). `data-sources.ts` + `public/data-sources.md` gained `AI_LABS_REGISTRY` + `GITHUB_REPO_EVENTS_LABS` entries (committed in the same diff per CLAUDE.md drift rule; sources count 16 → 18). `.github/workflows/labs-cron.yml` warms `/api/labs` every 6h on the :00 slot (free of existing cron minute collisions). `tests/visual/06-ai-labs.spec.ts` — 3 smokes: ≥20 violet map dots, AI Labs button opens the panel, panel lists ≥20 rows with IND/ACA/NGO badges.
+
+**Architectural decisions the Auditor flagged in this session:**
+
+- *Curation is sourcing, not scoring.* Every lab in `data/ai-labs.json` carries a verifiable `hqSourceUrl`; inclusion criteria are pre-committed at the top of the file. This keeps the "aggregates, does not score" non-negotiable honest.
+- *Color precedence: live > lab > hn > registry.* Live pulse is the strongest signal; lab reads as presence when live is absent; ties break toward code-action over discussion.
+- *Lab cluster delegation:* lab-only clusters render via the richer `LabCard`; mixed clusters keep `EventCard` so live-pulse + lab-row coexist on one surface.
+- *Dim-but-clickable inactive labs:* `LABS_INACTIVE_OPACITY = 0.35` when a lab's 7d total is 0 — presence always reads, so a "quiet week" is visible, not invisible.
+- *Dot-size:* p95-clamped log-linear sizing so one outlier lab (e.g. a release-week spike) can't squash the rest of the distribution.
+
+**Registry state after session 20:**
+
+- Sources: **18** (up from 16 — added `ai-labs-registry` + `gh-repo-events-labs`).
+- Crons: **7** (up from 6 — added `labs-cron-warm` at `0 */6 * * *`).
+- Active panels: **6** (up from 5 — added AI Labs panel).
+- LeftNav buttons: **8** (up from 7 — added AI Labs between Benchmarks and Audit).
+- Unit tests: **118/118 ✓** (up from 84 — added 34 across labs-registry, labs-to-points, fetch-labs).
+- Visual smoke tests: **23 total** (20 pre-existing + 3 labs; not yet run against this branch — see NEXT).
+- Build: ✓ (2.7s Turbopack).
+- Typecheck: clean.
+
+**Files changed (session 20, relative to `main`):**
+
+- Created (15): `data/ai-labs.json`, `docs/prd-ai-labs-layer.md`, `docs/issues-ai-labs-layer.md`, `docs/research-openalex-integration.md`, `docs/research-semantic-scholar.md`, `src/app/api/labs/route.ts`, `src/components/labs/LabCard.tsx`, `src/components/labs/LabsPanel.tsx`, `src/components/labs/labs-to-points.ts`, `src/components/labs/__tests__/labs-to-points.test.ts`, `src/lib/data/fetch-labs.ts`, `src/lib/data/labs-registry.ts`, `src/lib/data/__tests__/fetch-labs.test.ts`, `src/lib/data/__tests__/labs-registry.test.ts`, `.github/workflows/labs-cron.yml`, `tests/visual/06-ai-labs.spec.ts`.
+- Modified (9): `public/data-sources.md`, `src/components/chrome/FilterPanel.tsx`, `src/components/chrome/LeftNav.tsx`, `src/components/dashboard/Dashboard.tsx`, `src/components/globe/Globe.tsx`, `src/components/globe/event-detail.tsx`, `src/components/map/FlatMap.tsx`, `src/lib/data-sources.ts`, `tests/visual/_helpers.ts`.
+- Deleted (0). Touched outside project directory (0).
+
+**AUDITOR-REVIEW: PENDING (session 20):**
+
+1. *Data-sources.md copy for `AI_LABS_REGISTRY` + `GITHUB_REPO_EVENTS_LABS`.* Mirrored verbatim from `data-sources.ts`; review the prose for honesty — specifically the "curation is sourcing, not scoring" phrasing and the academic-subgroup caveat.
+2. *Cron cadence.* 6h matches the Data Cache revalidation and fits inside the 5000/hr budget with 0.2% utilisation. Could drop to 12h if we want headroom; 3h would double GH traffic for no observable freshness gain. 6h is the default; push back if the assumption is wrong.
+3. *Kind-pill abbreviation scheme (IND/ACA/NGO) in the panel.* LabCard uses full words (INDUSTRY/ACADEMIC/NON-PROFIT); the panel compresses to 3-letter tokens to keep rows single-line at 420px. Review whether the compression reads cleanly.
+4. *Dot-size curve.* `labsToGlobePoints` log-linear + p95 clamp is the same shape used for registry/HN, but the constants (`min=0.3, max=1.2`) are new. Confirm the visual weighting doesn't over-privilege the tail.
+5. *Deployed smoke run.* `tests/visual/06-ai-labs.spec.ts` builds clean and asserts against the live FlatMap selectors, but hasn't been run yet because (a) this branch isn't deployed yet, and (b) prod is still session-19 code. Required path before merge: deploy the branch (or point `LOCAL_URL` at a dev server), run `npm run test:visual -- tests/visual/06-ai-labs.spec.ts`, then merge.
+
+**NEXT (for session 21):**
+
+- Deploy `feature/ai-labs-layer` to a Vercel preview (or dev server) and run `npm run test:visual -- tests/visual/06-ai-labs.spec.ts` to green the 3 labs smokes. If the dot count comes in under 20, investigate before widening the assertion — a genuine registry or upstream regression.
+- After smokes green: open PR to `main`, link the PRD + issues file, tag AUDITOR-REVIEW items 1–4 above in the PR description.
+- Post-merge: add `INGEST_URL` verification step to the labs-cron YAML (first cron run will fail loud if the secret isn't wired on the repo — this is by design; just confirm the first live run succeeded after merge).
+
 ### Session 19 — Playwright visual smoke test harness (1 commit, on main)
 
 Session brief (user): *"Build a Playwright visual smoke test suite that screenshots every view of the live site… permanent test harness, not a one-off. Also test all other possibilities even the previous runnings. The test should be very comprehensive and properly maintained."*

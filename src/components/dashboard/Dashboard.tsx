@@ -48,6 +48,9 @@ import { ModelsPanel } from "@/components/models/ModelsPanel";
 import { ResearchPanel } from "@/components/research/ResearchPanel";
 import { BenchmarksPanel } from "@/components/benchmarks/BenchmarksPanel";
 import type { BenchmarksPayload } from "@/lib/data/benchmarks-lmarena";
+import type { LabsPayload } from "@/lib/data/fetch-labs";
+import { labsToGlobePoints } from "@/components/labs/labs-to-points";
+import { LabsPanel } from "@/components/labs/LabsPanel";
 
 const STATUS_POLL_MS = 5 * 60 * 1000;
 const EVENTS_POLL_MS = 30 * 1000;
@@ -73,6 +76,10 @@ const HN_POLL_MS = 60 * 1000;
 // route revalidating hourly. 30-min client poll catches any real flip
 // without churning the edge cache.
 const BENCHMARKS_POLL_MS = 30 * 60 * 1000;
+// Labs: /api/labs is CDN-cached for 30min and the upstream cron runs
+// every 6h. 10-min client poll sits above the CDN TTL so each real
+// upstream flip is picked up once, without churning the edge.
+const LABS_POLL_MS = 10 * 60 * 1000;
 
 type RegistryResult = {
   ok: boolean;
@@ -81,7 +88,13 @@ type RegistryResult = {
   generatedAt: string;
 };
 
-type PanelId = "wire" | "tools" | "models" | "research" | "benchmarks";
+type PanelId =
+  | "wire"
+  | "tools"
+  | "models"
+  | "research"
+  | "benchmarks"
+  | "labs";
 
 export function Dashboard() {
   const status = usePolledEndpoint<StatusResult>("/api/status", STATUS_POLL_MS);
@@ -103,6 +116,7 @@ export function Dashboard() {
     "/api/benchmarks",
     BENCHMARKS_POLL_MS,
   );
+  const labs = usePolledEndpoint<LabsPayload>("/api/labs", LABS_POLL_MS);
 
   const rawPoints: GlobePoint[] = events.data?.points ?? [];
   const lastUpdatedAt = events.data?.polledAt;
@@ -180,7 +194,20 @@ export function Dashboard() {
   // No filter applied: HN is a parallel signal (community discussion,
   // not GH activity), so event-type + ai-config filters don't apply.
   const hnPoints: GlobePoint[] = hn.data?.points ?? [];
-  const points: GlobePoint[] = [...livePoints, ...dedupedRegistry, ...hnPoints];
+
+  // AI Labs layer — curated HQ coords from data/ai-labs.json, sized by
+  // 7d activity across flagship repos. Plotted even when the lab is
+  // quiet (LABS_INACTIVE_OPACITY on the renderer) so presence always
+  // reads. Gated by the `ai-labs` filter (default ON).
+  const labPoints: GlobePoint[] = filters["ai-labs"]
+    ? labsToGlobePoints(labs.data?.labs ?? [])
+    : [];
+  const points: GlobePoint[] = [
+    ...livePoints,
+    ...dedupedRegistry,
+    ...hnPoints,
+    ...labPoints,
+  ];
 
   // Pre-merge GH events + HN stories into a single chronological wire
   // list. Both surfaces (WirePage + downstream map/globe) share this
@@ -254,6 +281,7 @@ export function Dashboard() {
       models: { open: false, min: false },
       research: { open: false, min: false },
       benchmarks: { open: false, min: false },
+      labs: { open: false, min: false },
     },
   );
   const [zorder, setZorder] = useState<PanelId[]>([
@@ -262,6 +290,7 @@ export function Dashboard() {
     "models",
     "research",
     "benchmarks",
+    "labs",
   ]);
   const [maxId, setMaxId] = useState<PanelId | null>(null);
 
@@ -273,6 +302,7 @@ export function Dashboard() {
     models: { x: number; y: number; w: number; h: number };
     research: { x: number; y: number; w: number; h: number };
     benchmarks: { x: number; y: number; w: number; h: number };
+    labs: { x: number; y: number; w: number; h: number };
   } | null>(null);
   useEffect(() => {
     const W = typeof window !== "undefined" ? window.innerWidth : 1440;
@@ -297,6 +327,11 @@ export function Dashboard() {
         w: 540,
         h: 560,
       },
+      // Labs sits on the left half, below Wire by default. 32 labs at
+      // ~60px/row = ~1920px scroll height, so the panel is scrollable,
+      // not full-height; 420 wide keeps long lab names + city on one
+      // line at typical viewports.
+      labs: { x: 108, y: 220, w: 420, h: 560 },
     });
   }, []);
 
@@ -336,6 +371,12 @@ export function Dashboard() {
           ? benchmarks.data.rows.length
           : null,
     },
+    {
+      id: "labs",
+      label: "AI Labs",
+      icon: "labs",
+      count: labs.data?.labs.length ?? null,
+    },
     { id: "audit", label: "Audit", icon: "audit" },
   ];
 
@@ -352,7 +393,8 @@ export function Dashboard() {
       id !== "tools" &&
       id !== "models" &&
       id !== "research" &&
-      id !== "benchmarks"
+      id !== "benchmarks" &&
+      id !== "labs"
     )
       return;
     const pid = id as PanelId;
@@ -598,6 +640,34 @@ export function Dashboard() {
                 data={benchmarks.data}
                 error={benchmarks.error}
                 isInitialLoading={benchmarks.isInitialLoading}
+              />
+            </Win>
+          )}
+
+          {initialPos && panels.labs.open && (
+            <Win
+              id="labs"
+              title="AI Labs · 7d activity · curated registry"
+              initial={initialPos.labs}
+              zIndex={z("labs")}
+              minimized={panels.labs.min}
+              maximized={maxId === "labs"}
+              onFocus={() => focus("labs")}
+              onClose={() =>
+                setPanels((p) => ({ ...p, labs: { open: false, min: false } }))
+              }
+              onMinimize={() =>
+                setPanels((p) => ({
+                  ...p,
+                  labs: { ...p.labs, min: !p.labs.min },
+                }))
+              }
+              onMaximize={() => setMaxId((m) => (m === "labs" ? null : "labs"))}
+            >
+              <LabsPanel
+                data={labs.data}
+                error={labs.error}
+                isInitialLoading={labs.isInitialLoading}
               />
             </Win>
           )}

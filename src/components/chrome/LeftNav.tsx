@@ -88,6 +88,7 @@ type NavIconName =
   | "agents"
   | "research"
   | "benchmarks"
+  | "labs"
   | "security"
   | "audit";
 
@@ -157,6 +158,14 @@ function NavIcon({ name }: { name: NavIconName }) {
           <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
           <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
           <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+        </svg>
+      );
+    case "labs":
+      return (
+        <svg {...common}>
+          <path d="M9 3h6" />
+          <path d="M10 3v6.5a4 4 0 0 1-.54 2L5 18a2 2 0 0 0 1.73 3h10.54A2 2 0 0 0 19 18l-4.46-6.5a4 4 0 0 1-.54-2V3" />
+          <path d="M7 17h10" />
         </svg>
       );
     case "security":

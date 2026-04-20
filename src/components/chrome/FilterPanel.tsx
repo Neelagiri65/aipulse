@@ -7,7 +7,8 @@ export type FilterLayerId =
   | "release"
   | "fork"
   | "watch"
-  | "ai-config-only";
+  | "ai-config-only"
+  | "ai-labs";
 
 export type FilterState = Record<FilterLayerId, boolean>;
 
@@ -19,13 +20,17 @@ export const DEFAULT_FILTERS: FilterState = {
   fork: true,
   watch: true,
   "ai-config-only": false,
+  // Labs default ON: the whole layer's point is to show where the
+  // named AI labs are. Users who want pure GH-event density can opt
+  // out; most land on the globe wanting to see both.
+  "ai-labs": true,
 };
 
 type Layer = {
   id: FilterLayerId;
   label: string;
   color: string;
-  category: "Event types" | "Signal";
+  category: "Event types" | "Signal" | "Layers";
 };
 
 const LAYERS: Layer[] = [
@@ -41,6 +46,12 @@ const LAYERS: Layer[] = [
     color: "#2dd4bf",
     category: "Signal",
   },
+  {
+    id: "ai-labs",
+    label: "AI Labs",
+    color: "#a855f7",
+    category: "Layers",
+  },
 ];
 
 export type FilterPanelProps = {
@@ -55,7 +66,7 @@ export type FilterPanelProps = {
  * the globe's points in place — no separate "run filter" button.
  */
 export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
-  const cats: Layer["category"][] = ["Event types", "Signal"];
+  const cats: Layer["category"][] = ["Event types", "Signal", "Layers"];
   return (
     <aside
       className="fixed right-3 z-40 ap-panel-surface"
