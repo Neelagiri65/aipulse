@@ -140,6 +140,142 @@ class (third-party index), drop-in JSON, 5000/hr anonymous.
 7. /archives page (still own-session: needs daily/weekly snapshot
    writer to Redis with 90d+ TTL first; that writer doesn't exist).
 
+## Queued from session 14 discussion (not yet built)
+
+This section captures the full session 14 thread after the
+conversation compacted and lost in-memory context. Everything below
+is a decision that was reached in discussion but not yet committed
+to code — the priority list above (items 1–7) is the authoritative
+build queue; this is the rationale and the longer tail.
+
+### Data sources — approved but not yet shipped
+
+1. **Hacker News** (APPROVED — high priority, ship next after
+   Libraries.io). Two free APIs, no auth, no rate limit:
+   - Algolia Search:
+     `hn.algolia.com/api/v1/search?query=AI+coding&tags=story` —
+     full-text search with date filters.
+   - Firebase:
+     `hacker-news.firebaseio.com/v0/topstories.json` — real-time
+     top/new/best.
+   - Poll every 30 min, filter for AI keywords.
+   - Surface in THE WIRE or a dedicated HN panel (decision at
+     build time — likely dedicated panel so provenance stays
+     distinct from GH events).
+
+2. **Chatbot Arena rankings** (APPROVED). `lmarena-ai` on
+   HuggingFace — public dataset with Elo ratings. Alternatives for
+   cross-check: Artificial Analysis (artificialanalysis.ai),
+   Vellum, BenchLM.ai. Show top 20 by Elo in a Benchmarks panel.
+   Update daily.
+
+3. **ecosyste.ms npm dependents** (APPROVED and SHIPPED session
+   14 — source #6, commit `b69bdc4`). Replaced deps.dev which
+   only returns counts, not lists.
+   - `packages.ecosyste.ms/api/v1/registries/npmjs.org/packages/{pkg}/dependent_packages`
+   - 6 target packages: `@anthropic-ai/sdk`, `openai`,
+     `@langchain/core`, `langchain`, `ai`, `llamaindex`.
+   - Cron: 6h at :30 past.
+
+4. **Libraries.io** (APPROVED — needs API key). 60 req/min, free
+   registration. Covers npm + PyPI + RubyGems so one integration
+   unlocks multi-ecosystem dependents. Requires a new shared
+   secret `LIBRARIES_IO_API_KEY` in Keychain → Vercel env →
+   `~/.secrets/MANIFEST.md`.
+
+5. **Sourcegraph** — EVALUATED AND REJECTED. Closed source,
+   $49/user/mo, no free programmatic API. Scraping would violate
+   ToS. Do not revisit without a policy change on Sourcegraph's
+   side.
+
+### Features discussed but not built
+
+6. **Agents tab** — data source undecided (HF Spaces? GitHub
+   topics? npm agent packages?). Product-source call needed
+   before build. Left-nav item currently greyed with "SOON".
+
+7. **/archives page** — needs a daily/weekly snapshot writer to
+   Redis with 90d+ TTL first. Writer does not exist yet. Own
+   session.
+
+8. **Gemini deep scan on /audit** — own session, large effort:
+   user-key flow UI, prompt design, cost cap, server-side key
+   hygiene. Must remain opt-in with the user's own key per CLAUDE.md
+   non-negotiable (no per-audit LLM calls by default).
+
+9. **Mobile responsive** — DEFERRED. User explicit: "only after
+   desktop solid". Desktop-first product.
+
+10. **Chat + login (GitHub/Google OAuth)** — DEFERRED. User told
+    to defer: zero users yet, premature.
+
+11. **Self-hosted 8K Earth texture** — still loading from
+    unpkg.com. Phase 1 closeout item from earlier sessions.
+
+12. **GDELT integration** — APPROVED WITH CAVEATS. Auditor review
+    pending before build starts.
+
+### Architecture decisions recorded (apply to all future work)
+
+13. **Content verification** = fetch first 500 bytes of a candidate
+    config file and check for config-shaped structure. Not just
+    filename match. Already implemented in `registry-topics.ts`
+    and `registry-deps.ts` — applies to any future discovery
+    source.
+
+14. **Decay visual** = dimmer dot + "Last activity: X days ago" on
+    hover card. No badge on every dot. Prevents visual noise on
+    a registry that now has 520 entries with varying activity
+    recency.
+
+15. **2D flat map (Leaflet) is the default tab; 3D globe is
+    secondary.** Flip already made in session 14 verify-pair
+    work — kept as a durable decision for any future map work.
+
+16. **Registry is a permanent store with signal decay, not a live
+    event window.** Entries never drop out; decay score shrinks
+    over time. Means registry growth is monotonic — factor this
+    into Upstash cost planning.
+
+17. **Chat and OAuth login deferred** — no users yet, premature.
+    Do not let this creep back in with a "quick prototype" framing.
+
+18. **Mobile responsive deferred** — desktop-first. Do not spend
+    cycles on mobile breakpoints until desktop is fully shipped.
+
+### Current system state (end of session 14)
+
+- Registry: **520 repos**, **250 with locations** (48%).
+- Globe events: **775 in 240-min window**.
+- Tools tracked: **5** (Claude Code, Copilot, OpenAI API, OpenAI
+  Codex, Windsurf) + Cursor as a tracked gap.
+- Data sources verified: **9**.
+- Autonomous crons: **4** — globe-ingest 5min, backfill-events
+  1h, topics 2h, deps 6h.
+- Models tab: HuggingFace top-20 text-gen (live).
+- Research tab: ArXiv cs.AI+cs.LG top-20 (live).
+- Left nav active: Wire, Tools, Models, Research.
+- Left nav greyed: Agents ("SOON").
+
+### Critical risks (monitor — not blocking)
+
+- **GH_TOKEN expires in ~90 days.** When it lapses, all discovery
+  crons fail silently (search + code-search + topics + deps all
+  use the same token). Set a calendar reminder; rotate via
+  Keychain → Vercel env → GitHub Actions repo secret in one pass.
+- **Upstash free tier ceiling: 500k commands/month.** Registry
+  grows monotonically (decision #16); poll + cache-read traffic
+  grows with panels. Monitor Upstash dashboard monthly; if usage
+  passes 60% of ceiling before feature parity is hit, either
+  upgrade tier or coalesce reads.
+- **No rate limiting on public API routes.** `/api/registry`,
+  `/api/models`, `/api/research`, `/api/status` are all open. CDN
+  s-maxage absorbs most hits but a targeted flood would hit
+  origin. Add per-IP throttle before any PR/launch announcement.
+- **OpenAI status API schema drift.** Incidents are not reliably
+  parsed after recent changes. `OPENAI_INCIDENTS` source needs a
+  re-fit; tracking as part of session 7's open items.
+
 ### Session 13 — backfill cron + topics discovery + Models tab (3 commits)
 
 User flag from session 12: backfill-events API route shipped but no
