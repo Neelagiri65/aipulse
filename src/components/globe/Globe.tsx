@@ -113,15 +113,18 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
     const lat = b.lats.reduce((s, v) => s + v, 0) / b.lats.length;
     const lng = b.lngs.reduce((s, v) => s + v, 0) / b.lngs.length;
 
-    // Bucket colour:
-    // - Any live activity → dominant live event type
-    // - HN-only → HN brand orange
-    // - Registry-only → slate, opacity driven by avg decay
-    // Mixed HN + registry (no live) → HN wins so community signal stays
-    // visible against the decayed base layer.
+    // Bucket colour — majority-wins between live and hn, registry
+    // never colours a mixed bucket (quiet base layer):
+    //   hn > live         → HN brand orange
+    //   live ≥ hn, live>0 → dominant GH event-type colour
+    //   hn-only           → HN orange
+    //   registry-only     → slate, opacity driven by avg decay
+    // Tie at live==hn goes to the live colour on the assumption that
+    // a real code-action signal outranks a discussion signal.
     let color: string;
     let dominantType: string;
-    if (b.live > 0) {
+    const hnMajority = b.hn > b.live;
+    if (b.live > 0 && !hnMajority) {
       const typeCounts = new Map<string, number>();
       for (const ev of b.events) {
         const m = ev.meta as EventMeta | undefined;

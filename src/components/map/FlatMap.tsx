@@ -324,19 +324,29 @@ function clusterIcon(L: typeof import("leaflet"), cluster: MarkerClusterGroup): 
     }
     if (meta?.hasAiConfig) ai += 1;
   }
-  const dominant =
+  const dominantLiveType =
     live > 0
       ? [...counts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0]
       : undefined;
   const avgDecay = registry > 0 ? decaySum / registry : 0;
   const registryOnly = live === 0 && hn === 0 && registry > 0;
   const hnOnly = live === 0 && registry === 0 && hn > 0;
+  // Majority-wins colour between live (any GH event) and HN. Registry
+  // never colours a mixed bucket — it's the quiet base layer. So:
+  //   hn > live         → HN orange  (community signal dominates)
+  //   live ≥ hn, live>0 → dominant GH event-type colour
+  //   else registry/hn-only branches above.
+  // Tie goes to live on the assumption that a real code-action signal
+  // outranks a discussion signal at equal count.
+  const hnMajority = hn > live;
   const color = hnOnly
     ? "#ff6600"
     : registryOnly
       ? "#cbd5e1"
-      : colorForType(dominant);
-  const isAi = ai > 0 && !registryOnly && !hnOnly;
+      : hnMajority
+        ? "#ff6600"
+        : colorForType(dominantLiveType);
+  const isAi = ai > 0 && !registryOnly && !hnOnly && !hnMajority;
 
   // Registry-only clusters render quieter: smaller, no bold AI ring, and
   // the border alpha scales with avgDecay so a dormant region reads as
@@ -348,16 +358,17 @@ function clusterIcon(L: typeof import("leaflet"), cluster: MarkerClusterGroup): 
     : Math.min(1.4, 0.9 + Math.log10(count) * 0.22);
   const size = Math.round((registryOnly ? 22 : 26) * scale);
   const fontSize = Math.round(11 + (scale - 0.9) * 4);
+  const hnStyled = hnOnly || hnMajority;
   const borderAlpha = registryOnly
     ? Math.max(0.15, Math.min(0.6, avgDecay * 0.7))
-    : hnOnly
+    : hnStyled
       ? 0.85
       : isAi
         ? 0.95
         : 0.6;
   const glowAlpha = registryOnly
     ? borderAlpha * 0.5
-    : hnOnly
+    : hnStyled
       ? 0.5
       : isAi
         ? 0.55
@@ -366,7 +377,7 @@ function clusterIcon(L: typeof import("leaflet"), cluster: MarkerClusterGroup): 
   const glow = hexA(color, glowAlpha);
   const textColor = registryOnly
     ? "#cbd5e1"
-    : hnOnly
+    : hnStyled
       ? "#ffe4ce"
       : isAi
         ? "#f0fdfa"
@@ -464,15 +475,21 @@ function clusterFromPoints(points: GlobePoint[]): Cluster {
     latSum += p.lat;
     lngSum += p.lng;
   }
-  const dominant =
+  // Same majority-wins rule as clusterIcon so the card's header dot +
+  // the cluster badge the user just clicked agree on colour. HN > live
+  // → orange; else live wins if any; else registry/hn-only fallback.
+  const hnMajority = hn > live;
+  const dominantLiveType =
     live > 0
       ? [...counts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0] ?? "unknown"
-      : hn > 0 && registry === 0
-        ? "hn"
-        : "registry";
-  const color =
-    live > 0
-      ? colorForType(dominant)
+      : undefined;
+  const dominant = hnMajority
+    ? "hn"
+    : dominantLiveType ?? (hn > 0 && registry === 0 ? "hn" : "registry");
+  const color = hnMajority
+    ? "#ff6600"
+    : live > 0
+      ? colorForType(dominantLiveType)
       : hn > 0 && registry === 0
         ? "#ff6600"
         : "#cbd5e1";
