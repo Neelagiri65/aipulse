@@ -245,7 +245,7 @@ describe("runSanityCheck", () => {
         row({ rank: i, modelName: `M${i}`, rating: 1450 - i * 2, voteCount: 30000 }),
       );
     }
-    rows.push(row({ rank: 20, modelName: "M20", rating: 1500, voteCount: 30000 }));
+    rows.push(row({ rank: 20, modelName: "M20", rating: 1520, voteCount: 30000 }));
     const report = runSanityCheck(rows, {
       leaderboardPublishDate: "2026-04-17",
       fetchedAt: "2026-04-20",

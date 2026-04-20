@@ -222,7 +222,12 @@ export function computeDeltas(
 
 export const SANITY_RANGES = {
   top1Rating: { min: 1300, max: 1500 },
-  rank20Rating: { min: 1100, max: 1400 },
+  // Upper bound widened from 1400 → 1500 after the 2026-04-17 live ingest
+  // observed rank20_rating=1447.7. Frontier Elo values bunch near the top;
+  // the original narrower range was guesswork before real data. Mirror in
+  // `data-sources.ts` / `public/data-sources.md` is authoritative for the
+  // transparency contract.
+  rank20Rating: { min: 1100, max: 1500 },
   rowCount: { min: 20, max: 20 },
   publishAgeDays: { min: 0, max: 14 },
   top1VoteCount: { min: 5000, max: Infinity },
