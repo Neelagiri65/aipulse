@@ -453,6 +453,55 @@ const CITY_COORDS: Array<[string, Coords]> = [
 CITY_COORDS.sort((a, b) => b[0].length - a[0].length);
 
 /**
+ * Bio strings that users commonly write in GitHub / HN profile fields
+ * that aren't locations. Matched as full-string equality after
+ * lowercase+trim. Defensive hygiene — prevents generic bio text from
+ * resolving to whatever city/country it happens to contain as a
+ * substring, and flags the intent "this user hasn't disclosed a
+ * location" so the story still appears in THE WIRE but never on the map.
+ */
+const LOCATION_STOPLIST: ReadonlySet<string> = new Set([
+  "location",
+  "remote",
+  "worldwide",
+  "earth",
+  "internet",
+  "everywhere",
+  "anywhere",
+  "home",
+  "here",
+  "there",
+  "the world",
+  "planet earth",
+  "nomad",
+  "digital nomad",
+  "global",
+  "distributed",
+]);
+
+/**
+ * Returns true when the needle is found in the haystack AND the match is
+ * not a mid-word substring of an unrelated longer word. For most needles
+ * (city/country names) this is identical to `haystack.includes(needle)`.
+ *
+ * For US state-suffix needles (", xx" — comma, space, two letters) we
+ * tighten the match: the character after the two-letter state code must
+ * be end-of-string or a non-letter. Without this guard, a haystack like
+ * "startups, news, fitness" matches ", ne" inside ", news" and
+ * false-resolves to Nebraska (caught in HN ingest, 2026-04-20).
+ */
+function needleMatches(haystack: string, needle: string): boolean {
+  const idx = haystack.indexOf(needle);
+  if (idx === -1) return false;
+  const isStateSuffix = needle.length === 4 && needle.startsWith(", ");
+  if (isStateSuffix) {
+    const after = haystack[idx + needle.length];
+    if (after !== undefined && /[a-z]/i.test(after)) return false;
+  }
+  return true;
+}
+
+/**
  * US ZIP-3 prefix → metro centroid. Only consulted when the haystack is
  * exactly five digits (a bare ZIP code). Sourced from the USPS sectional
  * center facility ranges that cover top-population metros — covers
@@ -582,8 +631,9 @@ const ZIP_PATTERN = /^\d{5}(?:-\d{4})?$/;
 export function geocode(locationString: string | null | undefined): Coords | null {
   if (!locationString) return null;
   const haystack = locationString.toLowerCase().trim();
+  if (LOCATION_STOPLIST.has(haystack)) return null;
   for (const [needle, coords] of CITY_COORDS) {
-    if (haystack.includes(needle)) return coords;
+    if (needleMatches(haystack, needle)) return coords;
   }
   // Bare US ZIP fallback. Only fires when the *entire* string is a ZIP
   // (with optional ZIP+4 suffix) — never on substring matches inside
