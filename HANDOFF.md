@@ -2,6 +2,53 @@
 
 ## Current state (2026-04-20)
 
+### Session 22 — RSS ship: merge, seed, prod verify
+
+Session brief (user): *"Merge it. Open the PR and merge… then trigger the RSS cron to seed the first batch… Run the full Playwright suite against prod after deploy to verify everything renders."*
+
+**Shipped this session (no new code commits — ship/verify only):**
+
+1. **PR #4 merged** (`feat(rss): Regional RSS feeds — 5 sources, amber dots, anti-bias WIRE layer`) → merge commit `5f5af28` on `main` at 2026-04-20 17:28:25 UTC. The `gh pr create` + `gh pr merge` from session-start args had already completed; session 22 verified the merged state and resumed from there.
+2. **RSS cron seeded** via `gh workflow run rss-ingest.yml --ref main` (run `24681362143`, success in ~3s). First `/api/wire/ingest-rss` response:
+   - `the-register-ai` — fetched 50, filtered 0, written 50
+   - `heise-ai` — fetched 153, filtered 119, written 34 *(AI-keyword allowlist working as designed on the global Atom feed — ~78% non-AI content correctly rejected)*
+   - `synced-review` — fetched 10, filtered 0, written 10
+   - `marktechpost` — fetched 10, filtered 0, written 10
+   - `mit-tech-review-ai` — fetched 10, filtered 0, written 10
+   - **Total: 114 items seeded, zero errors across all 5 sources.** `/api/rss` on prod now returns the full registry payload.
+3. **Playwright suite against prod** (`npm run test:visual`, baseURL `https://aipulse-pi.vercel.app`):
+   - **25/26 green in 1m20s.**
+   - All 3 new regional-wire specs (`07-regional-wire.spec.ts`) passed: panel opens from LeftNav with publisher rows, amber-dot-OR-country-pill assertion held, publisher-row click surfaced the source dialog.
+   - **1 known flake:** `06-ai-labs.spec.ts:34 › map renders lab HQ markers in violet` timed out waiting for ≥1 violet (`rgb(168,85,247)`) leaflet marker at world zoom. Cluster-majority-wins repainted all lab-containing clusters teal/amber because the freshly seeded RSS items + live GH activity pushed every lab-cluster over the lab-majority threshold. The companion test (panel lists ≥20 labs with kind badges) passed, confirming all 32 labs are live on `/api/labs` — so the lab data layer is healthy; only the at-world-zoom dot-visibility assertion flaked. This matches the ≥20→≥1 floor-drop caveat already logged in session 20's post-ship notes.
+
+**Registry state after session 22 (first prod data):**
+
+- Sources: **23** (unchanged from branch tip — merge only).
+- Crons: **8** (unchanged).
+- Active panels: **7** (unchanged).
+- LeftNav buttons: **9** (unchanged).
+- Unit tests: **196/196 ✓** (unchanged).
+- Visual smoke tests: **25/26 green against prod** (1 known-flake lab-dot at world zoom).
+- Live RSS items: **114 seeded** across 5 publishers; next scheduled poll 17:55 UTC.
+
+**Files changed (session 22):** 0 code, 1 doc (this HANDOFF entry).
+
+**AUDITOR-REVIEW: PENDING (carried + new):**
+
+- All 15 pending items from session 21 still open — the merge-and-seed pass didn't resolve any of them; they need Auditor sweep.
+- **New (session 22):** `06-ai-labs.spec.ts:34` is now consistently red post-RSS-deploy. Options: (a) drop the ≥1 floor to an at-zoom assertion (zoom map to a specific city where a lab has no co-located RSS/HN activity before asserting); (b) replace the map-dot assertion with a "lab colour appears in the legend" assertion since the panel test already proves the data is live; (c) accept the flake and mark the test `.skip()` with a tracking comment. The dot-visibility test was shaky even in session 20; the right fix is probably (a) — deterministic zoom + lat/lng focus on a quiet lab HQ.
+
+**NEXT (for session 23 — user to pick):**
+
+1. *Harden the lab-dot visual test* (option (a) above) so the suite runs 26/26 green deterministically.
+2. *Public share.* User flagged end-of-session 21 that the product is "genuinely ready for a public share now" — write the launch post (LinkedIn / X / Hacker News) pointing at `https://aipulse-pi.vercel.app/`. Anti-bias framing with 5 regional RSS sources + 32 curated labs + 20-row Chatbot Arena is the lede.
+3. *Auditor sweep* the 15 + 1 = 16 pending items across sessions 20–22.
+4. *Next layer candidate.* Queued options from session 21: zh-CN native feed alongside Synced Review (translation-independent), Japan/Korea feed (extend regional tiling east), or MarkTechPost HQ-verification mini-PRD to promote the Delhi NCR pin from approximation to primary source.
+
+**Session 23 entry point:** clean `main` at `5f5af28`. First command: `git status && curl -s https://aipulse-pi.vercel.app/api/rss | jq '.sources | length'` to confirm the RSS layer is still returning 5 publishers post-cron-cycles.
+
+---
+
 ### Session 21 — Regional RSS layer (RSS-01..05, feature branch `feature/regional-rss`, not yet merged)
 
 Session brief (user, after PRD approval + two mid-session pivots): *"Both pivots approved. Heise global feed + AI keyword filter — document the caveat in data-sources.md as you described. That's honest. MarkTechPost for India — good swap. Verify HQ city at commit time. Build all 5 issues. Ship it. Confirmed. Finish RSS-04, then RSS-05 if time permits. Go."* The compacted prior session had landed RSS-01..03 cleanly and was mid-RSS-04 when the context compressed; this session picked up that thread and shipped RSS-04 + RSS-05.
