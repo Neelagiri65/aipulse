@@ -425,9 +425,9 @@ export const HN_AI_STORIES: DataSource = {
     expectedMax: 20,
     unit: "AI-relevant stories per 15-min poll",
   },
-  verifiedAt: "",
+  verifiedAt: "2026-04-20",
   caveat:
-    "Two endpoints under one logical source: (1) hn.algolia.com/api/v1/search_by_date?tags=story (list + metadata), (2) hacker-news.firebaseio.com/v0/user/{id}.json (location only). Firebase /v0/item/{id}.json is intentionally NEVER called — Algolia already returns every story field. Author locations are cached 7 days in hn:author:{username}; items live 24h in hn:item:{id}. Secondary sanity range (not representable in SanityCheck type): geocodeResolutionPct should sit in [15%, 35%]; lower values indicate HN profile `about` text that the curated geocoder dictionary doesn't cover. Privacy posture: only username + raw location string + resolved lat/lng are persisted — never the full `about` body, karma, or submission history.",
+    "Two endpoints under one logical source: (1) hn.algolia.com/api/v1/search_by_date?tags=story (list + metadata; shape verified 2026-04-20: `hits[]` with author/title/url/points/num_comments/created_at_i/created_at), (2) hacker-news.firebaseio.com/v0/user/{id}.json (location only; shape verified 2026-04-20: `about` field present on profiles). Firebase /v0/item/{id}.json is intentionally NEVER called — Algolia already returns every story field. Author locations are cached 7 days in hn:author:{username}; items live 24h in hn:item:{id}. Secondary sanity range (not representable in SanityCheck type): geocodeResolutionPct should sit in [15%, 35%]; lower values indicate HN profile `about` text that the curated geocoder dictionary doesn't cover. Privacy posture: only username + raw location string + resolved lat/lng are persisted — never the full `about` body, karma, or submission history.",
   powersFeature: ["the-wire", "flat-map", "globe"],
 };
 
