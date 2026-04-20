@@ -45,7 +45,25 @@ Session brief (user): "Read HANDOFF.md. Start the HN integration. Grill it, PRD 
 
 - Spec edit adding cross-cutting **geotag principle** to `docs/AI_PULSE_V3_SPEC.md` Part 0 (non-negotiable that every geotagged source follows the same pattern: real public field → deterministic geocoder → null on miss, never synthesised). Separate commit, separate session — scope isolated.
 
-**Next action:** open PR `feature/hn-wire → main` with the full 11-commit set; request user review before merge (nothing merges to main until user has approved — per project CLAUDE.md dual-model protocol while `/advisor` is unavailable).
+**PR #1 MERGED** as commit `a164c50` (2026-04-20T01:33:23Z). Manual cron run after deploy returned:
+
+```
+{"ok":true,"fetched":100,"passed":16,"written":16,"geocoded":2,
+ "geocodeAttempted":16,"failures":[]}
+```
+
+Single batch: 16/100 passed the filter (16% pass rate), 2/16 authors had resolvable locations. `/api/hn` confirms `source: "redis"`, 16 items, 2 points, `staleMinutes: 0`.
+
+**Live data quality observation (NEW auditor flag):**
+
+- Geocoded point #1 is **correct** — user `simon_acca` has `city/ch-Zurich` in bio → (47.38, 8.54).
+- Geocoded point #2 is a **false positive** — user `shauntrennery` bio mentions "…interests in family, development, JavaScript, startups, news, location, fitness…"; the geocoder resolved it to (41.49, -99.90) in Nebraska. The bare word "location" appears to be triggering a match. Geocoder needs either (a) stricter token context requirements or (b) a stoplist for generic-word false positives. **AUDITOR-REVIEW: PENDING** — filter-quality tuning issue, not a data-integrity failure (the label does come from the real `about` field), but visual honesty suffers.
+
+**Next action:** start a fresh session for (a) cross-cutting geotag principle → `docs/AI_PULSE_V3_SPEC.md` Part 0 edit, and (b) Chatbot Arena benchmarks integration (next highest-value source per user). Before Chatbot Arena: grill → PRD with architectural constraint test → issue decomposition, same protocol as HN.
+
+**Also pending from this session (triage for next session):**
+- Geocoder false-positive fix (Nebraska case). Low-LOC, deterministic. Possibly bundle with the spec edit.
+- First real cron-scheduled run will fire at the next `:05 :20 :35 :50` UTC slot; watch it for stability before deciding on filter/geocoder tuning.
 
 ### Session 15 — HANDOFF recovery (docs-only, 3 commits)
 
