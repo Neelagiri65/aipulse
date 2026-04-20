@@ -79,6 +79,184 @@ export type RssIngestResult = {
   at: string;
 };
 
+// ---------------------------------------------------------------------------
+// Public (read) shapes — consumed by /api/rss and the UI panels
+// ---------------------------------------------------------------------------
+
+/**
+ * Wire-ready RSS item: the stored item joined with publisher
+ * registry fields (display name + HQ coords) so downstream
+ * renderers don't need to re-join against RSS_SOURCES.
+ */
+export type RssWireItem = RssItem & {
+  kind: "rss";
+  sourceDisplayName: string;
+  city: string;
+  country: string;
+  lat: number;
+  lng: number;
+  lang: string;
+};
+
+/** Aggregated per-source status exposed to the panel + map. */
+export type RssSourcePanel = {
+  id: string;
+  displayName: string;
+  city: string;
+  country: string;
+  lat: number;
+  lng: number;
+  lang: string;
+  hqSourceUrl: string;
+  feedFormat: "rss" | "atom";
+  keywordFilterScope: "all" | "ai-only";
+  caveat?: string;
+  /** Count of items with publishedTs in the last 24h. */
+  itemsLast24h: number;
+  /** Count of items with publishedTs in the last 7d (the retention window). */
+  itemsLast7d: number;
+  /** Last 7 items for this source, most recent first. Feeds SourceCard. */
+  recentItems: RssWireItem[];
+  lastFetchOkTs: string | null;
+  lastError: string | null;
+  /** Hours since lastFetchOkTs; null when we have never succeeded. */
+  staleHours: number | null;
+  /** staleHours > 24 or lastFetchOkTs is null. */
+  stale: boolean;
+};
+
+export type RssWireResult = {
+  ok: boolean;
+  sources: RssSourcePanel[];
+  items: RssWireItem[];
+  polledAt: string;
+  meta: {
+    lastFetchOkTs: string | null;
+    staleMinutes: number | null;
+  };
+  source: "redis" | "unavailable";
+};
+
+// ---------------------------------------------------------------------------
+// Pure assembly — separated from Redis I/O so the panel-shape logic is
+// unit-testable without mocking Upstash.
+// ---------------------------------------------------------------------------
+
+export const RSS_RECENT_ITEMS_PER_SOURCE = 7;
+export const RSS_STALE_HOURS_THRESHOLD = 24;
+
+function hoursSince(iso: string | null, nowMs: number): number | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return null;
+  return Math.max(0, (nowMs - t) / 3_600_000);
+}
+
+function toWireItem(item: RssItem, source: RssSource): RssWireItem {
+  return {
+    ...item,
+    kind: "rss",
+    sourceDisplayName: source.displayName,
+    city: source.city,
+    country: source.country,
+    lat: source.lat,
+    lng: source.lng,
+    lang: source.lang,
+  };
+}
+
+/**
+ * Build the public RssWireResult shape from the four pieces the Redis
+ * adapter retrieves: ordered item-ids (desc by publishedTs), items
+ * keyed by id, source-statuses keyed by sourceId, global meta, and the
+ * registry of sources to render.
+ *
+ * Deterministic and pure — same inputs → same output. Safe to test.
+ */
+export function assembleRssWire(opts: {
+  orderedIds: string[];
+  itemsMap: Map<string, RssItem>;
+  statusMap: Map<string, RssSourceStatus>;
+  meta: RssIngestMeta | null;
+  sources: readonly RssSource[];
+  nowMs: number;
+  source: "redis" | "unavailable";
+}): RssWireResult {
+  const { orderedIds, itemsMap, statusMap, meta, sources, nowMs } = opts;
+  const polledAt = new Date(nowMs).toISOString();
+
+  const sourceById = new Map<string, RssSource>(
+    sources.map((s) => [s.id, s]),
+  );
+
+  const wireItems: RssWireItem[] = [];
+  const perSourceRecent = new Map<string, RssWireItem[]>();
+  const cutoff24h = Math.floor(nowMs / 1000) - 24 * 60 * 60;
+
+  for (const id of orderedIds) {
+    const it = itemsMap.get(id);
+    if (!it) continue;
+    const src = sourceById.get(it.sourceId);
+    if (!src) continue;
+    const wire = toWireItem(it, src);
+    wireItems.push(wire);
+    const bucket = perSourceRecent.get(src.id) ?? [];
+    if (bucket.length < RSS_RECENT_ITEMS_PER_SOURCE) {
+      bucket.push(wire);
+      perSourceRecent.set(src.id, bucket);
+    }
+  }
+
+  const panelSources: RssSourcePanel[] = sources.map((src) => {
+    const itemsForSource = wireItems.filter((i) => i.sourceId === src.id);
+    const itemsLast24h = itemsForSource.filter(
+      (i) => i.publishedTs >= cutoff24h,
+    ).length;
+    const status = statusMap.get(src.id);
+    const lastFetchOkTs = status?.lastFetchOkTs ?? null;
+    const staleHoursFloat = hoursSince(lastFetchOkTs, nowMs);
+    const stale =
+      staleHoursFloat === null || staleHoursFloat > RSS_STALE_HOURS_THRESHOLD;
+    return {
+      id: src.id,
+      displayName: src.displayName,
+      city: src.city,
+      country: src.country,
+      lat: src.lat,
+      lng: src.lng,
+      lang: src.lang,
+      hqSourceUrl: src.hqSourceUrl,
+      feedFormat: src.feedFormat,
+      keywordFilterScope: src.keywordFilterScope,
+      caveat: src.caveat,
+      itemsLast24h,
+      itemsLast7d: itemsForSource.length,
+      recentItems: perSourceRecent.get(src.id) ?? [],
+      lastFetchOkTs,
+      lastError: status?.lastError ?? null,
+      staleHours: staleHoursFloat === null ? null : Math.round(staleHoursFloat),
+      stale,
+    };
+  });
+
+  const lastFetchOkTs = meta?.lastFetchOkTs ?? null;
+  const staleMinutes = lastFetchOkTs
+    ? Math.max(
+        0,
+        Math.round((nowMs - new Date(lastFetchOkTs).getTime()) / 60_000),
+      )
+    : null;
+
+  return {
+    ok: true,
+    sources: panelSources,
+    items: wireItems,
+    polledAt,
+    meta: { lastFetchOkTs, staleMinutes },
+    source: opts.source,
+  };
+}
+
 /** The minimal store interface runRssIngest depends on — allows test doubles. */
 export interface RssStoreSink {
   writeItem(item: RssItem): Promise<void>;

@@ -89,6 +89,7 @@ type NavIconName =
   | "research"
   | "benchmarks"
   | "labs"
+  | "regional-wire"
   | "security"
   | "audit";
 
@@ -166,6 +167,14 @@ function NavIcon({ name }: { name: NavIconName }) {
           <path d="M9 3h6" />
           <path d="M10 3v6.5a4 4 0 0 1-.54 2L5 18a2 2 0 0 0 1.73 3h10.54A2 2 0 0 0 19 18l-4.46-6.5a4 4 0 0 1-.54-2V3" />
           <path d="M7 17h10" />
+        </svg>
+      );
+    case "regional-wire":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M3 12h18" />
+          <path d="M12 3a15 15 0 0 1 4 9 15 15 0 0 1-4 9 15 15 0 0 1-4-9 15 15 0 0 1 4-9z" />
         </svg>
       );
     case "security":

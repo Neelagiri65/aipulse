@@ -18,12 +18,15 @@
  */
 
 import { Redis } from "@upstash/redis";
-import type {
-  RssItem,
-  RssSourceStatus,
-  RssIngestMeta,
-  RssStoreSink,
+import {
+  assembleRssWire,
+  type RssItem,
+  type RssSourceStatus,
+  type RssIngestMeta,
+  type RssStoreSink,
+  type RssWireResult,
 } from "@/lib/data/wire-rss";
+import { RSS_SOURCES, type RssSource } from "@/lib/data/rss-sources";
 
 const ITEM_KEY_PREFIX = "rss:item:";
 const SOURCE_KEY_PREFIX = "rss:source:";
@@ -252,3 +255,51 @@ export const redisRssStore: RssStoreSink = {
   writeSource,
   writeMeta,
 };
+
+// ---------------------------------------------------------------------------
+// readRssWire — public assembly path used by GET /api/rss
+//
+// Command budget: exactly 4 Upstash commands per origin hit when the
+// store is available (1 ZRANGE + 1 MGET items + 1 MGET source-statuses +
+// 1 GET meta). CDN caching in the route halves that under steady load.
+//
+// Pure panel-shape logic lives in `assembleRssWire` (wire-rss.ts) so
+// the shape contract is unit-testable without mocking Upstash. This
+// function is the thin Redis glue.
+// ---------------------------------------------------------------------------
+
+export async function readRssWire(
+  sources: readonly RssSource[] = RSS_SOURCES,
+): Promise<RssWireResult> {
+  const nowMs = Date.now();
+  if (!isRssStoreAvailable()) {
+    return assembleRssWire({
+      orderedIds: [],
+      itemsMap: new Map(),
+      statusMap: new Map(),
+      meta: null,
+      sources,
+      nowMs,
+      source: "unavailable",
+    });
+  }
+
+  // 1. ZRANGE (desc by publishedTs; bounded by 7d retention)
+  const orderedIds = await readWireIds();
+  // 2. MGET items
+  const itemsMap = await readItems(orderedIds);
+  // 3. MGET source statuses
+  const statusMap = await readSources(sources.map((s) => s.id));
+  // 4. GET meta
+  const meta = await readMeta();
+
+  return assembleRssWire({
+    orderedIds,
+    itemsMap,
+    statusMap,
+    meta,
+    sources,
+    nowMs,
+    source: "redis",
+  });
+}
