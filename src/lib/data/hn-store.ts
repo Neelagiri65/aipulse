@@ -24,7 +24,13 @@
  */
 
 import { Redis } from "@upstash/redis";
-import type { HnItem, HnAuthor } from "@/lib/data/wire-hn";
+import type {
+  HnItem,
+  HnAuthor,
+  HnWireItem,
+  HnWireResult,
+} from "@/lib/data/wire-hn";
+import type { GlobePoint } from "@/components/globe/Globe";
 
 const ITEM_KEY_PREFIX = "hn:item:";
 const AUTHOR_KEY_PREFIX = "hn:author:";
@@ -296,4 +302,109 @@ function parseMeta(v: unknown): HnIngestMeta | null {
   } catch {
     return null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// readWire — public assembly path used by GET /api/hn
+// ---------------------------------------------------------------------------
+
+const HN_BRAND_ORANGE = "#ff6600";
+const HN_ITEM_URL = "https://news.ycombinator.com/item?id=";
+
+/**
+ * Assemble the full wire response from Redis in at most 4 commands:
+ * 1 ZRANGE + 1 MGET items + 1 MGET authors + 1 GET meta. Returns
+ * source:"unavailable" when Redis is not configured; callers should
+ * render the grey-card fallback in that case.
+ *
+ * Points list is the subset with resolved author coordinates — every
+ * item always appears in `items` so THE WIRE can render it; only
+ * geocoded items make it onto the map. kind-routing uses meta.kind="hn".
+ */
+export async function readWire(): Promise<HnWireResult> {
+  const nowIso = new Date().toISOString();
+  const empty: HnWireResult = {
+    ok: true,
+    items: [],
+    points: [],
+    polledAt: nowIso,
+    coverage: { itemsTotal: 0, itemsWithLocation: 0, geocodeResolutionPct: 0 },
+    meta: { lastFetchOkTs: null, staleMinutes: null },
+    source: "unavailable",
+  };
+  if (!isHnStoreAvailable()) return empty;
+
+  const ids = await readWireIds();
+  const itemsMap = await readItems(ids);
+  const ordered: HnItem[] = [];
+  for (const id of ids) {
+    const it = itemsMap.get(id);
+    if (it) ordered.push(it);
+  }
+  const usernames = Array.from(new Set(ordered.map((i) => i.author)));
+  const authorsMap = await readAuthors(usernames);
+  const meta = await readMeta();
+
+  const items: HnWireItem[] = ordered.map((it) => {
+    const author = authorsMap.get(it.author);
+    const hasCoords =
+      author && author.resolveStatus === "ok" && author.lat !== null &&
+      author.lng !== null;
+    return {
+      ...it,
+      kind: "hn",
+      lat: hasCoords ? author.lat : null,
+      lng: hasCoords ? author.lng : null,
+      locationLabel: author?.rawLocation ?? null,
+    };
+  });
+
+  const points: GlobePoint[] = items
+    .filter(
+      (i): i is HnWireItem & { lat: number; lng: number } =>
+        i.lat !== null && i.lng !== null,
+    )
+    .map((i) => ({
+      lat: i.lat,
+      lng: i.lng,
+      color: HN_BRAND_ORANGE,
+      size: 0.35,
+      meta: {
+        kind: "hn",
+        id: i.id,
+        title: i.title,
+        author: i.author,
+        points: i.points,
+        numComments: i.numComments,
+        createdAt: i.createdAt,
+        hnUrl: HN_ITEM_URL + i.id,
+        url: i.url,
+        locationLabel: i.locationLabel,
+      },
+    }));
+
+  const itemsTotal = items.length;
+  const itemsWithLocation = points.length;
+  const geocodeResolutionPct =
+    itemsTotal > 0 ? Math.round((itemsWithLocation / itemsTotal) * 100) : 0;
+
+  const lastFetchOkTs = meta?.lastFetchOkTs ?? null;
+  const staleMinutes = lastFetchOkTs
+    ? Math.max(
+        0,
+        Math.round(
+          (Date.now() - new Date(lastFetchOkTs).getTime()) / 60_000,
+        ),
+      )
+    : null;
+
+  return {
+    ok: true,
+    items,
+    points,
+    polledAt: nowIso,
+    coverage: { itemsTotal, itemsWithLocation, geocodeResolutionPct },
+    meta: { lastFetchOkTs, staleMinutes },
+    source: "redis",
+  };
 }
