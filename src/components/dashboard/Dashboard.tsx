@@ -191,8 +191,10 @@ export function Dashboard() {
   // AI Labs layer — curated HQ coords from data/ai-labs.json, sized by
   // 7d activity across flagship repos. Plotted even when the lab is
   // quiet (LABS_INACTIVE_OPACITY on the renderer) so presence always
-  // reads. No filter applied yet — LABS-04 wires the filter toggle.
-  const labPoints: GlobePoint[] = labsToGlobePoints(labs.data?.labs ?? []);
+  // reads. Gated by the `ai-labs` filter (default ON).
+  const labPoints: GlobePoint[] = filters["ai-labs"]
+    ? labsToGlobePoints(labs.data?.labs ?? [])
+    : [];
   const points: GlobePoint[] = [
     ...livePoints,
     ...dedupedRegistry,

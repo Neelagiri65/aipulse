@@ -4,6 +4,7 @@ import { forwardRef } from "react";
 import type { GlobePoint } from "./Globe";
 import { formatAgeLabel } from "@/lib/data/registry-shared";
 import type { ConfigKind } from "@/lib/data/registry-shared";
+import { LabCard } from "@/components/labs/LabCard";
 
 /**
  * Point meta payload shared across live events (kind="event") and
@@ -134,6 +135,31 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
   { cluster, anchor, containerSize, onClose },
   ref,
 ) {
+  // Lab-only clusters (no live / hn / registry) delegate to the
+  // dedicated LabCard — the richer layout shows repo breakdown + HQ
+  // source link, which is the point of the whole labs layer. Mixed
+  // clusters stay with the shared EventCard so the live pulse + the
+  // lab row show side-by-side.
+  if (
+    cluster.labCount > 0 &&
+    cluster.liveCount === 0 &&
+    cluster.hnCount === 0 &&
+    cluster.registryCount === 0
+  ) {
+    const labMetas = cluster.events
+      .map((e) => e.meta as EventMeta | undefined)
+      .filter((m): m is EventMeta => m?.kind === "lab");
+    return (
+      <LabCard
+        ref={ref}
+        labs={labMetas}
+        anchor={anchor}
+        containerSize={containerSize}
+        onClose={onClose}
+      />
+    );
+  }
+
   const placeRight = anchor.x + CARD_MARGIN + CARD_WIDTH <= containerSize.w;
   const left = placeRight
     ? anchor.x + CARD_MARGIN
