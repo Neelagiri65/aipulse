@@ -14,6 +14,7 @@ const base: LabEntry = {
   lat: 37.77,
   lng: -122.42,
   hqSourceUrl: "https://example.com/about",
+  url: "https://example.com",
   orgs: ["test-org"],
   repos: [
     {
@@ -96,6 +97,19 @@ describe("validateLabsRegistry", () => {
     ]);
     expect(r.ok).toBe(false);
   });
+
+  it("rejects a non-https url", () => {
+    const r = validateLabsRegistry([
+      { ...base, url: "http://example.com" },
+    ]);
+    expect(r.ok).toBe(false);
+  });
+
+  it("rejects a missing url", () => {
+    const bad = [{ ...base, url: undefined } as unknown];
+    const r = validateLabsRegistry(bad);
+    expect(r.ok).toBe(false);
+  });
 });
 
 describe("data/ai-labs.json — registry invariants", () => {
@@ -118,6 +132,18 @@ describe("data/ai-labs.json — registry invariants", () => {
       for (const r of e.repos) {
         expect(r.sourceUrl.startsWith("https://github.com/")).toBe(true);
       }
+    }
+  });
+
+  it("every lab url points to the lab's own site (not Wikipedia)", () => {
+    // The whole point of the `url` field vs `hqSourceUrl`: `url` is the
+    // click target users tap on the lab name, and must not land on
+    // Wikipedia — that's an encyclopaedia, not a primary source for an
+    // AI lab. `hqSourceUrl` (kept separately) may still cite Wikipedia
+    // because it's provenance for the HQ coord, a different contract.
+    for (const e of entries) {
+      expect(e.url.startsWith("https://")).toBe(true);
+      expect(e.url.includes("wikipedia.org")).toBe(false);
     }
   });
 

@@ -76,7 +76,7 @@ function LabRow({
           {rank.toString().padStart(2, "0")}
         </span>
         <a
-          href={lab.hqSourceUrl}
+          href={lab.url}
           target="_blank"
           rel="noopener noreferrer"
           className="min-w-0 flex-1 truncate font-medium text-foreground underline-offset-2 hover:underline"

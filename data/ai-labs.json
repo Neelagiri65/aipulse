@@ -7,6 +7,7 @@
     "country": "US",
     "lat": 37.7640,
     "lng": -122.4190,
+    "url": "https://openai.com",
     "hqSourceUrl": "https://en.wikipedia.org/wiki/OpenAI",
     "orgs": ["openai"],
     "repos": [
@@ -22,6 +23,7 @@
     "country": "US",
     "lat": 37.7890,
     "lng": -122.3975,
+    "url": "https://www.anthropic.com",
     "hqSourceUrl": "https://en.wikipedia.org/wiki/Anthropic",
     "orgs": ["anthropics"],
     "repos": [
@@ -37,6 +39,7 @@
     "country": "US",
     "lat": 37.4220,
     "lng": -122.0841,
+    "url": "https://research.google/",
     "hqSourceUrl": "https://research.google/",
     "orgs": ["google-research"],
     "repos": [
@@ -52,6 +55,7 @@
     "country": "GB",
     "lat": 51.5327,
     "lng": -0.1262,
+    "url": "https://deepmind.google/",
     "hqSourceUrl": "https://en.wikipedia.org/wiki/Google_DeepMind",
     "orgs": ["google-deepmind"],
     "repos": [
@@ -67,6 +71,7 @@
     "country": "US",
     "lat": 37.4849,
     "lng": -122.1477,
+    "url": "https://ai.meta.com/research/",
     "hqSourceUrl": "https://ai.meta.com/research/",
     "orgs": ["facebookresearch"],
     "repos": [
@@ -82,6 +87,7 @@
     "country": "US",
     "lat": 47.6396,
     "lng": -122.1284,
+    "url": "https://www.microsoft.com/en-us/research/",
     "hqSourceUrl": "https://www.microsoft.com/en-us/research/lab/microsoft-research-redmond/",
     "orgs": ["microsoft"],
     "repos": [
@@ -98,6 +104,7 @@
     "country": "US",
     "lat": 37.3702,
     "lng": -121.9654,
+    "url": "https://www.nvidia.com/en-us/research/",
     "hqSourceUrl": "https://www.nvidia.com/en-us/research/",
     "orgs": ["NVlabs"],
     "repos": [
@@ -113,6 +120,7 @@
     "country": "CA",
     "lat": 43.6462,
     "lng": -79.3934,
+    "url": "https://cohere.com",
     "hqSourceUrl": "https://en.wikipedia.org/wiki/Cohere",
     "orgs": ["cohere-ai"],
     "repos": [
@@ -127,6 +135,7 @@
     "country": "US",
     "lat": 42.3617,
     "lng": -71.0906,
+    "url": "https://hanlab.mit.edu/",
     "hqSourceUrl": "https://hanlab.mit.edu/",
     "orgs": ["mit-han-lab"],
     "repos": [
@@ -143,6 +152,7 @@
     "country": "US",
     "lat": 37.4307,
     "lng": -122.1730,
+    "url": "https://crfm.stanford.edu/",
     "hqSourceUrl": "https://crfm.stanford.edu/",
     "orgs": ["stanford-crfm"],
     "repos": [
@@ -158,6 +168,7 @@
     "country": "US",
     "lat": 40.4437,
     "lng": -79.9450,
+    "url": "https://www.cs.cmu.edu/~neulab/",
     "hqSourceUrl": "https://www.cs.cmu.edu/~neulab/",
     "orgs": ["neulab"],
     "repos": [
@@ -173,6 +184,7 @@
     "country": "US",
     "lat": 37.8756,
     "lng": -122.2586,
+    "url": "https://lmsys.org/",
     "hqSourceUrl": "https://lmsys.org/",
     "orgs": ["lm-sys"],
     "repos": [
@@ -188,6 +200,7 @@
     "country": "CA",
     "lat": 43.6595,
     "lng": -79.3886,
+    "url": "https://vectorinstitute.ai/",
     "hqSourceUrl": "https://vectorinstitute.ai/",
     "orgs": ["VectorInstitute"],
     "repos": [
@@ -202,6 +215,7 @@
     "country": "CA",
     "lat": 45.5311,
     "lng": -73.6134,
+    "url": "https://mila.quebec/en/",
     "hqSourceUrl": "https://mila.quebec/en/",
     "orgs": ["mila-iqia"],
     "repos": [
@@ -216,6 +230,7 @@
     "country": "CN",
     "lat": 40.0035,
     "lng": 116.3263,
+    "url": "https://github.com/THUDM",
     "hqSourceUrl": "https://keg.cs.tsinghua.edu.cn/",
     "orgs": ["THUDM"],
     "repos": [
@@ -231,6 +246,7 @@
     "country": "CN",
     "lat": 39.9938,
     "lng": 116.3106,
+    "url": "https://pku-alignment.github.io/",
     "hqSourceUrl": "https://pku-alignment.github.io/",
     "orgs": ["PKU-Alignment"],
     "repos": [
@@ -245,6 +261,7 @@
     "country": "JP",
     "lat": 35.7127,
     "lng": 139.7619,
+    "url": "https://weblab.t.u-tokyo.ac.jp/en/",
     "hqSourceUrl": "https://weblab.t.u-tokyo.ac.jp/en/",
     "orgs": ["matsuolab"],
     "repos": [
@@ -260,6 +277,7 @@
     "country": "FR",
     "lat": 48.8346,
     "lng": 2.3863,
+    "url": "https://www.inria.fr/en",
     "hqSourceUrl": "https://www.inria.fr/en",
     "orgs": ["inria"],
     "repos": [
@@ -275,6 +293,7 @@
     "country": "DE",
     "lat": 48.5381,
     "lng": 9.0582,
+    "url": "https://is.mpg.de/",
     "hqSourceUrl": "https://is.mpg.de/",
     "orgs": ["mpi-is"],
     "repos": [
@@ -289,6 +308,7 @@
     "country": "CH",
     "lat": 47.3763,
     "lng": 8.5480,
+    "url": "https://www.sri.inf.ethz.ch/",
     "hqSourceUrl": "https://www.sri.inf.ethz.ch/",
     "orgs": ["eth-sri"],
     "repos": [
@@ -304,6 +324,7 @@
     "country": "FR",
     "lat": 48.8600,
     "lng": 2.3460,
+    "url": "https://mistral.ai",
     "hqSourceUrl": "https://en.wikipedia.org/wiki/Mistral_AI",
     "orgs": ["mistralai"],
     "repos": [
@@ -319,6 +340,7 @@
     "country": "CN",
     "lat": 30.2741,
     "lng": 120.1551,
+    "url": "https://www.deepseek.com",
     "hqSourceUrl": "https://en.wikipedia.org/wiki/DeepSeek",
     "orgs": ["deepseek-ai"],
     "repos": [
@@ -334,6 +356,7 @@
     "country": "CN",
     "lat": 30.2787,
     "lng": 120.0826,
+    "url": "https://qwenlm.github.io/",
     "hqSourceUrl": "https://qwenlm.github.io/",
     "orgs": ["QwenLM"],
     "repos": [
@@ -349,6 +372,7 @@
     "country": "GB",
     "lat": 51.5175,
     "lng": -0.1325,
+    "url": "https://stability.ai",
     "hqSourceUrl": "https://en.wikipedia.org/wiki/Stability_AI",
     "orgs": ["Stability-AI"],
     "repos": [
@@ -364,6 +388,7 @@
     "country": "JP",
     "lat": 35.6588,
     "lng": 139.7454,
+    "url": "https://sakana.ai/",
     "hqSourceUrl": "https://sakana.ai/",
     "orgs": ["SakanaAI"],
     "repos": [
@@ -378,6 +403,7 @@
     "country": "IL",
     "lat": 32.0678,
     "lng": 34.7947,
+    "url": "https://www.ai21.com",
     "hqSourceUrl": "https://en.wikipedia.org/wiki/AI21_Labs",
     "orgs": ["AI21Labs"],
     "repos": [
@@ -392,6 +418,7 @@
     "country": "US",
     "lat": 40.7257,
     "lng": -74.0014,
+    "url": "https://huggingface.co",
     "hqSourceUrl": "https://en.wikipedia.org/wiki/Hugging_Face",
     "orgs": ["huggingface"],
     "repos": [
@@ -408,6 +435,7 @@
     "country": "US",
     "lat": 47.6412,
     "lng": -122.3293,
+    "url": "https://allenai.org/",
     "hqSourceUrl": "https://allenai.org/",
     "orgs": ["allenai"],
     "repos": [
@@ -423,6 +451,7 @@
     "country": "CN",
     "lat": 39.9773,
     "lng": 116.3298,
+    "url": "https://www.baai.ac.cn/english.html",
     "hqSourceUrl": "https://www.baai.ac.cn/english.html",
     "orgs": ["FlagOpen"],
     "repos": [
@@ -438,6 +467,7 @@
     "country": "IN",
     "lat": 12.9916,
     "lng": 80.2336,
+    "url": "https://ai4bharat.iitm.ac.in/",
     "hqSourceUrl": "https://ai4bharat.iitm.ac.in/",
     "orgs": ["AI4Bharat"],
     "repos": [
@@ -453,6 +483,7 @@
     "country": "US",
     "lat": 37.4250,
     "lng": -122.1400,
+    "url": "https://x.ai",
     "hqSourceUrl": "https://en.wikipedia.org/wiki/XAI_(company)",
     "orgs": ["xai-org"],
     "repos": [
@@ -467,6 +498,7 @@
     "country": "US",
     "lat": 37.7923,
     "lng": -122.3942,
+    "url": "https://www.together.ai/",
     "hqSourceUrl": "https://www.together.ai/",
     "orgs": ["togethercomputer"],
     "repos": [

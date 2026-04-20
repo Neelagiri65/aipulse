@@ -68,6 +68,8 @@ export type LabActivity = {
   lat: number;
   lng: number;
   hqSourceUrl: string;
+  /** Primary website (or GH org fallback). Click target for the lab name. */
+  url: string;
   orgs: string[];
   notes?: string;
   repos: RepoBreakdown[];
@@ -285,6 +287,7 @@ export async function fetchLabActivity(
       lat: lab.lat,
       lng: lab.lng,
       hqSourceUrl: lab.hqSourceUrl,
+      url: lab.url,
       orgs: lab.orgs,
       notes: lab.notes,
       repos,

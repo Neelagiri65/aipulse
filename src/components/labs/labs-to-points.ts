@@ -59,6 +59,7 @@ export function labsToGlobePoints(labs: LabActivity[]): GlobePoint[] {
       labRepos: lab.repos,
       labOrgs: lab.orgs,
       labHqSourceUrl: lab.hqSourceUrl,
+      labUrl: lab.url,
       labStale: lab.stale,
       labInactive: lab.total === 0,
     },

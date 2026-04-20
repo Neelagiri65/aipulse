@@ -61,6 +61,8 @@ export type EventMeta = {
   }>;
   labOrgs?: string[];
   labHqSourceUrl?: string;
+  /** Lab's primary website — click target for the lab name. */
+  labUrl?: string;
   labStale?: boolean;
   /** True when labTotal === 0; renderer dims the dot. */
   labInactive?: boolean;
@@ -538,7 +540,7 @@ function LabRow({ point }: { point: GlobePoint }) {
   const total = typeof meta.labTotal === "number" ? meta.labTotal : 0;
   const isInactive = meta.labInactive === true;
   const isStale = meta.labStale === true;
-  const hq = meta.labHqSourceUrl;
+  const primary = meta.labUrl ?? meta.labHqSourceUrl;
   const repos = meta.labRepos ?? [];
   return (
     <li className="px-2.5 py-2">
@@ -557,9 +559,9 @@ function LabRow({ point }: { point: GlobePoint }) {
         )}
       </div>
       <div className="mt-1.5 font-mono text-[12px] text-foreground">
-        {hq ? (
+        {primary ? (
           <a
-            href={hq}
+            href={primary}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-[#a855f7] hover:underline"
@@ -601,7 +603,11 @@ function RssRow({ point }: { point: GlobePoint }) {
   const last7 = typeof meta.rss7d === "number" ? meta.rss7d : 0;
   const isStale = meta.rssStale === true;
   const isInactive = meta.rssInactive === true;
-  const hq = meta.rssHqSourceUrl;
+  // Prefer the publisher's own site (forwarded via rssSource) over the
+  // HQ-coord citation (hqSourceUrl may point to Wikipedia for some
+  // publishers). Fallback chain keeps the row functional if either
+  // upstream field is absent.
+  const primary = meta.rssSource?.publisherUrl ?? meta.rssHqSourceUrl;
   return (
     <li className="px-2.5 py-2">
       <div className="flex flex-wrap items-center gap-1.5">
@@ -619,9 +625,9 @@ function RssRow({ point }: { point: GlobePoint }) {
         )}
       </div>
       <div className="mt-1.5 font-mono text-[12px] text-foreground">
-        {hq ? (
+        {primary ? (
           <a
-            href={hq}
+            href={primary}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-[#f97316] hover:underline"
