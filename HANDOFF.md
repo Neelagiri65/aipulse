@@ -2,6 +2,51 @@
 
 ## Current state (2026-04-20)
 
+### Session 16 — Hacker News integration · THE WIRE + geotagged map dots (11 commits, 1 PR)
+
+Session brief (user): "Read HANDOFF.md. Start the HN integration. Grill it, PRD it, build it." Phase 1 (grill + PRD + issues) → Phase 2 (TDD, 5 issues HN-01…HN-05) → single PR to main on branch `feature/hn-wire`.
+
+**Shipped (11 commits on `feature/hn-wire`):**
+
+1. `8043536 chore: add vitest test framework` — first unit-test infra.
+2. `1ae0897 test(hn): failing tests for isAiRelevant, hostFromUrl, extractLocation` — TDD red.
+3. `f3b6523 feat(hn): wire-hn filter + types + hn-store skeleton` — TDD green (23/23 pass).
+4. `65ede1b feat(hn): register HN_AI_STORIES source with sanity ranges` — `data-sources.ts` entry with pre-committed ranges (volume 5–60/hr, points median 20–200, dead ≤3%).
+5. `76432e5 feat(hn): ingest library — fetchAlgolia + fetchHnUser + runIngest` — Algolia fetch (100 stories/call), per-author Firebase resolution with 7-day cache, ZADD to `hn:wire`, 24h ZSET prune, orphan reconcile.
+6. `0357574 feat(hn): /api/wire/ingest-hn route` — Node runtime, `x-ingest-secret` gate, POST/GET.
+7. `1265249 feat(hn): GitHub Actions cron — wire-ingest-hn every 15min` — cron `5,20,35,50 * * * *` (slots between globe-ingest and registry-backfill).
+8. `1880e8d feat(hn): /api/hn public read route` — Edge, `readWire()`, `s-maxage=60, stale-while-revalidate=300`.
+9. `234edf1 docs(sources): register HN_AI_STORIES in public/data-sources.md` — transparency-contract entry; `verifiedAt: 2026-04-20` after shape-verification curl.
+10. `2489720 feat(hn): WirePage renders HN rows + Dashboard pre-merges wireRows` — discriminated union `WireItem = GhWireItem | HnWireItem`; orange `HN · {points}` pill, whole-row link; staleness indicator only visible when >30min stale.
+11. `4eceed2 feat(hn): FlatMap + Globe render HN dots` — HN stories geotagged on both views when author `about` location is resolvable; HN-only clusters render orange at full opacity; multi-HN clusters get numeric badge; HN outranks registry in sort (community signal above base layer).
+
+**Deliberate deviations from PRD/issues doc:**
+
+- Filter runs client-side in `runIngest` after fetch (not server-edge). Rationale: gives honest pre-filter sanity counts before the drop.
+- No active moderation reconciliation (would cost ~20 Algolia `/items/{id}` calls per poll). Rationale: 24h item TTL handles dead stories naturally; lightweight orphan reconcile cleans ZSET members whose item keys expired.
+- Points-only-geocoded rule: `readWire()` includes all items in `items` array but only resolves `ok`-status authors into map `points`. WIRE feed completeness preserved; map stays truthful (no synthetic locations).
+
+**Registry state after this session:**
+
+- Sources: 9 → **10** (added `HN_AI_STORIES`).
+- Crons: 4 → **5** (added `wire-ingest-hn`).
+- Active tabs: 4 (Globe, Map, Research, THE WIRE) — unchanged.
+- Registry repos: 520 — unchanged.
+- Build: ✓ (1994ms compile, 1564ms typecheck). Tests: 23/23 pass.
+
+**AUDITOR-REVIEW: PENDING** on:
+1. HN source registration — already flagged "approved in session 14 without full Auditor review" per queued-sources; shape-verification curl done, sanity ranges pre-committed per governance.
+2. Keyword + domain AI-relevance filter lists — `KEYWORD_ALLOWLIST` (35 terms), `DOMAIN_ALLOWLIST` (15), `SOFT_BLACKLIST` (crypto/girlfriend/nsfw). Likely to need tuning once live volume lands.
+3. Orphan-only reconcile strategy (no active moderation catch) — accepted cost/benefit.
+4. Cluster colour rules when HN + registry mix (no live) → HN wins. Justification: community signal > decayed base layer.
+5. 30-min staleness threshold for the muted amber banner.
+
+**Out of this PR, into next session:**
+
+- Spec edit adding cross-cutting **geotag principle** to `docs/AI_PULSE_V3_SPEC.md` Part 0 (non-negotiable that every geotagged source follows the same pattern: real public field → deterministic geocoder → null on miss, never synthesised). Separate commit, separate session — scope isolated.
+
+**Next action:** open PR `feature/hn-wire → main` with the full 11-commit set; request user review before merge (nothing merges to main until user has approved — per project CLAUDE.md dual-model protocol while `/advisor` is unavailable).
+
 ### Session 15 — HANDOFF recovery (docs-only, 3 commits)
 
 Session brief (user): session 14 conversation compacted mid-flow;
