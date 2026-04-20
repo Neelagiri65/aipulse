@@ -37,15 +37,26 @@ test.describe("AI Labs layer", () => {
     // singleton lab markers (<span> background) and lab-majority
     // cluster icons (<div class="ap-fm-cluster"> border + box-shadow).
     //
-    // We assert ≥ 1 violet element, NOT ≥ 32. The world-zoomed default
-    // view aggressively clusters via leaflet.markercluster, and most
-    // tech-hub clusters mix lab HQs with live GH events — the cluster
-    // picks the dominant colour via the majority-wins rule, so labs in
-    // SF / Cambridge / Beijing read as teal (live pulse), not violet.
-    // The ≥ 32-labs-actually-in-the-registry invariant is enforced by
-    // the panel test below, which reads from /api/labs directly.
-    // This test only proves the violet LAYER is live — that the code
-    // path runs and paints at least one marker.
+    // The world-zoomed default view clusters aggressively, and every
+    // big tech hub mixes labs with live GH events — the cluster takes
+    // the dominant colour (live > lab), so labs in SF / Cambridge /
+    // Beijing can read as teal rather than violet on any given poll.
+    // To make this assertion deterministic we zoom directly to MPI-IS
+    // Tübingen (lat 48.54, lng 9.06) at zoom 10. It's past Leaflet's
+    // `disableClusteringAtZoom: 9` threshold AND the HQ is in a small
+    // academic town with no other lab or major tech-hub live traffic
+    // nearby — the only violet marker in the viewport is the one we
+    // intend to assert on.
+    await page.evaluate(() => {
+      const el = document.querySelector(".ap-fm-root") as unknown as {
+        __apMap?: { setView: (ll: [number, number], z: number) => void };
+      } | null;
+      el?.__apMap?.setView([48.54, 9.06], 10);
+    });
+    // Let Leaflet re-render at the new viewport + cluster-disable the
+    // HQ marker. 1.2s matches `waitForMapReady`'s settle window.
+    await page.waitForTimeout(1200);
+
     const violetMarkers = page.locator(
       '.leaflet-marker-icon [style*="168,85,247"]',
     );

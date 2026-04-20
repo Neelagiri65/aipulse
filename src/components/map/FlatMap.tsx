@@ -150,6 +150,11 @@ export function FlatMap({ points = [], lastUpdatedAt }: FlatMapProps) {
       leafletRef.current = L;
       mapRef.current = map;
       clusterRef.current = cluster;
+      // Test hook: expose the Leaflet map instance on the container so
+      // Playwright specs can drive setView([lat, lng], zoom) deterministically
+      // (e.g. the lab-HQ violet-dot smoke zooms to a quiet HQ past the
+      // `disableClusteringAtZoom: 9` threshold). No-op for real users.
+      (mapDivRef.current as unknown as { __apMap?: L.Map }).__apMap = map;
       setReady(true);
     })();
 

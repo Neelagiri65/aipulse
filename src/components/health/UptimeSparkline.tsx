@@ -66,8 +66,8 @@ export function UptimeSparkline({ days, hasSamples }: UptimeSparklineProps) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="ap-label-sm">7d uptime</span>
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        <span className="ap-type-spark">7d uptime</span>
+        <span className="ap-type-spark text-muted-foreground">
           {cleanLabel}
         </span>
       </div>

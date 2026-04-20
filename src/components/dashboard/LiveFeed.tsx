@@ -115,7 +115,12 @@ function FeedRowItem({ row }: { row: FeedRow }) {
           {row.hasAiConfig ? "ai-cfg" : "no-cfg"}
         </span>
         <span className="ap-label-sm truncate">{prettyType(row.type)}</span>
-        <span className="ap-label-sm ml-auto">{formatRelative(row.createdAt)}</span>
+        <span
+          className="ap-label-sm ml-auto"
+          title={isoPublisherTimeTitle(row.createdAt)}
+        >
+          {formatRelative(row.createdAt)}
+        </span>
       </div>
       <div className="mt-1 truncate text-[11px] text-foreground/90">
         <a
@@ -179,5 +184,13 @@ function formatRelative(iso: string): string {
     return `${Math.floor(h / 24)}d`;
   } catch {
     return "—";
+  }
+}
+
+function isoPublisherTimeTitle(iso: string): string {
+  try {
+    return `${new Date(iso).toISOString()} · publisher event time`;
+  } catch {
+    return iso;
   }
 }

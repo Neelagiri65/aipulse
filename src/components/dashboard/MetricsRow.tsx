@@ -45,23 +45,18 @@ export function MetricsRow({
         <div
           key={i}
           className="pointer-events-auto ap-panel-surface flex flex-col gap-1 px-4 py-2"
-          style={{ width: 168, minHeight: 60 }}
+          style={{ width: 176, minHeight: 68 }}
         >
-          <span
-            className="font-mono text-[9px] uppercase"
-            style={{ color: "var(--ap-fg-muted)", letterSpacing: "0.1em" }}
-          >
-            {card.label}
-          </span>
+          <span className="ap-type-label">{card.label}</span>
           <div className="flex items-baseline justify-between gap-2">
             <span
-              className={`font-mono text-[16px] font-semibold tabular-nums ${toneClass(card.tone)}`}
+              className={`ap-type-metric ${toneClass(card.tone)}`}
             >
               {card.value}
             </span>
             {card.hint && (
               <span
-                className="font-mono text-[9px] uppercase"
+                className="font-mono text-[10px] uppercase"
                 style={{ color: "var(--ap-fg-dim)", letterSpacing: "0.08em" }}
               >
                 {card.hint}

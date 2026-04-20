@@ -125,7 +125,10 @@ function GhRow({
   const variant = row.hasAiConfig ? "info" : "pending";
   return (
     <li className="grid grid-cols-[70px_90px_90px_1fr_auto] items-center gap-3 border-b border-border/40 py-2 font-mono text-[11px] hover:bg-white/[0.02]">
-      <span className="tabular-nums text-muted-foreground">
+      <span
+        className="tabular-nums text-muted-foreground"
+        title={isoPublisherTimeTitle(row.createdAt)}
+      >
         {formatRelative(row.createdAt)}
       </span>
       <span className={`ap-sev-pill ap-sev-pill--${variant}`}>
@@ -164,7 +167,10 @@ function HnRow({
         rel="noopener noreferrer"
         className="grid grid-cols-[70px_auto_1fr_auto] items-center gap-3 py-2 font-mono text-[11px]"
       >
-        <span className="tabular-nums text-muted-foreground">
+        <span
+          className="tabular-nums text-muted-foreground"
+          title={isoPublisherTimeTitle(row.createdAt)}
+        >
           {formatRelative(row.createdAt)}
         </span>
         <span
@@ -256,5 +262,19 @@ function formatRelative(iso: string): string {
     return `${Math.floor(h / 24)}d`;
   } catch {
     return "—";
+  }
+}
+
+/**
+ * Trust-contract tooltip. Every relative timestamp on the Wire is the
+ * *publisher's* event time (GitHub event `created_at`, HN Algolia
+ * `created_at`) — not our ingest/polling time. Exposing the raw ISO
+ * on hover lets the reader verify this for themselves.
+ */
+function isoPublisherTimeTitle(iso: string): string {
+  try {
+    return `${new Date(iso).toISOString()} · publisher event time`;
+  } catch {
+    return iso;
   }
 }
