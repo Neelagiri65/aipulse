@@ -82,6 +82,30 @@ const points: GlobePoint[] = [...livePoints, ...dedupedRegistry, ...hnPoints];
 
 Build ✓, tests 23/23 ✓. Pushed to main; Vercel deploys within ~1–2min. Next page reload on https://aipulse-pi.vercel.app should show 2 orange dots: Zurich (correct) + Nebraska (false positive — see geocoder flag above).
 
+### Session 16.2 — majority-wins colour for mixed HN+GH clusters (1 commit, on main)
+
+**User spot:** HN orange dot near the Nebraska ZIP rendered as a "standalone orphan" next to teal GH numbered clusters (33/7/14/8/3). User suspected HN markers weren't in the same MarkerClusterGroup, and asked for mixed-cluster colour to reflect the GH/HN mix.
+
+**Diagnosis:**
+1. HN markers **were already** in the same `MarkerClusterGroup` — `cluster.addLayer(marker)` in `FlatMap.tsx:210` runs for every point regardless of kind. The observed "orphan" was geographic sparsity: Nebraska (41.49, -99.90) is ~490km from Denver; at zoom 5 that's ~100px, outside `maxClusterRadius: 48`. At zoom 3–4 the Nebraska point will cluster with US GH events. No code change needed for the composition claim.
+2. **Real bug spotted on re-read:** the mixed-cluster colour rule was "any live event wins over HN" — so a cluster of 1 GH push + 5 HN stories rendered teal. HN was invisible in the badge colour whenever a single GH event shared the bucket.
+
+**Fix (`b08259f`):** majority-wins rule applied in both `FlatMap.clusterIcon` and `Globe.clusterPoints`:
+- `hn > live` → HN orange (with HN-style border/glow/text via new `hnStyled` unification)
+- `live ≥ hn, live>0` → dominant GH event-type colour
+- `hn-only` → HN orange (unchanged)
+- `registry-only` → slate (unchanged)
+- Tie at `live == hn` → live wins (code-action signal outranks discussion at equal count)
+
+Also synced `clusterFromPoints` (the card-opener helper) so the card header + cluster badge agree on colour.
+
+Build ✓, tests 23/23 ✓. **AUDITOR-REVIEW: PENDING** on the tie-break rule.
+
+**Next action on resume:**
+1. User reload to verify mixed-cluster colour reads correctly once a cluster with both kinds actually forms (current 2-point sample won't exercise it until more HN authors geocode into cities that already have GH activity).
+2. Session 17: geotag principle spec edit + Chatbot Arena integration (unchanged plan).
+3. Geocoder false-positive fix (Nebraska "location" keyword match) — still low-LOC queued for session 17.
+
 ### Session 15 — HANDOFF recovery (docs-only, 3 commits)
 
 Session brief (user): session 14 conversation compacted mid-flow;
