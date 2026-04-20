@@ -437,6 +437,22 @@
   color: var(--ap-fg);
 }
 
+/* --------------------------------------------------------------------------
+   Mobile gate — the dashboard HUD is built for ≥ 768px. Below that we hide
+   the app and paint a centred "best viewed on desktop" notice so mobile
+   readers see the right message instead of a broken layout (Polish 7).
+   -------------------------------------------------------------------------- */
+.ap-mobile-only { display: none; }
+@media (max-width: 767px) {
+  .ap-desktop-only { display: none !important; }
+  .ap-mobile-only {
+    display: flex;
+    background: rgba(6, 8, 10, 0.98);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
 /* Live pulse used by brand dot + topbar */
 @keyframes ap-pulse {
   0%, 100% { opacity: 1; }
