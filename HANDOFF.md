@@ -2,6 +2,78 @@
 
 ## Current state (2026-04-20)
 
+### Session 17 — Geocoder hotfix · geotag principle spec edit · Chatbot Arena PRD (3 commits, on main)
+
+Session brief (user): three items in order from session 16.2 next-action queue. Phase 1 ran for item (3).
+
+**Shipped (3 commits on `main`, all pushed):**
+
+1. `56c23a4 fix(geocoder): stoplist + state-suffix boundary guard`
+   - `src/lib/geocoding.ts` gains a 16-entry `LOCATION_STOPLIST` (exact-match reject for generic bio strings: location, remote, worldwide, earth, internet, everywhere, anywhere, home, here, there, the world, planet earth, nomad, digital nomad, global, distributed).
+   - State-suffix needles (`, xx`) now use a word-boundary guard: the two-letter code must be followed by end-of-string or a non-letter. Fixes the Nebraska false positive — `", ne"` no longer substring-matches inside `", news,"`. `"Cambridge, MA"` and `"Palo Alto, CA 94301"` continue to resolve.
+   - Root-cause note: user's initial diagnosis was that the bare word "location" triggered the match; actual trigger was `", ne"` ⊂ `", news,"` in `shauntrennery`'s bio. Stoplist is still defensively useful (cheap, catches a class of future false positives); the word-boundary fix is what actually closes Nebraska.
+   - 27 new geocoder tests in `src/lib/__tests__/geocoding.test.ts` covering happy paths, stoplist, and the regression.
+   - Full suite 50/50 ✓ (23 HN + 27 geocoding), build ✓, typecheck ✓.
+
+2. `7f8d90b docs(spec): add geotag principle to Part 0`
+   - New subsection `### Cross-cutting geographic principle` in `docs/AI_PULSE_V3_SPEC.md` Part 0, immediately before the `---` leading into Part 1.
+   - User's one-paragraph principle (every source with a location field is geotagged via the project geocoder; null = WIRE-only; never approximate/infer/synthesise) expanded with four sub-bullets (one geocoder/one table, real public field only, null is legitimate, no approximation). Expansion is Builder's; core claim is verbatim.
+   - Applies to every future source added to `data-sources.ts`.
+
+3. `d334cb3 docs(benchmarks): Chatbot Arena PRD`
+   - `docs/prd-chatbot-arena.md` — Phase 1 output for item (3).
+   - Source locked to `lmarena-ai/leaderboard-dataset` on HuggingFace. Verified live during grill via webfetch: parquet, 67 MB, 1.36M rows, schema has `model_name`, `organization`, `rating`, `rating_lower`/`upper`, `variance`, `vote_count`, `rank`, `category`, `leaderboard_publish_date`. Latest publish 2026-04-17 (3 days ago). License not declared — flagged.
+   - v1 scope: top 20 by Overall text Elo (subset=`text`, category=`overall`). Category dropdown (Coding / Hard Prompts / Vision) deferred to v2 per user fallback.
+   - 7-column row layout: #, Model (raw `model_name` verbatim), Org, Elo, Votes, Δ Rank (with `NEW` badge), Δ Elo. 95% CI on hover.
+   - Delta computed server-side at ingest vs previous distinct `leaderboard_publish_date` (same subset + category) — dataset provides history in `full` split, no Redis needed.
+   - Daily GH Actions cron at `15 3 * * *` (03:15 UTC). Static JSON in `data/benchmarks/lmarena-latest.json`, commit only when `leaderboardPublishDate` changes.
+   - HF Datasets Server REST API for fetching (no parquet parser, no deps).
+   - New `Benchmarks` LeftNav tab, new `PanelId = "benchmarks"`, right of `THE WIRE`. First explicitly panel-only source — no map dot, no globe point (models have no location).
+   - Caveat footer verbatim (Bradley-Terry + sample size + three named critiques: style bias, self-selection, category overlap).
+   - Sanity ranges pre-committed: top1_rating 1300–1500, rank20_rating 1100–1400, row_count exactly 20, publish_age_days 0–14, top1_vote_count ≥ 5000.
+   - Architectural constraint test: panel is a row-for-row mirror of lmarena — no rescoring, no merging, no renaming, no filtering beyond the top-20 cap.
+   - Decomposition preview: 7 issues BENCH-01..BENCH-07. Full `docs/issues-chatbot-arena.md` to be written in session 18 after PRD approval.
+
+**AUDITOR-REVIEW: PENDING (session 17):**
+
+1. Geocoder stoplist contents (16 entries, judgment calls on which strings belong).
+2. State-suffix boundary rule (rejects trailing `", XX!"` with letter-punctuation continuation; current real data doesn't exhibit this edge).
+3. Chatbot Arena PRD dataset-license disclosure approach (no declared license; Builder's read is fair-use-for-reporting with attribution).
+4. Chatbot Arena PRD sanity ranges (early-2026 distribution; tune after 2–3 live ingests).
+5. Chatbot Arena PRD caveat wording — three critiques chosen; expand/pare to preference.
+6. Chatbot Arena PRD panel placement (proposed right-of-WIRE in LeftNav).
+7. Chatbot Arena PRD delta window (previous-publish-date vs fixed 7d).
+
+**Registry state after session 17:**
+
+- Sources: 10 (unchanged — Chatbot Arena is in PRD, not yet in `data-sources.ts`).
+- Crons: 5 (unchanged — `benchmarks-ingest-lmarena` lands in session 18).
+- Active tabs: 4 (unchanged — `Benchmarks` tab lands in session 18).
+- Tests: 50/50 ✓ (was 23/23 — added 27 geocoder tests).
+- Prod: `56c23a4` + `7f8d90b` deployed to https://aipulse-pi.vercel.app.
+
+**Known stale state (NOT a regression):**
+
+- `shauntrennery`'s cached HN author record in Redis still has the false Nebraska coords. Expires at 7d TTL (~2026-04-26) or on cache-miss refresh (whichever first). New HN ingests from 2026-04-20 onward use the corrected geocoder; only this one pre-existing entry is affected.
+- Nebraska dot will remain on the prod map until the cache entry expires or is invalidated.
+- Option to force-clear by ad-hoc Redis `DEL hn:author:shauntrennery` — not done this session (out of scope; 7d TTL handles it naturally).
+
+**Next action (session 18):**
+
+1. **User review + approval of `docs/prd-chatbot-arena.md`.** Redline any of the 7 AUDITOR-PENDING items. This is the Phase 1 gate — no Phase 2 build until approved.
+2. On approval: write `docs/issues-chatbot-arena.md` (BENCH-01..07, dependency-ordered, each 3–5 files, TDD pattern).
+3. Start BENCH-01 on `feature/benchmarks-arena` — types + pure logic + failing tests for delta computation, `NEW` badge, sanity-range guard.
+4. Proceed through BENCH-02..07 in dependency order. Single feature branch, ~5–7 commits, single PR to main (matches session 16 HN rhythm).
+5. First live ingest of lmarena snapshot — verify row-for-row match against lmarena.ai leaderboard UI (architectural constraint test).
+
+**Files changed (session 17):**
+
+- Created (2): `src/lib/__tests__/geocoding.test.ts`, `docs/prd-chatbot-arena.md`.
+- Modified (2): `src/lib/geocoding.ts`, `docs/AI_PULSE_V3_SPEC.md`.
+- Deleted (0). Touched outside project directory (0).
+
+---
+
 ### Session 16 — Hacker News integration · THE WIRE + geotagged map dots (11 commits, 1 PR)
 
 Session brief (user): "Read HANDOFF.md. Start the HN integration. Grill it, PRD it, build it." Phase 1 (grill + PRD + issues) → Phase 2 (TDD, 5 issues HN-01…HN-05) → single PR to main on branch `feature/hn-wire`.
