@@ -2,7 +2,9 @@
 
 ## Current state (2026-04-21)
 
-### Session 23 — UI/UX trust-blocker fixes from screenshot review
+### Session 23 — UI/UX trust-blocker fixes from screenshot review · MERGED
+
+**Status:** PR #5 merged to `main` at 2026-04-20 23:13:40 UTC (merge commit `383a481`). Branch deleted. User sign-off: *"The product is shareable now. Every number cites its source, every link goes to a primary source, panels don't overlap. That's the trust bar cleared."*
 
 Session brief (user, via `/session-start` args): *"Several UI/UX issues to fix before the product is shareable … Fix items 1, 2, 3, and 4 first — those are the trust and usability blockers. Items 5-7 are polish."* User priority quote: *"The AI Labs Wikipedia link issue is the worst one — it directly undermines trust. An observatory linking to Wikipedia for its primary data looks amateur."*
 
@@ -38,14 +40,15 @@ Session brief (user, via `/session-start` args): *"Several UI/UX issues to fix b
 - *Fix 3 (publisherUrl for The Register)* — chose the AI/ML section page (`/software/ai_ml/`) over the publication root (`theregister.com`) to match the feed's scope. Auditor may want the root instead. Same pattern on MIT TR (`/topic/artificial-intelligence/` vs `technologyreview.com`).
 - *Fix 4 (grid auto-fit)* — at very wide panel widths the cards may tile 4+ columns with shrunk content; 300px min is a guess based on the screenshot. Auditor should spot-check at 1920px panel width.
 
-**NEXT (for session 24 — user to pick):**
+**NEXT (for session 24 — user-authorised to ship polish alongside whatever is built next):**
 
-1. *Ship the polish backlog (items 5–7):* standardise font sizes (panel titles 14, card labels 12, sparkline labels 10, metric values 18); fix WIRE timestamp batching to show publisher-event time instead of ingest time; add viewport meta + "best viewed on desktop" fallback.
-2. *Run the visual smoke against prod* post-deploy to verify the topmost/behind panel emphasis renders, and confirm the Regional Wire now shows inline article links.
-3. *Public share*, now that the four trust blockers are gone — the Wikipedia link issue was the biggest objection to sharing.
-4. *Lab-dot test hardening* from session 22 NEXT #1 (option (a): zoom to a quiet lab HQ lat/lng before asserting violet).
+1. *Polish 5 — font-size standardisation:* panel titles 14px, card labels 12px, sparkline labels 10px, metric values 18px. Sweep all panels for consistency.
+2. *Polish 6 — WIRE timestamp batching fix:* rows under the HN block all show "44m" because we render ingest time, not the event's publisher/source time. Read `publishedTs` (or GH event timestamp) and format relative to now. Touches the WIRE row renderer.
+3. *Polish 7 — Mobile:* add viewport meta tag to `layout.tsx`, and a "Best viewed on desktop" notice that renders under a `(max-width: 768px)` media query so mobile visitors don't see a broken layout.
+4. *Run the visual smoke against prod* post-deploy to verify the topmost/behind panel emphasis renders, and confirm the Regional Wire now shows inline article links.
+5. *Lab-dot test hardening* from session 22 NEXT #1 (option (a): zoom to a quiet lab HQ lat/lng before asserting violet).
 
-**Session 24 entry point:** clean `main` after the session-23 commit lands. First command: `git status && npx vitest run` to confirm the 200-green baseline, then pick item 1/2/3/4 above.
+**Session 24 entry point:** `main` is clean at `383a481`. First command: `git status && npx vitest run` to confirm the 200-green baseline, then pick the next deliverable with the user. User-stated priority: the polish items are "real but not merge-blockers — ship them alongside whatever you build next."
 
 ---
 
