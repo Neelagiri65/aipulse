@@ -53,6 +53,7 @@ import { labsToGlobePoints } from "@/components/labs/labs-to-points";
 import { LabsPanel } from "@/components/labs/LabsPanel";
 import type { RssWireResult } from "@/lib/data/wire-rss";
 import { RegionalWirePanel } from "@/components/wire/RegionalWirePanel";
+import { rssToGlobePoints } from "@/components/wire/rss-to-points";
 
 const STATUS_POLL_MS = 5 * 60 * 1000;
 const EVENTS_POLL_MS = 30 * 1000;
@@ -211,11 +212,20 @@ export function Dashboard() {
   const labPoints: GlobePoint[] = filters["ai-labs"]
     ? labsToGlobePoints(labs.data?.labs ?? [])
     : [];
+  // Regional RSS layer — curated publisher HQs from
+  // src/lib/data/rss-sources.ts, sized by 24h item count. Always
+  // plotted (quiet publishers dim via RSS_INACTIVE_OPACITY), so
+  // presence of the regional source is visible even when a feed is
+  // slow. Gated by the `regional-rss` filter (default ON).
+  const rssPoints: GlobePoint[] = filters["regional-rss"]
+    ? rssToGlobePoints(rss.data?.sources ?? [])
+    : [];
   const points: GlobePoint[] = [
     ...livePoints,
     ...dedupedRegistry,
     ...hnPoints,
     ...labPoints,
+    ...rssPoints,
   ];
 
   // Pre-merge GH events + HN stories into a single chronological wire

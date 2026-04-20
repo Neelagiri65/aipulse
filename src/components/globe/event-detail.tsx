@@ -5,6 +5,9 @@ import type { GlobePoint } from "./Globe";
 import { formatAgeLabel } from "@/lib/data/registry-shared";
 import type { ConfigKind } from "@/lib/data/registry-shared";
 import { LabCard } from "@/components/labs/LabCard";
+import { SourceCard } from "@/components/wire/SourceCard";
+import { CountryPill, LangTag } from "@/components/wire/country-pill";
+import type { RssSourcePanel, RssWireItem } from "@/lib/data/wire-rss";
 
 /**
  * Point meta payload shared across live events (kind="event") and
@@ -13,7 +16,7 @@ import { LabCard } from "@/components/labs/LabCard";
  */
 export type EventMeta = {
   /** Present on all kinds. */
-  kind?: "event" | "registry" | "hn" | "lab";
+  kind?: "event" | "registry" | "hn" | "lab" | "rss";
   /** Live-event fields. */
   eventId?: string;
   type?: string;
@@ -61,6 +64,25 @@ export type EventMeta = {
   labStale?: boolean;
   /** True when labTotal === 0; renderer dims the dot. */
   labInactive?: boolean;
+  /** Regional-RSS fields (kind === "rss"). */
+  rssSourceId?: string;
+  rssDisplayName?: string;
+  rssCity?: string;
+  rssCountry?: string;
+  rssLang?: string;
+  rssHqSourceUrl?: string;
+  rssFeedFormat?: "rss" | "atom";
+  rss24h?: number;
+  rss7d?: number;
+  rssStale?: boolean;
+  /** True when rss24h === 0; renderer dims the dot. */
+  rssInactive?: boolean;
+  rssRecentItems?: RssWireItem[];
+  rssCaveat?: string;
+  rssStaleHours?: number | null;
+  rssLastFetchOkTs?: string | null;
+  /** Full source panel object, forwarded to SourceCard on single-source clusters. */
+  rssSource?: RssSourcePanel;
 };
 
 export type Cluster = {
@@ -81,6 +103,10 @@ export type Cluster = {
   labCount: number;
   /** How many of the lab entries in this bucket have >0 7d activity. */
   activeLabCount: number;
+  /** How many of `events` are regional-publisher dots (kind === "rss"). */
+  rssCount: number;
+  /** How many of those publishers have >0 24h items (i.e. active). */
+  activeRssCount: number;
   /** Avg decayScore across registry entries in this bucket (0..1). */
   avgDecay: number;
   /** Underlying events that collapsed into this cluster. Sorted newest-first. */
@@ -135,7 +161,7 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
   { cluster, anchor, containerSize, onClose },
   ref,
 ) {
-  // Lab-only clusters (no live / hn / registry) delegate to the
+  // Lab-only clusters (no live / hn / registry / rss) delegate to the
   // dedicated LabCard — the richer layout shows repo breakdown + HQ
   // source link, which is the point of the whole labs layer. Mixed
   // clusters stay with the shared EventCard so the live pulse + the
@@ -144,7 +170,8 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
     cluster.labCount > 0 &&
     cluster.liveCount === 0 &&
     cluster.hnCount === 0 &&
-    cluster.registryCount === 0
+    cluster.registryCount === 0 &&
+    cluster.rssCount === 0
   ) {
     const labMetas = cluster.events
       .map((e) => e.meta as EventMeta | undefined)
@@ -158,6 +185,34 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
         onClose={onClose}
       />
     );
+  }
+
+  // Single-publisher RSS-only cluster delegates to SourceCard — its
+  // richer layout shows recent items + HQ source link + stale banner,
+  // which is the point of the regional layer. Multi-source or mixed
+  // clusters fall through to the shared EventCard with RssRow, so a
+  // live pulse + a publisher row show side-by-side.
+  if (
+    cluster.rssCount === 1 &&
+    cluster.liveCount === 0 &&
+    cluster.hnCount === 0 &&
+    cluster.labCount === 0 &&
+    cluster.registryCount === 0
+  ) {
+    const rssMeta = cluster.events
+      .map((e) => e.meta as EventMeta | undefined)
+      .find((m) => m?.kind === "rss");
+    if (rssMeta?.rssSource) {
+      return (
+        <SourceCard
+          ref={ref}
+          source={rssMeta.rssSource}
+          anchor={anchor}
+          containerSize={containerSize}
+          onClose={onClose}
+        />
+      );
+    }
   }
 
   const placeRight = anchor.x + CARD_MARGIN + CARD_WIDTH <= containerSize.w;
@@ -232,10 +287,24 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
               </span>
             </>
           )}
+          {cluster.rssCount > 0 && (
+            <>
+              {(cluster.liveCount > 0 ||
+                cluster.registryCount > 0 ||
+                cluster.hnCount > 0 ||
+                cluster.labCount > 0) && (
+                <span className="text-foreground/50"> · </span>
+              )}
+              <span style={{ color: "#f97316" }}>
+                {cluster.rssCount} rss
+              </span>
+            </>
+          )}
           {cluster.liveCount === 0 &&
             cluster.registryCount === 0 &&
             cluster.hnCount === 0 &&
-            cluster.labCount === 0 && (
+            cluster.labCount === 0 &&
+            cluster.rssCount === 0 && (
               <>{cluster.count} event{cluster.count === 1 ? "" : "s"}</>
             )}
         </span>
@@ -260,6 +329,9 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
           if (kind === "lab") {
             return <LabRow key={eventKey(p, i)} point={p} />;
           }
+          if (kind === "rss") {
+            return <RssRow key={eventKey(p, i)} point={p} />;
+          }
           return <EventRow key={eventKey(p, i)} point={p} />;
         })}
       </ul>
@@ -276,6 +348,8 @@ function eventKey(p: GlobePoint, fallback: number): string {
   const m = p.meta as EventMeta | undefined;
   if (m?.kind === "hn" && typeof m.id === "string") return `hn:${m.id}`;
   if (m?.kind === "lab" && typeof m.labId === "string") return `lab:${m.labId}`;
+  if (m?.kind === "rss" && typeof m.rssSourceId === "string")
+    return `rss:${m.rssSourceId}`;
   if (typeof m?.eventId === "string") return m.eventId;
   return `idx:${fallback}`;
 }
@@ -505,6 +579,65 @@ function LabRow({ point }: { point: GlobePoint }) {
         </span>
         <span className="ml-2 shrink-0 tabular-nums">
           {total} evt · 7d
+        </span>
+      </div>
+    </li>
+  );
+}
+
+/**
+ * Regional-publisher row — surfaces country pill, publisher name, 24h/7d
+ * item counts, and a stale/quiet badge. Renders inside mixed clusters
+ * (e.g. a live GH event + a publisher in the same region); single-RSS
+ * clusters delegate to SourceCard for the richer layout.
+ */
+function RssRow({ point }: { point: GlobePoint }) {
+  const meta = (point.meta ?? {}) as EventMeta;
+  const name = meta.rssDisplayName ?? meta.rssSourceId ?? "(unknown publisher)";
+  const country = meta.rssCountry ?? "";
+  const lang = meta.rssLang ?? "en";
+  const city = meta.rssCity;
+  const last24 = typeof meta.rss24h === "number" ? meta.rss24h : 0;
+  const last7 = typeof meta.rss7d === "number" ? meta.rss7d : 0;
+  const isStale = meta.rssStale === true;
+  const isInactive = meta.rssInactive === true;
+  const hq = meta.rssHqSourceUrl;
+  return (
+    <li className="px-2.5 py-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span
+          className="rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-white"
+          style={{ backgroundColor: "#f97316" }}
+        >
+          RSS
+        </span>
+        {country && <CountryPill country={country} />}
+        <LangTag lang={lang} />
+        {isStale && <span className="ap-sev-pill ap-sev-pill--pending">STALE</span>}
+        {isInactive && !isStale && (
+          <span className="ap-sev-pill ap-sev-pill--pending">QUIET 24H</span>
+        )}
+      </div>
+      <div className="mt-1.5 font-mono text-[12px] text-foreground">
+        {hq ? (
+          <a
+            href={hq}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[#f97316] hover:underline"
+          >
+            {name}
+          </a>
+        ) : (
+          name
+        )}
+      </div>
+      <div className="mt-0.5 flex items-center justify-between font-mono text-[10px] text-muted-foreground">
+        <span className="truncate">
+          {city && country ? `${city}, ${country}` : country || city || "—"}
+        </span>
+        <span className="ml-2 shrink-0 tabular-nums">
+          {last24} · 24h <span className="text-foreground/30">/</span> {last7} · 7d
         </span>
       </div>
     </li>

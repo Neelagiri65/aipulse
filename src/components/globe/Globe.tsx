@@ -13,6 +13,10 @@ import {
   LABS_VIOLET,
   LABS_INACTIVE_OPACITY,
 } from "@/components/labs/labs-to-points";
+import {
+  RSS_AMBER,
+  RSS_INACTIVE_OPACITY,
+} from "@/components/wire/rss-to-points";
 
 const ReactGlobe = dynamic(() => import("react-globe.gl"), {
   ssr: false,
@@ -72,6 +76,10 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       activeLab: number;
       /** Max lab dot size in the bucket — drives cluster size on lab-majority buckets. */
       maxLabSize: number;
+      rss: number;
+      activeRss: number;
+      /** Max rss dot size in the bucket — drives cluster size on rss-majority buckets. */
+      maxRssSize: number;
       decaySum: number;
       events: GlobePoint[];
     }
@@ -86,11 +94,14 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
     const isRegistry = kind === "registry";
     const isHn = kind === "hn";
     const isLab = kind === "lab";
-    const isLive = !isRegistry && !isHn && !isLab;
+    const isRss = kind === "rss";
+    const isLive = !isRegistry && !isHn && !isLab && !isRss;
     const isAi = meta?.hasAiConfig === true;
     const decay = typeof meta?.decayScore === "number" ? meta.decayScore : 0;
     const labSize = isLab && typeof p.size === "number" ? p.size : 0;
     const labActive = isLab && meta?.labInactive !== true;
+    const rssSize = isRss && typeof p.size === "number" ? p.size : 0;
+    const rssActive = isRss && meta?.rssInactive !== true;
     const b = buckets.get(key);
     if (b) {
       b.lats.push(p.lat);
@@ -103,6 +114,10 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
         b.lab += 1;
         if (labActive) b.activeLab += 1;
         if (labSize > b.maxLabSize) b.maxLabSize = labSize;
+      } else if (isRss) {
+        b.rss += 1;
+        if (rssActive) b.activeRss += 1;
+        if (rssSize > b.maxRssSize) b.maxRssSize = rssSize;
       } else {
         b.registry += 1;
         b.decaySum += decay;
@@ -120,6 +135,9 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
         lab: isLab ? 1 : 0,
         activeLab: isLab && labActive ? 1 : 0,
         maxLabSize: isLab ? labSize : 0,
+        rss: isRss ? 1 : 0,
+        activeRss: isRss && rssActive ? 1 : 0,
+        maxRssSize: isRss ? rssSize : 0,
         decaySum: isRegistry ? decay : 0,
         events: [p],
       });
@@ -131,16 +149,18 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
     const lat = b.lats.reduce((s, v) => s + v, 0) / b.lats.length;
     const lng = b.lngs.reduce((s, v) => s + v, 0) / b.lngs.length;
 
-    // Bucket colour — live > hn > lab > registry. A bucket with live
-    // GH activity reads as the live-pulse layer regardless of whether a
-    // lab sits under it; the lab still gets a row in the card. When no
-    // live activity, a lab bucket claims violet so the AI-Labs layer is
-    // visible even where HN is absent. Registry-only is the quiet base.
+    // Bucket colour — live > lab > rss > hn > registry. A bucket with
+    // live GH activity reads as the live-pulse layer regardless of
+    // whether a presence-marker sits under it; the presence still gets
+    // a row in the card. When no live activity, lab wins over rss (lab
+    // HQ is a more unique geographic claim); rss wins over hn (publisher
+    // HQ is a curated presence, HN is density). Registry is the quiet
+    // base layer.
     //   live > 0            → dominant GH event-type colour (or HN
     //                         orange if hn > live)
-    //   live == 0, lab > 0  → LABS_VIOLET (labs layer dominates)
-    //   live == 0, lab == 0,
-    //     hn > 0            → HN orange
+    //   live == 0, lab > 0  → LABS_VIOLET
+    //   live == 0, rss > 0  → RSS_AMBER
+    //   live == 0, hn > 0   → HN orange
     //   else                → slate, opacity driven by avg decay
     let color: string;
     let dominantType: string;
@@ -149,7 +169,13 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       const typeCounts = new Map<string, number>();
       for (const ev of b.events) {
         const m = ev.meta as EventMeta | undefined;
-        if (m?.kind === "registry" || m?.kind === "hn" || m?.kind === "lab") continue;
+        if (
+          m?.kind === "registry" ||
+          m?.kind === "hn" ||
+          m?.kind === "lab" ||
+          m?.kind === "rss"
+        )
+          continue;
         const t = m?.type ?? "unknown";
         typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1);
       }
@@ -163,6 +189,9 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
     } else if (b.lab > 0) {
       dominantType = "lab";
       color = LABS_VIOLET;
+    } else if (b.rss > 0) {
+      dominantType = "rss";
+      color = RSS_AMBER;
     } else if (b.hn > 0) {
       dominantType = "hn";
       color = "#ff6600";
@@ -191,6 +220,8 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       size = Math.min(1.6, base + Math.log2(1 + b.live) * 0.22);
     } else if (b.lab > 0) {
       size = Math.max(0.3, b.maxLabSize);
+    } else if (b.rss > 0) {
+      size = Math.max(0.3, b.maxRssSize);
     } else if (b.hn > 0) {
       size = Math.min(0.9, 0.32 + Math.log2(1 + b.hn) * 0.18);
     } else {
@@ -201,22 +232,24 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       );
     }
 
-    // Sort: live events first, then HN stories, then AI-Lab dots, then
-    // registry entries. Within each band, newest-first by
-    // createdAt/lastActivity. Card leads with the freshest live action,
-    // then community signal, then labs (no timestamp — stable order by
-    // input), then the registry base layer.
+    // Sort: live events first, then HN stories, then RSS publishers,
+    // then AI-Lab dots, then registry entries. Within each band,
+    // newest-first by createdAt/lastActivity. Card leads with the
+    // freshest live action, then community signal, then publisher
+    // presence, then lab presence, then the registry base layer.
     const sortedEvents = b.events.slice().sort((a, z) => {
       const am = a.meta as EventMeta | undefined;
       const zm = z.meta as EventMeta | undefined;
       const rankFor = (m: EventMeta | undefined) =>
         m?.kind === "registry"
-          ? 3
+          ? 4
           : m?.kind === "lab"
-            ? 2
-            : m?.kind === "hn"
-              ? 1
-              : 0;
+            ? 3
+            : m?.kind === "rss"
+              ? 2
+              : m?.kind === "hn"
+                ? 1
+                : 0;
       const rA = rankFor(am);
       const rZ = rankFor(zm);
       if (rA !== rZ) return rA - rZ;
@@ -237,6 +270,8 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       hnCount: b.hn,
       labCount: b.lab,
       activeLabCount: b.activeLab,
+      rssCount: b.rss,
+      activeRssCount: b.activeRss,
       avgDecay,
       events: sortedEvents,
     });
@@ -371,6 +406,15 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
               }
               return c.color;
             }
+            // Same treatment for RSS publishers — the dot always reads
+            // so "tracked, nothing in the last 24h" is visible, not
+            // invisible.
+            if (c.rssCount > 0 && c.liveCount === 0 && c.labCount === 0) {
+              if (c.activeRssCount === 0) {
+                return hexA(RSS_AMBER, RSS_INACTIVE_OPACITY);
+              }
+              return c.color;
+            }
             if (c.hnCount > 0) return c.color;
             const alpha = Math.max(0.07, Math.min(0.7, c.avgDecay * 0.7));
             return hexA(c.color, alpha);
@@ -493,6 +537,12 @@ function GlobeLegend() {
       </div>
       <ul className="mt-1 space-y-1">
         <LegendRow color={LABS_VIOLET} label="Lab HQ · 7d activity" />
+      </ul>
+      <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
+        Regional RSS
+      </div>
+      <ul className="mt-1 space-y-1">
+        <LegendRow color={RSS_AMBER} label="Publisher HQ · 24h items" />
       </ul>
       <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
         Registry decay (AI-cfg repos)

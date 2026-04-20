@@ -229,7 +229,7 @@ export const RSS_SOURCES: readonly RssSource[] = [
     feedFormat: "rss",
     keywordFilterScope: "all",
     caveat:
-      "AI-research-focused publication with an India-based editorial team. HQ city pinned to New Delhi pending Auditor verification of the publisher's About page primary source.",
+      "AI-research-focused publication with an India-based editorial team (CoFounder/Editor: Asif Razzaq, named on the publisher's About page). The publisher does not disclose a specific HQ city on its own About or Contact pages; pin is a Delhi NCR approximation, not a primary-source claim. AUDITOR-PENDING.",
   },
   {
     id: "mit-tech-review-ai",
