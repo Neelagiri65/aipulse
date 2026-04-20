@@ -65,6 +65,23 @@ Single batch: 16/100 passed the filter (16% pass rate), 2/16 authors had resolva
 - Geocoder false-positive fix (Nebraska case). Low-LOC, deterministic. Possibly bundle with the spec edit.
 - First real cron-scheduled run will fire at the next `:05 :20 :35 :50` UTC slot; watch it for stability before deciding on filter/geocoder tuning.
 
+### Session 16.1 — HN map-dot hotfix (1 commit, on main)
+
+Post-merge user verification spotted: THE WIRE renders HN rows correctly (205 rows, 189 gh · 16 hn, orange pills visible); the flat map shows only the teal GH dots — no orange HN dots at all.
+
+**Root cause:** `Dashboard.tsx` polled `/api/hn` and folded HN items into `wireRows` for the WIRE panel, but the `points` array passed to `FlatMap` and `Globe` was still `[...livePoints, ...dedupedRegistry]` — HN points were never appended. `/api/hn` has been returning `points=2` (Zurich, Nebraska false-positive) since the first ingest; pure client-side composition bug.
+
+**Fix (`f2d6b99`):** one-line concat. No filter applied to HN layer — HN is a parallel community signal (not a GH event, not a registry repo), so the event-type + ai-config filter chips don't semantically apply.
+
+```ts
+const hnPoints: GlobePoint[] = hn.data?.points ?? [];
+const points: GlobePoint[] = [...livePoints, ...dedupedRegistry, ...hnPoints];
+```
+
+**AUDITOR-REVIEW: PENDING** — filter-panel composition when the HN layer is present (do we want an HN toggle? a "community signal" layer group?). Deferred until live volume makes the question concrete.
+
+Build ✓, tests 23/23 ✓. Pushed to main; Vercel deploys within ~1–2min. Next page reload on https://aipulse-pi.vercel.app should show 2 orange dots: Zurich (correct) + Nebraska (false positive — see geocoder flag above).
+
 ### Session 15 — HANDOFF recovery (docs-only, 3 commits)
 
 Session brief (user): session 14 conversation compacted mid-flow;
