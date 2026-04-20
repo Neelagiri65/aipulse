@@ -1,0 +1,476 @@
+[
+  {
+    "id": "openai-sf",
+    "displayName": "OpenAI",
+    "kind": "industry",
+    "city": "San Francisco",
+    "country": "US",
+    "lat": 37.7640,
+    "lng": -122.4190,
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/OpenAI",
+    "orgs": ["openai"],
+    "repos": [
+      { "owner": "openai", "repo": "openai-cookbook", "sourceUrl": "https://github.com/openai/openai-cookbook" },
+      { "owner": "openai", "repo": "whisper", "sourceUrl": "https://github.com/openai/whisper" }
+    ]
+  },
+  {
+    "id": "anthropic-sf",
+    "displayName": "Anthropic",
+    "kind": "industry",
+    "city": "San Francisco",
+    "country": "US",
+    "lat": 37.7890,
+    "lng": -122.3975,
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Anthropic",
+    "orgs": ["anthropics"],
+    "repos": [
+      { "owner": "anthropics", "repo": "claude-code", "sourceUrl": "https://github.com/anthropics/claude-code" },
+      { "owner": "anthropics", "repo": "anthropic-cookbook", "sourceUrl": "https://github.com/anthropics/anthropic-cookbook" }
+    ]
+  },
+  {
+    "id": "google-research-mv",
+    "displayName": "Google Research",
+    "kind": "industry",
+    "city": "Mountain View",
+    "country": "US",
+    "lat": 37.4220,
+    "lng": -122.0841,
+    "hqSourceUrl": "https://research.google/",
+    "orgs": ["google-research"],
+    "repos": [
+      { "owner": "google-research", "repo": "google-research", "sourceUrl": "https://github.com/google-research/google-research" },
+      { "owner": "google-research", "repo": "t5x", "sourceUrl": "https://github.com/google-research/t5x" }
+    ]
+  },
+  {
+    "id": "deepmind-london",
+    "displayName": "Google DeepMind",
+    "kind": "industry",
+    "city": "London",
+    "country": "GB",
+    "lat": 51.5327,
+    "lng": -0.1262,
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Google_DeepMind",
+    "orgs": ["google-deepmind"],
+    "repos": [
+      { "owner": "google-deepmind", "repo": "alphafold", "sourceUrl": "https://github.com/google-deepmind/alphafold" },
+      { "owner": "google-deepmind", "repo": "gemma", "sourceUrl": "https://github.com/google-deepmind/gemma" }
+    ]
+  },
+  {
+    "id": "fair-menlo-park",
+    "displayName": "Meta FAIR",
+    "kind": "industry",
+    "city": "Menlo Park",
+    "country": "US",
+    "lat": 37.4849,
+    "lng": -122.1477,
+    "hqSourceUrl": "https://ai.meta.com/research/",
+    "orgs": ["facebookresearch"],
+    "repos": [
+      { "owner": "facebookresearch", "repo": "llama", "sourceUrl": "https://github.com/facebookresearch/llama" },
+      { "owner": "facebookresearch", "repo": "segment-anything", "sourceUrl": "https://github.com/facebookresearch/segment-anything" }
+    ]
+  },
+  {
+    "id": "microsoft-research-redmond",
+    "displayName": "Microsoft Research",
+    "kind": "industry",
+    "city": "Redmond",
+    "country": "US",
+    "lat": 47.6396,
+    "lng": -122.1284,
+    "hqSourceUrl": "https://www.microsoft.com/en-us/research/lab/microsoft-research-redmond/",
+    "orgs": ["microsoft"],
+    "repos": [
+      { "owner": "microsoft", "repo": "semantic-kernel", "sourceUrl": "https://github.com/microsoft/semantic-kernel" },
+      { "owner": "microsoft", "repo": "autogen", "sourceUrl": "https://github.com/microsoft/autogen" }
+    ],
+    "notes": "Tracked repos scoped to Microsoft's AI-research flagships (semantic-kernel, autogen) — not the firehose `microsoft` org, to avoid conflating bot/CI pushes with AI-research activity."
+  },
+  {
+    "id": "nvidia-research",
+    "displayName": "NVIDIA Research",
+    "kind": "industry",
+    "city": "Santa Clara",
+    "country": "US",
+    "lat": 37.3702,
+    "lng": -121.9654,
+    "hqSourceUrl": "https://www.nvidia.com/en-us/research/",
+    "orgs": ["NVlabs"],
+    "repos": [
+      { "owner": "NVlabs", "repo": "instant-ngp", "sourceUrl": "https://github.com/NVlabs/instant-ngp" },
+      { "owner": "NVlabs", "repo": "stylegan3", "sourceUrl": "https://github.com/NVlabs/stylegan3" }
+    ]
+  },
+  {
+    "id": "cohere-toronto",
+    "displayName": "Cohere",
+    "kind": "industry",
+    "city": "Toronto",
+    "country": "CA",
+    "lat": 43.6462,
+    "lng": -79.3934,
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Cohere",
+    "orgs": ["cohere-ai"],
+    "repos": [
+      { "owner": "cohere-ai", "repo": "cohere-toolkit", "sourceUrl": "https://github.com/cohere-ai/cohere-toolkit" }
+    ]
+  },
+  {
+    "id": "mit-han-lab",
+    "displayName": "MIT HAN Lab",
+    "kind": "academic",
+    "city": "Cambridge",
+    "country": "US",
+    "lat": 42.3617,
+    "lng": -71.0906,
+    "hqSourceUrl": "https://hanlab.mit.edu/",
+    "orgs": ["mit-han-lab"],
+    "repos": [
+      { "owner": "mit-han-lab", "repo": "streaming-llm", "sourceUrl": "https://github.com/mit-han-lab/streaming-llm" },
+      { "owner": "mit-han-lab", "repo": "efficientvit", "sourceUrl": "https://github.com/mit-han-lab/efficientvit" }
+    ],
+    "notes": "MIT AI research spans CSAIL / Media Lab / several subgroups. HAN Lab (Song Han) chosen as the most-active canonical AI GitHub org; other subgroups excluded to avoid double-counting."
+  },
+  {
+    "id": "stanford-crfm",
+    "displayName": "Stanford CRFM",
+    "kind": "academic",
+    "city": "Stanford",
+    "country": "US",
+    "lat": 37.4307,
+    "lng": -122.1730,
+    "hqSourceUrl": "https://crfm.stanford.edu/",
+    "orgs": ["stanford-crfm"],
+    "repos": [
+      { "owner": "stanford-crfm", "repo": "helm", "sourceUrl": "https://github.com/stanford-crfm/helm" }
+    ],
+    "notes": "Stanford's Center for Research on Foundation Models. Represents Stanford AI at Gates Computer Science coordinates; stanford-nlp and stanford-futuredata excluded to avoid double-counting."
+  },
+  {
+    "id": "cmu-neulab",
+    "displayName": "CMU NeuLab",
+    "kind": "academic",
+    "city": "Pittsburgh",
+    "country": "US",
+    "lat": 40.4437,
+    "lng": -79.9450,
+    "hqSourceUrl": "https://www.cs.cmu.edu/~neulab/",
+    "orgs": ["neulab"],
+    "repos": [
+      { "owner": "neulab", "repo": "prompt2model", "sourceUrl": "https://github.com/neulab/prompt2model" }
+    ],
+    "notes": "Graham Neubig's NeuLab at CMU LTI — chosen as the most-active canonical CMU AI GitHub org."
+  },
+  {
+    "id": "lmsys-berkeley",
+    "displayName": "LMSYS (UC Berkeley)",
+    "kind": "academic",
+    "city": "Berkeley",
+    "country": "US",
+    "lat": 37.8756,
+    "lng": -122.2586,
+    "hqSourceUrl": "https://lmsys.org/",
+    "orgs": ["lm-sys"],
+    "repos": [
+      { "owner": "lm-sys", "repo": "FastChat", "sourceUrl": "https://github.com/lm-sys/FastChat" }
+    ],
+    "notes": "Large Model Systems Organization — UC Berkeley / Sky Computing lineage. Represents Berkeley AI at Soda Hall coordinates."
+  },
+  {
+    "id": "vector-toronto",
+    "displayName": "Vector Institute",
+    "kind": "non-profit",
+    "city": "Toronto",
+    "country": "CA",
+    "lat": 43.6595,
+    "lng": -79.3886,
+    "hqSourceUrl": "https://vectorinstitute.ai/",
+    "orgs": ["VectorInstitute"],
+    "repos": [
+      { "owner": "VectorInstitute", "repo": "vectorlm", "sourceUrl": "https://github.com/VectorInstitute/vectorlm" }
+    ]
+  },
+  {
+    "id": "mila-montreal",
+    "displayName": "Mila",
+    "kind": "academic",
+    "city": "Montréal",
+    "country": "CA",
+    "lat": 45.5311,
+    "lng": -73.6134,
+    "hqSourceUrl": "https://mila.quebec/en/",
+    "orgs": ["mila-iqia"],
+    "repos": [
+      { "owner": "mila-iqia", "repo": "milatools", "sourceUrl": "https://github.com/mila-iqia/milatools" }
+    ]
+  },
+  {
+    "id": "tsinghua-thudm",
+    "displayName": "Tsinghua THUDM",
+    "kind": "academic",
+    "city": "Beijing",
+    "country": "CN",
+    "lat": 40.0035,
+    "lng": 116.3263,
+    "hqSourceUrl": "https://keg.cs.tsinghua.edu.cn/",
+    "orgs": ["THUDM"],
+    "repos": [
+      { "owner": "THUDM", "repo": "ChatGLM3", "sourceUrl": "https://github.com/THUDM/ChatGLM3" },
+      { "owner": "THUDM", "repo": "GLM-4", "sourceUrl": "https://github.com/THUDM/GLM-4" }
+    ]
+  },
+  {
+    "id": "pku-alignment",
+    "displayName": "Peking University (PKU-Alignment)",
+    "kind": "academic",
+    "city": "Beijing",
+    "country": "CN",
+    "lat": 39.9938,
+    "lng": 116.3106,
+    "hqSourceUrl": "https://pku-alignment.github.io/",
+    "orgs": ["PKU-Alignment"],
+    "repos": [
+      { "owner": "PKU-Alignment", "repo": "safe-rlhf", "sourceUrl": "https://github.com/PKU-Alignment/safe-rlhf" }
+    ]
+  },
+  {
+    "id": "matsuolab-tokyo",
+    "displayName": "University of Tokyo Matsuo Lab",
+    "kind": "academic",
+    "city": "Tokyo",
+    "country": "JP",
+    "lat": 35.7127,
+    "lng": 139.7619,
+    "hqSourceUrl": "https://weblab.t.u-tokyo.ac.jp/en/",
+    "orgs": ["matsuolab"],
+    "repos": [
+      { "owner": "matsuolab", "repo": "weblab-10b", "sourceUrl": "https://github.com/matsuolab/weblab-10b" }
+    ],
+    "notes": "Matsuo Lab (Yutaka Matsuo, UTokyo Engineering) — Japan academic AI; Sakana AI is the Japan industry representative."
+  },
+  {
+    "id": "inria-paris",
+    "displayName": "INRIA",
+    "kind": "non-profit",
+    "city": "Paris",
+    "country": "FR",
+    "lat": 48.8346,
+    "lng": 2.3863,
+    "hqSourceUrl": "https://www.inria.fr/en",
+    "orgs": ["inria"],
+    "repos": [
+      { "owner": "inria", "repo": "spoc", "sourceUrl": "https://github.com/inria/spoc" }
+    ],
+    "notes": "INRIA publishes across many subgroup orgs (inria-flowers, inria-thoth, etc.). The canonical `inria` org is tracked as the representative signal."
+  },
+  {
+    "id": "mpi-is-tubingen",
+    "displayName": "Max Planck Institute for Intelligent Systems",
+    "kind": "non-profit",
+    "city": "Tübingen",
+    "country": "DE",
+    "lat": 48.5381,
+    "lng": 9.0582,
+    "hqSourceUrl": "https://is.mpg.de/",
+    "orgs": ["mpi-is"],
+    "repos": [
+      { "owner": "mpi-is", "repo": "shape-attentive-unet", "sourceUrl": "https://github.com/mpi-is/shape-attentive-unet" }
+    ]
+  },
+  {
+    "id": "eth-sri-zurich",
+    "displayName": "ETH Zurich (SRI Lab)",
+    "kind": "academic",
+    "city": "Zürich",
+    "country": "CH",
+    "lat": 47.3763,
+    "lng": 8.5480,
+    "hqSourceUrl": "https://www.sri.inf.ethz.ch/",
+    "orgs": ["eth-sri"],
+    "repos": [
+      { "owner": "eth-sri", "repo": "lmql", "sourceUrl": "https://github.com/eth-sri/lmql" }
+    ],
+    "notes": "Secure, Reliable, and Intelligent Systems Lab — chosen as the canonical ETH AI GitHub org."
+  },
+  {
+    "id": "mistral-paris",
+    "displayName": "Mistral AI",
+    "kind": "industry",
+    "city": "Paris",
+    "country": "FR",
+    "lat": 48.8600,
+    "lng": 2.3460,
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Mistral_AI",
+    "orgs": ["mistralai"],
+    "repos": [
+      { "owner": "mistralai", "repo": "mistral-inference", "sourceUrl": "https://github.com/mistralai/mistral-inference" },
+      { "owner": "mistralai", "repo": "mistral-finetune", "sourceUrl": "https://github.com/mistralai/mistral-finetune" }
+    ]
+  },
+  {
+    "id": "deepseek-hangzhou",
+    "displayName": "DeepSeek",
+    "kind": "industry",
+    "city": "Hangzhou",
+    "country": "CN",
+    "lat": 30.2741,
+    "lng": 120.1551,
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/DeepSeek",
+    "orgs": ["deepseek-ai"],
+    "repos": [
+      { "owner": "deepseek-ai", "repo": "DeepSeek-V3", "sourceUrl": "https://github.com/deepseek-ai/DeepSeek-V3" },
+      { "owner": "deepseek-ai", "repo": "DeepSeek-R1", "sourceUrl": "https://github.com/deepseek-ai/DeepSeek-R1" }
+    ]
+  },
+  {
+    "id": "qwen-hangzhou",
+    "displayName": "Alibaba Qwen",
+    "kind": "industry",
+    "city": "Hangzhou",
+    "country": "CN",
+    "lat": 30.2787,
+    "lng": 120.0826,
+    "hqSourceUrl": "https://qwenlm.github.io/",
+    "orgs": ["QwenLM"],
+    "repos": [
+      { "owner": "QwenLM", "repo": "Qwen", "sourceUrl": "https://github.com/QwenLM/Qwen" },
+      { "owner": "QwenLM", "repo": "Qwen2.5-Coder", "sourceUrl": "https://github.com/QwenLM/Qwen2.5-Coder" }
+    ]
+  },
+  {
+    "id": "stability-london",
+    "displayName": "Stability AI",
+    "kind": "industry",
+    "city": "London",
+    "country": "GB",
+    "lat": 51.5175,
+    "lng": -0.1325,
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Stability_AI",
+    "orgs": ["Stability-AI"],
+    "repos": [
+      { "owner": "Stability-AI", "repo": "generative-models", "sourceUrl": "https://github.com/Stability-AI/generative-models" },
+      { "owner": "Stability-AI", "repo": "stablediffusion", "sourceUrl": "https://github.com/Stability-AI/stablediffusion" }
+    ]
+  },
+  {
+    "id": "sakana-tokyo",
+    "displayName": "Sakana AI",
+    "kind": "industry",
+    "city": "Tokyo",
+    "country": "JP",
+    "lat": 35.6588,
+    "lng": 139.7454,
+    "hqSourceUrl": "https://sakana.ai/",
+    "orgs": ["SakanaAI"],
+    "repos": [
+      { "owner": "SakanaAI", "repo": "evolutionary-model-merge", "sourceUrl": "https://github.com/SakanaAI/evolutionary-model-merge" }
+    ]
+  },
+  {
+    "id": "ai21-telaviv",
+    "displayName": "AI21 Labs",
+    "kind": "industry",
+    "city": "Tel Aviv",
+    "country": "IL",
+    "lat": 32.0678,
+    "lng": 34.7947,
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/AI21_Labs",
+    "orgs": ["AI21Labs"],
+    "repos": [
+      { "owner": "AI21Labs", "repo": "in-context-ralm", "sourceUrl": "https://github.com/AI21Labs/in-context-ralm" }
+    ]
+  },
+  {
+    "id": "huggingface-nyc",
+    "displayName": "Hugging Face",
+    "kind": "industry",
+    "city": "New York",
+    "country": "US",
+    "lat": 40.7257,
+    "lng": -74.0014,
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Hugging_Face",
+    "orgs": ["huggingface"],
+    "repos": [
+      { "owner": "huggingface", "repo": "transformers", "sourceUrl": "https://github.com/huggingface/transformers" },
+      { "owner": "huggingface", "repo": "datasets", "sourceUrl": "https://github.com/huggingface/datasets" }
+    ],
+    "notes": "Incorporated in New York; engineering distributed NYC + Paris. HQ plotted at NYC coords per Wikipedia."
+  },
+  {
+    "id": "allenai-seattle",
+    "displayName": "Allen Institute for AI (AI2)",
+    "kind": "non-profit",
+    "city": "Seattle",
+    "country": "US",
+    "lat": 47.6412,
+    "lng": -122.3293,
+    "hqSourceUrl": "https://allenai.org/",
+    "orgs": ["allenai"],
+    "repos": [
+      { "owner": "allenai", "repo": "OLMo", "sourceUrl": "https://github.com/allenai/OLMo" },
+      { "owner": "allenai", "repo": "allennlp", "sourceUrl": "https://github.com/allenai/allennlp" }
+    ]
+  },
+  {
+    "id": "baai-beijing",
+    "displayName": "BAAI (Beijing Academy of AI)",
+    "kind": "non-profit",
+    "city": "Beijing",
+    "country": "CN",
+    "lat": 39.9773,
+    "lng": 116.3298,
+    "hqSourceUrl": "https://www.baai.ac.cn/english.html",
+    "orgs": ["FlagOpen"],
+    "repos": [
+      { "owner": "FlagOpen", "repo": "FlagEmbedding", "sourceUrl": "https://github.com/FlagOpen/FlagEmbedding" }
+    ],
+    "notes": "BAAI publishes through the FlagOpen GitHub org. Other BAAI-affiliated orgs (e.g. BAAI-Agents) excluded to avoid double-counting."
+  },
+  {
+    "id": "ai4bharat-chennai",
+    "displayName": "AI4Bharat (IIT Madras)",
+    "kind": "academic",
+    "city": "Chennai",
+    "country": "IN",
+    "lat": 12.9916,
+    "lng": 80.2336,
+    "hqSourceUrl": "https://ai4bharat.iitm.ac.in/",
+    "orgs": ["AI4Bharat"],
+    "repos": [
+      { "owner": "AI4Bharat", "repo": "IndicTrans2", "sourceUrl": "https://github.com/AI4Bharat/IndicTrans2" }
+    ],
+    "notes": "India's most-active open-source AI research consortium. Originally approved as IIT Bombay / IISc; AI4Bharat (IIT Madras) selected instead because it has a canonical org + flagship repos that IIT Bombay and IISc do not centralise."
+  },
+  {
+    "id": "xai-paloalto",
+    "displayName": "xAI",
+    "kind": "industry",
+    "city": "Palo Alto",
+    "country": "US",
+    "lat": 37.4250,
+    "lng": -122.1400,
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/XAI_(company)",
+    "orgs": ["xai-org"],
+    "repos": [
+      { "owner": "xai-org", "repo": "grok-1", "sourceUrl": "https://github.com/xai-org/grok-1" }
+    ]
+  },
+  {
+    "id": "together-sf",
+    "displayName": "Together AI",
+    "kind": "industry",
+    "city": "San Francisco",
+    "country": "US",
+    "lat": 37.7923,
+    "lng": -122.3942,
+    "hqSourceUrl": "https://www.together.ai/",
+    "orgs": ["togethercomputer"],
+    "repos": [
+      { "owner": "togethercomputer", "repo": "RedPajama-Data", "sourceUrl": "https://github.com/togethercomputer/RedPajama-Data" }
+    ]
+  }
+]
