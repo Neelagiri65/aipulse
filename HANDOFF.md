@@ -2,6 +2,56 @@
 
 ## Current state (2026-04-21)
 
+### Session 24 — Polish round + lab-dot test hardening + prod smoke · MERGED
+
+**Status:** PR #6 merged to `main` at 2026-04-20 23:40 UTC (merge commit `8421253`). Branch `fix/polish-round` deleted. Visual smoke against prod: **26/26 green in 55.5s** — the session-22 lab-dot flake is resolved.
+
+Session brief (user, one-line): *"All of them. Polish 5, 6, 7 + lab-dot test hardening + visual smoke against prod. Single branch, ship it. Do all five. Single branch called fix/polish-round. Commit each fix separately. Run Playwright against prod at the end. Target 26/26 green. Go."*
+
+**Shipped this session (5/5, each as a discrete commit):**
+
+1. **Polish 5 — Four-tier type scale tokens** (`605e9f4`). Added `.ap-type-title` (14px), `.ap-type-label` (12px), `.ap-type-spark` (10px), `.ap-type-metric` (18px) to `globals.css`, plus bumped `.ap-win__titlebar` from 11px→14px (height 28→32px). Applied to panel titlebars, `MetricsRow`, `MetricTicker`, `LabCard`, `SourceCard`, `UptimeSparkline`. Pragmatic scope: hierarchy-defining elements only; 9px micro-labels (timestamps, citations, stale pills) intentionally left alone so the dense HUD stays readable.
+
+2. **Polish 6 — Publisher event time tooltips** (`58ee9f8`). Audit found the invariant ("relative time = publisher's `created_at`, not our ingest/polling time") was already true in code — the HANDOFF claim of "ingest time not publisher time" was wrong. Instead of rewriting a correct code path, exposed the raw ISO via hover tooltip on every Wire row: `title={isoPublisherTimeTitle(row.createdAt)}` returning `"{ISO} · publisher event time"`. Added to `WirePage.GhRow`, `WirePage.HnRow`, and `LiveFeed.FeedRowItem`. The invariant is now verifiable from the UI with one hover.
+
+3. **Polish 7 — Mobile gate** (`1b3ae4a`). Next 16 `Viewport` export in `layout.tsx` (`width: "device-width"`, `themeColor: "#06080a"`, etc.). Pure-CSS breakpoint gate in `globals.css`: `.ap-desktop-only` hides below 768px, `.ap-mobile-only` only paints below 768px. New `src/components/chrome/MobileNotice.tsx` renders a full-viewport "Best viewed on desktop" overlay with AI Pulse wordmark, live dot, explanatory copy, and the three primary-source fallback URLs (`/data-sources.md`, `/api/status`, `/api/rss`). Zero JS breakpoint detection → no hydration flicker.
+
+4. **Lab-dot test hardening** (`21b7dd5`). Resolves session-22 NEXT #1 flake. Added a one-line test hook in `FlatMap.tsx` — after Leaflet init, stash the map instance on the container element as `__apMap` so Playwright can drive `setView([lat, lng], zoom)` deterministically. Test now zooms to MPI-IS Tübingen (48.54, 9.06) at zoom 10, past Leaflet's `disableClusteringAtZoom: 9` threshold. Tübingen is a small academic town with no other lab HQ and no major tech-hub live traffic nearby, so the only violet marker in that viewport is the one we want to assert on. No prod behaviour change; `__apMap` is just a ref stashed on the container DOM node.
+
+5. **Playwright prod smoke — 26/26 green in 55.5s.** Ran `npm run test:visual` against `https://aipulse-pi.vercel.app` after the `8421253` production deploy succeeded. The previously flaky `06-ai-labs.spec.ts › map renders lab HQ markers in violet` now passes in 3.4s.
+
+**Files changed (session 24):**
+
+- CSS (1): `src/app/globals.css` (type-scale tokens, titlebar bump, mobile-gate media queries)
+- App chrome (2): `src/app/layout.tsx` (Viewport export, MobileNotice mount), `src/components/chrome/MobileNotice.tsx` (new)
+- Dashboard components (6): `src/components/dashboard/MetricsRow.tsx`, `src/components/dashboard/MetricTicker.tsx`, `src/components/dashboard/WirePage.tsx`, `src/components/dashboard/LiveFeed.tsx`, `src/components/labs/LabCard.tsx`, `src/components/wire/SourceCard.tsx`, `src/components/health/UptimeSparkline.tsx`
+- Map (1): `src/components/map/FlatMap.tsx` (5-line `__apMap` test hook)
+- Test (1): `tests/visual/06-ai-labs.spec.ts` (deterministic MPI-IS Tübingen zoom)
+
+**Test + build state:**
+
+- Unit tests: **200/200 ✓** (unchanged baseline, no new unit tests added — all new work validated by either the type-scale visual contract or the Playwright suite).
+- `npm run build`: ✓ compiled in ~2s, TypeScript clean, 6 static pages + 17 dynamic API routes intact.
+- Playwright visual smoke (prod): **26/26 green in 55.5s** against `https://aipulse-pi.vercel.app`.
+
+**AUDITOR-REVIEW: PENDING (this session's additions):**
+
+- *Polish 5 type scale* — Auditor should sanity-check at 1920px that the metric cards don't feel over-large now that values are 18px (was ~16px `text-lg`). Also confirm 12px labels are legible on low-DPI external monitors.
+- *Polish 7 mobile notice* — Auditor should eyeball at 375px and 360px widths to confirm the three primary-source links don't wrap awkwardly; the flex layout has `flex-wrap` but the visual hasn't been smoke-tested on real devices.
+- *Lab-dot test hook* — `__apMap` is a minimal test affordance stashed on the map container. Auditor should confirm this is acceptable (vs. extracting a proper ref-forwarding contract) — my call is that a single-property DOM attachment with a 4-line comment block is proportionate to the test-flake problem it solves.
+
+**NEXT (for session 25):**
+
+1. Optional — Auditor review of the three pending items above.
+2. Optional — explore whether any *more* visual regressions surface during the 26/26 smoke run that aren't covered by the existing specs (e.g. the topmost/behind panel emphasis from session 23 still isn't explicitly asserted; it's only verified indirectly).
+3. Otherwise: await user direction. The pre-share trust bar is cleared AND the polish queue is empty — AI Pulse is in a genuinely shippable state for external sharing.
+
+**Session 25 entry point:** `main` is clean at `8421253`. First command: `git status && npx vitest run && npm run test:visual` to confirm the 200-unit + 26-visual baseline, then pick the next deliverable with the user.
+
+---
+
+## Previous sessions
+
 ### Session 23 — UI/UX trust-blocker fixes from screenshot review · MERGED
 
 **Status:** PR #5 merged to `main` at 2026-04-20 23:13:40 UTC (merge commit `383a481`). Branch deleted. User sign-off: *"The product is shareable now. Every number cites its source, every link goes to a primary source, panels don't overlap. That's the trust bar cleared."*
@@ -51,8 +101,6 @@ Session brief (user, via `/session-start` args): *"Several UI/UX issues to fix b
 **Session 24 entry point:** `main` is clean at `383a481`. First command: `git status && npx vitest run` to confirm the 200-green baseline, then pick the next deliverable with the user. User-stated priority: the polish items are "real but not merge-blockers — ship them alongside whatever you build next."
 
 ---
-
-## Previous sessions
 
 ### Session 22 — RSS ship: merge, seed, prod verify
 
