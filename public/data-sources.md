@@ -201,6 +201,20 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - **Powers:** Research panel (top-20 recent-papers feed on the dashboard)
 - **Last verified:** 2026-04-19
 
+### Hacker News — AI-filtered story stream
+- **ID:** `hn-ai-stories`
+- **Public URL:** https://news.ycombinator.com
+- **API endpoints:** `https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=100` (list + metadata) · `https://hacker-news.firebaseio.com/v0/user/{username}.json` (author `about` field only, for location resolution)
+- **Response format:** JSON
+- **Update frequency:** Every 15 minutes (GH Actions cron → `/api/wire/ingest-hn` → Upstash Redis). Dashboard polls `/api/hn` every 60 s with a matching 60 s CDN `s-maxage`.
+- **Rate limit:** Algolia HN search and Firebase HN user endpoint are both unmetered and require no auth (verified via response headers 2026-04-20). 96 polls/day × (1 Algolia page + up to 20 Firebase user fetches for cache-missed authors) stays well clear of any realistic shared-IP ceiling. No-auth requirement means no secret to rotate.
+- **Auth:** None
+- **What it measures:** Top 20 most-recent HN stories (after a deterministic AI-keyword + domain allowlist filter; soft blacklist drops crypto / girlfriend / NSFW noise) surfaced into THE WIRE alongside GitHub events. No sentiment scoring, no launch detection, no editorial judgement — we surface titles, points, and comment counts as returned by Algolia, in strict chronological order by `created_at_i`. Firebase user endpoint is used ONLY to read the `about` field for author location; no karma, submission history, or full profile is stored.
+- **Sanity check:** After the AI-relevance filter, expected 0–20 stories per 15-min poll. A value > 20 indicates the filter regressed (too permissive); a streak of 0 across ≥ 8 consecutive polls (2 h) indicates source breakage. Secondary sanity: geocode resolution rate over a 24 h window should land in 15–35 % of HN authors. Shape verified 2026-04-20 (`hits[]` with `objectID`/`title`/`url`/`author`/`points`/`num_comments`/`created_at_i`/`created_at`; `about` field present on profile samples).
+- **Caveat:** Two endpoints under one logical source: Algolia returns every story field AI Pulse needs, so Firebase `/v0/item/{id}.json` is intentionally NEVER called. Author locations are cached 7 days in `hn:author:{username}`; items live 24 h in `hn:item:{id}`. The AI-relevance filter is a pre-committed deterministic allowlist/blacklist in `src/lib/data/wire-hn.ts` (keywords like `claude`, `gpt`, `llm`, `mcp`, `rlhf`; domains like `arxiv.org`, `huggingface.co`; blacklist `crypto`/`girlfriend`/`nsfw`) — never an LLM. Secondary sanity range (not representable in the single-field `SanityCheck` type in `data-sources.ts`): `geocodeResolutionPct` should sit in [15 %, 35 %]; lower values indicate HN profile `about` text that the curated geocoder dictionary doesn't cover. Privacy posture: only username + raw location string + resolved lat/lng are persisted — never the full `about` body, karma, or submission history.
+- **Powers:** THE WIRE (interleaved with GitHub events, chronological) · Flat map HN markers · Globe HN dots
+- **Last verified:** 2026-04-20
+
 ---
 
 ## Tracked without a verifiable source (gap surfaced, not hidden)
@@ -220,7 +234,9 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - Any source that returns data outside its sanity-check range is treated as broken — the affected feature falls back to graceful degradation, and the discrepancy is investigated before the metric returns to the UI.
 - Widening a sanity-check range after verification is allowed and must be documented (see `gh-issues-claude-code` caveat). Recalibrating a range to chase a narrative is forbidden.
 
-_Last updated: 2026-04-19 (session 12 — expanded GitHub Events API entry to document the events-backfill discovery path that re-uses the existing globe buffer to grow `repo-registry` at zero new Search-API cost)._
+_Last updated: 2026-04-20 (session 16 — added Hacker News AI-filtered story stream as 10th verified source; two endpoints under one logical entry, deterministic allowlist/blacklist filter, unmetered, shape verified)._
+
+_Previous: 2026-04-19 (session 12 — expanded GitHub Events API entry to document the events-backfill discovery path that re-uses the existing globe buffer to grow `repo-registry` at zero new Search-API cost)._
 
 _Previous: 2026-04-19 (session 9.3 / Phase B — added GitHub Code Search for repo-registry discovery; expanded GitHub Contents API entry to document its dual use by the globe existence-probe and the registry shape-verifier)._
 

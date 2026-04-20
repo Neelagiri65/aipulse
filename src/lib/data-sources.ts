@@ -403,6 +403,34 @@ export const HUGGINGFACE_MODELS: DataSource = {
   powersFeature: ["models-panel"],
 };
 
+export const HN_AI_STORIES: DataSource = {
+  id: "hn-ai-stories",
+  name: "Hacker News — AI-filtered story stream",
+  category: "community-sentiment",
+  url: "https://news.ycombinator.com",
+  apiUrl:
+    "https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=100",
+  responseFormat: "json",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "Algolia HN search and Firebase HN user endpoint are both unmetered and require no auth (verified via response headers 2026-04-20). Cron at 15min cadence → 96 polls/day. Each poll fetches 1 Algolia page + up to 20 Firebase user pages (cache-missed authors only). No-auth requirement means no secret to rotate.",
+  },
+  auth: "none",
+  measures:
+    "Top 20 most-recent HN stories (after a deterministic AI-keyword + domain allowlist filter; soft blacklist drops crypto/girlfriend/nsfw noise) surfaced into THE WIRE alongside GitHub events. No sentiment scoring, no launch detection, no editorial judgement — we surface titles, points, and comment counts as returned by Algolia, in strict chronological order by created_at. Firebase user endpoint is used ONLY to read the `about` field for author location; no karma, submission history, or full profile is stored.",
+  sanityCheck: {
+    description:
+      "After the AI-relevance filter, expected 0–20 stories per 15-min poll. A value > 20 indicates the filter regressed (too permissive); a streak of 0 across ≥ 8 consecutive polls (2h) indicates source breakage. Secondary sanity: geocode resolution rate over 24h should land in 15–35% of HN authors (documented in caveat below, not in the single-field SanityCheck type).",
+    expectedMin: 0,
+    expectedMax: 20,
+    unit: "AI-relevant stories per 15-min poll",
+  },
+  verifiedAt: "2026-04-20",
+  caveat:
+    "Two endpoints under one logical source: (1) hn.algolia.com/api/v1/search_by_date?tags=story (list + metadata; shape verified 2026-04-20: `hits[]` with author/title/url/points/num_comments/created_at_i/created_at), (2) hacker-news.firebaseio.com/v0/user/{id}.json (location only; shape verified 2026-04-20: `about` field present on profiles). Firebase /v0/item/{id}.json is intentionally NEVER called — Algolia already returns every story field. Author locations are cached 7 days in hn:author:{username}; items live 24h in hn:item:{id}. Secondary sanity range (not representable in SanityCheck type): geocodeResolutionPct should sit in [15%, 35%]; lower values indicate HN profile `about` text that the curated geocoder dictionary doesn't cover. Privacy posture: only username + raw location string + resolved lat/lng are persisted — never the full `about` body, karma, or submission history.",
+  powersFeature: ["the-wire", "flat-map", "globe"],
+};
+
 // ---------------------------------------------------------------------------
 // PENDING VERIFICATION — DO NOT CONSUME IN DASHBOARD
 // These sources are referenced in the spec but have not been Phase-0 validated
@@ -486,6 +514,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   WINDSURF_STATUS,
   HUGGINGFACE_MODELS,
   ARXIV_PAPERS,
+  HN_AI_STORIES,
 ] as const;
 
 export const VERIFIED_SOURCES: readonly DataSource[] = ALL_SOURCES.filter(

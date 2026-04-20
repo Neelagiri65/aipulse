@@ -63,6 +63,7 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       total: number;
       live: number;
       registry: number;
+      hn: number;
       decaySum: number;
       events: GlobePoint[];
     }
@@ -74,7 +75,9 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
     const key = `${by}:${bx}`;
     const meta = p.meta as EventMeta | undefined;
     const kind = meta?.kind;
-    const isLive = kind !== "registry";
+    const isRegistry = kind === "registry";
+    const isHn = kind === "hn";
+    const isLive = !isRegistry && !isHn;
     const isAi = meta?.hasAiConfig === true;
     const decay = typeof meta?.decayScore === "number" ? meta.decayScore : 0;
     const b = buckets.get(key);
@@ -84,6 +87,7 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       b.total += 1;
       if (isAi) b.ai += 1;
       if (isLive) b.live += 1;
+      else if (isHn) b.hn += 1;
       else {
         b.registry += 1;
         b.decaySum += decay;
@@ -96,8 +100,9 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
         ai: isAi ? 1 : 0,
         total: 1,
         live: isLive ? 1 : 0,
-        registry: isLive ? 0 : 1,
-        decaySum: isLive ? 0 : decay,
+        registry: isRegistry ? 1 : 0,
+        hn: isHn ? 1 : 0,
+        decaySum: isRegistry ? decay : 0,
         events: [p],
       });
     }
@@ -110,14 +115,17 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
 
     // Bucket colour:
     // - Any live activity → dominant live event type
+    // - HN-only → HN brand orange
     // - Registry-only → slate, opacity driven by avg decay
+    // Mixed HN + registry (no live) → HN wins so community signal stays
+    // visible against the decayed base layer.
     let color: string;
     let dominantType: string;
     if (b.live > 0) {
       const typeCounts = new Map<string, number>();
       for (const ev of b.events) {
         const m = ev.meta as EventMeta | undefined;
-        if (m?.kind === "registry") continue;
+        if (m?.kind === "registry" || m?.kind === "hn") continue;
         const t = m?.type ?? "unknown";
         typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1);
       }
@@ -125,6 +133,9 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
         [...typeCounts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0] ??
         "unknown";
       color = colorForType(dominantType);
+    } else if (b.hn > 0) {
+      dominantType = "hn";
+      color = "#ff6600";
     } else {
       dominantType = "registry";
       color = SLATE;
@@ -134,6 +145,8 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
 
     // Size:
     //   Live buckets — existing rule, scales with live count.
+    //   HN-only — steady mid-range; HN reads as community signal, not
+    //   activity pulse, so it shouldn't flicker in size with point count.
     //   Registry-only — smaller floor, scaled by registry count and the
     //   avg decay so dormant regions read dimmer + smaller than active
     //   regions with comparable registry density.
@@ -142,6 +155,8 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       const aiDominant = b.ai > 0;
       const base = aiDominant ? 0.55 : 0.32;
       size = Math.min(1.6, base + Math.log2(1 + b.live) * 0.22);
+    } else if (b.hn > 0) {
+      size = Math.min(0.9, 0.32 + Math.log2(1 + b.hn) * 0.18);
     } else {
       const decayWeight = 0.35 + avgDecay * 0.5; // 0.35..0.85
       size = Math.min(
@@ -150,15 +165,18 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       );
     }
 
-    // Sort: live events first (newest-first by createdAt), then registry
-    // entries (newest-first by lastActivity). Card leads with the freshest
-    // live action and falls back to "here's who lives in this region".
+    // Sort: live events first, then HN stories, then registry entries.
+    // Within each band, newest-first by createdAt/lastActivity. Card
+    // leads with the freshest live action, then community signal, then
+    // the "here's who lives in this region" base layer.
     const sortedEvents = b.events.slice().sort((a, z) => {
       const am = a.meta as EventMeta | undefined;
       const zm = z.meta as EventMeta | undefined;
-      const aLive = am?.kind !== "registry";
-      const zLive = zm?.kind !== "registry";
-      if (aLive !== zLive) return aLive ? -1 : 1;
+      const rankFor = (m: EventMeta | undefined) =>
+        m?.kind === "registry" ? 2 : m?.kind === "hn" ? 1 : 0;
+      const rA = rankFor(am);
+      const rZ = rankFor(zm);
+      if (rA !== rZ) return rA - rZ;
       const atA = am?.createdAt ?? am?.lastActivity ?? "";
       const atZ = zm?.createdAt ?? zm?.lastActivity ?? "";
       return atZ.localeCompare(atA);
@@ -173,6 +191,7 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       aiCount: b.ai,
       liveCount: b.live,
       registryCount: b.registry,
+      hnCount: b.hn,
       avgDecay,
       events: sortedEvents,
     });
@@ -206,15 +225,19 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
 
   const clusters = useMemo(() => clusterPoints(points), [points]);
   // Clusters we adorn with an HTML element:
-  //   - Any multi-event cluster (numeric badge).
+  //   - Multi-live clusters (numeric badge, live-type colour).
   //   - Singleton live AI-config dots (halo ring).
-  // Registry-only singleton dots are left unlabelled — they're the
-  // quiet base layer, meant to read as density, not call attention.
+  //   - Multi-HN clusters with no live activity (numeric badge, orange).
+  // Registry-only and singleton-HN dots stay unlabelled — base layer
+  // and singleton signal respectively read as density, not call-outs.
   const labeledClusters = useMemo(
     () =>
-      clusters.filter(
-        (c) => c.liveCount > 1 || (c.liveCount === 1 && c.aiCount > 0),
-      ),
+      clusters.filter((c) => {
+        if (c.liveCount > 1) return true;
+        if (c.liveCount === 1 && c.aiCount > 0) return true;
+        if (c.liveCount === 0 && c.hnCount > 1) return true;
+        return false;
+      }),
     [clusters],
   );
   const hasData = points.length > 0;
@@ -285,6 +308,8 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
           pointLng={(d) => (d as Cluster).lng}
           // Per-cluster colour:
           //   Live bucket      → full-opacity event-type colour.
+          //   HN-only (no live) → full-opacity HN orange. Community
+          //                       signal should read as bright as live.
           //   Registry-only    → slate with alpha = avgDecay × 0.7 so
           //                      a 90-day-old cluster reads ~7% and a
           //                      24h cluster reads ~70% — dim base vs
@@ -292,6 +317,7 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
           pointColor={(d) => {
             const c = d as Cluster;
             if (c.liveCount > 0) return c.color;
+            if (c.hnCount > 0) return c.color;
             const alpha = Math.max(0.07, Math.min(0.7, c.avgDecay * 0.7));
             return hexA(c.color, alpha);
           }}
