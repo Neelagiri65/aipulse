@@ -188,6 +188,14 @@ build queue; this is the rationale and the longer tail.
    ToS. Do not revisit without a policy change on Sourcegraph's
    side.
 
+6. **OSS Insight** (`ossinsight.io`) — WORTH INVESTIGATING. Uses
+   TiDB to analyse GitHub events at scale; returns trending repos
+   and ecosystem comparisons. Has a public API. Check terms +
+   rate limits + whether outputs are derived (score-shaped, which
+   would violate our "aggregate don't score" rule) vs. raw event
+   aggregates (which would not). Research-first pass required
+   before it lands in `data-sources.ts`.
+
 ### Features discussed but not built
 
 6. **Agents tab** — data source undecided (HF Spaces? GitHub
@@ -257,12 +265,29 @@ build queue; this is the rationale and the longer tail.
 - Left nav active: Wire, Tools, Models, Research.
 - Left nav greyed: Agents ("SOON").
 
+**Architecture dashboard (reference — not yet indexed here).**
+In the session 14 discussion we walked through a complete system
+map: tech stack, free-tier infrastructure (Vercel + Upstash +
+GitHub Actions), data pipelines, Redis schema, API routes,
+screens, cron workflows, data loading times, security
+infrastructure, failure modes, and distributed-system topology.
+That map is not transcribed in this HANDOFF — it lives in the
+session transcript / separate artifact. TODO: paste the dashboard
+into `docs/architecture-dashboard.md` and link it from here so
+future sessions can load it without re-deriving. Until then,
+treat `docs/AI_PULSE_V3_SPEC.md` + the live source registry
+(`public/data-sources.md`) as the substitute.
+
 ### Critical risks (monitor — not blocking)
 
-- **GH_TOKEN expires in ~90 days.** When it lapses, all discovery
-  crons fail silently (search + code-search + topics + deps all
-  use the same token). Set a calendar reminder; rotate via
-  Keychain → Vercel env → GitHub Actions repo secret in one pass.
+- **GH_TOKEN expires in ~90 days (issued late Apr 2026 → expires
+  ~2026-07-19).** When it lapses, all discovery crons fail
+  silently — search, code-search, topics, and deps all use the
+  same token. **ACTION: set calendar reminder for 2026-07-12**
+  (one week before expiry) to rotate via Keychain → Vercel env
+  (Production + Preview + Development) → GitHub Actions repo
+  secret in one pass. Verify post-rotation by kicking
+  registry-discover workflow manually.
 - **Upstash free tier ceiling: 500k commands/month.** Registry
   grows monotonically (decision #16); poll + cache-read traffic
   grows with panels. Monitor Upstash dashboard monthly; if usage
