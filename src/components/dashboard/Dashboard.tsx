@@ -163,7 +163,13 @@ export function Dashboard() {
   // true — every registry entry has AI config) but not event-type
   // filters (registry points have no `type`). Registry is the base
   // map; event-type filters only narrow the live pulse layer.
-  const points: GlobePoint[] = [...livePoints, ...dedupedRegistry];
+  //
+  // HN points carry kind="hn" + locationLabel from the author's HN
+  // profile. FlatMap + Globe detect kind and render them in HN orange.
+  // No filter applied: HN is a parallel signal (community discussion,
+  // not GH activity), so event-type + ai-config filters don't apply.
+  const hnPoints: GlobePoint[] = hn.data?.points ?? [];
+  const points: GlobePoint[] = [...livePoints, ...dedupedRegistry, ...hnPoints];
 
   // Pre-merge GH events + HN stories into a single chronological wire
   // list. Both surfaces (WirePage + downstream map/globe) share this
