@@ -1,0 +1,72 @@
+name: benchmarks-ingest-lmarena
+
+# Chatbot Arena benchmarks ingest: pull the latest snapshot from the
+# HuggingFace Datasets Server (lmarena-ai/leaderboard-dataset, config=text,
+# split=latest), seek the previous publish_date from split=full, compute
+# rank + Elo deltas, run the pre-committed sanity checks, and commit the
+# resulting data/benchmarks/lmarena-latest.json — IFF it differs from the
+# already-committed file (idempotent no-op per PRD AC 10).
+#
+# Cadence: daily at 03:15 UTC. No collision with existing crons:
+#   - globe-ingest             :*/10
+#   - wire-ingest-hn           :05,:20,:35,:50
+#   - registry-backfill-events :15
+#   - registry-discover        other slots
+# The :15 hour-03 slot is unused and lmarena-ai refreshes infrequently
+# enough that daily is plenty.
+#
+# Auth: none required. The HuggingFace Datasets Server is unmetered for
+# public datasets. No Vercel round-trip — this workflow runs the ingest
+# script directly on the Actions runner and commits the JSON back.
+#
+# Failure posture (PRD AC 13): the script exits 0 on any fetch failure,
+# leaving the JSON untouched. The `git diff` gate below then detects no
+# change and skips the commit. UI continues to serve the last good JSON.
+
+on:
+  schedule:
+    - cron: "15 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: benchmarks-ingest-lmarena
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Run benchmarks ingest
+        run: |
+          node \
+            --experimental-strip-types \
+            --no-warnings=ExperimentalTypeStripping \
+            scripts/ingest-benchmarks.mts
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet --exit-code data/benchmarks/lmarena-latest.json; then
+            echo "No change to data/benchmarks/lmarena-latest.json; skipping commit."
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/benchmarks/lmarena-latest.json
+
+          PUBLISH_DATE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('data/benchmarks/lmarena-latest.json','utf8')).meta?.leaderboardPublishDate ?? 'unknown')")
+          git commit -m "chore(benchmarks): refresh lmarena snapshot (publishDate=${PUBLISH_DATE})"
+          git push
