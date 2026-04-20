@@ -1,6 +1,55 @@
 # HANDOFF — AI Pulse
 
-## Current state (2026-04-20)
+## Current state (2026-04-21)
+
+### Session 23 — UI/UX trust-blocker fixes from screenshot review
+
+Session brief (user, via `/session-start` args): *"Several UI/UX issues to fix before the product is shareable … Fix items 1, 2, 3, and 4 first — those are the trust and usability blockers. Items 5-7 are polish."* User priority quote: *"The AI Labs Wikipedia link issue is the worst one — it directly undermines trust. An observatory linking to Wikipedia for its primary data looks amateur."*
+
+**Shipped this session (4/4 critical blockers, polish items 5–7 deferred to session 24):**
+
+1. **Fix 1 — Panel overlap visual emphasis** (not single-panel-only). Chose z-order emphasis over single-panel-at-a-time so the default three-surface layout (wire + tools + map) still works. `Win.tsx` gains a `topmost?: boolean` prop; `Dashboard.tsx` computes `topmostOpenId` by walking the `zorder` stack in reverse and passes the boolean to each of the 7 panels. `globals.css` adds `.ap-win--topmost` (teal glow + stronger border + amped drop shadow) and `.ap-win--behind` (opacity 0.86, muted shadow, hover-lifts to 0.96). Net: the top panel reads distinctly from siblings without hiding them.
+
+2. **Fix 2 — AI Labs Wikipedia links → primary-source URLs.** The worst offender per user. Added a new `url: string` field alongside `hqSourceUrl` on every `LabEntry`. `hqSourceUrl` preserved as HQ-coordinate provenance citation (may still cite Wikipedia — it's a valid source for "where is Anthropic headquartered"); `url` is the click target for the lab name and must never be Wikipedia. Updated all 32 labs in `data/ai-labs.json` — openai-sf → `openai.com`, anthropic-sf → `anthropic.com`, deepmind-london → `deepmind.google/`, fair-menlo-park → `ai.meta.com/research/`, mistral-paris → `mistral.ai`, deepseek-hangzhou → `deepseek.com`, stability-london → `stability.ai`, huggingface-nyc → `huggingface.co`, xai-paloalto → `x.ai`, cohere-toronto → `cohere.com`, ai21-telaviv → `ai21.com`, tsinghua-thudm → `github.com/THUDM` (GH org fallback because the Tsinghua KEG page is an academic subpage with a fragile URL). Plumbed through `LabEntry` / `LabActivity` / `EventMeta.labUrl` / `labs-to-points.meta` / `LabsPanel` row anchor / `LabCard` heading anchor / `event-detail.LabRow` anchor. `validateLabsRegistry()` now requires `url` to be https; a registry-invariant test asserts no lab `url` contains `wikipedia.org`.
+
+3. **Fix 3 — Regional Wire rows link to actual articles + expose feed URL.** Added `publisherUrl: string` to `RssSource` (validator enforces https) and propagated through `RssSourcePanel` along with the existing `rssUrl`. `RegionalWirePanel` now renders 3 recent article titles inline per publisher row, each linking directly to the publisher's own article URL (`item.url`), plus a `site ↗ · rss ↗` footer with the raw feed format tag. Publisher-name click target switched from `hqSourceUrl` → `publisherUrl`. `SourceCard` lab/publisher heading now wraps to `publisherUrl`, and its right-hand meta exposes both `rss ↗` and `HQ source ↗` as separate citations. `event-detail.RssRow` prefers `rssSource.publisherUrl` over `rssHqSourceUrl` with a graceful fallback. `public/data-sources.md` updated to describe the two-URL contract (provenance vs click target) for both the AI Labs and Press-RSS sections.
+
+4. **Fix 4 — Tool Health maximise cleanup.** Removed the "Status only · additional metrics pending dedicated sources" placeholder inside `LiveBody` in `ToolHealthCard.tsx` — the severity pill in the header already communicates status, and the placeholder added noise at maximised width. `HealthCardGrid` moved to `grid-cols-[repeat(auto-fit,minmax(300px,1fr))]` so the cards reflow to 1–3 columns based on panel width (works at default, maximised, and everything in between).
+
+**Files changed (session 23):**
+
+- Code (12): `src/components/chrome/Win.tsx`, `src/components/dashboard/Dashboard.tsx`, `src/components/health/ToolHealthCard.tsx`, `src/components/health/HealthCardGrid.tsx`, `src/lib/data/labs-registry.ts`, `src/lib/data/fetch-labs.ts`, `src/components/labs/labs-to-points.ts`, `src/components/labs/LabsPanel.tsx`, `src/components/labs/LabCard.tsx`, `src/components/globe/event-detail.tsx`, `src/lib/data/rss-sources.ts`, `src/lib/data/wire-rss.ts`, `src/components/wire/RegionalWirePanel.tsx`, `src/components/wire/SourceCard.tsx`
+- CSS (1): `src/app/globals.css`
+- Data (1): `data/ai-labs.json` (32 labs now carry `url` in addition to `hqSourceUrl`)
+- Tests updated / expanded (6): `src/lib/data/__tests__/labs-registry.test.ts` (added 2 validator tests + registry-invariant no-Wikipedia test), `src/lib/data/__tests__/fetch-labs.test.ts`, `src/components/labs/__tests__/labs-to-points.test.ts`, `src/lib/data/__tests__/rss-sources.test.ts` (added 1 no-Wikipedia invariant test), `src/lib/data/__tests__/wire-rss.test.ts`, `src/lib/data/__tests__/assemble-rss-wire.test.ts`, `src/components/wire/__tests__/rss-to-points.test.ts`
+- Doc (1): `public/data-sources.md`
+
+**Test + build state:**
+
+- Unit tests: **200/200 ✓** (was 196; +4 from new labs `url` + RSS `publisherUrl` invariants).
+- `tsc --noEmit`: clean on everything outside the pre-existing `wire-rss.test.ts` StoreSpy / item-null errors already flagged in session 21 as out-of-scope.
+- `npm run build`: ✓ compiled in 2.0s, TypeScript clean, 6 static pages generated, 17 dynamic API routes intact.
+- Visual smoke: **not re-run this session** — code-only changes touched panel chrome CSS + registry fields. Should run after deploy to confirm the topmost/behind emphasis reads correctly at the visual layer.
+
+**AUDITOR-REVIEW: PENDING (this session's additions):**
+
+- *Fix 1 (panel z-order emphasis)* — Auditor should validate whether the opacity-behind treatment is legible enough when 3+ panels stack, vs. the single-panel-only alternative the user also offered.
+- *Fix 2 (lab url field)* — a few labs use `https://github.com/<org>` as the `url` because the org has no stable website. Auditor should decide whether "GH org" is an acceptable primary-click target for an AI lab or whether those entries should be demoted. Candidates: `tsinghua-thudm` (confirmed academic-fragile), and any lab whose `url` starts with `github.com/` after the commit.
+- *Fix 3 (publisherUrl for The Register)* — chose the AI/ML section page (`/software/ai_ml/`) over the publication root (`theregister.com`) to match the feed's scope. Auditor may want the root instead. Same pattern on MIT TR (`/topic/artificial-intelligence/` vs `technologyreview.com`).
+- *Fix 4 (grid auto-fit)* — at very wide panel widths the cards may tile 4+ columns with shrunk content; 300px min is a guess based on the screenshot. Auditor should spot-check at 1920px panel width.
+
+**NEXT (for session 24 — user to pick):**
+
+1. *Ship the polish backlog (items 5–7):* standardise font sizes (panel titles 14, card labels 12, sparkline labels 10, metric values 18); fix WIRE timestamp batching to show publisher-event time instead of ingest time; add viewport meta + "best viewed on desktop" fallback.
+2. *Run the visual smoke against prod* post-deploy to verify the topmost/behind panel emphasis renders, and confirm the Regional Wire now shows inline article links.
+3. *Public share*, now that the four trust blockers are gone — the Wikipedia link issue was the biggest objection to sharing.
+4. *Lab-dot test hardening* from session 22 NEXT #1 (option (a): zoom to a quiet lab HQ lat/lng before asserting violet).
+
+**Session 24 entry point:** clean `main` after the session-23 commit lands. First command: `git status && npx vitest run` to confirm the 200-green baseline, then pick item 1/2/3/4 above.
+
+---
+
+## Previous sessions
 
 ### Session 22 — RSS ship: merge, seed, prod verify
 
