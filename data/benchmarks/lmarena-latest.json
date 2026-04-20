@@ -1,6 +1,356 @@
 {
-  "ok": false,
-  "reason": "not_yet_ingested",
-  "rows": [],
-  "meta": null
+  "ok": true,
+  "rows": [
+    {
+      "rank": 1,
+      "modelName": "claude-opus-4-6-thinking",
+      "organization": "anthropic",
+      "rating": 1499.6906618008832,
+      "ratingLower": 1494.5718951145025,
+      "ratingUpper": 1504.8094284872639,
+      "voteCount": 18144,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 2,
+      "modelName": "claude-opus-4-6",
+      "organization": "anthropic",
+      "rating": 1495.4954391129315,
+      "ratingLower": 1490.5135298555215,
+      "ratingUpper": 1500.4773483703416,
+      "voteCount": 19373,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 3,
+      "modelName": "claude-opus-4-7-thinking",
+      "organization": "anthropic",
+      "rating": 1489.9043776833437,
+      "ratingLower": 1478.4486993892197,
+      "ratingUpper": 1501.3600559774675,
+      "voteCount": 2618,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 4,
+      "modelName": "gemini-3.1-pro-preview",
+      "organization": "google",
+      "rating": 1487.3162789073313,
+      "ratingLower": 1482.42756528764,
+      "ratingUpper": 1492.2049925270223,
+      "voteCount": 22905,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 5,
+      "modelName": "claude-opus-4-7",
+      "organization": "anthropic",
+      "rating": 1484.6268543696208,
+      "ratingLower": 1474.7445667798752,
+      "ratingUpper": 1494.5091419593666,
+      "voteCount": 3485,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 6,
+      "modelName": "muse-spark",
+      "organization": "meta",
+      "rating": 1481.41705524154,
+      "ratingLower": 1473.1591306765388,
+      "ratingUpper": 1489.6749798065416,
+      "voteCount": 5155,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 7,
+      "modelName": "gemini-3-pro",
+      "organization": "google",
+      "rating": 1479.4023786387024,
+      "ratingLower": 1475.482473636226,
+      "ratingUpper": 1483.322283641179,
+      "voteCount": 41404,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 8,
+      "modelName": "qwen3.5-max-preview",
+      "organization": "alibaba",
+      "rating": 1472.4440857274278,
+      "ratingLower": 1465.8938651155,
+      "ratingUpper": 1478.9943063393555,
+      "voteCount": 9591,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 9,
+      "modelName": "gpt-5.4-high",
+      "organization": "openai",
+      "rating": 1471.976668479306,
+      "ratingLower": 1465.8299997648562,
+      "ratingUpper": 1478.123337193756,
+      "voteCount": 11568,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 10,
+      "modelName": "glm-5.1",
+      "organization": "zai",
+      "rating": 1469.0952685761667,
+      "ratingLower": 1462.024346265145,
+      "ratingUpper": 1476.1661908871886,
+      "voteCount": 7179,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 11,
+      "modelName": "gemini-3-flash",
+      "organization": "google",
+      "rating": 1466.642653320955,
+      "ratingLower": 1462.1649264936736,
+      "ratingUpper": 1471.1203801482366,
+      "voteCount": 30817,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 12,
+      "modelName": "gemini-2.5-pro",
+      "organization": "google",
+      "rating": 1460.9290883687793,
+      "ratingLower": 1458.2355591231387,
+      "ratingUpper": 1463.6226176144198,
+      "voteCount": 109121,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 13,
+      "modelName": "dola-seed-2.0-pro",
+      "organization": "",
+      "rating": 1456.5208416638495,
+      "ratingLower": 1451.564110050083,
+      "ratingUpper": 1461.4775732776163,
+      "voteCount": 20678,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 14,
+      "modelName": "grok-4.20-beta-0309-reasoning",
+      "organization": "xai",
+      "rating": 1456.4294590572213,
+      "ratingLower": 1450.5362462393891,
+      "ratingUpper": 1462.3226718750536,
+      "voteCount": 11661,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 15,
+      "modelName": "grok-4.20-beta1",
+      "organization": "xai",
+      "rating": 1454.333107556422,
+      "ratingLower": 1448.3096767390632,
+      "ratingUpper": 1460.3565383737805,
+      "voteCount": 12069,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 16,
+      "modelName": "gpt-5.4",
+      "organization": "openai",
+      "rating": 1453.3098310191365,
+      "ratingLower": 1447.242226310044,
+      "ratingUpper": 1459.377435728229,
+      "voteCount": 11988,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 17,
+      "modelName": "grok-4.20-multi-agent-beta-0309",
+      "organization": "xai",
+      "rating": 1450.1492372127211,
+      "ratingLower": 1444.294363435471,
+      "ratingUpper": 1456.004110989971,
+      "voteCount": 12049,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 18,
+      "modelName": "ernie-5.0-0110",
+      "organization": "baidu",
+      "rating": 1449.5192113838557,
+      "ratingLower": 1444.962133156367,
+      "ratingUpper": 1454.0762896113445,
+      "voteCount": 24211,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 19,
+      "modelName": "amazon-nova-experimental-chat-26-02-10",
+      "organization": "amazon",
+      "rating": 1448.497380504165,
+      "ratingLower": 1438.5762792384007,
+      "ratingUpper": 1458.4184817699293,
+      "voteCount": 3431,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 20,
+      "modelName": "gemini-3-flash (thinking-minimal)",
+      "organization": "google",
+      "rating": 1448.3664183864466,
+      "ratingLower": 1444.3812922981942,
+      "ratingUpper": 1452.351544474699,
+      "voteCount": 35422,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-04-17",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    }
+  ],
+  "meta": {
+    "leaderboardPublishDate": "2026-04-17",
+    "prevPublishDate": null,
+    "totalVotes": 412869,
+    "staleDays": 3,
+    "fetchedAt": "2026-04-20T08:22:09.075Z"
+  },
+  "sanity": {
+    "ok": true,
+    "warnings": []
+  }
 }
