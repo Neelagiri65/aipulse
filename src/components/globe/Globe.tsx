@@ -9,6 +9,10 @@ import {
   type Cluster,
   type EventMeta,
 } from "./event-detail";
+import {
+  LABS_VIOLET,
+  LABS_INACTIVE_OPACITY,
+} from "@/components/labs/labs-to-points";
 
 const ReactGlobe = dynamic(() => import("react-globe.gl"), {
   ssr: false,
@@ -64,6 +68,10 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       live: number;
       registry: number;
       hn: number;
+      lab: number;
+      activeLab: number;
+      /** Max lab dot size in the bucket — drives cluster size on lab-majority buckets. */
+      maxLabSize: number;
       decaySum: number;
       events: GlobePoint[];
     }
@@ -77,9 +85,12 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
     const kind = meta?.kind;
     const isRegistry = kind === "registry";
     const isHn = kind === "hn";
-    const isLive = !isRegistry && !isHn;
+    const isLab = kind === "lab";
+    const isLive = !isRegistry && !isHn && !isLab;
     const isAi = meta?.hasAiConfig === true;
     const decay = typeof meta?.decayScore === "number" ? meta.decayScore : 0;
+    const labSize = isLab && typeof p.size === "number" ? p.size : 0;
+    const labActive = isLab && meta?.labInactive !== true;
     const b = buckets.get(key);
     if (b) {
       b.lats.push(p.lat);
@@ -88,7 +99,11 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       if (isAi) b.ai += 1;
       if (isLive) b.live += 1;
       else if (isHn) b.hn += 1;
-      else {
+      else if (isLab) {
+        b.lab += 1;
+        if (labActive) b.activeLab += 1;
+        if (labSize > b.maxLabSize) b.maxLabSize = labSize;
+      } else {
         b.registry += 1;
         b.decaySum += decay;
       }
@@ -102,6 +117,9 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
         live: isLive ? 1 : 0,
         registry: isRegistry ? 1 : 0,
         hn: isHn ? 1 : 0,
+        lab: isLab ? 1 : 0,
+        activeLab: isLab && labActive ? 1 : 0,
+        maxLabSize: isLab ? labSize : 0,
         decaySum: isRegistry ? decay : 0,
         events: [p],
       });
@@ -113,14 +131,17 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
     const lat = b.lats.reduce((s, v) => s + v, 0) / b.lats.length;
     const lng = b.lngs.reduce((s, v) => s + v, 0) / b.lngs.length;
 
-    // Bucket colour — majority-wins between live and hn, registry
-    // never colours a mixed bucket (quiet base layer):
-    //   hn > live         → HN brand orange
-    //   live ≥ hn, live>0 → dominant GH event-type colour
-    //   hn-only           → HN orange
-    //   registry-only     → slate, opacity driven by avg decay
-    // Tie at live==hn goes to the live colour on the assumption that
-    // a real code-action signal outranks a discussion signal.
+    // Bucket colour — live > hn > lab > registry. A bucket with live
+    // GH activity reads as the live-pulse layer regardless of whether a
+    // lab sits under it; the lab still gets a row in the card. When no
+    // live activity, a lab bucket claims violet so the AI-Labs layer is
+    // visible even where HN is absent. Registry-only is the quiet base.
+    //   live > 0            → dominant GH event-type colour (or HN
+    //                         orange if hn > live)
+    //   live == 0, lab > 0  → LABS_VIOLET (labs layer dominates)
+    //   live == 0, lab == 0,
+    //     hn > 0            → HN orange
+    //   else                → slate, opacity driven by avg decay
     let color: string;
     let dominantType: string;
     const hnMajority = b.hn > b.live;
@@ -128,7 +149,7 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       const typeCounts = new Map<string, number>();
       for (const ev of b.events) {
         const m = ev.meta as EventMeta | undefined;
-        if (m?.kind === "registry" || m?.kind === "hn") continue;
+        if (m?.kind === "registry" || m?.kind === "hn" || m?.kind === "lab") continue;
         const t = m?.type ?? "unknown";
         typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1);
       }
@@ -136,6 +157,12 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
         [...typeCounts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0] ??
         "unknown";
       color = colorForType(dominantType);
+    } else if (b.live > 0 && hnMajority) {
+      dominantType = "hn";
+      color = "#ff6600";
+    } else if (b.lab > 0) {
+      dominantType = "lab";
+      color = LABS_VIOLET;
     } else if (b.hn > 0) {
       dominantType = "hn";
       color = "#ff6600";
@@ -148,6 +175,10 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
 
     // Size:
     //   Live buckets — existing rule, scales with live count.
+    //   Lab-only — use the max lab size in the bucket (already
+    //   log-scaled by labsToGlobePoints so one p95 outlier can't
+    //   dominate). Lab dots are deliberately calm vs the live pulse;
+    //   they mark *presence*, not activity spikes.
     //   HN-only — steady mid-range; HN reads as community signal, not
     //   activity pulse, so it shouldn't flicker in size with point count.
     //   Registry-only — smaller floor, scaled by registry count and the
@@ -158,6 +189,8 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       const aiDominant = b.ai > 0;
       const base = aiDominant ? 0.55 : 0.32;
       size = Math.min(1.6, base + Math.log2(1 + b.live) * 0.22);
+    } else if (b.lab > 0) {
+      size = Math.max(0.3, b.maxLabSize);
     } else if (b.hn > 0) {
       size = Math.min(0.9, 0.32 + Math.log2(1 + b.hn) * 0.18);
     } else {
@@ -168,15 +201,22 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       );
     }
 
-    // Sort: live events first, then HN stories, then registry entries.
-    // Within each band, newest-first by createdAt/lastActivity. Card
-    // leads with the freshest live action, then community signal, then
-    // the "here's who lives in this region" base layer.
+    // Sort: live events first, then HN stories, then AI-Lab dots, then
+    // registry entries. Within each band, newest-first by
+    // createdAt/lastActivity. Card leads with the freshest live action,
+    // then community signal, then labs (no timestamp — stable order by
+    // input), then the registry base layer.
     const sortedEvents = b.events.slice().sort((a, z) => {
       const am = a.meta as EventMeta | undefined;
       const zm = z.meta as EventMeta | undefined;
       const rankFor = (m: EventMeta | undefined) =>
-        m?.kind === "registry" ? 2 : m?.kind === "hn" ? 1 : 0;
+        m?.kind === "registry"
+          ? 3
+          : m?.kind === "lab"
+            ? 2
+            : m?.kind === "hn"
+              ? 1
+              : 0;
       const rA = rankFor(am);
       const rZ = rankFor(zm);
       if (rA !== rZ) return rA - rZ;
@@ -195,6 +235,8 @@ function clusterPoints(points: GlobePoint[]): Cluster[] {
       liveCount: b.live,
       registryCount: b.registry,
       hnCount: b.hn,
+      labCount: b.lab,
+      activeLabCount: b.activeLab,
       avgDecay,
       events: sortedEvents,
     });
@@ -320,6 +362,15 @@ export function Globe({ points = [], lastUpdatedAt }: GlobeProps) {
           pointColor={(d) => {
             const c = d as Cluster;
             if (c.liveCount > 0) return c.color;
+            // Lab-only bucket with zero activity across all labs in it:
+            // render dim violet so the dot stays present + clickable but
+            // reads as "tracked, quiet" rather than an active signal.
+            if (c.labCount > 0 && c.liveCount === 0) {
+              if (c.activeLabCount === 0) {
+                return hexA(LABS_VIOLET, LABS_INACTIVE_OPACITY);
+              }
+              return c.color;
+            }
             if (c.hnCount > 0) return c.color;
             const alpha = Math.max(0.07, Math.min(0.7, c.avgDecay * 0.7));
             return hexA(c.color, alpha);
@@ -437,6 +488,12 @@ function GlobeLegend() {
       <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
         Bright ring = repo has AI config
       </div>
+      <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
+        AI Labs
+      </div>
+      <ul className="mt-1 space-y-1">
+        <LegendRow color={LABS_VIOLET} label="Lab HQ · 7d activity" />
+      </ul>
       <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
         Registry decay (AI-cfg repos)
       </div>

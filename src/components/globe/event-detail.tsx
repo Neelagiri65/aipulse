@@ -12,7 +12,7 @@ import type { ConfigKind } from "@/lib/data/registry-shared";
  */
 export type EventMeta = {
   /** Present on all kinds. */
-  kind?: "event" | "registry" | "hn";
+  kind?: "event" | "registry" | "hn" | "lab";
   /** Live-event fields. */
   eventId?: string;
   type?: string;
@@ -39,6 +39,27 @@ export type EventMeta = {
   hnUrl?: string;
   author?: string;
   url?: string | null;
+  /** AI Lab fields (kind === "lab"). */
+  labId?: string;
+  displayName?: string;
+  labKind?: "industry" | "academic" | "non-profit";
+  labCity?: string;
+  labCountry?: string;
+  labTotal?: number;
+  labByType?: Record<string, number>;
+  labRepos?: Array<{
+    owner: string;
+    repo: string;
+    sourceUrl: string;
+    total: number;
+    byType: Record<string, number>;
+    stale: boolean;
+  }>;
+  labOrgs?: string[];
+  labHqSourceUrl?: string;
+  labStale?: boolean;
+  /** True when labTotal === 0; renderer dims the dot. */
+  labInactive?: boolean;
 };
 
 export type Cluster = {
@@ -55,6 +76,10 @@ export type Cluster = {
   registryCount: number;
   /** How many of `events` are HN stories (kind === "hn"). */
   hnCount: number;
+  /** How many of `events` are AI-Lab dots (kind === "lab"). */
+  labCount: number;
+  /** How many of the lab entries in this bucket have >0 7d activity. */
+  activeLabCount: number;
   /** Avg decayScore across registry entries in this bucket (0..1). */
   avgDecay: number;
   /** Underlying events that collapsed into this cluster. Sorted newest-first. */
@@ -169,9 +194,22 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
               </span>
             </>
           )}
+          {cluster.labCount > 0 && (
+            <>
+              {(cluster.liveCount > 0 ||
+                cluster.registryCount > 0 ||
+                cluster.hnCount > 0) && (
+                <span className="text-foreground/50"> · </span>
+              )}
+              <span style={{ color: "#a855f7" }}>
+                {cluster.labCount} lab{cluster.labCount === 1 ? "" : "s"}
+              </span>
+            </>
+          )}
           {cluster.liveCount === 0 &&
             cluster.registryCount === 0 &&
-            cluster.hnCount === 0 && (
+            cluster.hnCount === 0 &&
+            cluster.labCount === 0 && (
               <>{cluster.count} event{cluster.count === 1 ? "" : "s"}</>
             )}
         </span>
@@ -193,6 +231,9 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
           if (kind === "hn") {
             return <HnRow key={eventKey(p, i)} point={p} />;
           }
+          if (kind === "lab") {
+            return <LabRow key={eventKey(p, i)} point={p} />;
+          }
           return <EventRow key={eventKey(p, i)} point={p} />;
         })}
       </ul>
@@ -208,6 +249,7 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
 function eventKey(p: GlobePoint, fallback: number): string {
   const m = p.meta as EventMeta | undefined;
   if (m?.kind === "hn" && typeof m.id === "string") return `hn:${m.id}`;
+  if (m?.kind === "lab" && typeof m.labId === "string") return `lab:${m.labId}`;
   if (typeof m?.eventId === "string") return m.eventId;
   return `idx:${fallback}`;
 }
@@ -375,6 +417,68 @@ function HnRow({ point }: { point: GlobePoint }) {
         </span>
         <span className="ml-2 shrink-0 tabular-nums">
           {formatRelative(meta.createdAt)}
+        </span>
+      </div>
+    </li>
+  );
+}
+
+/**
+ * Minimal AI-Lab row — shipped with LABS-03 so a lab dot click doesn't
+ * land on the default `EventRow` branch (which would render "(unknown
+ * repo)"). The full LabCard UI (repo breakdown, HQ link, stale pill)
+ * arrives in LABS-04; this stub just surfaces the lab name, HQ city,
+ * and 7d total so the card is informative end-to-end from day one.
+ */
+function LabRow({ point }: { point: GlobePoint }) {
+  const meta = (point.meta ?? {}) as EventMeta;
+  const name = meta.displayName ?? meta.labId ?? "(unknown lab)";
+  const city = meta.labCity;
+  const country = meta.labCountry;
+  const total = typeof meta.labTotal === "number" ? meta.labTotal : 0;
+  const isInactive = meta.labInactive === true;
+  const isStale = meta.labStale === true;
+  const hq = meta.labHqSourceUrl;
+  const repos = meta.labRepos ?? [];
+  return (
+    <li className="px-2.5 py-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span
+          className="rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-white"
+          style={{ backgroundColor: "#a855f7" }}
+        >
+          AI LAB
+        </span>
+        {isStale && (
+          <span className="ap-sev-pill ap-sev-pill--pending">STALE</span>
+        )}
+        {isInactive && !isStale && (
+          <span className="ap-sev-pill ap-sev-pill--pending">QUIET 7D</span>
+        )}
+      </div>
+      <div className="mt-1.5 font-mono text-[12px] text-foreground">
+        {hq ? (
+          <a
+            href={hq}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[#a855f7] hover:underline"
+          >
+            {name}
+          </a>
+        ) : (
+          name
+        )}
+      </div>
+      <div className="mt-0.5 flex items-center justify-between font-mono text-[10px] text-muted-foreground">
+        <span className="truncate">
+          {city && country ? `${city}, ${country}` : country ?? city ?? "—"}
+          {repos.length > 0 && (
+            <span className="ml-1.5 tabular-nums">· {repos.length} repo{repos.length === 1 ? "" : "s"}</span>
+          )}
+        </span>
+        <span className="ml-2 shrink-0 tabular-nums">
+          {total} evt · 7d
         </span>
       </div>
     </li>

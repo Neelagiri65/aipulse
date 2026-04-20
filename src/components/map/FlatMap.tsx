@@ -11,6 +11,10 @@ import {
   type Cluster,
   type EventMeta,
 } from "@/components/globe/event-detail";
+import {
+  LABS_VIOLET,
+  LABS_INACTIVE_OPACITY,
+} from "@/components/labs/labs-to-points";
 
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -169,24 +173,48 @@ export function FlatMap({ points = [], lastUpdatedAt }: FlatMapProps) {
       const meta = (p.meta ?? {}) as EventMeta;
       const isRegistry = meta.kind === "registry";
       const isHn = meta.kind === "hn";
-      const color = isHn
-        ? "#ff6600"
-        : isRegistry
-          ? "#cbd5e1"
-          : colorForType(meta.type);
+      const isLab = meta.kind === "lab";
+      const color = isLab
+        ? LABS_VIOLET
+        : isHn
+          ? "#ff6600"
+          : isRegistry
+            ? "#cbd5e1"
+            : colorForType(meta.type);
       const hasAi = meta.hasAiConfig === true;
       const decay =
         typeof meta.decayScore === "number" ? meta.decayScore : 0;
+      const labInactive = isLab && meta.labInactive === true;
+      const labSize =
+        isLab && typeof p.size === "number" ? p.size : 0.6;
 
       const icon = L.divIcon({
-        html: isHn
-          ? hnMarkerHtml()
-          : isRegistry
-            ? registryMarkerHtml(decay)
-            : markerHtml(color, hasAi),
+        html: isLab
+          ? labMarkerHtml(labSize, labInactive)
+          : isHn
+            ? hnMarkerHtml()
+            : isRegistry
+              ? registryMarkerHtml(decay)
+              : markerHtml(color, hasAi),
         className: "ap-fm-marker",
-        iconSize: isHn ? [10, 10] : isRegistry ? [8, 8] : hasAi ? [16, 16] : [10, 10],
-        iconAnchor: isHn ? [5, 5] : isRegistry ? [4, 4] : hasAi ? [8, 8] : [5, 5],
+        iconSize: isLab
+          ? [labIconPx(labSize), labIconPx(labSize)]
+          : isHn
+            ? [10, 10]
+            : isRegistry
+              ? [8, 8]
+              : hasAi
+                ? [16, 16]
+                : [10, 10],
+        iconAnchor: isLab
+          ? [labIconPx(labSize) / 2, labIconPx(labSize) / 2]
+          : isHn
+            ? [5, 5]
+            : isRegistry
+              ? [4, 4]
+              : hasAi
+                ? [8, 8]
+                : [5, 5],
       });
       const marker = L.marker([p.lat, p.lng], {
         icon,
@@ -286,6 +314,28 @@ function hnMarkerHtml(): string {
 }
 
 /**
+ * AI-Lab marker — violet dot at the lab's HQ. Size scales with the lab's
+ * 7d activity (already log-linear / p95-clamped by labsToGlobePoints).
+ * Zero-activity labs dim to LABS_INACTIVE_OPACITY but stay visible so
+ * the presence of the lab is always on the map.
+ */
+function labIconPx(labSize: number): number {
+  // labSize is ~0.3..1.2; map to ~8..18px on screen so even quiet labs
+  // are visible but an active lab reads clearly larger.
+  const px = Math.round(8 + (labSize - 0.3) * 11);
+  return Math.max(8, Math.min(18, px));
+}
+
+function labMarkerHtml(labSize: number, inactive: boolean): string {
+  const px = labIconPx(labSize);
+  const dotPx = Math.max(6, px - 2);
+  const alpha = inactive ? LABS_INACTIVE_OPACITY : 0.95;
+  const bg = hexA(LABS_VIOLET, alpha);
+  const glow = hexA(LABS_VIOLET, inactive ? alpha * 0.4 : 0.55);
+  return `<span style="display:flex;align-items:center;justify-content:center;width:${px}px;height:${px}px;"><span style="display:block;width:${dotPx}px;height:${dotPx}px;border-radius:9999px;background:${bg};box-shadow:0 0 ${inactive ? 3 : 6}px ${glow}"></span></span>`;
+}
+
+/**
  * Registry base-layer marker — slate dot, alpha driven by decay score.
  *   ≤24h → ~0.7 alpha, >90d → ~0.07 alpha. Matches Globe's
  *   `avgDecay × 0.7` clamp so the two views read identically.
@@ -307,6 +357,8 @@ function clusterIcon(L: typeof import("leaflet"), cluster: MarkerClusterGroup): 
   let live = 0;
   let registry = 0;
   let hn = 0;
+  let lab = 0;
+  let activeLab = 0;
   let decaySum = 0;
   for (const m of kids) {
     const p = (m.options as unknown as { eventPoint?: GlobePoint }).eventPoint;
@@ -317,6 +369,9 @@ function clusterIcon(L: typeof import("leaflet"), cluster: MarkerClusterGroup): 
       decaySum += typeof meta?.decayScore === "number" ? meta.decayScore : 0;
     } else if (kind === "hn") {
       hn += 1;
+    } else if (kind === "lab") {
+      lab += 1;
+      if (meta?.labInactive !== true) activeLab += 1;
     } else {
       live += 1;
       const t = meta?.type ?? "unknown";
@@ -329,59 +384,77 @@ function clusterIcon(L: typeof import("leaflet"), cluster: MarkerClusterGroup): 
       ? [...counts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0]
       : undefined;
   const avgDecay = registry > 0 ? decaySum / registry : 0;
-  const registryOnly = live === 0 && hn === 0 && registry > 0;
-  const hnOnly = live === 0 && registry === 0 && hn > 0;
-  // Majority-wins colour between live (any GH event) and HN. Registry
-  // never colours a mixed bucket — it's the quiet base layer. So:
-  //   hn > live         → HN orange  (community signal dominates)
-  //   live ≥ hn, live>0 → dominant GH event-type colour
-  //   else registry/hn-only branches above.
-  // Tie goes to live on the assumption that a real code-action signal
-  // outranks a discussion signal at equal count.
+  const registryOnly = live === 0 && hn === 0 && lab === 0 && registry > 0;
+  const hnOnly = live === 0 && registry === 0 && lab === 0 && hn > 0;
+  const labOnly = live === 0 && hn === 0 && lab > 0;
+  // Majority-wins colour: live > (lab when no live) > hn > registry.
+  //   live > 0, hn > live  → HN orange
+  //   live > 0, hn ≤ live  → dominant GH event-type colour
+  //   live == 0, lab > 0   → LABS_VIOLET (labs layer wins when no live)
+  //   hn-only              → HN orange
+  //   registry-only        → slate base
+  // Tie between live and hn goes to live (code-action > discussion).
   const hnMajority = hn > live;
-  const color = hnOnly
-    ? "#ff6600"
-    : registryOnly
-      ? "#cbd5e1"
-      : hnMajority
+  const color =
+    live === 0 && lab > 0
+      ? LABS_VIOLET
+      : hnOnly
         ? "#ff6600"
-        : colorForType(dominantLiveType);
-  const isAi = ai > 0 && !registryOnly && !hnOnly && !hnMajority;
+        : registryOnly
+          ? "#cbd5e1"
+          : hnMajority
+            ? "#ff6600"
+            : colorForType(dominantLiveType);
+  const isAi = ai > 0 && !registryOnly && !hnOnly && !hnMajority && !labOnly;
+  // A lab-only cluster with zero active labs dims the icon border/glow
+  // so the cluster is still clickable but reads as "tracked, quiet."
+  const labInactiveCluster = labOnly && activeLab === 0;
 
   // Registry-only clusters render quieter: smaller, no bold AI ring, and
   // the border alpha scales with avgDecay so a dormant region reads as
   // faded density, not as "activity." HN-only clusters take the HN
   // brand orange with a similar mid-intensity look (community signal,
   // not activity pulse).
-  const scale = registryOnly
-    ? Math.min(1.0, 0.7 + Math.log10(count) * 0.18)
-    : Math.min(1.4, 0.9 + Math.log10(count) * 0.22);
-  const size = Math.round((registryOnly ? 22 : 26) * scale);
+  const scale =
+    registryOnly || labOnly
+      ? Math.min(1.0, 0.7 + Math.log10(count) * 0.18)
+      : Math.min(1.4, 0.9 + Math.log10(count) * 0.22);
+  const size = Math.round((registryOnly || labOnly ? 22 : 26) * scale);
   const fontSize = Math.round(11 + (scale - 0.9) * 4);
   const hnStyled = hnOnly || hnMajority;
   const borderAlpha = registryOnly
     ? Math.max(0.15, Math.min(0.6, avgDecay * 0.7))
-    : hnStyled
-      ? 0.85
-      : isAi
-        ? 0.95
-        : 0.6;
+    : labOnly
+      ? labInactiveCluster
+        ? LABS_INACTIVE_OPACITY
+        : 0.9
+      : hnStyled
+        ? 0.85
+        : isAi
+          ? 0.95
+          : 0.6;
   const glowAlpha = registryOnly
     ? borderAlpha * 0.5
-    : hnStyled
-      ? 0.5
-      : isAi
-        ? 0.55
-        : 0.25;
+    : labOnly
+      ? labInactiveCluster
+        ? LABS_INACTIVE_OPACITY * 0.5
+        : 0.5
+      : hnStyled
+        ? 0.5
+        : isAi
+          ? 0.55
+          : 0.25;
   const border = hexA(color, borderAlpha);
   const glow = hexA(color, glowAlpha);
   const textColor = registryOnly
     ? "#cbd5e1"
-    : hnStyled
-      ? "#ffe4ce"
-      : isAi
-        ? "#f0fdfa"
-        : "#e2e8f0";
+    : labOnly
+      ? "#ede9fe"
+      : hnStyled
+        ? "#ffe4ce"
+        : isAi
+          ? "#f0fdfa"
+          : "#e2e8f0";
   const label = count > 99 ? "99+" : String(count);
 
   const html = `
@@ -424,19 +497,23 @@ function singletonCluster(
   const hasAi = meta.hasAiConfig === true;
   const isRegistry = meta.kind === "registry";
   const isHn = meta.kind === "hn";
-  const isLive = !isRegistry && !isHn;
+  const isLab = meta.kind === "lab";
+  const isLive = !isRegistry && !isHn && !isLab;
+  const isLabActive = isLab && meta.labInactive !== true;
   const decay = typeof meta.decayScore === "number" ? meta.decayScore : 0;
   return {
     lat: p.lat,
     lng: p.lng,
     color,
-    dominantType: isHn ? "hn" : type ?? "unknown",
+    dominantType: isHn ? "hn" : isLab ? "lab" : type ?? "unknown",
     size: 1,
     count: 1,
     aiCount: hasAi ? 1 : 0,
     liveCount: isLive ? 1 : 0,
     registryCount: isRegistry ? 1 : 0,
     hnCount: isHn ? 1 : 0,
+    labCount: isLab ? 1 : 0,
+    activeLabCount: isLabActive ? 1 : 0,
     avgDecay: isRegistry ? decay : 0,
     events: [p],
   };
@@ -455,6 +532,8 @@ function clusterFromPoints(points: GlobePoint[]): Cluster {
   let live = 0;
   let registry = 0;
   let hn = 0;
+  let lab = 0;
+  let activeLab = 0;
   let decaySum = 0;
   let latSum = 0;
   let lngSum = 0;
@@ -466,6 +545,9 @@ function clusterFromPoints(points: GlobePoint[]): Cluster {
       decaySum += typeof meta.decayScore === "number" ? meta.decayScore : 0;
     } else if (kind === "hn") {
       hn += 1;
+    } else if (kind === "lab") {
+      lab += 1;
+      if (meta.labInactive !== true) activeLab += 1;
     } else {
       live += 1;
       const t = meta.type ?? "unknown";
@@ -476,8 +558,8 @@ function clusterFromPoints(points: GlobePoint[]): Cluster {
     lngSum += p.lng;
   }
   // Same majority-wins rule as clusterIcon so the card's header dot +
-  // the cluster badge the user just clicked agree on colour. HN > live
-  // → orange; else live wins if any; else registry/hn-only fallback.
+  // the cluster badge the user just clicked agree on colour. Live >
+  // (lab when no live) > HN > registry. Tie live==hn goes to live.
   const hnMajority = hn > live;
   const dominantLiveType =
     live > 0
@@ -485,19 +567,33 @@ function clusterFromPoints(points: GlobePoint[]): Cluster {
       : undefined;
   const dominant = hnMajority
     ? "hn"
-    : dominantLiveType ?? (hn > 0 && registry === 0 ? "hn" : "registry");
+    : live > 0
+      ? dominantLiveType ?? "unknown"
+      : lab > 0
+        ? "lab"
+        : hn > 0 && registry === 0
+          ? "hn"
+          : "registry";
   const color = hnMajority
     ? "#ff6600"
     : live > 0
       ? colorForType(dominantLiveType)
-      : hn > 0 && registry === 0
-        ? "#ff6600"
-        : "#cbd5e1";
+      : lab > 0
+        ? LABS_VIOLET
+        : hn > 0 && registry === 0
+          ? "#ff6600"
+          : "#cbd5e1";
   const sorted = points.slice().sort((a, z) => {
     const am = a.meta as EventMeta | undefined;
     const zm = z.meta as EventMeta | undefined;
     const rank = (m: EventMeta | undefined) =>
-      m?.kind === "registry" ? 2 : m?.kind === "hn" ? 1 : 0;
+      m?.kind === "registry"
+        ? 3
+        : m?.kind === "lab"
+          ? 2
+          : m?.kind === "hn"
+            ? 1
+            : 0;
     const rA = rank(am);
     const rZ = rank(zm);
     if (rA !== rZ) return rA - rZ;
@@ -516,6 +612,8 @@ function clusterFromPoints(points: GlobePoint[]): Cluster {
     liveCount: live,
     registryCount: registry,
     hnCount: hn,
+    labCount: lab,
+    activeLabCount: activeLab,
     avgDecay: registry > 0 ? decaySum / registry : 0,
     events: sorted,
   };
@@ -539,6 +637,12 @@ function MapLegend() {
       <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
         Bright ring = repo has AI config
       </div>
+      <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
+        AI Labs
+      </div>
+      <ul className="mt-1 space-y-1">
+        <LegendRow color={LABS_VIOLET} label="Lab HQ · 7d activity" />
+      </ul>
       <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
         Registry decay (AI-cfg repos)
       </div>

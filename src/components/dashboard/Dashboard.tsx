@@ -48,6 +48,8 @@ import { ModelsPanel } from "@/components/models/ModelsPanel";
 import { ResearchPanel } from "@/components/research/ResearchPanel";
 import { BenchmarksPanel } from "@/components/benchmarks/BenchmarksPanel";
 import type { BenchmarksPayload } from "@/lib/data/benchmarks-lmarena";
+import type { LabsPayload } from "@/lib/data/fetch-labs";
+import { labsToGlobePoints } from "@/components/labs/labs-to-points";
 
 const STATUS_POLL_MS = 5 * 60 * 1000;
 const EVENTS_POLL_MS = 30 * 1000;
@@ -73,6 +75,10 @@ const HN_POLL_MS = 60 * 1000;
 // route revalidating hourly. 30-min client poll catches any real flip
 // without churning the edge cache.
 const BENCHMARKS_POLL_MS = 30 * 60 * 1000;
+// Labs: /api/labs is CDN-cached for 30min and the upstream cron runs
+// every 6h. 10-min client poll sits above the CDN TTL so each real
+// upstream flip is picked up once, without churning the edge.
+const LABS_POLL_MS = 10 * 60 * 1000;
 
 type RegistryResult = {
   ok: boolean;
@@ -103,6 +109,7 @@ export function Dashboard() {
     "/api/benchmarks",
     BENCHMARKS_POLL_MS,
   );
+  const labs = usePolledEndpoint<LabsPayload>("/api/labs", LABS_POLL_MS);
 
   const rawPoints: GlobePoint[] = events.data?.points ?? [];
   const lastUpdatedAt = events.data?.polledAt;
@@ -180,7 +187,18 @@ export function Dashboard() {
   // No filter applied: HN is a parallel signal (community discussion,
   // not GH activity), so event-type + ai-config filters don't apply.
   const hnPoints: GlobePoint[] = hn.data?.points ?? [];
-  const points: GlobePoint[] = [...livePoints, ...dedupedRegistry, ...hnPoints];
+
+  // AI Labs layer — curated HQ coords from data/ai-labs.json, sized by
+  // 7d activity across flagship repos. Plotted even when the lab is
+  // quiet (LABS_INACTIVE_OPACITY on the renderer) so presence always
+  // reads. No filter applied yet — LABS-04 wires the filter toggle.
+  const labPoints: GlobePoint[] = labsToGlobePoints(labs.data?.labs ?? []);
+  const points: GlobePoint[] = [
+    ...livePoints,
+    ...dedupedRegistry,
+    ...hnPoints,
+    ...labPoints,
+  ];
 
   // Pre-merge GH events + HN stories into a single chronological wire
   // list. Both surfaces (WirePage + downstream map/globe) share this
