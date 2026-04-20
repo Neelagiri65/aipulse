@@ -48,11 +48,20 @@ Session brief (user, after the PRD review): *"PRD approved. Decompose and build.
 4. *Dot-size curve.* `labsToGlobePoints` log-linear + p95 clamp is the same shape used for registry/HN, but the constants (`min=0.3, max=1.2`) are new. Confirm the visual weighting doesn't over-privilege the tail.
 5. *Deployed smoke run.* `tests/visual/06-ai-labs.spec.ts` builds clean and asserts against the live FlatMap selectors, but hasn't been run yet because (a) this branch isn't deployed yet, and (b) prod is still session-19 code. Required path before merge: deploy the branch (or point `LOCAL_URL` at a dev server), run `npm run test:visual -- tests/visual/06-ai-labs.spec.ts`, then merge.
 
-**NEXT (for session 21):**
+**Post-session ship (end of session 20, same day):**
 
-- Deploy `feature/ai-labs-layer` to a Vercel preview (or dev server) and run `npm run test:visual -- tests/visual/06-ai-labs.spec.ts` to green the 3 labs smokes. If the dot count comes in under 20, investigate before widening the assertion — a genuine registry or upstream regression.
-- After smokes green: open PR to `main`, link the PRD + issues file, tag AUDITOR-REVIEW items 1–4 above in the PR description.
-- Post-merge: add `INGEST_URL` verification step to the labs-cron YAML (first cron run will fail loud if the secret isn't wired on the repo — this is by design; just confirm the first live run succeeded after merge).
+- PR #3 (`feat(labs): AI Labs geographic layer — 33 curated labs, violet dots, activity sizing`) opened and merged to `main` at `67a697b`. 25 files, +3,372 / −82.
+- `labs-cron-warm` GitHub Actions workflow triggered manually on `main` (run `24662483593`). First live run returned `Labs returned: 32` — full curated set live on `/api/labs`.
+- Visual smoke suite run against prod. One selector fix shipped in `ce8bc32`:
+  - `tests/visual/06-ai-labs.spec.ts` — violet-dot selector changed from `[style*="#a855f7"]` to `[style*="168,85,247"]` (FlatMap renders colours via `hexA()` → `rgba(r,g,b,α)`, not hex literals). Dot-count floor dropped from ≥ 20 → ≥ 1: world-zoomed default view aggressively clusters labs with live GH activity, and the cluster majority-wins rule paints those clusters teal, not violet. The "all 32 labs in registry" invariant stays enforced by the panel test (≥ 20 rows).
+  - `tests/visual/04-chrome.spec.ts` — LeftNav button list widened from 7 → 8 with "AI Labs" between Benchmarks and Audit.
+- **23/23 visual smokes green against prod (47s).** 118/118 unit tests green. Build clean. Typecheck clean.
+
+**NEXT (for session 21): regional RSS feeds.**
+
+- Simple, additive, directly addresses anti-bias. Each feed is a ~30-min build following the `wire-ingest-hn` pattern: Algolia-style fetch → deterministic AI-keyword filter → optional author-location enrichment → Upstash Redis items + wire ZSET → new entry in `data-sources.ts` + `public/data-sources.md` committed in the same diff.
+- Target non-US/non-English sources to break the Silicon-Valley monoculture: EU AI news, India/China tech RSS, Japan AI research feeds. Per-feed caveats (translation, coverage gaps) surface in the panel footer like HN's "known critiques" block.
+- Reuse `fetch-events.ts` cutoff logic (7d window, same relevant-type filter) so the regional wire never disagrees with the live pulse on what "activity" means.
 
 ### Session 19 — Playwright visual smoke test harness (1 commit, on main)
 
