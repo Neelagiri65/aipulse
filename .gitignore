@@ -45,3 +45,9 @@ next-env.d.ts
 
 # claude code local session state — never committed
 /.claude
+
+# Playwright visual smoke test artefacts — screenshots, traces, reports
+# are run-specific outputs, not part of the checked-in code.
+/test-results
+/playwright-report
+/playwright/.cache
