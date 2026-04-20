@@ -1,31 +1,65 @@
 "use client";
 
-import { useMemo } from "react";
-import type { GlobeEventsResult } from "@/lib/data/fetch-events";
+/**
+ * Full-viewport chronological feed. Accepts a pre-merged, pre-sorted
+ * list of wire rows (Dashboard owns the merge so the globe + map
+ * share the same HN subset). Rows are a discriminated union:
+ *   - kind "gh": GitHub event (existing grid).
+ *   - kind "hn": Hacker News story (orange HN pill, whole-row link).
+ *
+ * Freshness is split. The GitHub side keeps its existing live · HH:MM:SS
+ * stamp. A quiet staleness line surfaces under the header when the HN
+ * side has not succeeded in > 30 minutes — silent while healthy.
+ */
+
+export type WireItem =
+  | {
+      kind: "gh";
+      eventId: string;
+      type: string;
+      actor: string;
+      repo: string;
+      createdAt: string;
+      hasAiConfig: boolean;
+      sourceKind?: "events-api" | "gharchive";
+    }
+  | {
+      kind: "hn";
+      id: string;
+      createdAt: string;
+      title: string;
+      author: string;
+      points: number;
+      numComments: number;
+      hnUrl: string;
+      locationLabel: string | null;
+    };
 
 export type WirePageProps = {
-  events?: GlobeEventsResult;
+  wireRows: WireItem[];
+  ghCoverage?: { windowMinutes: number; windowSize: number };
+  hnMeta?: { lastFetchOkTs: string | null; staleMinutes: number | null };
+  polledAt?: string;
   error?: string;
   isInitialLoading: boolean;
 };
 
-type WireRow = {
-  eventId: string;
-  type: string;
-  actor: string;
-  repo: string;
-  createdAt: string;
-  hasAiConfig: boolean;
-  sourceKind?: "events-api" | "gharchive";
-};
+const HN_STALE_MINUTES = 30;
 
-/**
- * Full-viewport chronological feed. Same data source as the floating
- * LiveFeed panel, just wider and denser — one row per event, up to the
- * full window. No fake entries; empty pipeline shows an empty state.
- */
-export function WirePage({ events, error, isInitialLoading }: WirePageProps) {
-  const rows = useMemo(() => toRows(events), [events]);
+export function WirePage({
+  wireRows,
+  ghCoverage,
+  hnMeta,
+  polledAt,
+  error,
+  isInitialLoading,
+}: WirePageProps) {
+  const ghCount = wireRows.filter((r) => r.kind === "gh").length;
+  const hnCount = wireRows.length - ghCount;
+  const hnStale =
+    hnMeta &&
+    hnMeta.staleMinutes !== null &&
+    hnMeta.staleMinutes > HN_STALE_MINUTES;
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -38,34 +72,43 @@ export function WirePage({ events, error, isInitialLoading }: WirePageProps) {
             The Wire
           </div>
           <div className="mt-1 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-            {events?.coverage.windowMinutes
-              ? `Chronological · last ${events.coverage.windowMinutes}m · ${rows.length} events`
+            {ghCoverage
+              ? `Chronological · last ${ghCoverage.windowMinutes}m · ${wireRows.length} rows (${ghCount} gh · ${hnCount} hn)`
               : "Chronological feed"}
           </div>
+          {hnStale && hnMeta && (
+            <div className="mt-1 font-mono text-[10px] uppercase tracking-wider text-amber-400/80">
+              HN: last fetched {hnMeta.staleMinutes}m ago
+            </div>
+          )}
         </div>
         <FreshnessStamp
           isLoading={isInitialLoading}
           error={error}
-          polledAt={events?.polledAt}
+          polledAt={polledAt}
         />
       </header>
 
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-[960px] px-6 pb-4">
-          {isInitialLoading && !events && (
-            <Empty label="Loading events…" />
+          {isInitialLoading && wireRows.length === 0 && (
+            <Empty label="Loading feed…" />
           )}
-          {!isInitialLoading && error && !events && (
+          {!isInitialLoading && error && wireRows.length === 0 && (
             <Empty label={`Feed error · ${error}`} tone="error" />
           )}
-          {!isInitialLoading && !error && rows.length === 0 && (
-            <Empty label="No placeable events in this window. Waiting for next poll." />
+          {!isInitialLoading && !error && wireRows.length === 0 && (
+            <Empty label="No rows in this window. Waiting for next poll." />
           )}
-          {rows.length > 0 && (
+          {wireRows.length > 0 && (
             <ul className="space-y-1">
-              {rows.map((r) => (
-                <WireRowItem key={r.eventId} row={r} />
-              ))}
+              {wireRows.map((r) =>
+                r.kind === "gh" ? (
+                  <GhRow key={`gh:${r.eventId}`} row={r} />
+                ) : (
+                  <HnRow key={`hn:${r.id}`} row={r} />
+                ),
+              )}
             </ul>
           )}
         </div>
@@ -74,19 +117,11 @@ export function WirePage({ events, error, isInitialLoading }: WirePageProps) {
   );
 }
 
-function toRows(events?: GlobeEventsResult): WireRow[] {
-  if (!events) return [];
-  return events.points
-    .map((p): WireRow | null => {
-      const meta = p.meta as WireRow | undefined;
-      if (!meta?.eventId) return null;
-      return meta;
-    })
-    .filter((r): r is WireRow => r !== null)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-}
-
-function WireRowItem({ row }: { row: WireRow }) {
+function GhRow({
+  row,
+}: {
+  row: Extract<WireItem, { kind: "gh" }>;
+}) {
   const variant = row.hasAiConfig ? "info" : "pending";
   return (
     <li className="grid grid-cols-[70px_90px_90px_1fr_auto] items-center gap-3 border-b border-border/40 py-2 font-mono text-[11px] hover:bg-white/[0.02]">
@@ -112,6 +147,37 @@ function WireRowItem({ row }: { row: WireRow }) {
           <span className="ap-sev-pill ap-sev-pill--pending">archive</span>
         )}
       </div>
+    </li>
+  );
+}
+
+function HnRow({
+  row,
+}: {
+  row: Extract<WireItem, { kind: "hn" }>;
+}) {
+  return (
+    <li className="border-b border-border/40 hover:bg-white/[0.02]">
+      <a
+        href={row.hnUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="grid grid-cols-[70px_auto_1fr_auto] items-center gap-3 py-2 font-mono text-[11px]"
+      >
+        <span className="tabular-nums text-muted-foreground">
+          {formatRelative(row.createdAt)}
+        </span>
+        <span
+          className="inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+          style={{ backgroundColor: "#ff6600" }}
+        >
+          HN · {row.points}
+        </span>
+        <span className="truncate text-foreground/90">{row.title}</span>
+        <span className="justify-self-end truncate text-muted-foreground">
+          @{row.author}
+        </span>
+      </a>
     </li>
   );
 }

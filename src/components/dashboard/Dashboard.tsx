@@ -1,13 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Globe, type GlobePoint } from "@/components/globe/Globe";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
 import { LiveFeed } from "@/components/dashboard/LiveFeed";
 import { MetricTicker } from "@/components/dashboard/MetricTicker";
 import { MetricsRow } from "@/components/dashboard/MetricsRow";
-import { WirePage } from "@/components/dashboard/WirePage";
+import { WirePage, type WireItem } from "@/components/dashboard/WirePage";
 import { TopBar, type ViewTabId } from "@/components/chrome/TopBar";
 
 // Leaflet is client-only (touches `window` at import). Lazy-load with
@@ -38,6 +38,7 @@ import type { GlobeEventsResult } from "@/lib/data/fetch-events";
 import type { StatusResult } from "@/lib/data/fetch-status";
 import type { ModelsResult } from "@/lib/data/fetch-models";
 import type { ResearchResult } from "@/lib/data/fetch-research";
+import type { HnWireResult } from "@/lib/data/wire-hn";
 import {
   decayScore,
   type RegistryEntry,
@@ -61,6 +62,10 @@ const MODELS_POLL_MS = 10 * 60 * 1000;
 // 30-min server cache TTL so the UI catches every real upstream flip
 // without hitting arxiv more than once per TTL.
 const RESEARCH_POLL_MS = 15 * 60 * 1000;
+// HN: ingest cron runs every 15min; /api/hn CDN-caches 60s. Poll at
+// 60s so the UI flips to a fresh upstream each minute when available
+// without hammering the edge layer.
+const HN_POLL_MS = 60 * 1000;
 
 type RegistryResult = {
   ok: boolean;
@@ -86,6 +91,7 @@ export function Dashboard() {
     "/api/research",
     RESEARCH_POLL_MS,
   );
+  const hn = usePolledEndpoint<HnWireResult>("/api/hn", HN_POLL_MS);
 
   const rawPoints: GlobePoint[] = events.data?.points ?? [];
   const lastUpdatedAt = events.data?.polledAt;
@@ -158,6 +164,62 @@ export function Dashboard() {
   // filters (registry points have no `type`). Registry is the base
   // map; event-type filters only narrow the live pulse layer.
   const points: GlobePoint[] = [...livePoints, ...dedupedRegistry];
+
+  // Pre-merge GH events + HN stories into a single chronological wire
+  // list. Both surfaces (WirePage + downstream map/globe) share this
+  // derivation so a row visible in the feed corresponds exactly to the
+  // dot on the map when geocoded.
+  const wireRows: WireItem[] = useMemo(() => {
+    const ghRows: WireItem[] = (events.data?.points ?? [])
+      .map((p): WireItem | null => {
+        const m = p.meta as
+          | {
+              eventId?: string;
+              type?: string;
+              actor?: string;
+              repo?: string;
+              createdAt?: string;
+              hasAiConfig?: boolean;
+              sourceKind?: "events-api" | "gharchive";
+            }
+          | undefined;
+        if (
+          !m ||
+          typeof m.eventId !== "string" ||
+          typeof m.type !== "string" ||
+          typeof m.actor !== "string" ||
+          typeof m.repo !== "string" ||
+          typeof m.createdAt !== "string"
+        ) {
+          return null;
+        }
+        return {
+          kind: "gh",
+          eventId: m.eventId,
+          type: m.type,
+          actor: m.actor,
+          repo: m.repo,
+          createdAt: m.createdAt,
+          hasAiConfig: Boolean(m.hasAiConfig),
+          sourceKind: m.sourceKind,
+        };
+      })
+      .filter((r): r is WireItem => r !== null);
+    const hnRows: WireItem[] = (hn.data?.items ?? []).map((i) => ({
+      kind: "hn",
+      id: i.id,
+      createdAt: i.createdAt,
+      title: i.title,
+      author: i.author,
+      points: i.points,
+      numComments: i.numComments,
+      hnUrl: `https://news.ycombinator.com/item?id=${i.id}`,
+      locationLabel: i.locationLabel,
+    }));
+    return [...ghRows, ...hnRows].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
+  }, [events.data, hn.data]);
 
   // View tab state. Default to the flat map — its progressive-resolution
   // tiles stay crisp at every zoom level, where the 3D globe texture goes
@@ -307,9 +369,19 @@ export function Dashboard() {
         )}
         {activeTab === "wire" && (
           <WirePage
-            events={events.data}
+            wireRows={wireRows}
+            ghCoverage={
+              events.data
+                ? {
+                    windowMinutes: events.data.coverage.windowMinutes,
+                    windowSize: events.data.coverage.windowSize,
+                  }
+                : undefined
+            }
+            hnMeta={hn.data?.meta}
+            polledAt={events.data?.polledAt}
             error={events.error}
-            isInitialLoading={events.isInitialLoading}
+            isInitialLoading={events.isInitialLoading && hn.isInitialLoading}
           />
         )}
       </div>
