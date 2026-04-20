@@ -23,6 +23,8 @@ function mkSrc(
     lng: 56.78,
     lang: "en",
     hqSourceUrl: "https://example.com",
+    publisherUrl: "https://example.com/",
+    rssUrl: "https://example.com/feed",
     feedFormat: "rss",
     keywordFilterScope: "all",
     itemsLast24h,

@@ -29,6 +29,7 @@ function mkSource(partial: Partial<RssSource> & { id: string }): RssSource {
     lang: "en",
     rssUrl: "https://example.com/feed",
     hqSourceUrl: "https://example.com/about",
+    publisherUrl: "https://example.com/",
     feedFormat: "rss",
     keywordFilterScope: "all",
     ...partial,
