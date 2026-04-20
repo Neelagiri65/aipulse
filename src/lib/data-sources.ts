@@ -218,6 +218,35 @@ export const GITHUB_REPO_SEARCH_TOPICS: DataSource = {
   powersFeature: ["repo-registry"],
 };
 
+export const ECOSYSTEMS_NPM_DEPENDENTS: DataSource = {
+  id: "ecosystems-npm-dependents",
+  name: "ecosyste.ms — npm reverse-dependencies",
+  category: "github-activity",
+  url: "https://packages.ecosyste.ms",
+  apiUrl:
+    "https://packages.ecosyste.ms/api/v1/registries/npmjs.org/packages/{pkg}/dependent_packages",
+  responseFormat: "json",
+  updateFrequency: "six-hourly",
+  rateLimit: {
+    unauthenticated: 5000,
+    note: "5000 req/hr anonymous (header verified 2026-04-19). Cron runs sweep 6 packages × 2 pages = 12 calls every 6h → 48 calls/day; two orders of magnitude under budget. No auth required.",
+  },
+  auth: "none",
+  measures:
+    "For each of six target npm packages (@anthropic-ai/sdk, openai, @langchain/core, langchain, ai, llamaindex), returns a paginated list of dependent packages with their `repository_url`. We filter to github.com, parse owner/repo, dedupe across target packages, and feed each candidate through the same six-filename Contents-API probe + first-500-bytes shape verifier used by Code Search and Topics discovery. A package depending on the Anthropic SDK is evidence of intent, not of AI-coding-tool shape — the verifier is the gate.",
+  sanityCheck: {
+    description:
+      "A full sweep (6 packages × 2 pages) should return 600–1200 unique candidate repos after GitHub-only filtering and dedupe. Verify-pass rate is typically 15–30% — lower than Topics because dependents are often generic apps, not AI-tool-configured workflows. A zero return on any single package indicates ecosyste.ms shape drift or a package with truly no dependents in the latest window; investigate before attributing to dead adoption.",
+    expectedMin: 50,
+    expectedMax: 2000,
+    unit: "candidate repos per sweep",
+  },
+  verifiedAt: "2026-04-19",
+  caveat:
+    "ecosyste.ms is a third-party package index that re-indexes npm on its own cadence; rows may lag live npm by hours to days. Substituted for deps.dev after research showed deps.dev's public REST API returns only a dependent count, not the list (actual list is BigQuery-only). Same provenance class as deps.dev — not npm itself — caveat applies to both. Switching to Libraries.io (with API key, 60 req/min authenticated) is a queued follow-up for broader ecosystem coverage (PyPI, RubyGems, etc.).",
+  powersFeature: ["repo-registry"],
+};
+
 export const ANTHROPIC_STATUS: DataSource = {
   id: "anthropic-status",
   name: "Anthropic Status (Claude Code + API)",
@@ -448,6 +477,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   GITHUB_CONTENTS,
   GITHUB_CODE_SEARCH,
   GITHUB_REPO_SEARCH_TOPICS,
+  ECOSYSTEMS_NPM_DEPENDENTS,
   ANTHROPIC_STATUS,
   OPENAI_STATUS,
   OPENAI_INCIDENTS,

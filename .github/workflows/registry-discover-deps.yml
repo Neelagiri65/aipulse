@@ -1,0 +1,78 @@
+name: registry-discover-deps
+
+# Source #6: ecosyste.ms reverse-dependency discovery. Covers repos that
+# declare a dependency on one of the canonical AI SDKs / frameworks
+# (Anthropic SDK, OpenAI SDK, LangChain, Vercel AI SDK, LlamaIndex).
+# Each candidate still passes the deterministic shape verifier before
+# entering the registry — a `package.json` dependency on `openai` is
+# evidence of intent, not of AI-coding-tool shape.
+#
+# Cadence: every 6 hours at :30 past. This sits mid-slot between
+# backfill-events (:15) and topics (:45), keeping the three cron kinds
+# from colliding inside a 5-min GitHub Search-API budget window.
+# Package dependents churn on timescales of hours-to-days — 6h is the
+# right cadence; sub-hourly would mostly re-verify already-known repos.
+#
+# Required repo secrets (shared with other registry workflows):
+#   INGEST_URL     — e.g. https://aipulse-pi.vercel.app/api/ingest
+#   INGEST_SECRET  — shared secret matching the Vercel env var
+
+on:
+  schedule:
+    - cron: "30 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Meta label for RegistryMeta.lastDiscoverySource"
+        required: false
+        default: "manual-deps"
+        type: string
+      cap:
+        description: "Max verifications per run (1-200; cron default 60)"
+        required: false
+        default: "60"
+        type: string
+      pagesPerPackage:
+        description: "Pages per target package (1-10; cron default 2)"
+        required: false
+        default: "2"
+        type: string
+      packages:
+        description: "Comma-separated package subset (empty = full list)"
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  group: registry-discover-deps
+  cancel-in-progress: false
+
+jobs:
+  deps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger deps discovery on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.source || 'cron-deps' }}
+          CAP: ${{ github.event_name == 'workflow_dispatch' && inputs.cap || '60' }}
+          PAGES: ${{ github.event_name == 'workflow_dispatch' && inputs.pagesPerPackage || '2' }}
+          PACKAGES: ${{ github.event_name == 'workflow_dispatch' && inputs.packages || '' }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/registry/deps?source=$SOURCE&cap=$CAP&pagesPerPackage=$PAGES"
+          if [ -n "$PACKAGES" ]; then
+            URL="$URL&packages=$PACKAGES"
+          fi
+          echo "POST $URL"
+          RESPONSE=$(curl -sS -f --max-time 150 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"

@@ -78,6 +78,20 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - **Powers:** Repo registry (source #3 — self-declared AI tooling)
 - **Last verified:** 2026-04-19
 
+### ecosyste.ms — npm reverse-dependencies
+- **ID:** `ecosystems-npm-dependents`
+- **Public URL:** https://packages.ecosyste.ms
+- **API endpoint:** `https://packages.ecosyste.ms/api/v1/registries/npmjs.org/packages/{pkg}/dependent_packages`
+- **Response format:** JSON
+- **Update frequency:** Every 6 hours (cron at :30 past)
+- **Rate limit:** 5,000 req/hr anonymous (header verified 2026-04-19). Sweep of 6 target packages × 2 pages = 12 calls every 6 h → 48 calls/day; two orders of magnitude under budget.
+- **Auth:** None
+- **What it measures:** For each of six target npm packages (`@anthropic-ai/sdk`, `openai`, `@langchain/core`, `langchain`, `ai`, `llamaindex`), returns a paginated list of dependent packages with their `repository_url`. AI Pulse filters to github.com only, parses owner/repo, dedupes across target packages, and feeds each candidate through the same six-filename Contents-API probe + first-500-bytes shape verifier used by Code Search and Topics discovery.
+- **Sanity check:** A full sweep should return 600–1,200 unique candidate repos after GitHub-only filtering and dedupe. Expected range: 50–2,000 candidates per sweep. Verify-pass rate is typically 15–30% — lower than Topics because dependents are often generic apps, not AI-tool-configured workflows. Zero on any single package indicates ecosyste.ms shape drift or a package with truly no recent dependents.
+- **Caveat:** ecosyste.ms is a third-party package index that re-indexes npm on its own cadence; rows may lag live npm by hours to days. **Substituted for deps.dev** mid-session: deps.dev's public REST API returns only a dependent _count_ (`dependentCount` / `directDependentCount`), not the list — the actual dependent list is BigQuery-only. ecosyste.ms is the drop-in that matches the same constraints (free, JSON, no auth, third-party index) AND actually returns repository URLs. Libraries.io (60 req/min authenticated) is a queued follow-up for broader multi-registry coverage (PyPI, RubyGems, etc.).
+- **Powers:** Repo registry (source #6 — reverse-dependency adoption signal for the canonical AI SDKs/frameworks)
+- **Last verified:** 2026-04-19
+
 ### Anthropic Status (Claude Code + API)
 - **ID:** `anthropic-status`
 - **Public URL:** https://status.claude.com
