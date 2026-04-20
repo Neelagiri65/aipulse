@@ -215,6 +215,20 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - **Powers:** THE WIRE (interleaved with GitHub events, chronological) · Flat map HN markers · Globe HN dots
 - **Last verified:** 2026-04-20
 
+### Chatbot Arena — `lmarena-ai/leaderboard-dataset` (HuggingFace)
+- **ID:** `lmarena-leaderboard`
+- **Public URL:** https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+- **API endpoint:** `https://datasets-server.huggingface.co/rows?dataset=lmarena-ai/leaderboard-dataset&config=text&split=latest&offset=0&length=100`
+- **Response format:** JSON (HuggingFace Datasets Server REST API)
+- **Update frequency:** Daily cron at `15 3 * * *` (03:15 UTC). lmarena-ai themselves refresh the dataset on their own cadence — we poll daily and only commit when `leaderboard_publish_date` changes (idempotent no-op otherwise, no diff noise).
+- **Rate limit:** HuggingFace Datasets Server is unmetered for public datasets (no documented per-IP limit; verified 2026-04-20). One cron call/day pulls latest (≤5 pages of 100) + seeks previous from `split=full` (≤30 pages of 100). Worst-case ~35 calls/day on the 03:15 UTC slot — orders of magnitude under any plausible budget.
+- **Auth:** None
+- **What it measures:** Top 20 models by Chatbot Arena Elo for the `text` subset, `overall` category of the `latest` split. Each row surfaces rank, `model_name` (verbatim), `organization` (verbatim — may be empty when lmarena hasn't tagged a lab yet, e.g. `dola-seed-2.0-pro` at rank 13 on the 2026-04-17 snapshot), `rating` (Bradley-Terry Elo), 95 % CI bounds (`rating_lower` / `rating_upper` from the BT fit), `vote_count`, `category`, `leaderboard_publish_date`. AI Pulse does NOT recompute Elo, does NOT re-rank, does NOT rename models. Week-over-week rank and Elo deltas are computed server-side at ingest against the most-recent distinct `leaderboard_publish_date` strictly less than latest; models present in current but absent in previous render as `NEW`.
+- **Sanity check:** Exactly 20 rows returned (rank 1–20). `top1_rating` ∈ [1300, 1500]; `rank20_rating` ∈ [1100, 1500] (widened from 1400 after 2026-04-17 verification returned 1447.7 — frontier bunching near the top); `publish_age_days` ∈ [0, 14]; `top1_vote_count` ≥ 5000. Values outside these ranges do not block writes but are logged by the cron and flagged in `HANDOFF.md` for investigation (Part 0 sanity-range pre-commit).
+- **Caveat:** The HuggingFace dataset page declares **no license** ("License: Not provided"). AI Pulse treats the JSON rows as publicly published numeric facts and mirrors them verbatim — no redistribution of weights or proprietary content, only `(model_name, organization, rating, vote_count, category, publish_date)` tuples, each row cited to the upstream dataset. Known critiques of Chatbot Arena itself, surfaced verbatim in the panel footer so users see the caveats alongside the numbers: **style bias** (verbose answers score higher), **self-selection** (volunteer voters ≠ general users), **category overlap**. The `text` subset is selected via the HF Datasets Server `config=` URL parameter and never appears as a row field. **No map dot, no globe point** — models have no location (Part 0 geotag principle: sources without a public location field live in panels, not on the globe).
+- **Powers:** Benchmarks panel (top-20 table + 95 % CI hover tooltips + rank/Elo deltas + staleness banner)
+- **Last verified:** 2026-04-20
+
 ---
 
 ## Tracked without a verifiable source (gap surfaced, not hidden)
@@ -234,7 +248,9 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - Any source that returns data outside its sanity-check range is treated as broken — the affected feature falls back to graceful degradation, and the discrepancy is investigated before the metric returns to the UI.
 - Widening a sanity-check range after verification is allowed and must be documented (see `gh-issues-claude-code` caveat). Recalibrating a range to chase a narrative is forbidden.
 
-_Last updated: 2026-04-20 (session 16 — added Hacker News AI-filtered story stream as 10th verified source; two endpoints under one logical entry, deterministic allowlist/blacklist filter, unmetered, shape verified)._
+_Last updated: 2026-04-20 (session 18 — added Chatbot Arena `lmarena-ai/leaderboard-dataset` as 11th verified source; panel-only per Part 0 geotag principle; no-declared-license disclosure; `rank20_rating` sanity upper bound widened from 1400 to 1500 after first live ingest observed 1447.7)._
+
+_Previous: 2026-04-20 (session 16 — added Hacker News AI-filtered story stream as 10th verified source; two endpoints under one logical entry, deterministic allowlist/blacklist filter, unmetered, shape verified)._
 
 _Previous: 2026-04-19 (session 12 — expanded GitHub Events API entry to document the events-backfill discovery path that re-uses the existing globe buffer to grow `repo-registry` at zero new Search-API cost)._
 

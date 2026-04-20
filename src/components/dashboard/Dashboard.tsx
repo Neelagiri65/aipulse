@@ -46,6 +46,8 @@ import {
 } from "@/lib/data/registry-shared";
 import { ModelsPanel } from "@/components/models/ModelsPanel";
 import { ResearchPanel } from "@/components/research/ResearchPanel";
+import { BenchmarksPanel } from "@/components/benchmarks/BenchmarksPanel";
+import type { BenchmarksPayload } from "@/lib/data/benchmarks-lmarena";
 
 const STATUS_POLL_MS = 5 * 60 * 1000;
 const EVENTS_POLL_MS = 30 * 1000;
@@ -66,6 +68,11 @@ const RESEARCH_POLL_MS = 15 * 60 * 1000;
 // 60s so the UI flips to a fresh upstream each minute when available
 // without hammering the edge layer.
 const HN_POLL_MS = 60 * 1000;
+// Benchmarks: lmarena-ai refreshes its dataset at most once per day,
+// our cron commits at 03:15 UTC. /api/benchmarks is a force-static
+// route revalidating hourly. 30-min client poll catches any real flip
+// without churning the edge cache.
+const BENCHMARKS_POLL_MS = 30 * 60 * 1000;
 
 type RegistryResult = {
   ok: boolean;
@@ -74,7 +81,7 @@ type RegistryResult = {
   generatedAt: string;
 };
 
-type PanelId = "wire" | "tools" | "models" | "research";
+type PanelId = "wire" | "tools" | "models" | "research" | "benchmarks";
 
 export function Dashboard() {
   const status = usePolledEndpoint<StatusResult>("/api/status", STATUS_POLL_MS);
@@ -92,6 +99,10 @@ export function Dashboard() {
     RESEARCH_POLL_MS,
   );
   const hn = usePolledEndpoint<HnWireResult>("/api/hn", HN_POLL_MS);
+  const benchmarks = usePolledEndpoint<BenchmarksPayload>(
+    "/api/benchmarks",
+    BENCHMARKS_POLL_MS,
+  );
 
   const rawPoints: GlobePoint[] = events.data?.points ?? [];
   const lastUpdatedAt = events.data?.polledAt;
@@ -242,6 +253,7 @@ export function Dashboard() {
       tools: { open: true, min: false },
       models: { open: false, min: false },
       research: { open: false, min: false },
+      benchmarks: { open: false, min: false },
     },
   );
   const [zorder, setZorder] = useState<PanelId[]>([
@@ -249,6 +261,7 @@ export function Dashboard() {
     "tools",
     "models",
     "research",
+    "benchmarks",
   ]);
   const [maxId, setMaxId] = useState<PanelId | null>(null);
 
@@ -259,6 +272,7 @@ export function Dashboard() {
     tools: { x: number; y: number; w: number; h: number };
     models: { x: number; y: number; w: number; h: number };
     research: { x: number; y: number; w: number; h: number };
+    benchmarks: { x: number; y: number; w: number; h: number };
   } | null>(null);
   useEffect(() => {
     const W = typeof window !== "undefined" ? window.innerWidth : 1440;
@@ -273,6 +287,16 @@ export function Dashboard() {
       // titles) get comfortable width without clashing with Models on
       // the right. Staggered y=160 so a two-panel open doesn't stack.
       research: { x: 92, y: 160, w: 420, h: 540 },
+      // Benchmarks is a 7-column table — needs a wider default than
+      // Models. Centres on the viewport so it reads as the "rank table"
+      // view; staggered y=200 so opening alongside Wire/Tools doesn't
+      // stack on top of either.
+      benchmarks: {
+        x: Math.max(120, Math.floor((W - 540) / 2)),
+        y: 200,
+        w: 540,
+        h: 560,
+      },
     });
   }, []);
 
@@ -303,6 +327,15 @@ export function Dashboard() {
       icon: "research",
       count: research.data?.papers.length ?? null,
     },
+    {
+      id: "benchmarks",
+      label: "Benchmarks",
+      icon: "benchmarks",
+      count:
+        benchmarks.data && benchmarks.data.ok
+          ? benchmarks.data.rows.length
+          : null,
+    },
     { id: "audit", label: "Audit", icon: "audit" },
   ];
 
@@ -314,7 +347,13 @@ export function Dashboard() {
       window.location.href = "/audit";
       return;
     }
-    if (id !== "wire" && id !== "tools" && id !== "models" && id !== "research")
+    if (
+      id !== "wire" &&
+      id !== "tools" &&
+      id !== "models" &&
+      id !== "research" &&
+      id !== "benchmarks"
+    )
       return;
     const pid = id as PanelId;
     setPanels((p) => {
@@ -526,6 +565,39 @@ export function Dashboard() {
                 data={research.data}
                 error={research.error}
                 isInitialLoading={research.isInitialLoading}
+              />
+            </Win>
+          )}
+
+          {initialPos && panels.benchmarks.open && (
+            <Win
+              id="benchmarks"
+              title="Chatbot Arena · top 20 · lmarena-leaderboard"
+              initial={initialPos.benchmarks}
+              zIndex={z("benchmarks")}
+              minimized={panels.benchmarks.min}
+              maximized={maxId === "benchmarks"}
+              onFocus={() => focus("benchmarks")}
+              onClose={() =>
+                setPanels((p) => ({
+                  ...p,
+                  benchmarks: { open: false, min: false },
+                }))
+              }
+              onMinimize={() =>
+                setPanels((p) => ({
+                  ...p,
+                  benchmarks: { ...p.benchmarks, min: !p.benchmarks.min },
+                }))
+              }
+              onMaximize={() =>
+                setMaxId((m) => (m === "benchmarks" ? null : "benchmarks"))
+              }
+            >
+              <BenchmarksPanel
+                data={benchmarks.data}
+                error={benchmarks.error}
+                isInitialLoading={benchmarks.isInitialLoading}
               />
             </Win>
           )}

@@ -495,6 +495,34 @@ export const GITHUB_STATUS: DataSource = {
 // therefore renders in explicit no-data mode rather than silently showing
 // green. Reinstate metrics only when a verifiable public source appears.
 
+export const LMARENA_LEADERBOARD: DataSource = {
+  id: "lmarena-leaderboard",
+  name: "Chatbot Arena — lmarena-ai/leaderboard-dataset (HuggingFace)",
+  category: "model-benchmark",
+  url: "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
+  apiUrl:
+    "https://datasets-server.huggingface.co/rows?dataset=lmarena-ai/leaderboard-dataset&config=text&split=latest&offset=0&length=100",
+  responseFormat: "json",
+  updateFrequency: "daily",
+  rateLimit: {
+    note: "HuggingFace Datasets Server is unmetered for public datasets (no documented per-IP limit; verified 2026-04-20). One cron call/day pulls latest (≤5 pages of 100) + seeks previous from full (≤30 pages of 100). Worst-case ~35 calls/day on a single 03:15 UTC cron slot — orders of magnitude under any plausible budget.",
+  },
+  auth: "none",
+  measures:
+    "Top 20 models by Chatbot Arena Elo for the `text` subset, `overall` category of the `latest` split. Each row surfaces: rank, model_name (verbatim), organization (verbatim — may be empty when lmarena hasn't tagged a lab yet), rating (Bradley-Terry Elo), rating_lower/rating_upper (95% CI bounds from the BT fit), vote_count, category, leaderboard_publish_date. AI Pulse does NOT recompute Elo, does NOT re-rank, does NOT rename. Week-over-week rank and Elo deltas are computed against the most-recent distinct `leaderboard_publish_date` strictly less than the latest.",
+  sanityCheck: {
+    description:
+      "Exactly 20 rows returned (rank 1–20). top1_rating ∈ [1300, 1500]; rank20_rating ∈ [1100, 1500] (widened from 1400 after 2026-04-17 verification returned 1447.7 — frontier bunching near the top); publish_age_days ∈ [0, 14]; top1_vote_count ≥ 5000. Values outside these ranges do not block writes but are logged and flagged in HANDOFF.md for investigation (Part 0 sanity-range pre-commit).",
+    expectedMin: 20,
+    expectedMax: 20,
+    unit: "rows per snapshot",
+  },
+  verifiedAt: "2026-04-20",
+  caveat:
+    "The HuggingFace dataset page declares NO license ('License: Not provided'). AI Pulse treats the JSON rows as publicly published numeric facts and mirrors them verbatim — no redistribution of weights or proprietary content, only (model_name, organization, rating, vote_count, category, publish_date) tuples, each row cited to the upstream dataset. Known critiques of Chatbot Arena itself: style bias (verbose answers score higher), self-selection (volunteer voters ≠ general users), category overlap — surfaced verbatim in the panel footer so users see the caveat alongside the numbers. The `text` subset is selected via the HF Datasets Server `config=` URL parameter and never appears as a row field. No map dot, no globe point — models have no location (Part 0 geotag principle: panel-only).",
+  powersFeature: ["benchmarks-panel"],
+};
+
 // ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
@@ -515,6 +543,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   HUGGINGFACE_MODELS,
   ARXIV_PAPERS,
   HN_AI_STORIES,
+  LMARENA_LEADERBOARD,
 ] as const;
 
 export const VERIFIED_SOURCES: readonly DataSource[] = ALL_SOURCES.filter(
