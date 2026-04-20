@@ -25,12 +25,14 @@ test.describe("chrome", () => {
     await shot(page, "chrome-topbar", { fullPage: false });
   });
 
-  test("LeftNav exposes all eight panel buttons", async ({ page }) => {
+  test("LeftNav exposes all nine panel buttons", async ({ page }) => {
     await openDashboard(page);
     const nav = page.getByRole("navigation", { name: "Panel navigation" });
     // LeftNav buttons use `title` attribute as the stable identifier —
     // the accessible name includes the count/soon badge text so
-    // role+name matching doesn't work for exact labels.
+    // role+name matching doesn't work for exact labels. Session 21
+    // widened this list 8 → 9 with "Regional Wire" between AI Labs and
+    // Audit (sibling map-layer panel; sits next to its HQ-layer cousin).
     for (const label of [
       "Wire",
       "Tools",
@@ -38,6 +40,7 @@ test.describe("chrome", () => {
       "Research",
       "Benchmarks",
       "AI Labs",
+      "Regional Wire",
       "Audit",
     ]) {
       await expect(nav.locator(`button[title="${label}"]`)).toBeVisible();

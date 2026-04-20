@@ -1,0 +1,60 @@
+name: wire-ingest-rss
+
+# Regional RSS wire ingest: fetch the 5 curated publisher feeds
+# (the-register-ai, heise-ai, synced-review, marktechpost,
+# mit-tech-review-ai), parse RSS 2.0 / Atom, apply the deterministic
+# AI-keyword filter where the feed is global (heise-ai), and write
+# items + per-source status + wire ZSET to Upstash Redis.
+#
+# Cadence: every 30 minutes on minutes 25 and 55 to avoid colliding
+# with the other scheduled ingests:
+#   - globe-ingest             :*/10 (minutes 0,10,20,30,40,50)
+#   - wire-ingest-hn           :05,:20,:35,:50
+#   - registry-backfill-events :15
+#   - labs-cron-warm           :00 every six hours
+#   - benchmarks-ingest        03:15 daily
+# Minute-25 and minute-55 are free slots that also spread load away
+# from globe-ingest (the heaviest job).
+#
+# Rate-limit math: 5 feeds × 48 polls/day = 240 HTTP requests/day
+# against the publisher CDNs; Redis writes ≤ ~7.7k commands/day
+# (bounded by the 7d item TTL and per-source cap inside
+# runRssIngest). Both comfortably inside the Upstash free-tier
+# 10k-command/day budget when added to HN ingest + globe cache reads.
+#
+# Required repo secrets (shared with other ingest workflows):
+#   INGEST_URL     — e.g. https://aipulse-pi.vercel.app/api/ingest
+#                    (we strip /api/ingest and append the RSS path)
+#   INGEST_SECRET  — shared secret matching the Vercel env var
+
+on:
+  schedule:
+    - cron: "25,55 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: wire-ingest-rss
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Trigger RSS wire ingest on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/wire/ingest-rss"
+          echo "POST $URL"
+          RESPONSE=$(curl -sS -f --max-time 300 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"

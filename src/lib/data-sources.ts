@@ -29,6 +29,7 @@ export type DataSourceCategory =
   | "model-benchmark"
   | "model-distribution" // download / adoption signals for specific models
   | "community-sentiment"
+  | "press-rss" // editor-curated AI news feeds (RSS / Atom)
   | "published-research"
   | "regulatory"
   | "market";
@@ -580,6 +581,155 @@ export const LMARENA_LEADERBOARD: DataSource = {
 };
 
 // ---------------------------------------------------------------------------
+// PRESS-RSS — regional publisher feeds verified 2026-04-20 (RSS-05)
+// Five curated AI-news publishers whose HQ cities geographically diversify the
+// dashboard away from the SF/HN axis. Category `press-rss` is deliberately
+// distinct from `community-sentiment` (HN): these are editor-curated, not
+// crowd-voted, and conflating the two would let a user confuse "what an editor
+// picked" with "what the crowd upvoted".
+//
+// Sanity ranges are conservative items-per-24h estimates drawn from a 3-day
+// observed baseline during RSS-02 dev; bounds err wide rather than narrow so a
+// quiet news day doesn't trigger a false "source broken" signal.
+// ---------------------------------------------------------------------------
+
+export const RSS_THE_REGISTER_AI: DataSource = {
+  id: "rss-the-register-ai",
+  name: "The Register — AI/ML section feed",
+  category: "press-rss",
+  url: "https://www.theregister.com/software/ai_ml/",
+  apiUrl: "https://www.theregister.com/software/ai_ml/headlines.atom",
+  responseFormat: "rss",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "No documented limit on The Register's Atom CDN. Polled at :25,:55 (48 polls/day). Each poll fetches ≤30 headlines; the ingest pipeline dedups against Upstash and only writes new item ids.",
+  },
+  auth: "none",
+  measures:
+    "AI/ML-scoped headlines from The Register — title, url, guid, pubDate, source id. AI Pulse does not summarise, score, or re-title; the items are mirrored verbatim and linked back to the publisher's canonical URL. UK tech press editorial angle (enterprise IT, security); editorial tone is a provenance note, not a sentiment signal.",
+  sanityCheck: {
+    description:
+      "Topic-scoped feed; expect 2–25 items per 24h. Zero across consecutive polls indicates either a CDN outage or that the publisher has moved the feed URL — investigate before attributing to a slow news day. Feed format MUST parse as Atom; a parse failure marks the source stale rather than dropping silently.",
+    expectedMin: 2,
+    expectedMax: 25,
+    unit: "items per 24h",
+  },
+  verifiedAt: "2026-04-20",
+  caveat:
+    "Topic-scoped Atom feed (AI/ML section). UK tech press tone; skews toward enterprise IT and security angles rather than research. HQ pin is London per the publisher's Wikipedia infobox (hqSourceUrl).",
+  powersFeature: ["regional-wire", "map", "wire-panel"],
+};
+
+export const RSS_HEISE_AI: DataSource = {
+  id: "rss-heise-ai",
+  name: "Heise Online — global Atom, AI-filtered",
+  category: "press-rss",
+  url: "https://www.heise.de",
+  apiUrl: "https://www.heise.de/rss/heise-atom.xml",
+  responseFormat: "rss",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "No documented limit on Heise's RSS endpoint. Polled at :25,:55 (48/day). The global Atom is used because Heise does not publish a topic-scoped AI feed; the 30-ish headlines per poll are filtered through the same deterministic keyword allowlist the HN ingest uses (English + German AI terms).",
+  },
+  auth: "none",
+  measures:
+    "German-language AI headlines from Heise Online — title, url, guid, pubDate, source id. Items pass a deterministic AI-keyword match (no LLM inference). Titles remain in German (translation would require LLM inference and would violate the deterministic-only pipeline discipline).",
+  sanityCheck: {
+    description:
+      "Global Atom filtered for AI keywords. Expect 0–10 AI-relevant items per 24h. A zero-day is plausible on weekends/holidays (Heise is a general tech publisher), so the source is NOT auto-stale on single-poll zeros — it only escalates to stale when lastFetchOkTs exceeds RSS_STALE_HOURS_THRESHOLD.",
+    expectedMin: 0,
+    expectedMax: 15,
+    unit: "AI-filtered items per 24h",
+  },
+  verifiedAt: "2026-04-20",
+  caveat:
+    "Heise Online does not publish a topic-scoped AI feed; the global publication Atom is used and filtered with the same deterministic keyword list applied to HN (English + German AI terms). Transparency: the filter is imperfect — a story about 'KI' used metaphorically would match; a story about a specific model that doesn't mention 'AI/KI' in the title would miss. No LLM inference is used to correct these. HQ pin is Hannover per the publisher's Wikipedia infobox.",
+  powersFeature: ["regional-wire", "map", "wire-panel"],
+};
+
+export const RSS_SYNCED_REVIEW: DataSource = {
+  id: "rss-synced-review",
+  name: "Synced Review — AI research, China/global",
+  category: "press-rss",
+  url: "https://syncedreview.com",
+  apiUrl: "https://syncedreview.com/feed/",
+  responseFormat: "rss",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "WordPress-backed RSS; no documented limit. Polled at :25,:55 (48/day).",
+  },
+  auth: "none",
+  measures:
+    "English-language AI-research headlines covering Chinese and global labs — title, url, guid, pubDate, source id. Editor-curated; AI Pulse mirrors verbatim and links back to the publisher's article.",
+  sanityCheck: {
+    description:
+      "Topic-scoped AI publication; expect 1–15 items per 24h. A zero-day over >48h indicates the publisher may have stopped updating or moved the feed URL.",
+    expectedMin: 1,
+    expectedMax: 20,
+    unit: "items per 24h",
+  },
+  verifiedAt: "2026-04-20",
+  caveat:
+    "English-language publication covering Chinese and global AI research. Editorial team headquartered in Beijing per the publisher's about page (hqSourceUrl); this is a curated-and-translated layer, not a native Chinese-language primary source. Including a native zh-CN feed in a future iteration would further reduce the English-only bias — queued as AUDITOR-PENDING for a v2 pass.",
+  powersFeature: ["regional-wire", "map", "wire-panel"],
+};
+
+export const RSS_AIM: DataSource = {
+  id: "rss-marktechpost",
+  name: "MarkTechPost — AI research (India-based team)",
+  category: "press-rss",
+  url: "https://www.marktechpost.com",
+  apiUrl: "https://www.marktechpost.com/feed/",
+  responseFormat: "rss",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "WordPress-backed RSS; no documented limit. Polled at :25,:55 (48/day).",
+  },
+  auth: "none",
+  measures:
+    "AI-research headlines from MarkTechPost — title, url, guid, pubDate, source id. Editor-curated; AI Pulse mirrors verbatim. The India regional slot was filled with MarkTechPost after a review showed Analytics India Magazine's feed gated behind a paywall/fragile URL structure; MarkTechPost's feed is publicly accessible, AI-focused, and editorially led by an India-based team.",
+  sanityCheck: {
+    description:
+      "AI-focused feed with steady publication cadence; expect 3–30 items per 24h. High end is normal (the publisher posts news digests and research summaries frequently). Consecutive zero-days indicate the feed may have moved.",
+    expectedMin: 2,
+    expectedMax: 40,
+    unit: "items per 24h",
+  },
+  verifiedAt: "2026-04-20",
+  caveat:
+    "AI-research-focused publication with an India-based editorial team (CoFounder/Editor: Asif Razzaq, named on the publisher's About page). The publisher does not disclose a specific HQ city on its own About or Contact pages; the map pin is a Delhi NCR approximation, NOT a primary-source claim. This is flagged AUDITOR-PENDING — the lat/lng should be promoted to a verifiable primary source (a registered company address, a conference bio, or an editor interview) or the pin should be moved off the map entirely into panel-only mode per Part 0's geotag principle (null = WIRE-only).",
+  powersFeature: ["regional-wire", "map", "wire-panel"],
+};
+
+export const RSS_MIT_TR_AI: DataSource = {
+  id: "rss-mit-tech-review-ai",
+  name: "MIT Technology Review — AI topic feed",
+  category: "press-rss",
+  url: "https://www.technologyreview.com/topic/artificial-intelligence/",
+  apiUrl:
+    "https://www.technologyreview.com/topic/artificial-intelligence/feed/",
+  responseFormat: "rss",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "WordPress-backed topic feed; no documented limit. Polled at :25,:55 (48/day).",
+  },
+  auth: "none",
+  measures:
+    "AI-topic headlines from MIT Technology Review — title, url, guid, pubDate, source id. Editor-curated; AI Pulse mirrors verbatim.",
+  sanityCheck: {
+    description:
+      "Topic-scoped feed; expect 0–8 items per 24h (MIT TR publishes less frequently than the WordPress peers, so zero-days are common and not a broken-source signal until >48h).",
+    expectedMin: 0,
+    expectedMax: 10,
+    unit: "items per 24h",
+  },
+  verifiedAt: "2026-04-20",
+  caveat:
+    "Topic-scoped AI feed from MIT's publication; US-based (Cambridge, MA) but an editorial counterweight to the SF/HN axis within the US. Included deliberately to show that 'regional' ≠ 'non-US' — the US press itself is plural, and a BostonMA primary-research angle reads differently from an SF product-launch angle.",
+  powersFeature: ["regional-wire", "map", "wire-panel"],
+};
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -602,6 +752,11 @@ export const ALL_SOURCES: readonly DataSource[] = [
   LMARENA_LEADERBOARD,
   AI_LABS_REGISTRY,
   GITHUB_REPO_EVENTS_LABS,
+  RSS_THE_REGISTER_AI,
+  RSS_HEISE_AI,
+  RSS_SYNCED_REVIEW,
+  RSS_AIM,
+  RSS_MIT_TR_AI,
 ] as const;
 
 export const VERIFIED_SOURCES: readonly DataSource[] = ALL_SOURCES.filter(

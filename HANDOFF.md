@@ -2,6 +2,90 @@
 
 ## Current state (2026-04-20)
 
+### Session 21 — Regional RSS layer (RSS-01..05, feature branch `feature/regional-rss`, not yet merged)
+
+Session brief (user, after PRD approval + two mid-session pivots): *"Both pivots approved. Heise global feed + AI keyword filter — document the caveat in data-sources.md as you described. That's honest. MarkTechPost for India — good swap. Verify HQ city at commit time. Build all 5 issues. Ship it. Confirmed. Finish RSS-04, then RSS-05 if time permits. Go."* The compacted prior session had landed RSS-01..03 cleanly and was mid-RSS-04 when the context compressed; this session picked up that thread and shipped RSS-04 + RSS-05.
+
+**Shipped this session (commits on `feature/regional-rss`, on top of the three pre-existing RSS-01..03 commits already on the branch):**
+
+1. `5f655a6 feat(rss): globe+map amber dots, filter toggle, event-card delegation (RSS-04)`
+2. (next) `feat(rss): cron + data-sources registry + visual smoke (RSS-05)`
+
+Full branch state after session 21 (6 commits, in order):
+- `da5ad03` RSS-01 — regional source registry (`src/lib/data/rss-sources.ts`, 5 publishers) + schema validator (pre-existing)
+- `709cd7a` RSS-02 — RSS 2.0 + Atom parser (hand-rolled, no deps), ingest pipeline (`runRssIngest`), Redis store (`redisRssStore`) (pre-existing)
+- `4490c27` RSS-03 — `/api/rss` read route, `RegionalWirePanel`, `SourceCard`, `country-pill` (pre-existing)
+- `5f655a6` RSS-04 — **this session** — globe+map amber dot layer (`rss-to-points.ts`, 10 unit tests), filter toggle (`regional-rss`, default ON), `RssRow` + single-RSS-cluster delegation to `SourceCard`, colour precedence updated to live > lab > rss > hn > registry, cluster sort rank bumped, legend rows added to Globe + FlatMap.
+- (next) RSS-05 — **this session** — `rss-ingest.yml` cron at `25,55 * * * *`, 5 new `DataSource` entries in `data-sources.ts` + mirrored prose in `public/data-sources.md` (committed in the same diff per CLAUDE.md drift rule), new `press-rss` category (deliberately distinct from `community-sentiment`), Playwright smoke `07-regional-wire.spec.ts` (3 tests) + 04-chrome widened 8→9 LeftNav buttons, HANDOFF updated.
+
+**Architectural decisions the Auditor flagged / Builder made in this session:**
+
+- *Amber as layer colour.* `RSS_AMBER = "#f97316"` is tailwind orange-500 — sits between HN's `#ff6600` and the reds/yellows in the live-pulse palette without collapsing onto either. At world zoom amber reads as its own layer; Auditor flag #10 queues a contrast re-check once the feature is live on prod.
+- *Colour precedence live > lab > rss > hn > registry.* Live pulse dominates (code-action is the strongest signal). Lab wins over RSS because a lab HQ is a curated *unique* geographic claim, while RSS is a *curated publisher* claim — both are editorial, but labs point at one org-per-coord whereas publishers are a narrower editorial output. RSS wins over HN because HN is aggregated density (crowd), RSS is editorial curation.
+- *Quiet-publisher dots dim but stay clickable.* Same treatment as labs: `RSS_INACTIVE_OPACITY = 0.35` when `itemsLast24h === 0`. Presence-of-tracked-source reads even on a dead-feed day.
+- *Stale → grey.* When `stale === true` (cron hasn't seen a fresh fetch in 24h+), the dot paints `RSS_STALE_GREY = "#64748b"` instead of amber — same discipline as the HN author-coord gap, never fake a live signal.
+- *Heise global feed + AI filter (pivot #1, user-approved).* Heise does not publish a topic-scoped AI feed; the global Atom is used with the same deterministic keyword allowlist (English + German terms) the HN ingest uses. Transparency caveat documented verbatim in `data-sources.md`: the filter is imperfect (metaphorical 'KI' matches; untitled-'AI' misses) and no LLM inference is used to correct.
+- *MarkTechPost replaces AIM for the India slot (pivot #2, user-approved).* Analytics India Magazine's feed was behind paywall/fragile URL. MarkTechPost's feed is public, AI-focused, editorially led by an India-based team. HQ city remains **AUDITOR-PENDING**: the publisher's About page names the editor (Asif Razzaq) but discloses no HQ city; the Delhi NCR pin is an approximation, flagged in both `rss-sources.ts` caveat and `data-sources.md`.
+- *`press-rss` category, not `community-sentiment`.* HN is crowd-voted; RSS feeds are editor-curated. Conflating the two would let a user confuse "what an editor picked" with "what the crowd upvoted" — different provenance, different category (Auditor flag #13).
+- *Cron at `25,55 * * * *`.* No collision with existing crons (`globe-ingest` `*/10`, `wire-ingest-hn` `5,20,35,50`, `registry-backfill-events` `15`, `labs-cron-warm` `0 */6`, `benchmarks-ingest` `03:15`). 5 feeds × 48 polls/day = 240 HTTP/day against publisher CDNs; Redis budget ~7.7k cmd/day (inside Upstash free-tier 10k).
+- *Single-RSS cluster → SourceCard delegation.* Mirrors labs layer (`LabCard`): a standalone publisher click opens the richer card; mixed clusters (live pulse + publisher, or multiple publishers) stay in the shared `EventCard` with a new `RssRow`.
+
+**Registry state after session 21:**
+
+- Sources: **23** (up from 18 — added `RSS_THE_REGISTER_AI`, `RSS_HEISE_AI`, `RSS_SYNCED_REVIEW`, `RSS_AIM` (id `rss-marktechpost`), `RSS_MIT_TR_AI`).
+- Crons: **8** (up from 7 — added `wire-ingest-rss` at `25,55 * * * *`).
+- Active panels: **7** (up from 6 — added Regional Wire panel; sits between AI Labs and Audit in LeftNav).
+- LeftNav buttons: **9** (up from 8).
+- Unit tests: **196/196 ✓** (up from 118 — +34 from RSS-01..03 registry/parser/ingest, +10 RSS-04 rss-to-points, +34 pre-existing wire-rss branching tests that were landed in RSS-02; unit count is current, Node assertion runners count).
+- Visual smoke tests: **26 total** (23 pre-existing + 3 new). Not yet run against this branch (prod still session-20 code).
+- Build: ✓ (Turbopack 1.9s).
+- Typecheck: clean on the feature surface; pre-existing test-file type errors in `src/lib/data/__tests__/wire-rss.test.ts` (StoreSpy Mock type widening + nullable array access) were introduced in RSS-02 and are out of scope here — queued for follow-up, do NOT let them block the PR.
+
+**Files changed (session 21, relative to the branch base):**
+
+- Created (session 21 only — RSS-01..03 created their own files earlier): `src/components/wire/rss-to-points.ts`, `src/components/wire/__tests__/rss-to-points.test.ts`, `.github/workflows/rss-ingest.yml`, `tests/visual/07-regional-wire.spec.ts`.
+- Modified (session 21 only): `src/components/chrome/FilterPanel.tsx` (regional-rss layer), `src/components/dashboard/Dashboard.tsx` (rssPoints, points merge), `src/components/globe/Globe.tsx` (clusterPoints rss bucket + colour precedence + legend), `src/components/map/FlatMap.tsx` (markers + cluster icon + clusterFromPoints + legend), `src/components/globe/event-detail.tsx` (EventMeta extension + RssRow + SourceCard delegation), `src/lib/data/rss-sources.ts` (MarkTechPost caveat tightening), `src/lib/data-sources.ts` (press-rss category + 5 entries), `public/data-sources.md` (5 mirror entries + session-21 changelog line), `tests/visual/_helpers.ts` (openPanelViaNav accepts "Regional Wire"), `tests/visual/04-chrome.spec.ts` (LeftNav widened 8→9).
+- Deleted (0). Touched outside project directory (0).
+
+**AUDITOR-REVIEW: PENDING (session 21, cumulative across RSS-01..05):**
+
+*From RSS-01 (pre-existing, flagged in PRD):*
+1. MarkTechPost HQ city primary-source verification (currently Delhi NCR approximation; flagged in both `rss-sources.ts` and `data-sources.md`; resolution options: promote lat/lng to a primary source OR move the publisher to panel-only per Part 0 geotag principle).
+2. All 5 `rssUrl` values returning 200 at commit time — confirmed during RSS-02 dev; re-verify post-merge.
+3. Synced Review transparency caveat wording (current caveat labels it "curated-and-translated layer" — honest but could be tightened).
+4. UK vs GB ISO-2 choice for The Register (currently `UK`; ISO-3166-1 alpha-2 is `GB`; consistency question for future press-rss adds).
+
+*From RSS-02 (pre-existing):*
+5. Hand-rolled XML parser vs `fast-xml-parser` tradeoff (no-deps bias won; revisit if parsing edge cases multiply).
+6. 7d item TTL on Redis (balanced against cmd-budget and "panel shows recent items" contract).
+7. Redis cmd budget estimate — 7.7k/day currently; tighten if HN+RSS+labs combined start hitting 10k.
+
+*From RSS-03 (pre-existing):*
+8. SourceCard "last 7 items" vs "all 7d items" scope.
+9. LangTag renders only when `lang !== "en"` — silence is information, but some reviewers prefer explicit "EN" tag always-on.
+
+*From RSS-04 (this session):*
+10. Amber (`#f97316`) vs HN orange (`#ff6600`) contrast at world zoom — visually distinct in dev, but prod is the real test. If mushy post-deploy, shift amber toward `#fb923c` or add a white inner dot to differentiate. Flagged to Auditor pre-merge.
+11. Cluster precedence ordering (rss ahead of hn, rss behind lab) — rationale spelled out above; Auditor may disagree.
+12. 50-row WIRE cap on the Regional Wire panel — default from RSS-03; not revisited here.
+
+*From RSS-05 (this session):*
+13. `press-rss` category vs reuse `community-sentiment` — added new slot deliberately; Auditor to confirm the taxonomy carries its weight.
+14. `sanityCheck` items-per-24h ranges per publisher — conservative estimates from a 3-day observed baseline; may need widening after first 7 days of prod data.
+15. Cron minute choice `25,55` — no collision with existing crons; avoids globe-ingest at `*/10`. Confirm the minute-slot map stays collision-free when the next source is added.
+
+**NEXT (for session 22):**
+
+1. *Run visual smokes against prod / dev server and confirm 26/26 green before opening the PR.* `npm run test:visual:local` (requires `npm run dev` in a second shell) or deploy the feature branch to a Vercel preview and run the suite against the preview URL. The 3 new specs use loose OR-assertions so a zoom-level cluster-majority paint shouldn't flake them.
+2. *Trigger `wire-ingest-rss` manually on the branch* (`gh workflow run wire-ingest-rss.yml`) before merge to confirm all 5 sources write items and per-source stale flags flip correctly. Required repo secrets (`INGEST_URL`, `INGEST_SECRET`) are already set from HN ingest.
+3. *Open PR feature/regional-rss → main, Auditor sweep the 15 PENDING items above, merge.*
+4. *Post-merge:* run `npm run test:visual` against prod; if the amber vs HN-orange contrast looks mushy at world zoom, ship the hue adjustment as a follow-up fix before announcing the layer.
+5. *Then* either: (a) revisit the stale AUDITOR-PENDING items across sessions 16–20 (21 items), (b) write the MarkTechPost HQ-verification mini-PRD to move the pin from approximation to primary-source, or (c) pick the next layer — a zh-CN native feed alongside Synced Review is the obvious candidate if the "regional" framing is the priority, or a Japan/Korea feed if tile the map further east.
+
+**Session 22 entry point:** `feature/regional-rss` at the session-21 tip, unmerged. First command should be `git status && git log --oneline -10 main..HEAD` to confirm the 6-commit branch shape, then the smoke run.
+
+---
+
 ### Session 20 — AI Labs layer (6 commits, feature branch `feature/ai-labs-layer`)
 
 Session brief (user, after the PRD review): *"PRD approved. Decompose and build."* — and earlier: *"Curation is not scoring — it's sourcing. Every lab has a verifiable HQ and public GitHub repos. The criteria are pre-committed. Confirmed. Violet is fine. … 6h cron confirmed. List confirmed."*
