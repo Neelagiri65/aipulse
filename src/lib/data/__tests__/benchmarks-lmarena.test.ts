@@ -3,7 +3,7 @@ import {
   type ArenaRow,
   buildPayload,
   computeDeltas,
-  isTextOverall,
+  isOverall,
   parseHfRow,
   publishAgeDays,
   runSanityCheck,
@@ -19,7 +19,6 @@ const baseRow = (over: Partial<Record<string, unknown>> = {}): Record<string, un
   rating_upper: 1415.3,
   vote_count: 50321,
   category: "overall",
-  subset: "text",
   leaderboard_publish_date: "2026-04-17",
   ...over,
 });
@@ -33,7 +32,6 @@ const row = (o: Partial<ArenaRow> = {}): ArenaRow => ({
   ratingUpper: 1415.3,
   voteCount: 50321,
   category: "overall",
-  subset: "text",
   leaderboardPublishDate: "2026-04-17",
   ...o,
 });
@@ -51,9 +49,17 @@ describe("parseHfRow", () => {
       ratingUpper: 1415.3,
       voteCount: 50321,
       category: "overall",
-      subset: "text",
       leaderboardPublishDate: "2026-04-17",
     });
+  });
+
+  it("parses a row missing the optional `subset` column (HF text config)", () => {
+    const raw = baseRow();
+    // HF never returns a `subset` column in the response — config=text selects it.
+    delete (raw as { subset?: unknown }).subset;
+    const parsed = parseHfRow(raw);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.modelName).toBe("Claude 4.7 Opus");
   });
 
   it("returns null when rank is missing", () => {
@@ -71,6 +77,12 @@ describe("parseHfRow", () => {
   it("accepts organization field under legacy key", () => {
     const parsed = parseHfRow(baseRow({ organization: undefined, org: "Anthropic" }));
     expect(parsed?.organization).toBe("Anthropic");
+  });
+
+  it("mirrors empty organization verbatim (lmarena ships '' for un-tagged models)", () => {
+    const parsed = parseHfRow(baseRow({ organization: "" }));
+    expect(parsed).not.toBeNull();
+    expect(parsed?.organization).toBe("");
   });
 
   it("coerces numeric strings (HF sometimes serialises rating as string)", () => {
@@ -99,15 +111,15 @@ describe("parseHfRow", () => {
   });
 });
 
-describe("isTextOverall / selectTop20", () => {
-  it("keeps text+overall, drops everything else", () => {
+describe("isOverall / selectTop20", () => {
+  it("keeps category=overall, drops everything else", () => {
     const rows: ArenaRow[] = [
       row({ rank: 1, modelName: "A" }),
       row({ rank: 2, modelName: "B", category: "coding" }),
-      row({ rank: 3, modelName: "C", subset: "vision" }),
+      row({ rank: 3, modelName: "C", category: "chinese" }),
       row({ rank: 4, modelName: "D" }),
     ];
-    expect(rows.filter(isTextOverall).map((r) => r.modelName)).toEqual(["A", "D"]);
+    expect(rows.filter(isOverall).map((r) => r.modelName)).toEqual(["A", "D"]);
   });
 
   it("selectTop20 sorts by rank asc and caps at 20", () => {

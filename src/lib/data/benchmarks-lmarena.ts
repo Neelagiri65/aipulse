@@ -24,7 +24,6 @@ export type ArenaRow = {
   ratingUpper: number;
   voteCount: number;
   category: string;
-  subset: string;
   leaderboardPublishDate: string;
 };
 
@@ -88,9 +87,12 @@ export function parseHfRow(raw: unknown): ArenaRow | null {
   const ratingUpper = toNumber(r.rating_upper ?? r.rating_q975);
   const voteCount = toNumber(r.vote_count ?? r.num_battles);
   const modelName = toString(r.model_name ?? r.model);
-  const organization = toString(r.organization ?? r.organisation ?? r.org);
+  // organization is allowed empty (lmarena occasionally ships "" for
+  // newly-appearing models whose lab hasn't been tagged yet — e.g.,
+  // `dola-seed-2.0-pro` at rank 13 on 2026-04-17). The transparency
+  // contract says "raw organization verbatim" so we mirror "" as "".
+  const organization = toStringOrEmpty(r.organization ?? r.organisation ?? r.org);
   const category = toString(r.category);
-  const subset = toString(r.subset);
   const leaderboardPublishDate = toString(r.leaderboard_publish_date ?? r.snapshot_date);
 
   if (
@@ -100,9 +102,7 @@ export function parseHfRow(raw: unknown): ArenaRow | null {
     ratingUpper === null ||
     voteCount === null ||
     modelName === null ||
-    organization === null ||
     category === null ||
-    subset === null ||
     leaderboardPublishDate === null
   ) {
     return null;
@@ -121,7 +121,6 @@ export function parseHfRow(raw: unknown): ArenaRow | null {
     ratingUpper,
     voteCount: Math.trunc(voteCount),
     category,
-    subset,
     leaderboardPublishDate,
   };
 }
@@ -139,16 +138,21 @@ function toString(v: unknown): string | null {
   return typeof v === "string" && v.length > 0 ? v : null;
 }
 
+function toStringOrEmpty(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
 // ---------------------------------------------------------------------------
 // Filters — keep the selection deterministic and auditable.
 // ---------------------------------------------------------------------------
 
-/** subset==="text" AND category==="overall". Case-insensitive string compare. */
-export function isTextOverall(row: ArenaRow): boolean {
-  return (
-    row.subset.toLowerCase() === "text" &&
-    row.category.toLowerCase() === "overall"
-  );
+/**
+ * Subset (`text`) is selected by the config= URL param and never appears as
+ * a column in the response. Inside a `text` config fetch, the only filter
+ * AI Pulse applies is category === "overall".
+ */
+export function isOverall(row: ArenaRow): boolean {
+  return row.category.toLowerCase() === "overall";
 }
 
 /**
@@ -157,7 +161,7 @@ export function isTextOverall(row: ArenaRow): boolean {
  */
 export function selectTop20(rows: ArenaRow[]): ArenaRow[] {
   return rows
-    .filter(isTextOverall)
+    .filter(isOverall)
     .slice()
     .sort((a, b) => a.rank - b.rank)
     .slice(0, 20);
