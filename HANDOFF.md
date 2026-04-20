@@ -2,6 +2,65 @@
 
 ## Current state (2026-04-20)
 
+### Session 15 — HANDOFF recovery (docs-only, 3 commits)
+
+Session brief (user): session 14 conversation compacted mid-flow;
+recover the strategic discussion into HANDOFF.md so nothing gets
+re-asked. Three rounds of capture + a verification grep.
+
+**Shipped (3 commits, HANDOFF.md only — no code):**
+
+1. `ec59a0e docs: HANDOFF — complete session 14 discussion capture
+   (post-compaction recovery)`
+   - New section `## Queued from session 14 discussion (not yet
+     built)` covering: 5 data sources (HN + Chatbot Arena queued;
+     ecosyste.ms shipped; Libraries.io pending; Sourcegraph
+     rejected), 7 deferred features, 6 architecture decisions,
+     current system state, 4 critical risks.
+
+2. `1573f73 docs: HANDOFF — add OSS Insight, GH_TOKEN rotation
+   date, architecture-dashboard TODO`
+   - User flagged 3 omissions. Added: OSS Insight
+     (`ossinsight.io`) as a research-first-gated source;
+     GH_TOKEN rotation calendar date (`2026-07-12`, one week
+     before ~2026-07-19 expiry); architecture-dashboard TODO
+     pointing at `docs/architecture-dashboard.md` as the future
+     home (user-paste required — could not fabricate).
+
+3. `773367c docs: HANDOFF — geographic and topical coverage
+   expansion plan`
+   - New section `## Geographic + topical coverage expansion
+     plan (queued)` with an anti-bias principle (proposed
+     addition to spec Part 0), 4 geographic items (HF org
+     origin, OpenAlex institution geocoding, OpenAlex as a
+     source, regional RSS into THE WIRE), 4 topical items
+     (safety/governance, multi-source Benchmarks, education
+     topic-filter, mechanical controversy signals),
+     dependency-ordered sequencing, 4 auditor-pending flags.
+
+**Verification grep** (user-initiated, end of session): 8/8
+decision items present — Hacker News (L153), Algolia (L155/156/
+414), Chatbot Arena (L166/389), lmarena (L166/389), OAuth
+(L217/248), login (L217/248), Mobile responsive (L214/251),
+Sourcegraph (L115/186/188).
+
+**Files changed:** `HANDOFF.md` only (+311 lines). Created: 0.
+Deleted: 0. Touched outside project directory: none.
+
+**MOM:** match = YES. Goal was "capture session 14 discussion into
+HANDOFF.md"; delivered three capture rounds + a verification pass.
+Docs-only, no build to run, no regressions possible.
+
+**Next action — single highest-impact feature remaining:**
+Hacker News integration (Algolia + Firebase APIs). Project CLAUDE.md
+requires Phase 1 (GRILL → PRD at `docs/prd-hacker-news.md` with
+architectural constraint test → issue decomposition → TDD). Start
+in a fresh session with clean context; do NOT skip the grill even
+though the source is already approved.
+
+**AUDITOR-REVIEW: PENDING** on everything flagged in the queued
+sections above. Nothing from this session introduces new code risk.
+
 ### Session 14 — verify-pair + Research tab + source #6 (2 commits)
 
 Session brief (user): ship all four — verify flat-map clicks (bfc5320),
