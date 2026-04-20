@@ -262,6 +262,82 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 
 ---
 
+## Press-RSS — regional publisher feeds (verified 2026-04-20 · RSS-05)
+
+Five curated AI-news publishers chosen to geographically diversify the dashboard away from the SF/HN axis. Category `press-rss` is deliberately distinct from `community-sentiment` (HN): these are editor-curated, not crowd-voted, and conflating the two would let a user confuse "what an editor picked" with "what the crowd upvoted." Every publisher's HQ carries an `hqSourceUrl` traceable to a public citation. Every item surfaced in the dashboard is mirrored verbatim — no translation, no summarisation, no scoring.
+
+### The Register — AI/ML section feed
+- **Category:** press-rss
+- **Public URL:** https://www.theregister.com/software/ai_ml/
+- **API endpoint:** `https://www.theregister.com/software/ai_ml/headlines.atom`
+- **Response format:** Atom XML
+- **Update frequency:** Every 30 minutes (`25,55 * * * *` GitHub Actions cron → `/api/wire/ingest-rss` → Upstash Redis)
+- **Rate limit:** No documented limit on the publisher's Atom CDN. 48 polls/day. Ingest dedups against Redis and only writes new item ids.
+- **Auth:** None
+- **What it measures:** AI/ML-scoped headlines — title, url, guid, pubDate, source id. AI Pulse does not summarise, score, or re-title; the items are mirrored verbatim and linked back to the publisher's canonical URL.
+- **Sanity check:** Topic-scoped feed; expect 2–25 items per 24h. Zero across consecutive polls indicates either a CDN outage or that the publisher has moved the feed URL — investigate before attributing to a slow news day. Feed MUST parse as Atom; parse failure marks the source stale rather than dropping silently.
+- **Caveat:** UK tech press editorial tone; skews toward enterprise IT and security angles rather than research. HQ pin is London per the publisher's Wikipedia infobox.
+- **Powers:** Regional wire panel, map amber dot, wire panel
+- **Last verified:** 2026-04-20
+
+### Heise Online — global Atom, AI-filtered
+- **Category:** press-rss
+- **Public URL:** https://www.heise.de
+- **API endpoint:** `https://www.heise.de/rss/heise-atom.xml`
+- **Response format:** Atom XML
+- **Update frequency:** Every 30 minutes (same cron as above)
+- **Rate limit:** No documented limit. 48 polls/day.
+- **Auth:** None
+- **What it measures:** German-language AI headlines filtered through a deterministic English+German keyword allowlist (same rules used by the HN ingest). Items are mirrored verbatim and remain in German; translation would require LLM inference and would violate the deterministic-only pipeline discipline.
+- **Sanity check:** Global Atom filtered for AI keywords. Expect 0–15 AI-relevant items per 24h. A zero-day is plausible on weekends/holidays (Heise is a general tech publisher), so the source is NOT auto-stale on single-poll zeros — it only escalates to stale when lastFetchOkTs exceeds RSS_STALE_HOURS_THRESHOLD.
+- **Caveat:** Heise does not publish a topic-scoped AI feed; the global publication Atom is used and filtered. Transparency: the filter is imperfect — a story about 'KI' used metaphorically would match; a story about a specific model that doesn't mention 'AI/KI' in the title would miss. No LLM inference is used to correct these. HQ pin is Hannover per the publisher's Wikipedia infobox.
+- **Powers:** Regional wire panel, map amber dot, wire panel
+- **Last verified:** 2026-04-20
+
+### Synced Review — AI research, China/global
+- **Category:** press-rss
+- **Public URL:** https://syncedreview.com
+- **API endpoint:** `https://syncedreview.com/feed/`
+- **Response format:** RSS 2.0
+- **Update frequency:** Every 30 minutes (same cron)
+- **Rate limit:** WordPress-backed RSS; no documented limit.
+- **Auth:** None
+- **What it measures:** English-language AI-research headlines covering Chinese and global labs — title, url, guid, pubDate, source id. Editor-curated; AI Pulse mirrors verbatim and links back to the publisher's article.
+- **Sanity check:** Topic-scoped AI publication; expect 1–20 items per 24h. A zero-day over >48h indicates the publisher may have stopped updating or moved the feed URL.
+- **Caveat:** English-language publication covering Chinese and global AI research. Editorial team headquartered in Beijing per the publisher's about page; this is a curated-and-translated layer, not a native Chinese-language primary source. Including a native zh-CN feed in a future iteration would further reduce the English-only bias — queued as AUDITOR-PENDING for a v2 pass.
+- **Powers:** Regional wire panel, map amber dot, wire panel
+- **Last verified:** 2026-04-20
+
+### MarkTechPost — AI research (India-based team)
+- **Category:** press-rss
+- **Public URL:** https://www.marktechpost.com
+- **API endpoint:** `https://www.marktechpost.com/feed/`
+- **Response format:** RSS 2.0
+- **Update frequency:** Every 30 minutes (same cron)
+- **Rate limit:** WordPress-backed RSS; no documented limit.
+- **Auth:** None
+- **What it measures:** AI-research headlines from MarkTechPost — title, url, guid, pubDate, source id. Editor-curated; AI Pulse mirrors verbatim. The India regional slot was filled with MarkTechPost after a review showed Analytics India Magazine's feed gated behind a paywall/fragile URL structure; MarkTechPost's feed is publicly accessible, AI-focused, and editorially led by an India-based team.
+- **Sanity check:** AI-focused feed with steady publication cadence; expect 2–40 items per 24h. High end is normal (the publisher posts news digests and research summaries frequently). Consecutive zero-days indicate the feed may have moved.
+- **Caveat:** AUDITOR-PENDING. AI-research-focused publication with an India-based editorial team (CoFounder/Editor: Asif Razzaq, named on the publisher's About page). The publisher does not disclose a specific HQ city on its own About or Contact pages; the map pin is a Delhi NCR approximation, NOT a primary-source claim. The lat/lng should be promoted to a verifiable primary source (a registered company address, a conference bio, or an editor interview) or the pin should be moved off the map entirely into panel-only mode per Part 0's geotag principle (null = WIRE-only).
+- **Powers:** Regional wire panel, map amber dot, wire panel
+- **Last verified:** 2026-04-20
+
+### MIT Technology Review — AI topic feed
+- **Category:** press-rss
+- **Public URL:** https://www.technologyreview.com/topic/artificial-intelligence/
+- **API endpoint:** `https://www.technologyreview.com/topic/artificial-intelligence/feed/`
+- **Response format:** RSS 2.0
+- **Update frequency:** Every 30 minutes (same cron)
+- **Rate limit:** WordPress-backed topic feed; no documented limit.
+- **Auth:** None
+- **What it measures:** AI-topic headlines from MIT Technology Review — title, url, guid, pubDate, source id. Editor-curated; AI Pulse mirrors verbatim.
+- **Sanity check:** Topic-scoped feed; expect 0–10 items per 24h (MIT TR publishes less frequently than the WordPress peers, so zero-days are common and not a broken-source signal until >48h).
+- **Caveat:** Topic-scoped AI feed from MIT's publication; US-based (Cambridge, MA) but an editorial counterweight to the SF/HN axis within the US. Included deliberately to show that 'regional' ≠ 'non-US' — the US press itself is plural, and a Boston-MA primary-research angle reads differently from an SF product-launch angle.
+- **Powers:** Regional wire panel, map amber dot, wire panel
+- **Last verified:** 2026-04-20
+
+---
+
 ## Tracked without a verifiable source (gap surfaced, not hidden)
 
 ### Cursor
@@ -279,7 +355,9 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - Any source that returns data outside its sanity-check range is treated as broken — the affected feature falls back to graceful degradation, and the discrepancy is investigated before the metric returns to the UI.
 - Widening a sanity-check range after verification is allowed and must be documented (see `gh-issues-claude-code` caveat). Recalibrating a range to chase a narrative is forbidden.
 
-_Last updated: 2026-04-20 (session 20 — added AI Labs curated HQ registry (12th verified source) and GitHub Repository Events API labs fetcher (13th); violet HQ layer on globe + flat-map + labs panel; curation is sourcing, not scoring; every dot cites its HQ source URL)._
+_Last updated: 2026-04-20 (session 21 — added 5 press-rss publisher feeds (The Register AI/ML, Heise Online, Synced Review, MarkTechPost, MIT Technology Review — entries 19–23) plus the new `press-rss` category distinct from `community-sentiment`; cron `25,55 * * * *` with no collision against globe/HN/labs/benchmarks; every publisher's HQ carries a traceable `hqSourceUrl`; MarkTechPost Delhi NCR pin remains AUDITOR-PENDING until a primary-source HQ is verified)._
+
+_Previous: 2026-04-20 (session 20 — added AI Labs curated HQ registry (12th verified source) and GitHub Repository Events API labs fetcher (13th); violet HQ layer on globe + flat-map + labs panel; curation is sourcing, not scoring; every dot cites its HQ source URL)._
 
 _Previous: 2026-04-20 (session 18 — added Chatbot Arena `lmarena-ai/leaderboard-dataset` as 11th verified source; panel-only per Part 0 geotag principle; no-declared-license disclosure; `rank20_rating` sanity upper bound widened from 1400 to 1500 after first live ingest observed 1447.7)._
 

@@ -51,6 +51,9 @@ import type { BenchmarksPayload } from "@/lib/data/benchmarks-lmarena";
 import type { LabsPayload } from "@/lib/data/fetch-labs";
 import { labsToGlobePoints } from "@/components/labs/labs-to-points";
 import { LabsPanel } from "@/components/labs/LabsPanel";
+import type { RssWireResult } from "@/lib/data/wire-rss";
+import { RegionalWirePanel } from "@/components/wire/RegionalWirePanel";
+import { rssToGlobePoints } from "@/components/wire/rss-to-points";
 
 const STATUS_POLL_MS = 5 * 60 * 1000;
 const EVENTS_POLL_MS = 30 * 1000;
@@ -80,6 +83,11 @@ const BENCHMARKS_POLL_MS = 30 * 60 * 1000;
 // every 6h. 10-min client poll sits above the CDN TTL so each real
 // upstream flip is picked up once, without churning the edge.
 const LABS_POLL_MS = 10 * 60 * 1000;
+// Regional RSS: upstream cron runs every 30min; /api/rss CDN-cached for
+// 60s. 10-min client poll sits well above the CDN TTL so we catch every
+// real upstream refresh without churning the edge layer — publisher
+// feeds update slowly (often hourly), minute-level cadence is wasteful.
+const RSS_POLL_MS = 10 * 60 * 1000;
 
 type RegistryResult = {
   ok: boolean;
@@ -94,7 +102,8 @@ type PanelId =
   | "models"
   | "research"
   | "benchmarks"
-  | "labs";
+  | "labs"
+  | "regional-wire";
 
 export function Dashboard() {
   const status = usePolledEndpoint<StatusResult>("/api/status", STATUS_POLL_MS);
@@ -117,6 +126,7 @@ export function Dashboard() {
     BENCHMARKS_POLL_MS,
   );
   const labs = usePolledEndpoint<LabsPayload>("/api/labs", LABS_POLL_MS);
+  const rss = usePolledEndpoint<RssWireResult>("/api/rss", RSS_POLL_MS);
 
   const rawPoints: GlobePoint[] = events.data?.points ?? [];
   const lastUpdatedAt = events.data?.polledAt;
@@ -202,11 +212,20 @@ export function Dashboard() {
   const labPoints: GlobePoint[] = filters["ai-labs"]
     ? labsToGlobePoints(labs.data?.labs ?? [])
     : [];
+  // Regional RSS layer — curated publisher HQs from
+  // src/lib/data/rss-sources.ts, sized by 24h item count. Always
+  // plotted (quiet publishers dim via RSS_INACTIVE_OPACITY), so
+  // presence of the regional source is visible even when a feed is
+  // slow. Gated by the `regional-rss` filter (default ON).
+  const rssPoints: GlobePoint[] = filters["regional-rss"]
+    ? rssToGlobePoints(rss.data?.sources ?? [])
+    : [];
   const points: GlobePoint[] = [
     ...livePoints,
     ...dedupedRegistry,
     ...hnPoints,
     ...labPoints,
+    ...rssPoints,
   ];
 
   // Pre-merge GH events + HN stories into a single chronological wire
@@ -282,6 +301,7 @@ export function Dashboard() {
       research: { open: false, min: false },
       benchmarks: { open: false, min: false },
       labs: { open: false, min: false },
+      "regional-wire": { open: false, min: false },
     },
   );
   const [zorder, setZorder] = useState<PanelId[]>([
@@ -291,6 +311,7 @@ export function Dashboard() {
     "research",
     "benchmarks",
     "labs",
+    "regional-wire",
   ]);
   const [maxId, setMaxId] = useState<PanelId | null>(null);
 
@@ -303,6 +324,7 @@ export function Dashboard() {
     research: { x: number; y: number; w: number; h: number };
     benchmarks: { x: number; y: number; w: number; h: number };
     labs: { x: number; y: number; w: number; h: number };
+    "regional-wire": { x: number; y: number; w: number; h: number };
   } | null>(null);
   useEffect(() => {
     const W = typeof window !== "undefined" ? window.innerWidth : 1440;
@@ -332,6 +354,10 @@ export function Dashboard() {
       // not full-height; 420 wide keeps long lab names + city on one
       // line at typical viewports.
       labs: { x: 108, y: 220, w: 420, h: 560 },
+      // Regional Wire sits slightly down-right of Labs so opening both
+      // doesn't stack. 420 wide matches the Labs sibling; 5 rows are
+      // short, so the panel is compact at 420h.
+      "regional-wire": { x: 136, y: 260, w: 420, h: 420 },
     });
   }, []);
 
@@ -377,6 +403,12 @@ export function Dashboard() {
       icon: "labs",
       count: labs.data?.labs.length ?? null,
     },
+    {
+      id: "regional-wire",
+      label: "Regional Wire",
+      icon: "regional-wire",
+      count: rss.data?.sources.length ?? null,
+    },
     { id: "audit", label: "Audit", icon: "audit" },
   ];
 
@@ -394,7 +426,8 @@ export function Dashboard() {
       id !== "models" &&
       id !== "research" &&
       id !== "benchmarks" &&
-      id !== "labs"
+      id !== "labs" &&
+      id !== "regional-wire"
     )
       return;
     const pid = id as PanelId;
@@ -668,6 +701,44 @@ export function Dashboard() {
                 data={labs.data}
                 error={labs.error}
                 isInitialLoading={labs.isInitialLoading}
+              />
+            </Win>
+          )}
+
+          {initialPos && panels["regional-wire"].open && (
+            <Win
+              id="regional-wire"
+              title="Regional Wire · non-SV publishers · 24h activity"
+              initial={initialPos["regional-wire"]}
+              zIndex={z("regional-wire")}
+              minimized={panels["regional-wire"].min}
+              maximized={maxId === "regional-wire"}
+              onFocus={() => focus("regional-wire")}
+              onClose={() =>
+                setPanels((p) => ({
+                  ...p,
+                  "regional-wire": { open: false, min: false },
+                }))
+              }
+              onMinimize={() =>
+                setPanels((p) => ({
+                  ...p,
+                  "regional-wire": {
+                    ...p["regional-wire"],
+                    min: !p["regional-wire"].min,
+                  },
+                }))
+              }
+              onMaximize={() =>
+                setMaxId((m) =>
+                  m === "regional-wire" ? null : "regional-wire",
+                )
+              }
+            >
+              <RegionalWirePanel
+                data={rss.data}
+                error={rss.error}
+                isInitialLoading={rss.isInitialLoading}
               />
             </Win>
           )}

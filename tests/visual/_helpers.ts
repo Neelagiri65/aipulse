@@ -100,7 +100,14 @@ export function navButton(
  */
 export async function openPanelViaNav(
   page: Page,
-  label: "Wire" | "Tools" | "Models" | "Research" | "Benchmarks" | "AI Labs",
+  label:
+    | "Wire"
+    | "Tools"
+    | "Models"
+    | "Research"
+    | "Benchmarks"
+    | "AI Labs"
+    | "Regional Wire",
 ) {
   const nav = page.getByRole("navigation", { name: "Panel navigation" });
   const btn = nav.locator(`button[title="${label}"]`);

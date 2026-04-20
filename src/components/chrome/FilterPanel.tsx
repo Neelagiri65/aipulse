@@ -8,7 +8,8 @@ export type FilterLayerId =
   | "fork"
   | "watch"
   | "ai-config-only"
-  | "ai-labs";
+  | "ai-labs"
+  | "regional-rss";
 
 export type FilterState = Record<FilterLayerId, boolean>;
 
@@ -24,6 +25,10 @@ export const DEFAULT_FILTERS: FilterState = {
   // named AI labs are. Users who want pure GH-event density can opt
   // out; most land on the globe wanting to see both.
   "ai-labs": true,
+  // Regional RSS default ON: same rationale as labs — the layer exists
+  // to counterbalance the SV/English axis, so hiding it by default
+  // would defeat the anti-bias purpose of including it at all.
+  "regional-rss": true,
 };
 
 type Layer = {
@@ -50,6 +55,12 @@ const LAYERS: Layer[] = [
     id: "ai-labs",
     label: "AI Labs",
     color: "#a855f7",
+    category: "Layers",
+  },
+  {
+    id: "regional-rss",
+    label: "Regional RSS",
+    color: "#f97316",
     category: "Layers",
   },
 ];
