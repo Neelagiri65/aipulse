@@ -61,7 +61,7 @@ function MetricCell({ metric }: { metric: Metric }) {
   return (
     <div className="min-w-[180px] flex-1 px-4 py-3">
       <div className="flex items-baseline justify-between gap-2">
-        <span className={`text-lg font-semibold tabular-nums ${toneClass}`}>
+        <span className={`ap-type-metric ${toneClass}`}>
           {metric.value}
         </span>
         {metric.stamp && (
@@ -70,7 +70,7 @@ function MetricCell({ metric }: { metric: Metric }) {
           </span>
         )}
       </div>
-      <div className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+      <div className="mt-0.5 truncate ap-type-label">
         {metric.label}
       </div>
       <SourceCitation ids={metric.sourceIds} />

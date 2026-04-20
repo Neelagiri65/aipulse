@@ -128,20 +128,20 @@ function SourceBody({ source }: { source: RssSourcePanel }) {
         </span>
       </div>
 
-      <div className="mt-2 flex items-baseline justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-foreground/60">
+      <div className="mt-2 flex items-baseline justify-between gap-2">
+        <span className="ap-type-label text-foreground/60">
           Activity
         </span>
-        <span className="font-mono text-[11px] tabular-nums text-foreground/80">
-          <span className="font-semibold text-foreground">
+        <span className="font-mono tabular-nums text-foreground/80">
+          <span className="ap-type-metric text-foreground">
             {source.itemsLast24h}
           </span>
-          <span className="text-foreground/50"> · 24h</span>
-          <span className="mx-1 text-foreground/30">/</span>
-          <span className="font-semibold text-foreground">
+          <span className="text-[10px] text-foreground/50"> · 24h</span>
+          <span className="mx-1 text-[10px] text-foreground/30">/</span>
+          <span className="ap-type-metric text-foreground">
             {source.itemsLast7d}
           </span>
-          <span className="text-foreground/50"> · 7d</span>
+          <span className="text-[10px] text-foreground/50"> · 7d</span>
         </span>
       </div>
 

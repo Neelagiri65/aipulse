@@ -158,10 +158,10 @@ function LabBody({ lab }: { lab: EventMeta }) {
       </div>
 
       <div className="mt-2 flex items-baseline justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-foreground/60">
+        <span className="ap-type-label text-foreground/60">
           7d activity
         </span>
-        <span className="font-mono text-[14px] font-semibold tabular-nums text-foreground">
+        <span className="ap-type-metric text-foreground">
           {total}
         </span>
       </div>
