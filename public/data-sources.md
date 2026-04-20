@@ -231,6 +231,37 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 
 ---
 
+### AI Labs — curated HQ registry (internal JSON)
+- **Category:** github-activity (sourcing layer)
+- **Public URL:** https://github.com/Neelagiri65/aipulse/blob/main/data/ai-labs.json
+- **Response format:** JSON (static file checked into the repo)
+- **Update frequency:** Weekly (by hand, when a lab joins/leaves or moves HQ)
+- **Rate limit:** None — static JSON, no runtime calls
+- **Auth:** None
+- **What it measures:** 32 curated AI labs across 10 countries, each with verifiable HQ coordinates and a list of flagship public GitHub orgs / repos. This registry is the *sourcing* step for the AI Labs globe layer — it does not score, rank, or rename labs. Inclusion criteria are pre-committed at the file's top comment: (1) at least one public GH org OR a canonical flagship AI repo, (2) HQ coordinates traceable to a public source (Wikipedia infobox or the org's own about/contact page), (3) org publishes AI research or code (not merely consumes AI), (4) academic labs use their most-active AI subgroup org, not the umbrella university. Each entry carries `hqSourceUrl` so every violet dot on the globe cites its HQ provenance.
+- **Sanity check:** 30–40 entries at any given time. `validateLabsRegistry()` rejects missing required fields, lat ∉ [-90, 90], lng ∉ [-180, 180], `country_code` not matching /^[A-Z]{2}$/, duplicate ids, non-https `hqSourceUrl`, non-github `sourceUrl`, or empty `repos` array. Country coverage ≥ 9 expected to avoid a US-monoculture read.
+- **Caveat:** Curation is *sourcing*, not scoring. The list is editable by hand — if a notable lab is missing, add it with a verifiable HQ source. Every dot on the globe can be traced back to a row in this file. Academic labs are represented by their most-active AI subgroup org (e.g. `stanford-crfm` for Stanford AI Lab) since universities don't centralise AI under one GitHub org; sibling subgroups are excluded to avoid double-counting, noted per-entry in the `notes` field.
+- **Powers:** AI Labs globe layer, labs panel
+- **Last verified:** 2026-04-20
+
+---
+
+### GitHub Repository Events API (labs activity fetcher)
+- **Category:** github-activity
+- **Public URL:** https://docs.github.com/en/rest/activity/events#list-repository-events
+- **API endpoint:** `https://api.github.com/repos/{owner}/{repo}/events?per_page=100`
+- **Response format:** JSON
+- **Update frequency:** Every 6h (GitHub Actions cron + Next.js Data Cache with `revalidate: 21600`)
+- **Rate limit:** 5000 req/hr authenticated (GitHub token). 47 tracked repos across 32 labs × 4 cron runs/day = ~188 req/day — well under budget. CDN `s-maxage=1800` on `/api/labs` absorbs the 10-min client poll, so upstream traffic stays on the 6h cache boundary.
+- **Auth:** GitHub token (repo secret, injected server-side — never bundled into client)
+- **What it measures:** 7-day public-event activity per tracked repo, bucketed by lab and by event type. The nine types accepted by the live globe pipeline are counted (PushEvent / PullRequestEvent / IssuesEvent / IssueCommentEvent / PullRequestReviewEvent / ReleaseEvent / CreateEvent / ForkEvent / WatchEvent) so the labs layer never disagrees with the live pulse on what "activity" means. The 7-day window is an exact 7 × 24 × 3600 × 1000 ms cutoff against `created_at`, not a fuzzy approximation.
+- **Sanity check:** A full refresh should return real counts for ≥ 80% of tracked repos (the rest marked stale on cron failure). Top-5 labs by 7d total typically land in the 500–5000 event range; median lab ~20–200; long tail sits near zero and those labs render as dim violet dots (still present, still clickable). A full-registry zero indicates GH rate-limit exhaustion or a cascading cron failure — investigate before attributing to "quiet week".
+- **Caveat:** The per-repo endpoint returns the last ~300 events or the last 90 days, whichever is smaller — we filter server-side to the 7d window and the nine relevant types before summing. Repo rename/transfer will silently return 404 until `data/ai-labs.json` is updated; the repo shows `stale: true` until fixed. Aggregate only: no rescoring, no weighting, no merging across labs. Dot size is a function of the raw 7d event total with a log scale clamped at the p95 of the current run so one outlier lab can't squash the rest of the distribution.
+- **Powers:** AI Labs globe layer, labs panel
+- **Last verified:** 2026-04-20
+
+---
+
 ## Tracked without a verifiable source (gap surfaced, not hidden)
 
 ### Cursor
@@ -248,7 +279,9 @@ The machine-readable mirror of this document lives at [`src/lib/data-sources.ts`
 - Any source that returns data outside its sanity-check range is treated as broken — the affected feature falls back to graceful degradation, and the discrepancy is investigated before the metric returns to the UI.
 - Widening a sanity-check range after verification is allowed and must be documented (see `gh-issues-claude-code` caveat). Recalibrating a range to chase a narrative is forbidden.
 
-_Last updated: 2026-04-20 (session 18 — added Chatbot Arena `lmarena-ai/leaderboard-dataset` as 11th verified source; panel-only per Part 0 geotag principle; no-declared-license disclosure; `rank20_rating` sanity upper bound widened from 1400 to 1500 after first live ingest observed 1447.7)._
+_Last updated: 2026-04-20 (session 20 — added AI Labs curated HQ registry (12th verified source) and GitHub Repository Events API labs fetcher (13th); violet HQ layer on globe + flat-map + labs panel; curation is sourcing, not scoring; every dot cites its HQ source URL)._
+
+_Previous: 2026-04-20 (session 18 — added Chatbot Arena `lmarena-ai/leaderboard-dataset` as 11th verified source; panel-only per Part 0 geotag principle; no-declared-license disclosure; `rank20_rating` sanity upper bound widened from 1400 to 1500 after first live ingest observed 1447.7)._
 
 _Previous: 2026-04-20 (session 16 — added Hacker News AI-filtered story stream as 10th verified source; two endpoints under one logical entry, deterministic allowlist/blacklist filter, unmetered, shape verified)._
 

@@ -1,0 +1,57 @@
+name: labs-cron-warm
+
+# AI Labs cache warmer. /api/labs is backed by the Next.js Data Cache
+# with `revalidate: 21600` (6h). This cron GETs the endpoint every 6h
+# so the first user request after a refresh slot hits a warm cache,
+# not a cold 30-lab × 2-repo upstream sweep against GitHub.
+#
+# Cadence: 0 */6 * * * (00:00, 06:00, 12:00, 18:00 UTC). No collision
+# with the other crons; each runs at a different minute-of-hour slot:
+#   - globe-ingest             :*/10
+#   - wire-ingest-hn           :05,:20,:35,:50
+#   - registry-backfill-events :15
+#   - benchmarks-ingest        03:15 daily
+# Labs at :00 is the free slot.
+#
+# Required repo secret:
+#   INGEST_URL — shared with other workflows; we strip `/api/ingest` and
+#   append `/api/labs` so a single URL env var covers every endpoint.
+#
+# Failure posture (PRD AC 13): curl with --max-time 240 (upstream GH
+# roundtrips are bounded at 10-way concurrency; full sweep typically
+# completes in <60s, but 4m gives headroom). A non-200 exits non-zero
+# and the Actions run fails — but the route itself still serves the
+# last-good JSON via stale-while-revalidate, so user traffic is
+# unaffected. An Actions failure is the signal, not a UI blank.
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: labs-cron-warm
+  cancel-in-progress: false
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Warm /api/labs on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+        run: |
+          if [ -z "$INGEST_URL" ]; then
+            echo "::error::INGEST_URL is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/labs"
+          echo "GET $URL"
+          RESPONSE=$(curl -sS -f --max-time 240 "$URL")
+          COUNT=$(echo "$RESPONSE" | node -e "let s=''; process.stdin.on('data',c=>s+=c).on('end',()=>{try{console.log(JSON.parse(s).labs?.length ?? 0)}catch{console.log(0)}})")
+          echo "Labs returned: $COUNT"
+          if [ "$COUNT" -lt 20 ]; then
+            echo "::warning::fewer than 20 labs returned — registry / GH upstream may be degraded"
+          fi
