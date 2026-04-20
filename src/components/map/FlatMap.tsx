@@ -168,18 +168,25 @@ export function FlatMap({ points = [], lastUpdatedAt }: FlatMapProps) {
     for (const p of points) {
       const meta = (p.meta ?? {}) as EventMeta;
       const isRegistry = meta.kind === "registry";
-      const color = isRegistry ? "#cbd5e1" : colorForType(meta.type);
+      const isHn = meta.kind === "hn";
+      const color = isHn
+        ? "#ff6600"
+        : isRegistry
+          ? "#cbd5e1"
+          : colorForType(meta.type);
       const hasAi = meta.hasAiConfig === true;
       const decay =
         typeof meta.decayScore === "number" ? meta.decayScore : 0;
 
       const icon = L.divIcon({
-        html: isRegistry
-          ? registryMarkerHtml(decay)
-          : markerHtml(color, hasAi),
+        html: isHn
+          ? hnMarkerHtml()
+          : isRegistry
+            ? registryMarkerHtml(decay)
+            : markerHtml(color, hasAi),
         className: "ap-fm-marker",
-        iconSize: isRegistry ? [8, 8] : hasAi ? [16, 16] : [10, 10],
-        iconAnchor: isRegistry ? [4, 4] : hasAi ? [8, 8] : [5, 5],
+        iconSize: isHn ? [10, 10] : isRegistry ? [8, 8] : hasAi ? [16, 16] : [10, 10],
+        iconAnchor: isHn ? [5, 5] : isRegistry ? [4, 4] : hasAi ? [8, 8] : [5, 5],
       });
       const marker = L.marker([p.lat, p.lng], {
         icon,
@@ -269,6 +276,16 @@ function markerHtml(color: string, hasAi: boolean): string {
 }
 
 /**
+ * HN story marker — bright orange dot (#ff6600), slightly larger than a
+ * registry dot so the layer is visible against the registry density
+ * backdrop. Same geometry class as the live-event no-AI marker (10×10)
+ * so the user reads it as a distinct source, not as an activity pulse.
+ */
+function hnMarkerHtml(): string {
+  return `<span style="display:block;width:8px;height:8px;border-radius:9999px;background:#ff6600;box-shadow:0 0 6px rgba(255,102,0,0.55);margin:1px"></span>`;
+}
+
+/**
  * Registry base-layer marker — slate dot, alpha driven by decay score.
  *   ≤24h → ~0.7 alpha, >90d → ~0.07 alpha. Matches Globe's
  *   `avgDecay × 0.7` clamp so the two views read identically.
@@ -289,14 +306,17 @@ function clusterIcon(L: typeof import("leaflet"), cluster: MarkerClusterGroup): 
   let ai = 0;
   let live = 0;
   let registry = 0;
+  let hn = 0;
   let decaySum = 0;
   for (const m of kids) {
     const p = (m.options as unknown as { eventPoint?: GlobePoint }).eventPoint;
     const meta = p?.meta as EventMeta | undefined;
-    const isRegistry = meta?.kind === "registry";
-    if (isRegistry) {
+    const kind = meta?.kind;
+    if (kind === "registry") {
       registry += 1;
       decaySum += typeof meta?.decayScore === "number" ? meta.decayScore : 0;
+    } else if (kind === "hn") {
+      hn += 1;
     } else {
       live += 1;
       const t = meta?.type ?? "unknown";
@@ -309,13 +329,20 @@ function clusterIcon(L: typeof import("leaflet"), cluster: MarkerClusterGroup): 
       ? [...counts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0]
       : undefined;
   const avgDecay = registry > 0 ? decaySum / registry : 0;
-  const registryOnly = live === 0 && registry > 0;
-  const color = registryOnly ? "#cbd5e1" : colorForType(dominant);
-  const isAi = ai > 0 && !registryOnly;
+  const registryOnly = live === 0 && hn === 0 && registry > 0;
+  const hnOnly = live === 0 && registry === 0 && hn > 0;
+  const color = hnOnly
+    ? "#ff6600"
+    : registryOnly
+      ? "#cbd5e1"
+      : colorForType(dominant);
+  const isAi = ai > 0 && !registryOnly && !hnOnly;
 
   // Registry-only clusters render quieter: smaller, no bold AI ring, and
   // the border alpha scales with avgDecay so a dormant region reads as
-  // faded density, not as "activity."
+  // faded density, not as "activity." HN-only clusters take the HN
+  // brand orange with a similar mid-intensity look (community signal,
+  // not activity pulse).
   const scale = registryOnly
     ? Math.min(1.0, 0.7 + Math.log10(count) * 0.18)
     : Math.min(1.4, 0.9 + Math.log10(count) * 0.22);
@@ -323,21 +350,27 @@ function clusterIcon(L: typeof import("leaflet"), cluster: MarkerClusterGroup): 
   const fontSize = Math.round(11 + (scale - 0.9) * 4);
   const borderAlpha = registryOnly
     ? Math.max(0.15, Math.min(0.6, avgDecay * 0.7))
-    : isAi
-      ? 0.95
-      : 0.6;
+    : hnOnly
+      ? 0.85
+      : isAi
+        ? 0.95
+        : 0.6;
   const glowAlpha = registryOnly
     ? borderAlpha * 0.5
-    : isAi
-      ? 0.55
-      : 0.25;
+    : hnOnly
+      ? 0.5
+      : isAi
+        ? 0.55
+        : 0.25;
   const border = hexA(color, borderAlpha);
   const glow = hexA(color, glowAlpha);
   const textColor = registryOnly
     ? "#cbd5e1"
-    : isAi
-      ? "#f0fdfa"
-      : "#e2e8f0";
+    : hnOnly
+      ? "#ffe4ce"
+      : isAi
+        ? "#f0fdfa"
+        : "#e2e8f0";
   const label = count > 99 ? "99+" : String(count);
 
   const html = `
@@ -379,17 +412,20 @@ function singletonCluster(
   const meta = (p.meta ?? {}) as EventMeta;
   const hasAi = meta.hasAiConfig === true;
   const isRegistry = meta.kind === "registry";
+  const isHn = meta.kind === "hn";
+  const isLive = !isRegistry && !isHn;
   const decay = typeof meta.decayScore === "number" ? meta.decayScore : 0;
   return {
     lat: p.lat,
     lng: p.lng,
     color,
-    dominantType: type ?? "unknown",
+    dominantType: isHn ? "hn" : type ?? "unknown",
     size: 1,
     count: 1,
     aiCount: hasAi ? 1 : 0,
-    liveCount: isRegistry ? 0 : 1,
+    liveCount: isLive ? 1 : 0,
     registryCount: isRegistry ? 1 : 0,
+    hnCount: isHn ? 1 : 0,
     avgDecay: isRegistry ? decay : 0,
     events: [p],
   };
@@ -407,15 +443,18 @@ function clusterFromPoints(points: GlobePoint[]): Cluster {
   let ai = 0;
   let live = 0;
   let registry = 0;
+  let hn = 0;
   let decaySum = 0;
   let latSum = 0;
   let lngSum = 0;
   for (const p of points) {
     const meta = (p.meta ?? {}) as EventMeta;
-    const isRegistry = meta.kind === "registry";
-    if (isRegistry) {
+    const kind = meta.kind;
+    if (kind === "registry") {
       registry += 1;
       decaySum += typeof meta.decayScore === "number" ? meta.decayScore : 0;
+    } else if (kind === "hn") {
+      hn += 1;
     } else {
       live += 1;
       const t = meta.type ?? "unknown";
@@ -428,14 +467,23 @@ function clusterFromPoints(points: GlobePoint[]): Cluster {
   const dominant =
     live > 0
       ? [...counts.entries()].sort((a, z) => z[1] - a[1])[0]?.[0] ?? "unknown"
-      : "registry";
-  const color = live > 0 ? colorForType(dominant) : "#cbd5e1";
+      : hn > 0 && registry === 0
+        ? "hn"
+        : "registry";
+  const color =
+    live > 0
+      ? colorForType(dominant)
+      : hn > 0 && registry === 0
+        ? "#ff6600"
+        : "#cbd5e1";
   const sorted = points.slice().sort((a, z) => {
     const am = a.meta as EventMeta | undefined;
     const zm = z.meta as EventMeta | undefined;
-    const aLive = am?.kind !== "registry";
-    const zLive = zm?.kind !== "registry";
-    if (aLive !== zLive) return aLive ? -1 : 1;
+    const rank = (m: EventMeta | undefined) =>
+      m?.kind === "registry" ? 2 : m?.kind === "hn" ? 1 : 0;
+    const rA = rank(am);
+    const rZ = rank(zm);
+    if (rA !== rZ) return rA - rZ;
     const atA = am?.createdAt ?? am?.lastActivity ?? "";
     const atZ = zm?.createdAt ?? zm?.lastActivity ?? "";
     return atZ.localeCompare(atA);
@@ -450,6 +498,7 @@ function clusterFromPoints(points: GlobePoint[]): Cluster {
     aiCount: ai,
     liveCount: live,
     registryCount: registry,
+    hnCount: hn,
     avgDecay: registry > 0 ? decaySum / registry : 0,
     events: sorted,
   };

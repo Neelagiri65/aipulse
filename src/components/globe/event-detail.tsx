@@ -11,8 +11,8 @@ import type { ConfigKind } from "@/lib/data/registry-shared";
  * EventCard render both rows without branching at the component boundary.
  */
 export type EventMeta = {
-  /** Present on both kinds. */
-  kind?: "event" | "registry";
+  /** Present on all kinds. */
+  kind?: "event" | "registry" | "hn";
   /** Live-event fields. */
   eventId?: string;
   type?: string;
@@ -29,7 +29,16 @@ export type EventMeta = {
   lastActivity?: string;
   decayScore?: number;
   configKinds?: ConfigKind[];
-  locationLabel?: string;
+  /** Shared: registry uses it for city/country; hn uses it for author location. */
+  locationLabel?: string | null;
+  /** HN fields (kind === "hn"). */
+  id?: string;
+  title?: string;
+  points?: number;
+  numComments?: number;
+  hnUrl?: string;
+  author?: string;
+  url?: string | null;
 };
 
 export type Cluster = {
@@ -44,6 +53,8 @@ export type Cluster = {
   /** How many of `events` are live events vs registry-base entries. */
   liveCount: number;
   registryCount: number;
+  /** How many of `events` are HN stories (kind === "hn"). */
+  hnCount: number;
   /** Avg decayScore across registry entries in this bucket (0..1). */
   avgDecay: number;
   /** Underlying events that collapsed into this cluster. Sorted newest-first. */
@@ -148,9 +159,21 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
               {cluster.registryCount} registry
             </span>
           )}
-          {cluster.liveCount === 0 && cluster.registryCount === 0 && (
-            <>{cluster.count} event{cluster.count === 1 ? "" : "s"}</>
+          {cluster.hnCount > 0 && (
+            <>
+              {(cluster.liveCount > 0 || cluster.registryCount > 0) && (
+                <span className="text-foreground/50"> · </span>
+              )}
+              <span style={{ color: "#ff6600" }}>
+                {cluster.hnCount} HN
+              </span>
+            </>
           )}
+          {cluster.liveCount === 0 &&
+            cluster.registryCount === 0 &&
+            cluster.hnCount === 0 && (
+              <>{cluster.count} event{cluster.count === 1 ? "" : "s"}</>
+            )}
         </span>
         <button
           type="button"
@@ -164,11 +187,13 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
       <ul className="divide-y divide-border/40">
         {visible.map((p, i) => {
           const kind = (p.meta as EventMeta | undefined)?.kind;
-          return kind === "registry" ? (
-            <RegistryRow key={eventKey(p, i)} point={p} />
-          ) : (
-            <EventRow key={eventKey(p, i)} point={p} />
-          );
+          if (kind === "registry") {
+            return <RegistryRow key={eventKey(p, i)} point={p} />;
+          }
+          if (kind === "hn") {
+            return <HnRow key={eventKey(p, i)} point={p} />;
+          }
+          return <EventRow key={eventKey(p, i)} point={p} />;
         })}
       </ul>
       {overflow > 0 && (
@@ -181,8 +206,10 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
 });
 
 function eventKey(p: GlobePoint, fallback: number): string {
-  const id = (p.meta as EventMeta | undefined)?.eventId;
-  return id ?? `idx:${fallback}`;
+  const m = p.meta as EventMeta | undefined;
+  if (m?.kind === "hn" && typeof m.id === "string") return `hn:${m.id}`;
+  if (typeof m?.eventId === "string") return m.eventId;
+  return `idx:${fallback}`;
 }
 
 function EventRow({ point }: { point: GlobePoint }) {
@@ -293,6 +320,62 @@ function RegistryRow({ point }: { point: GlobePoint }) {
           )}
         </span>
         {age && <span className="ml-2 shrink-0 tabular-nums">{age}</span>}
+      </div>
+    </li>
+  );
+}
+
+/**
+ * HN story row: surfaces title + points + comments + author + resolved
+ * location. Whole row is a link to the HN comments page (new tab).
+ * Orange pill matches the WIRE feed's brand accent so a dot on the map
+ * and a row in the feed read as the same source.
+ */
+function HnRow({ point }: { point: GlobePoint }) {
+  const meta = (point.meta ?? {}) as EventMeta;
+  const title = meta.title ?? "(untitled)";
+  const author = meta.author ?? "(unknown)";
+  const pts = typeof meta.points === "number" ? meta.points : 0;
+  const cmts = typeof meta.numComments === "number" ? meta.numComments : 0;
+  const href =
+    meta.hnUrl ??
+    (typeof meta.id === "string"
+      ? `https://news.ycombinator.com/item?id=${meta.id}`
+      : undefined);
+  const loc = meta.locationLabel;
+
+  return (
+    <li className="px-2.5 py-2">
+      <div className="flex items-center gap-1.5">
+        <span
+          className="rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-white"
+          style={{ backgroundColor: "#ff6600" }}
+        >
+          HN · {pts} pts · {cmts} cmt
+        </span>
+      </div>
+      <div className="mt-1.5 font-mono text-[12px] text-foreground">
+        {href ? (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[#ff6600] hover:underline"
+          >
+            {title}
+          </a>
+        ) : (
+          title
+        )}
+      </div>
+      <div className="mt-0.5 flex items-center justify-between font-mono text-[10px] text-muted-foreground">
+        <span className="truncate">
+          @{author}
+          {loc && <span className="ml-1.5">· {loc}</span>}
+        </span>
+        <span className="ml-2 shrink-0 tabular-nums">
+          {formatRelative(meta.createdAt)}
+        </span>
       </div>
     </li>
   );
