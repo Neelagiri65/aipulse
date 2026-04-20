@@ -25,13 +25,21 @@ test.describe("chrome", () => {
     await shot(page, "chrome-topbar", { fullPage: false });
   });
 
-  test("LeftNav exposes all seven panel buttons", async ({ page }) => {
+  test("LeftNav exposes all eight panel buttons", async ({ page }) => {
     await openDashboard(page);
     const nav = page.getByRole("navigation", { name: "Panel navigation" });
     // LeftNav buttons use `title` attribute as the stable identifier —
     // the accessible name includes the count/soon badge text so
     // role+name matching doesn't work for exact labels.
-    for (const label of ["Wire", "Tools", "Models", "Research", "Benchmarks", "Audit"]) {
+    for (const label of [
+      "Wire",
+      "Tools",
+      "Models",
+      "Research",
+      "Benchmarks",
+      "AI Labs",
+      "Audit",
+    ]) {
       await expect(nav.locator(`button[title="${label}"]`)).toBeVisible();
     }
     // Agents is soon-flagged → title includes " · coming soon", disabled.
