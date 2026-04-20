@@ -261,6 +261,25 @@
 .ap-win--minimized { height: auto !important; min-height: 0; }
 .ap-win--minimized .ap-win__body { display: none; }
 
+/* Topmost panel keeps the full accent glow + crisp border; rest dim. */
+.ap-win--topmost {
+  border-color: var(--ap-border-strong);
+  box-shadow:
+    0 0 0 1px rgba(45, 212, 191, 0.08),
+    0 26px 70px -18px rgba(0, 0, 0, 0.9),
+    0 0 70px -18px var(--ap-accent-glow);
+}
+.ap-win--behind {
+  opacity: 0.86;
+  border-color: var(--ap-border);
+  box-shadow:
+    0 0 0 1px rgba(45, 212, 191, 0.03),
+    0 12px 32px -18px rgba(0, 0, 0, 0.7);
+}
+.ap-win--behind:hover {
+  opacity: 0.96;
+}
+
 .ap-win__titlebar {
   height: 28px;
   display: flex;

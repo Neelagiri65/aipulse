@@ -9,6 +9,12 @@ export type WinProps = {
   zIndex: number;
   minimized?: boolean;
   maximized?: boolean;
+  /**
+   * True when this panel is the topmost open panel (last in zorder).
+   * When false the panel paints the `ap-win--behind` dim treatment so a
+   * stack of open panels is visually parseable without closing any.
+   */
+  topmost?: boolean;
   onFocus?: (id: string) => void;
   onClose?: (id: string) => void;
   onMinimize?: (id: string) => void;
@@ -28,6 +34,7 @@ export function Win({
   zIndex,
   minimized,
   maximized,
+  topmost,
   onFocus,
   onClose,
   onMinimize,
@@ -117,7 +124,7 @@ export function Win({
 
   return (
     <div
-      className={`ap-win ${minimized ? "ap-win--minimized" : ""}`}
+      className={`ap-win ${minimized ? "ap-win--minimized" : ""} ${topmost === false ? "ap-win--behind" : "ap-win--topmost"}`}
       style={{
         left: pos.x,
         top: pos.y,
