@@ -26,6 +26,17 @@
 
 5. **Confused "interesting" with "trustworthy."** When 96% of repos scored zero, the response was "interesting finding, pivot the narrative" instead of "the measurement is broken." **Fix:** Every metric has a pre-defined "sanity check" — an expected range based on external evidence. If results fall outside that range, the methodology is investigated before the data is published.
 
+### Cross-cutting geographic principle
+
+Every data source that provides location at any level (user profile, org HQ, institution affiliation, feed origin) is geotagged via the project geocoder. Same flat map = unified geographic lens across all data types. If geocoding fails, the item appears in THE WIRE but not on the map. Never approximate, never infer, never synthesise a location.
+
+This is a non-negotiable that applies to every source added to `data-sources.ts` going forward. Concretely:
+
+- **One geocoder, one table.** All location resolution goes through `src/lib/geocoding.ts`. No per-source geocoding shortcuts, no ad-hoc coordinate lookups, no "we'll just use the country centroid here". The dictionary is the single source of geographic truth; expand it when coverage is inadequate, don't branch around it.
+- **Real public field in, coordinates out.** The input must be a location string the source itself publishes (GitHub `location`, HN `about` leading line, HuggingFace org location, institution affiliation from OpenAlex, etc.). Never construct a location from signals the source didn't declare.
+- **Null is a legitimate outcome.** When the geocoder returns null, the item still flows through THE WIRE (honest: we saw this event) but is omitted from the map (honest: we don't know where). The coverage % reported in the UI reflects this reality.
+- **No approximation.** If a user writes "somewhere sunny", that's null. We do not guess, infer, or default to the publisher's HQ. Guessed dots are lies that the user cannot distinguish from verified ones.
+
 ---
 
 ## PART 1: DUAL-MODEL BUILD METHODOLOGY
