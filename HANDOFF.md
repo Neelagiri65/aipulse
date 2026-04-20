@@ -1,6 +1,144 @@
 # HANDOFF — AI Pulse
 
-## Current state (2026-04-19)
+## Current state (2026-04-20)
+
+### Session 14 — verify-pair + Research tab + source #6 (2 commits)
+
+Session brief (user): ship all four — verify flat-map clicks (bfc5320),
+verify registry dots on map, Research tab (ArXiv top 20), source #6
+via deps.dev. Research-first pass flagged mid-session: deps.dev's
+public REST only returns a dependent _count_, not the list. Pivoted
+to ecosyste.ms with user's explicit green light; same provenance
+class (third-party index), drop-in JSON, 5000/hr anonymous.
+
+**Shipped (2 commits):**
+
+1. `7dea2a2 feat(research): top-20 recent cs.AI+cs.LG papers —
+   arxiv-papers source`
+   - `src/lib/data/fetch-research.ts` (NEW). Calls
+     `export.arxiv.org/api/query?search_query=cat:cs.AI+OR+cat:cs.LG&sortBy=submittedDate`.
+     Hand-rolled Atom parser (split on `</entry>` + regex per tag) —
+     zero dependencies; deterministic missing-tag fallback aligned
+     with the trust contract. 30-min Next.js Data Cache.
+   - `src/app/api/research/route.ts` (NEW). Node runtime, 15-min CDN
+     s-maxage, 30-min stale-while-revalidate.
+   - `src/components/research/ResearchPanel.tsx` (NEW). Rank / title /
+     primary-category badge / author line (first + et al. when >3) /
+     relative timestamp. Links out to arxiv abstract page.
+   - `src/components/dashboard/Dashboard.tsx` wired: PanelId adds
+     "research", nav flips from soon:true to active with count badge,
+     poll 15 min, initial pos anchored to left half (w=420, y=160) so
+     long titles breathe without clashing with Models on the right.
+   - `src/lib/data-sources.ts` + `public/data-sources.md`:
+     ARXIV_PAPERS entry under "published-research" category.
+   - Live verification post-deploy: `/api/research` → 200, ok:true,
+     20 papers, top primary cs.CV (cross-listed), authors/id/published
+     all extracted cleanly.
+
+2. `b69bdc4 feat(registry): source #6 — ecosyste.ms npm
+   reverse-dependencies` (substituted for deps.dev)
+   - Mid-session pivot: deps.dev REST returns `{dependentCount,
+     directDependentCount}` only (verified against openai v4.0.0–
+     v6.34.0). The actual dependent list is BigQuery-only. User
+     approved ecosyste.ms as the drop-in — same provenance class
+     (third-party index, free, JSON, no auth), 5000 req/hr anonymous,
+     and returns `repository_url` directly on each row.
+   - `src/lib/data/registry-deps.ts` (NEW). Six target packages:
+     @anthropic-ai/sdk, openai, @langchain/core, langchain, ai,
+     llamaindex. `/dependent_packages?sort=latest_release_published_at`
+     so active dependents get verified first. Strict github.com
+     regex on repository_url (drops gitlab/bitbucket rows). Deduped
+     across packages, skipped against known-registry, cap=60 per run,
+     6-filename Contents probe + first-500-bytes shape verifier +
+     repo-meta fetch — same pattern as registry-topics.ts and
+     registry-events-backfill.ts.
+   - `src/app/api/registry/deps/route.ts` (NEW). Auth via
+     INGEST_SECRET. Query params: source, cap, pagesPerPackage,
+     packages (csv). maxDuration=120.
+   - `.github/workflows/registry-discover-deps.yml` (NEW). 6h cron
+     at :30 past — mid-slot between backfill-events (:15) and topics
+     (:45) so the three registry cron kinds can't collide inside a
+     5-min Search-API budget window.
+   - `src/lib/data-sources.ts` + `public/data-sources.md`: new
+     ECOSYSTEMS_NPM_DEPENDENTS source; caveat documents the
+     deps.dev → ecosyste.ms swap.
+   - Live smoke (`manual-deps-smoke`, cap=30, pagesPerPackage=1,
+     ~110s duration): `{packagesSwept:6, candidatesFound:305,
+     candidatesAfterDedupe:179, candidatesAfterSkipKnown:179,
+     verifiesAttempted:30, written:14, failures:[{step:"fetch:langchain",
+     message:"page 1 returned 500"}]}`. Verify-pass rate 47% — well
+     above my 15–30% sanity projection; dependents turn out to be a
+     higher-signal source than predicted.
+
+**Verifications (task 1 + 2 — no code shipped):**
+- Flat-map click cards (bfc5320): structurally correct. Singleton
+  handler FlatMap.tsx:191-202, cluster handler :114-140,
+  zoomToBoundsOnClick:false :108, EventCard zIndex:1200 in
+  event-detail.tsx:122 (above Leaflet's max pane z=800).
+- Registry dots: 224 located entries visible via `/api/registry`
+  cache-bust; Dashboard.tsx:91-115 correctly maps to kind="registry"
+  GlobePoints with decayScore; FlatMap.tsx:176-183 renders
+  `registryMarkerHtml` with decay-alpha.
+- Both verified at code + data level. Pixel-level browser
+  confirmation still needs the user's eyes — could not launch a
+  browser in-session. No code changes were needed.
+
+**Registry state at session end (cache-busted):**
+- Total entries: **520** (up from 477 at session 13 end → +43 this
+  session: +14 from deps-smoke, +29 from location-enrichment and
+  scheduled cron runs during the session)
+- With location: 250 (up from 212)
+- Latest source: `manual-deps-smoke` at 2026-04-20T00:17:27Z
+- Cron schedule now:
+  - backfill-events: 1h at :15 past — cap=100
+  - topics:           2h at :45 past — cap=60, pagesPerTopic=2
+  - deps:             6h at :30 past — cap=60, pagesPerPackage=2 (NEW)
+
+**AUDITOR-REVIEW: PENDING** on:
+1. deps discovery verify-pass rate: 47% observed on a top-30 recent-
+   release sample; project 15–30% for broader pages. Watch first three
+   cron cycles; if sustained pass rate <15%, drop @langchain/core and
+   `ai` and keep only the direct SDKs (@anthropic-ai/sdk, openai,
+   llamaindex).
+2. ecosyste.ms indexing lag. Rows may be hours-to-days behind live
+   npm. Not a correctness issue (we gate on shape, not freshness) but
+   if real-world new-package cadence looks stale vs. npm, reconsider.
+3. Research tab v1 intentionally includes cross-listed papers whose
+   primary is cs.CV / cs.CL / cs.RO (secondary cs.AI / cs.LG). If the
+   panel reads too broad, tighten to primary_category filter
+   client-side.
+4. Research tab v2 enrichment (citations + institution) needs
+   Semantic Scholar or OpenAlex; rate-limit stories unaudited.
+5. Transient ecosyste.ms 500 on langchain page 1 during smoke — will
+   retry on next cron; if the 500 persists, add a single-page retry
+   with backoff to registry-deps.ts.
+6. Sourcegraph evaluated and rejected (closed-source + no free
+   programmatic API; scraping would violate ToS).
+
+**Next action (priority order, queued):**
+1. Libraries.io follow-up (user flagged). 60 req/min authenticated,
+   free registration. Covers npm + PyPI + RubyGems so one source
+   unlocks multi-ecosystem dependents. Requires a new shared secret
+   `LIBRARIES_IO_API_KEY`; pattern mirrors registry-deps.ts with a
+   different fetcher.
+2. GitHub Code Search expansion (user flagged). Current code search
+   is `filename:CLAUDE.md`; add `CLAUDE.md in:path` to catch configs
+   in subdirectories. One-line query addition to
+   registry-discovery.ts; bump expected sweep size accordingly.
+3. GitHub `/repos/{owner}/{repo}/dependents` HTML scrape (user
+   flagged). Target anthropic-ai/sdk-python and openai-node
+   specifically to get repo-level dependents (ecosyste.ms covers
+   package-level). Cadence ~weekly.
+4. PyPI Stats integration (user flagged). `pypistats.org/api`
+   returns download counts by country. Not for discovery — for
+   enriching the globe with a download-heatmap layer showing where
+   AI packages are most used.
+5. Agents tab (still deferred — product-source call needed: HF
+   Spaces? topics-gated repos? npm agent packages?).
+6. Gemini deep scan on /audit (still own-session: user-key flow UI,
+   prompt design, cost cap, server-side key hygiene).
+7. /archives page (still own-session: needs daily/weekly snapshot
+   writer to Redis with 90d+ TTL first; that writer doesn't exist).
 
 ### Session 13 — backfill cron + topics discovery + Models tab (3 commits)
 
