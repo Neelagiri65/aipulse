@@ -108,6 +108,10 @@ export type RssSourcePanel = {
   lng: number;
   lang: string;
   hqSourceUrl: string;
+  /** Publisher's own website root — click target for the publisher name. */
+  publisherUrl: string;
+  /** The actual RSS/Atom feed URL the ingest polls. Exposed so the UI can cite the feed as the primary source. */
+  rssUrl: string;
   feedFormat: "rss" | "atom";
   keywordFilterScope: "all" | "ai-only";
   caveat?: string;
@@ -226,6 +230,8 @@ export function assembleRssWire(opts: {
       lng: src.lng,
       lang: src.lang,
       hqSourceUrl: src.hqSourceUrl,
+      publisherUrl: src.publisherUrl,
+      rssUrl: src.rssUrl,
       feedFormat: src.feedFormat,
       keywordFilterScope: src.keywordFilterScope,
       caveat: src.caveat,

@@ -1,6 +1,6 @@
 "use client";
 
-import type { RssWireResult } from "@/lib/data/wire-rss";
+import type { RssSourcePanel, RssWireItem, RssWireResult } from "@/lib/data/wire-rss";
 import { CountryPill, LangTag } from "@/components/wire/country-pill";
 
 /**
@@ -8,6 +8,8 @@ import { CountryPill, LangTag } from "@/components/wire/country-pill";
  * 24h item count (desc; ties broken by display name asc). Each row:
  *
  *   [COUNTRY-PILL] [LANG-TAG?] Publisher Name · 24h count · STALE?
+ *   ▸ recent article title           (→ publisher's own URL)
+ *   site ↗ · rss ↗                   (primary-source citations)
  *
  * Deliberate non-behaviours:
  *   - No scoring, no ranking language. The ordering is purely
@@ -19,7 +21,12 @@ import { CountryPill, LangTag } from "@/components/wire/country-pill";
  *   - STALE banner when lastFetchOkTs is null or >24h old. Numbers
  *     still render so the reader can see the last known state, but
  *     the staleness is never hidden.
+ *   - Article rows link straight to the publisher's article URL —
+ *     we never rehost, rewrite, or score. The feed URL is surfaced
+ *     next to the publisher site so anyone can verify the source.
  */
+
+const INLINE_ITEMS_PER_SOURCE = 3;
 
 export type RegionalWirePanelProps = {
   data: RssWireResult | undefined;
@@ -91,12 +98,13 @@ function SourceRow({
   rank,
   maxCount,
 }: {
-  src: RssWireResult["sources"][number];
+  src: RssSourcePanel;
   rank: number;
   maxCount: number;
 }) {
   const pct = Math.round((src.itemsLast24h / maxCount) * 100);
   const loc = [src.city, src.country].filter(Boolean).join(", ");
+  const inlineItems = src.recentItems.slice(0, INLINE_ITEMS_PER_SOURCE);
   return (
     <li className="rounded-md border border-border/40 bg-card/30 p-2 text-[11px] leading-snug">
       <div className="flex items-baseline gap-2">
@@ -106,11 +114,11 @@ function SourceRow({
         <CountryPill country={src.country} />
         <LangTag lang={src.lang} />
         <a
-          href={src.hqSourceUrl}
+          href={src.publisherUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="min-w-0 flex-1 truncate font-medium text-foreground underline-offset-2 hover:underline"
-          title={src.displayName}
+          title={`${src.displayName} — open publisher site`}
         >
           {src.displayName}
         </a>
@@ -149,8 +157,78 @@ function SourceRow({
           }}
         />
       </div>
+      {inlineItems.length > 0 && (
+        <ul className="mt-1.5 ml-7 space-y-0.5">
+          {inlineItems.map((item) => (
+            <InlineArticleRow key={item.id} item={item} />
+          ))}
+        </ul>
+      )}
+      <div className="mt-1.5 ml-7 flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70">
+        <a
+          href={src.publisherUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-foreground hover:underline"
+          title={src.publisherUrl}
+        >
+          site ↗
+        </a>
+        <span className="text-foreground/30">·</span>
+        <a
+          href={src.rssUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-foreground hover:underline"
+          title={src.rssUrl}
+        >
+          rss ↗
+        </a>
+        <span className="ml-auto shrink-0 normal-case tracking-normal text-muted-foreground/60">
+          {src.feedFormat}
+        </span>
+      </div>
     </li>
   );
+}
+
+function InlineArticleRow({ item }: { item: RssWireItem }) {
+  const ts = item.publishedTs * 1000;
+  const rel = formatRelativeShort(ts);
+  return (
+    <li className="flex items-baseline gap-1.5 text-[10px]">
+      <span className="shrink-0 text-foreground/30" aria-hidden>
+        ▸
+      </span>
+      <a
+        href={item.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="min-w-0 flex-1 truncate text-foreground/80 hover:text-[#f97316] hover:underline"
+        title={item.title}
+      >
+        {item.title}
+      </a>
+      <span
+        className="shrink-0 tabular-nums text-muted-foreground/70"
+        title={new Date(ts).toISOString()}
+      >
+        {rel}
+      </span>
+    </li>
+  );
+}
+
+function formatRelativeShort(ts: number): string {
+  const delta = Date.now() - ts;
+  if (delta < 0) return "now";
+  const min = Math.floor(delta / 60_000);
+  if (min < 1) return "now";
+  if (min < 60) return `${min}m`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h`;
+  const d = Math.floor(hr / 24);
+  return `${d}d`;
 }
 
 function PanelFooter({

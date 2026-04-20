@@ -16,6 +16,7 @@ function makeValid(overrides: Partial<RssSource> = {}): RssSource {
     lang: "en",
     rssUrl: "https://example.com/feed.xml",
     hqSourceUrl: "https://example.com/about",
+    publisherUrl: "https://example.com/",
     feedFormat: "rss",
     keywordFilterScope: "all",
     ...overrides,
@@ -60,6 +61,17 @@ describe("RSS_SOURCES constant", () => {
     for (const s of RSS_SOURCES) {
       expect(s.rssUrl.startsWith("https://")).toBe(true);
       expect(s.hqSourceUrl.startsWith("https://")).toBe(true);
+      expect(s.publisherUrl.startsWith("https://")).toBe(true);
+    }
+  });
+
+  it("publisherUrl points to the publisher's own site (not Wikipedia)", () => {
+    // Same trust contract as the labs registry: clicking a publisher
+    // name must land on the publisher's own site, not an encyclopaedia.
+    // hqSourceUrl can still cite Wikipedia (that's provenance for the
+    // HQ coord); publisherUrl is the primary-click target.
+    for (const s of RSS_SOURCES) {
+      expect(s.publisherUrl.includes("wikipedia.org")).toBe(false);
     }
   });
 

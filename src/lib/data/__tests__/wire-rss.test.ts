@@ -70,6 +70,7 @@ const SRC_EN: RssSource = {
   lang: "en",
   rssUrl: "https://en.example.com/feed",
   hqSourceUrl: "https://en.example.com/about",
+  publisherUrl: "https://en.example.com/",
   feedFormat: "rss",
   keywordFilterScope: "all",
 };
@@ -84,6 +85,7 @@ const SRC_DE: RssSource = {
   lang: "de",
   rssUrl: "https://de.example.com/feed",
   hqSourceUrl: "https://de.example.com/about",
+  publisherUrl: "https://de.example.com/",
   feedFormat: "atom",
   keywordFilterScope: "ai-only",
 };

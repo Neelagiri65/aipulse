@@ -18,6 +18,7 @@ const labA: LabEntry = {
   lat: 37.77,
   lng: -122.42,
   hqSourceUrl: "https://example.com/a",
+  url: "https://example.com/a",
   orgs: ["lab-a"],
   repos: [
     { owner: "lab-a", repo: "flagship", sourceUrl: "https://github.com/lab-a/flagship" },
@@ -34,6 +35,7 @@ const labB: LabEntry = {
   lat: 52.2,
   lng: 0.12,
   hqSourceUrl: "https://example.com/b",
+  url: "https://example.com/b",
   orgs: ["lab-b"],
   repos: [
     { owner: "lab-b", repo: "core", sourceUrl: "https://github.com/lab-b/core" },

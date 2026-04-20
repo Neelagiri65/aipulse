@@ -39,6 +39,13 @@ export type LabEntry = {
   lng: number;
   /** Public URL that substantiates the HQ city/coordinates claim. */
   hqSourceUrl: string;
+  /**
+   * Lab's primary website (or GH org page when the lab has no stable
+   * standalone site — e.g. Tsinghua THUDM). Distinct from `hqSourceUrl`:
+   * this is the click target users see when they tap the lab name; that
+   * is the provenance citation for the HQ coord. Must be https.
+   */
+  url: string;
   /** GitHub org slug(s) associated with this lab (may be empty for aggregator-style labs). */
   orgs: string[];
   /** Flagship AI repos to track for activity signal. Must be ≥1. */
@@ -118,6 +125,9 @@ function validateEntry(e: unknown, index: number): LabEntry | string {
   if (!isHttpsUrl(x.hqSourceUrl)) {
     return `entry[${index}] (${x.id}) hqSourceUrl must be https://`;
   }
+  if (!isHttpsUrl(x.url)) {
+    return `entry[${index}] (${x.id}) url must be https://`;
+  }
   if (!Array.isArray(x.orgs) || !x.orgs.every(isString)) {
     return `entry[${index}] (${x.id}) orgs must be string[]`;
   }
@@ -141,6 +151,7 @@ function validateEntry(e: unknown, index: number): LabEntry | string {
     lat: x.lat,
     lng: x.lng,
     hqSourceUrl: x.hqSourceUrl,
+    url: x.url,
     orgs: x.orgs as string[],
     repos: x.repos as LabRepo[],
     notes: x.notes as string | undefined,

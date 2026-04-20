@@ -91,20 +91,41 @@ function SourceBody({ source }: { source: RssSourcePanel }) {
         )}
       </div>
       <div className="mt-1.5 font-mono text-[13px] font-semibold text-foreground">
-        {source.displayName}
+        <a
+          href={source.publisherUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-[#f97316] hover:underline"
+          title={`${source.displayName} — open publisher site`}
+        >
+          {source.displayName}
+        </a>
       </div>
-      <div className="mt-0.5 flex items-center justify-between font-mono text-[10px] text-muted-foreground">
+      <div className="mt-0.5 flex items-center justify-between gap-2 font-mono text-[10px] text-muted-foreground">
         <span className="truncate">
           {source.city}, {source.country}
         </span>
-        <a
-          href={source.hqSourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="ml-2 shrink-0 hover:text-[#f97316] hover:underline"
-        >
-          HQ source ↗
-        </a>
+        <span className="flex shrink-0 items-center gap-2">
+          <a
+            href={source.rssUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[#f97316] hover:underline"
+            title={source.rssUrl}
+          >
+            rss ↗
+          </a>
+          <span className="text-foreground/30">·</span>
+          <a
+            href={source.hqSourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[#f97316] hover:underline"
+            title="HQ coordinate provenance"
+          >
+            HQ source ↗
+          </a>
+        </span>
       </div>
 
       <div className="mt-2 flex items-baseline justify-between">

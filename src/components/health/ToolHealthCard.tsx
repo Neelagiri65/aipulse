@@ -231,20 +231,15 @@ function AwaitingBody() {
 
 function LiveBody({ data }: { data: ToolHealthData }) {
   // Only render rows for metrics we actually have a source for right now.
-  // Uptime/version/sentiment return when the pipelines for them land; until
-  // then an empty row would read as "broken", not "intentionally minimal".
+  // When no rows are available we render nothing — the severity pill in
+  // the header already communicates status; a placeholder line only
+  // added noise (especially at maximised width).
   const rows: Array<{ label: string; value: string }> = [];
   if (data.openIssues !== undefined) {
     rows.push({ label: "Open issues", value: data.openIssues.toLocaleString() });
   }
 
-  if (rows.length === 0) {
-    return (
-      <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-        Status only · additional metrics pending dedicated sources
-      </p>
-    );
-  }
+  if (rows.length === 0) return null;
 
   return (
     <div className="space-y-2.5">

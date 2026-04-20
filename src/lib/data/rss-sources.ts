@@ -42,6 +42,14 @@ export type RssSource = {
   rssUrl: string;
   /** Public URL substantiating the HQ city claim. */
   hqSourceUrl: string;
+  /**
+   * Publisher's own website root — the click target for the publisher
+   * name. Distinct from `hqSourceUrl`: that citation may legitimately
+   * point to Wikipedia (provenance for the HQ coord), but users
+   * clicking a publisher should land on the publisher's own site, not
+   * an encyclopaedia. Must be https.
+   */
+  publisherUrl: string;
   /** Feed serialisation format. */
   feedFormat: RssFeedFormat;
   /**
@@ -110,6 +118,9 @@ function validateEntry(e: unknown, index: number): RssSource | string {
   if (!isHttpsUrl(x.hqSourceUrl)) {
     return `entry[${index}] (${x.id}) hqSourceUrl must be https://`;
   }
+  if (!isHttpsUrl(x.publisherUrl)) {
+    return `entry[${index}] (${x.id}) publisherUrl must be https://`;
+  }
   if (
     typeof x.feedFormat !== "string" ||
     !FEED_FORMATS.has(x.feedFormat as RssFeedFormat)
@@ -137,6 +148,7 @@ function validateEntry(e: unknown, index: number): RssSource | string {
     lang: x.lang,
     rssUrl: x.rssUrl,
     hqSourceUrl: x.hqSourceUrl,
+    publisherUrl: x.publisherUrl,
     feedFormat: x.feedFormat as RssFeedFormat,
     keywordFilterScope: x.keywordFilterScope as RssFilterScope,
     caveat: x.caveat as string | undefined,
@@ -181,6 +193,7 @@ export const RSS_SOURCES: readonly RssSource[] = [
     lang: "en",
     rssUrl: "https://www.theregister.com/software/ai_ml/headlines.atom",
     hqSourceUrl: "https://en.wikipedia.org/wiki/The_Register",
+    publisherUrl: "https://www.theregister.com/software/ai_ml/",
     feedFormat: "atom",
     keywordFilterScope: "all",
     caveat:
@@ -196,6 +209,7 @@ export const RSS_SOURCES: readonly RssSource[] = [
     lang: "de",
     rssUrl: "https://www.heise.de/rss/heise-atom.xml",
     hqSourceUrl: "https://en.wikipedia.org/wiki/Heise_online",
+    publisherUrl: "https://www.heise.de/",
     feedFormat: "atom",
     keywordFilterScope: "ai-only",
     caveat:
@@ -211,6 +225,7 @@ export const RSS_SOURCES: readonly RssSource[] = [
     lang: "en",
     rssUrl: "https://syncedreview.com/feed/",
     hqSourceUrl: "https://syncedreview.com/about/",
+    publisherUrl: "https://syncedreview.com/",
     feedFormat: "rss",
     keywordFilterScope: "all",
     caveat:
@@ -226,6 +241,7 @@ export const RSS_SOURCES: readonly RssSource[] = [
     lang: "en",
     rssUrl: "https://www.marktechpost.com/feed/",
     hqSourceUrl: "https://www.marktechpost.com/about-us/",
+    publisherUrl: "https://www.marktechpost.com/",
     feedFormat: "rss",
     keywordFilterScope: "all",
     caveat:
@@ -242,6 +258,7 @@ export const RSS_SOURCES: readonly RssSource[] = [
     rssUrl:
       "https://www.technologyreview.com/topic/artificial-intelligence/feed/",
     hqSourceUrl: "https://en.wikipedia.org/wiki/MIT_Technology_Review",
+    publisherUrl: "https://www.technologyreview.com/topic/artificial-intelligence/",
     feedFormat: "rss",
     keywordFilterScope: "all",
     caveat:

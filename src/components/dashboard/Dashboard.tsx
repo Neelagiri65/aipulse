@@ -450,6 +450,18 @@ export function Dashboard() {
 
   const z = (id: PanelId) => 30 + zorder.indexOf(id);
 
+  // Topmost open panel — the one at the end of zorder that's also open
+  // and not minimized. Drives the ap-win--topmost vs --behind treatment
+  // so a stack of open panels reads as a legible z-order rather than
+  // visual noise.
+  const topmostOpenId: PanelId | null = (() => {
+    for (let i = zorder.length - 1; i >= 0; i--) {
+      const id = zorder[i];
+      if (panels[id]?.open && !panels[id]?.min) return id;
+    }
+    return null;
+  })();
+
   return (
     <>
       <TopBar
@@ -532,6 +544,7 @@ export function Dashboard() {
               zIndex={z("wire")}
               minimized={panels.wire.min}
               maximized={maxId === "wire"}
+              topmost={topmostOpenId === "wire"}
               onFocus={() => focus("wire")}
               onClose={() =>
                 setPanels((p) => ({ ...p, wire: { open: false, min: false } }))
@@ -560,6 +573,7 @@ export function Dashboard() {
               zIndex={z("tools")}
               minimized={panels.tools.min}
               maximized={maxId === "tools"}
+              topmost={topmostOpenId === "tools"}
               onFocus={() => focus("tools")}
               onClose={() =>
                 setPanels((p) => ({ ...p, tools: { open: false, min: false } }))
@@ -591,6 +605,7 @@ export function Dashboard() {
               zIndex={z("models")}
               minimized={panels.models.min}
               maximized={maxId === "models"}
+              topmost={topmostOpenId === "models"}
               onFocus={() => focus("models")}
               onClose={() =>
                 setPanels((p) => ({ ...p, models: { open: false, min: false } }))
@@ -619,6 +634,7 @@ export function Dashboard() {
               zIndex={z("research")}
               minimized={panels.research.min}
               maximized={maxId === "research"}
+              topmost={topmostOpenId === "research"}
               onFocus={() => focus("research")}
               onClose={() =>
                 setPanels((p) => ({
@@ -652,6 +668,7 @@ export function Dashboard() {
               zIndex={z("benchmarks")}
               minimized={panels.benchmarks.min}
               maximized={maxId === "benchmarks"}
+              topmost={topmostOpenId === "benchmarks"}
               onFocus={() => focus("benchmarks")}
               onClose={() =>
                 setPanels((p) => ({
@@ -685,6 +702,7 @@ export function Dashboard() {
               zIndex={z("labs")}
               minimized={panels.labs.min}
               maximized={maxId === "labs"}
+              topmost={topmostOpenId === "labs"}
               onFocus={() => focus("labs")}
               onClose={() =>
                 setPanels((p) => ({ ...p, labs: { open: false, min: false } }))
@@ -713,6 +731,7 @@ export function Dashboard() {
               zIndex={z("regional-wire")}
               minimized={panels["regional-wire"].min}
               maximized={maxId === "regional-wire"}
+              topmost={topmostOpenId === "regional-wire"}
               onFocus={() => focus("regional-wire")}
               onClose={() =>
                 setPanels((p) => ({

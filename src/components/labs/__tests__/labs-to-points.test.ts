@@ -18,6 +18,7 @@ function makeLab(id: string, total: number): LabActivity {
     lat: 0,
     lng: 0,
     hqSourceUrl: "https://example.com",
+    url: "https://example.com",
     orgs: [],
     repos: [],
     total,

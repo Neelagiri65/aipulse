@@ -102,6 +102,7 @@ function LabBody({ lab }: { lab: EventMeta }) {
   const repos = lab.labRepos ?? [];
   const orgs = lab.labOrgs ?? [];
   const hq = lab.labHqSourceUrl;
+  const primary = lab.labUrl;
   const isStale = lab.labStale === true;
   const isInactive = lab.labInactive === true;
 
@@ -127,7 +128,18 @@ function LabBody({ lab }: { lab: EventMeta }) {
         )}
       </div>
       <div className="mt-1.5 font-mono text-[13px] font-semibold text-foreground">
-        {name}
+        {primary ? (
+          <a
+            href={primary}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[#a855f7] hover:underline"
+          >
+            {name}
+          </a>
+        ) : (
+          name
+        )}
       </div>
       <div className="mt-0.5 flex items-center justify-between font-mono text-[10px] text-muted-foreground">
         <span className="truncate">
