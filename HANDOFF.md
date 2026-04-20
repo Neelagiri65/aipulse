@@ -301,6 +301,152 @@ treat `docs/AI_PULSE_V3_SPEC.md` + the live source registry
   parsed after recent changes. `OPENAI_INCIDENTS` source needs a
   re-fit; tracking as part of session 7's open items.
 
+## Geographic + topical coverage expansion plan (queued)
+
+Observatory currently skews US / English / code-centric. The
+registry's geo distribution is biased by what English-anchored
+GitHub and ArXiv return; THE WIRE has no non-English news; Models
+and Research are flat lists with no regional signal. This plan
+corrects for that before Phase 1 lock. Nothing below is shipped —
+everything is a queued item with a sketch of the integration.
+
+### Anti-bias principle (ADD to trust contract, `docs/AI_PULSE_V3_SPEC.md` Part 0)
+
+The observatory must not be US/English-centric. Every geographic
+visualisation must show global coverage. When a data source has
+regional gaps, the gap must be documented in
+`public/data-sources.md` — never hidden. The goal is "what is the
+global AI ecosystem doing", not "what is Silicon Valley doing".
+Applies to: globe, registry, Models, Research, Benchmarks, THE
+WIRE, and any future panel that carries a geographic or
+language-origin claim.
+
+**Auditor gate:** before any panel ships that displays a geographic
+distribution, confirm the underlying source is not single-region
+by construction. If it is, either pair it with a complementary
+source or surface the limitation in the panel's caveat line.
+
+### Geographic coverage
+
+1. **HuggingFace models by organisation origin.** HF API returns
+   `author` / org on each model row. Maintain a curated
+   `org → country` map (start with the top ~100 orgs by model
+   count; expand as new orgs land in the top 20 panel). Derive
+   per-country counts and render as a globe overlay:
+   "France: N models, China: N, US: N, …". Acceptance: Models tab
+   renders both the flat top-20 list AND a country-count strip.
+   Curated map lives in `src/lib/data/hf-org-country.ts` with
+   provenance comment on each mapping (HQ source: org's own site
+   or Wikipedia). Out-of-scope: inferring country for unknown
+   orgs — unknown stays unknown.
+
+2. **ArXiv papers by institution (via OpenAlex).** ArXiv returns
+   author affiliation strings inconsistently. Cross-reference with
+   OpenAlex — `api.openalex.org/works?filter=concepts.id:C154945302`
+   for AI concept. OpenAlex gives structured institution data
+   with country codes on every work. Papers plotted on the globe
+   by institution location (one dot per paper; top institution
+   picked when multi-affiliation). Research tab gains a
+   `country` column and a "by region" toggle.
+
+3. **OpenAlex API** (`api.openalex.org`). Free, no auth, 100k
+   req/day. Structured institutions + country codes + citation
+   counts + open-access status. Covers 250M+ works across all
+   academic publishers. **Strictly better than ArXiv alone for
+   geographic analysis** — ArXiv stays for recency (OpenAlex
+   indexing lags), OpenAlex joins for structure. Integration
+   shape: mirror `fetch-research.ts` with 1h Data Cache; new
+   source entry `OPENALEX_WORKS`.
+
+4. **Regional news feeds → THE WIRE.** Add RSS/Atom ingestion as
+   a peer signal to GH events and HN. Feed list:
+   - France: `lemonde.fr` AI section, CNRS news
+   - Germany: `heise.de` AI, DFKI news
+   - UK: The Register AI, UKRI news
+   - Japan: AI-SCHOLAR.tech (bilingual)
+   - India: Analytics India Magazine, NASSCOM AI news
+   - China: Synced Review (English-language Chinese AI)
+   - Israel: CTech AI section
+   - Russia: TASS technology (English feed)
+   - Global: MIT Tech Review, The Gradient, Import AI
+   Mixed into THE WIRE with a `lang` / `region` tag on each item
+   so the panel can filter. Per-feed 15-min cache. Build as a
+   generic `registry-rss.ts` fetcher (one integration, N configs)
+   rather than one adapter per source.
+
+### Topical coverage
+
+5. **AI safety + governance signal.** Track ArXiv `cs.CY` + `cs.AI`
+   with safety keyword match (safety, alignment, evaluation,
+   red-team, jailbreak). Track policy announcements: EU AI Act
+   enforcement actions, UK AISI evaluation releases, US executive
+   orders mentioning AI. Surface as distinct signal type in THE
+   WIRE with a separate badge (policy vs. paper vs. event).
+   Policy side may need per-source scraping — evaluate after
+   ArXiv safety pipe is live.
+
+6. **Benchmark leaderboards** (multiple sources, dedicated panel).
+   - Chatbot Arena (`lmarena-ai` on HuggingFace) — Elo from
+     6M+ votes.
+   - Artificial Analysis (`artificialanalysis.ai`) — speed, price,
+     intelligence index.
+   - Vellum (`vellum.ai/llm-leaderboard`) — GPQA, AIME, SWE-bench,
+     HLE.
+   - BenchLM.ai — historical Elo tracking since May 2023.
+   Surface as a `Benchmarks` panel (new PanelId) or as a second
+   row in Models. Multi-source so no single leaderboard's
+   scoring bias dominates. Per-benchmark caveat line naming the
+   metric + sample size.
+
+7. **AI education + courses.** Extend the existing registry:
+   repos tagged `tutorial` / `course` / `education` + AI topic
+   tags get a distinct `kind=education` badge and a separate
+   colour on the globe. No new source — just a topic-filter on
+   `registry-topics.ts` output. Acceptance: registry entry
+   kind field gets a `education` value; Dashboard legend updated.
+
+8. **Whistleblower / controversy signals.** Cannot automate
+   editorial judgement. CAN track as mechanical signals:
+   - GitHub repos with `ethics`, `safety`, `responsible-ai`
+     topics (extend topics list in `registry-topics.ts`).
+   - ArXiv papers in `cs.CY` (Computers and Society).
+   - HN stories with high comment-to-score ratio (controversy
+     proxy — compute from Algolia Search response).
+   Surface as `discourse` signal type in THE WIRE — highlighted
+   for high engagement, never editorialised. Caveat line makes
+   clear this is mechanical (ratio threshold) not editorial.
+
+### Sequencing
+
+The above items land in this dependency order, not priority order:
+
+1. OpenAlex integration FIRST (item 3) — unlocks items 2, 5, and
+   partially item 8 (ArXiv cs.CY geographic).
+2. HF org-country map (item 1) — independent, can ship parallel.
+3. Generic RSS ingestion scaffold (item 4 infrastructure).
+4. Regional feed configs land incrementally on top of (3).
+5. Benchmarks panel (item 6) — independent of geo work.
+6. Topic-filter extensions for education + controversy (items 7,
+   8) — land together since they share the `registry-topics.ts`
+   pipe.
+7. Safety/governance policy scraping (item 5 policy side) — last,
+   since it may require per-source adapters.
+
+**Auditor review pending on:**
+- OpenAlex concept ID for "AI" — need to verify `C154945302` is
+  current; concept IDs have shifted before.
+- Curated `hf-org-country.ts` map — political sensitivity around
+  "origin country" for orgs with distributed teams (OpenAI SF vs.
+  satellite offices; DeepMind London under Alphabet US). Rule:
+  HQ per org's own About page. Document the rule in the file
+  header. Reject inference beyond that.
+- RSS feed ToS — some outlets (MIT Tech Review, The Register) may
+  require attribution or forbid caching. Check per-feed licensing
+  before ingestion, not after.
+- "Controversy" comment-to-score ratio threshold — needs
+  calibration on historical HN data before the signal ships to
+  avoid false positives on genuinely popular discussion.
+
 ### Session 13 — backfill cron + topics discovery + Models tab (3 commits)
 
 User flag from session 12: backfill-events API route shipped but no
