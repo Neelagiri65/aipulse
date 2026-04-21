@@ -24,6 +24,7 @@
 import { usePathname } from "next/navigation";
 import { ConsentBanner } from "@/components/consent/ConsentBanner";
 import { SubscribeModal } from "@/components/subscribe/SubscribeModal";
+import { AnalyticsMount } from "@/components/chrome/AnalyticsMount";
 import { useBetaEnabled } from "@/lib/hooks/use-beta-enabled";
 
 export function GlobalOverlays(): React.JSX.Element | null {
@@ -31,11 +32,16 @@ export function GlobalOverlays(): React.JSX.Element | null {
   const beta = useBetaEnabled();
   const suppress =
     pathname?.startsWith("/subscribe") || pathname?.startsWith("/privacy");
-  if (suppress) return null;
   return (
     <>
-      <ConsentBanner />
-      {beta ? <SubscribeModal /> : null}
+      {/* AnalyticsMount is always rendered — it self-gates on consent +
+          Sec-GPC so we never dispatch without permission. Keeping it
+          above the pathname suppression means /privacy pages are still
+          counted (when allowed) so we can see how often the notice is
+          read. */}
+      <AnalyticsMount />
+      {!suppress && <ConsentBanner />}
+      {!suppress && beta ? <SubscribeModal /> : null}
     </>
   );
 }

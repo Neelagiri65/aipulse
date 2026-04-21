@@ -31,6 +31,7 @@ import {
   SUBSCRIBE_SUBSCRIBED_COOKIE,
   type SubscribeFormState,
 } from "@/lib/subscribe-client";
+import { track } from "@/lib/analytics";
 
 type TurnstileRenderOptions = {
   sitekey: string;
@@ -147,6 +148,13 @@ export function SubscribeForm({
         submitted,
       );
       setState(next);
+      // We track the outcome bucket, never the address. kind is a
+      // small enum: sent / already / error. Captcha errors get a
+      // separate label so we can see if Turnstile is failing.
+      track("subscribe_submit", {
+        outcome: next.kind,
+        variant,
+      });
       if (next.kind === "sent" || next.kind === "already") {
         if (typeof document !== "undefined") {
           // Client-visible cookie; 1y. Used by the modal's elapsed-time
@@ -165,7 +173,7 @@ export function SubscribeForm({
         setTurnstileToken("");
       }
     },
-    [email, honeypot, onSuccess, state.kind, turnstileToken],
+    [email, honeypot, onSuccess, state.kind, turnstileToken, variant],
   );
 
   if (state.kind === "sent") {

@@ -64,6 +64,7 @@ import { LabsPanel } from "@/components/labs/LabsPanel";
 import type { RssWireResult } from "@/lib/data/wire-rss";
 import { RegionalWirePanel } from "@/components/wire/RegionalWirePanel";
 import { rssToGlobePoints } from "@/components/wire/rss-to-points";
+import { track } from "@/lib/analytics";
 
 const STATUS_POLL_MS = 5 * 60 * 1000;
 const EVENTS_POLL_MS = 30 * 1000;
@@ -483,8 +484,15 @@ export function Dashboard() {
     // Pure logic lives in `togglePanelWithCap`; see its docstring.
     const W = typeof window !== "undefined" ? window.innerWidth : 1440;
     const cap = capForViewportWidth(W);
+    const wasOpen = panels[pid]?.open === true && panels[pid]?.min === false;
     setPanels((p) => togglePanelWithCap(p, zorder, pid, cap));
     focus(pid);
+    if (!wasOpen) {
+      // Fire only on open transitions — closing a panel isn't a
+      // product signal we care about. Panel id is low-cardinality and
+      // non-PII so it's safe as an event prop.
+      track("panel_open", { panel: pid });
+    }
   };
 
   const openIds = new Set<string>(

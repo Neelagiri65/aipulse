@@ -43,7 +43,7 @@ export function SubscribeModal(): React.JSX.Element | null {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [localDismissed, setLocalDismissed] = useState(false);
   const [localSubscribed, setLocalSubscribed] = useState(false);
-  const mountedAtRef = useRef<number>(Date.now());
+  const mountedAtRef = useRef<number>(0);
 
   // Read cookie state once on mount, plus start the elapsed-time ticker.
   useEffect(() => {
