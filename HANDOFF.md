@@ -2,6 +2,193 @@
 
 ## Current state (2026-04-21)
 
+### Session 26 — Panel chrome v2 (accent + stat bars + filter rail + shortcuts) · SHIPPED
+
+**Status:** PR #7 squash-merged to `main` at merge commit `fde8345`.
+Prod deploy green (Vercel deployment id `D67erEgYapruSaUTnmLRcSpyx4n2`).
+Visual smoke against prod: **26/26 green in 56.8s** at `fde8345` vs
+`https://aipulse-pi.vercel.app`. Trust bar + prod-smoke gate cleared.
+
+Session brief (user, verbatim): *"Update the design spec with additions
+from external review, then implement in order: 1) reusable panel frame
+chrome with semantic dot + stat bar slot (prerequisite for density
+fixes); 2) master-detail stat bars on every panel; 3) persistent
+right-side filter strip with <1440px icon-only collapse; 4) keyboard
+shortcuts (Esc / 1-9 / skip /). Commit each separately. Run Playwright
+after each commit."* Followed the research-first protocol and pushed
+back on one item before building: the "new `PanelFrame` component"
+would have duplicated the existing `Win.tsx`. User approved extending
+`Win` instead.
+
+**Shipped this session (5 commits, one PR):**
+
+| # | Commit    | Scope                                                        |
+| - | --------- | ------------------------------------------------------------ |
+| 0 | `e1c1be2` | `docs(design): v2 addendum — panel chrome is one component`  |
+| 1 | `4a3e35c` | `feat(chrome): Win accent + stat-bar slot`                   |
+| 2 | `f3daeb0` | `feat(chrome): panel stat bars`                              |
+| 3 | `3242b2e` | `feat(chrome): filter strip <1440px icon-only`               |
+| 4 | `f0b5594` | `feat(chrome): keyboard shortcuts (Esc + 1-9)`               |
+
+1. **Spec addendum** (`e1c1be2`) — folds external-review feedback
+   into `docs/design-spec-v2.md` as contract. Adds Principle 1.5
+   ("panel chrome is one component — never fork Win.tsx"), the
+   accent palette (wire/models=teal, tools=green, benchmarks=amber,
+   research/labs=violet, regional-wire=orange; identity not state),
+   FIX-13 (master-detail stat bar on every panel with per-panel
+   formulae), FIX-14 (FilterPanel as persistent chrome, <1440px
+   icon-only), FIX-15 (Esc + 1-9; `/` deferred until search lands),
+   FIX-02 amendment ("Metrics pending" returns as 10px 0.5-opacity
+   badge — hiding caused layout shift), and a REJECTED section
+   logging coordinate readout, ticker restyle, and proper mobile
+   so they don't resurface in session 27.
+
+2. **Win accent + slot** (`4a3e35c`) — extends the single
+   floating-panel frame (`Win.tsx`) with two new contracts instead
+   of forking a sibling `PanelFrame`. New `accent` prop
+   (`teal | green | amber | violet | orange`) drives the titledot +
+   topmost glow via per-accent CSS custom properties
+   (`--ap-win-accent` / `--ap-win-accent-glow`). New `statBar`
+   ReactNode slot renders between titlebar and body (10px mono,
+   24px min-height, divider below). CSS additions in `globals.css`:
+   `.ap-win--accent-{teal,green,amber,violet,orange}`, updated
+   `.ap-win__titledot` + `.ap-win--topmost` to read from the new
+   custom properties, new `.ap-win__statbar`. All 7 panel call
+   sites in `Dashboard.tsx` now pass an explicit accent.
+
+3. **Panel stat bars** (`f3daeb0`) — per-panel master-detail
+   summary rows wired via the slot from the previous commit. New
+   `StatBar.tsx` (pure presentational, empty → "—") and
+   `src/lib/stats/panel-stats.ts` (pure helpers with
+   alpha-tiebreak deterministic sort). +7 unit tests
+   (`panel-stats.test.ts`), taking the suite from 206 → 213.
+
+   Per-panel formulae:
+   - Wire: `"N GH · N HN"` (events.coverage.windowSize + hn.items)
+   - Tools: `"N OPERATIONAL · N DEGRADED · N OUTAGE"` reusing
+     `deriveSev`; zero segments suppressed so a healthy fleet
+     reads as one clean line. Tone colours (op/degrade/outage)
+     scoped to Tools only — other panels stay neutral so the
+     panel accent breathes.
+   - Models: `"N MODELS · N ORGS"` (HF endpoint has no flagship
+     flag; deviation from spec's proposed formula, documented).
+   - Research: `"12 cs.AI · 8 cs.LG …"` (top 3 primary categories).
+   - Benchmarks: `"Top Elo: N · 20 MODELS"` with trailing
+     `"PUBLISHED YYYY-MM-DD"`.
+   - Labs: `"9 CN · 10 US · 4 EU …"` (top 5 country codes).
+   - Regional Wire: `"N SOURCES · N ARTICLES"`.
+
+4. **Filter strip <1440px icon-only** (`3242b2e`) — FilterPanel
+   becomes persistent chrome (never dismissible). At ≥1440px keeps
+   the current 220px labelled layout; below 1440px collapses to a
+   44px icon rail with 9 coloured layer dots + tooltip + Reset ↺.
+   Two sibling `<aside>`s + one CSS media query
+   (`max-width: 1439px`) — no branching logic. Icon rail respects
+   the mobile gate (<768px hides both variants via the existing
+   `.ap-desktop-only` mask).
+
+5. **Keyboard shortcuts** (`f0b5594`) — window-level keydown in
+   Dashboard. Esc closes the topmost open panel (walks `zorder`
+   tail-first). Digits 1-9 toggle `navItems[i-1]` (skips `soon`
+   items — "4" → agents is a deliberate dead key until Agents
+   ships). Globe-card coordination: on Escape, if any
+   `[role="dialog"]` is mounted (the event-detail card), the
+   handler no-ops so Globe's own Esc listener dismisses the card
+   without double-consuming the keypress. Input safety:
+   INPUT/TEXTAREA/SELECT/contenteditable focus + any modifier
+   key (meta/ctrl/alt) pass through untouched. `/` deferred until
+   a global search target exists.
+
+**Files changed (session 26, squashed into `fde8345`):**
+
+- New (3): `src/components/chrome/StatBar.tsx`,
+  `src/lib/stats/panel-stats.ts`,
+  `src/lib/stats/__tests__/panel-stats.test.ts`.
+- Modified (5): `docs/design-spec-v2.md`,
+  `src/app/globals.css`, `src/components/chrome/Win.tsx`,
+  `src/components/chrome/FilterPanel.tsx`,
+  `src/components/dashboard/Dashboard.tsx`.
+- Deleted: 0.
+- Diff vs. prior `main` tip: +677 / -54 lines.
+
+**Test + build state:**
+
+- Unit tests: **213/213 ✓** (+7 from `panel-stats.test.ts`;
+  baseline was 206).
+- `npm run build`: ✓ TypeScript clean.
+- Playwright visual smoke (prod): **26/26 green in 56.8s** against
+  `https://aipulse-pi.vercel.app` @ `fde8345`. Trust bar + prod-smoke
+  gate cleared.
+
+**AUDITOR-REVIEW: PENDING (this session's additions):**
+
+- *Topmost glow now varies by panel accent* (was hard-coded teal).
+  Auditor should eyeball at 1920px that the violet / orange / amber
+  halos read without overpowering map content.
+- *Tools accent stays green when degraded* — per spec decision
+  (accents = identity, stat bar = state). The accent dot shows
+  "this is the Tools panel"; the stat bar reports "and right now
+  N are degraded" in amber. Auditor should confirm this reads
+  correctly alongside an amber global StatusBar — i.e., state is
+  legible even while the panel accent is static.
+- *Tools stat-bar tone colours* inside a green-accented frame —
+  auditor should confirm green op / amber degrade / red outage
+  segments don't read as accent-vs-state contradiction.
+- *1440px breakpoint for the filter rail swap* — confirm at 1366px
+  (common laptop), 1280px (chromebook), and 1024px the icon rail
+  doesn't crowd the right-edge of any panel resized to its rightmost
+  extent. Also spot-check that the bottom Reset glyph isn't clipped
+  by MetricsRow / ticker on rare 1024×768 viewports.
+- *Research/Labs stat-bar sparseness* — when arxiv yields fewer
+  than 3 distinct primary categories, or labs registry has <5
+  countries, the bar shows 1-2 segments. Auditor to confirm this
+  reads fine in the sparse case.
+- *Models stat-bar formula deviation* — ships `"N MODELS · N ORGS"`
+  vs. the spec's proposed `"N providers · N models · N flagships"`
+  because the HuggingFace endpoint doesn't carry a flagship flag.
+  Folding flagship metadata is a separate data-layer change; this
+  is documented in the session-26 commit message for `f3daeb0`.
+- *Esc-yields-to-card relies on `[role="dialog"]` selector match*.
+  FilterPanel uses `aria-label` on `<aside>` (not dialog) so the
+  yield doesn't misfire today, but worth spot-checking if any new
+  dialog element lands in a future session.
+- *Dead key "4" → agents (soon)* — 1-9 map to `navItems[0..8]` in
+  render order and the agents slot is intentionally left in place
+  so it unlocks on Agents ship rather than breaking the mapping
+  when it arrives.
+
+**NEXT (for session 27):**
+
+1. *Auditor sweep* of the 8 pending items above if there's appetite
+   — all are visual / UX calls rather than correctness bugs.
+2. *P0 fixes from `docs/design-spec-v2.md` still outstanding:*
+   **FIX-01 single-panel mode on viewport <1440px** (close-all-then-
+   open behaviour) and **FIX-02 tool-health maximise cleanup**
+   (2-column grid, 80% width centred, + the "Metrics pending" badge
+   amendment from session 26's spec update).
+2. *P1 polish still open:* FIX-05 / FIX-06 / FIX-07 (font-size
+   standardisation, panel density sweep, wire timestamp precision).
+   Session 24 covered some of this; cross-check vs. current CSS
+   before duplicating work.
+3. *New optional — data-layer:* flagship flag on HF models so the
+   Models stat bar can ship its spec-proposed formula. One field
+   + one pure-helper change.
+4. *Stat-bar Playwright coverage* — the 26-spec suite asserts
+   panels open and content is present, but not that stat bars
+   render their expected segment shape per panel. Worth adding
+   once spec text stabilises.
+5. *Park (carried from session 25):* OpenRouter stats API, Gitee
+   trending, Papers With Code SOTA empirical probes; Kimi audit's
+   editorial / moderation-risk items (out of scope for an
+   aggregator).
+
+**Session 27 entry point:** `main` is clean at `fde8345`. First
+command: `git status && npx vitest run` to confirm the 213-unit
+baseline. Only re-run the visual smoke if touching anything that
+affects Win chrome, FilterPanel, LeftNav, or panel z-order.
+
+---
+
 ### Session 25 — Design spec v2 + global status bar + 4 Chinese labs · SHIPPED
 
 **Status:** Three commits landed direct on `main` and deployed to prod.
