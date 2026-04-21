@@ -15,6 +15,10 @@ import {
   topCategoryCounts,
   topCountryCounts,
 } from "@/lib/stats/panel-stats";
+import {
+  capForViewportWidth,
+  togglePanelWithCap,
+} from "@/lib/panels/panel-cap";
 
 // Leaflet is client-only (touches `window` at import). Lazy-load with
 // ssr:false so the map bundle + its CSS only ship to the browser.
@@ -441,14 +445,11 @@ export function Dashboard() {
     )
       return;
     const pid = id as PanelId;
-    setPanels((p) => {
-      const cur = p[pid];
-      const next =
-        cur.open && !cur.min
-          ? { open: false, min: false }
-          : { open: true, min: false };
-      return { ...p, [pid]: next };
-    });
+    // FIX-01 — viewport cap (1 visible panel <1440, 2 visible panels ≥1440).
+    // Pure logic lives in `togglePanelWithCap`; see its docstring.
+    const W = typeof window !== "undefined" ? window.innerWidth : 1440;
+    const cap = capForViewportWidth(W);
+    setPanels((p) => togglePanelWithCap(p, zorder, pid, cap));
     focus(pid);
   };
 
