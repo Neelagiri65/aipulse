@@ -18,10 +18,12 @@
  * (.github/workflows/wire-ingest-hn.yml). The 5,20,35,50 slot keeps
  * this cron from colliding with the existing ingest jobs.
  *
- * This route is the first consumer of withIngest — the shared wrapper
- * that handles INGEST_SECRET auth, try/catch, and cron-health
- * recording. The remaining six wired ingest routes still inline that
- * boilerplate; they'll migrate one at a time as they need changes.
+ * Uses withIngest — the shared wrapper that handles INGEST_SECRET
+ * auth, try/catch, and cron-health recording. Paired with the matching
+ * RSS migration; the remaining five wired ingest routes (globe,
+ * registry-discover, registry-discover-deps, registry-discover-topics,
+ * registry-backfill-events) still inline that boilerplate and will
+ * migrate one at a time as they need changes.
  */
 
 import { NextResponse } from "next/server";
