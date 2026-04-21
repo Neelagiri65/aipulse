@@ -58,7 +58,9 @@ next-env.d.ts
 # public repo. Keep the patterns here so stray local copies are never
 # accidentally tracked.
 /HANDOFF.md
+/docs/AI_PULSE_V3_SPEC.md
 /docs/handoff-archive.md
 /docs/design-spec-v2.md
 /docs/prd-*.md
+/docs/issues-*.md
 /docs/research-*.md

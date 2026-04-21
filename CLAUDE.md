@@ -6,12 +6,12 @@ The real-time observatory for the global AI ecosystem. Aggregates publicly verif
 
 Code is public. Editorial intelligence is private. The split matters for every file you touch.
 
-- **Public (this repo):** framework code, API routes, cron workflows, data-source _types_ (`src/lib/data-sources.ts`), the curated labs JSON shipped at build time (`data/ai-labs.json`), the public transparency summary (`public/data-sources.md`), the shipped spec principles (`docs/AI_PULSE_V3_SPEC.md`).
-- **Private (`~/Obsidian/agent-vault/projects/aipulse/`, gitignored here):** session handoffs (`HANDOFF.md`, `docs/handoff-archive.md`), design spec v2 (`docs/design-spec-v2.md`), per-feature PRDs (`docs/prd-*.md`), research findings (`docs/research-*.md`). These contain curation rationale, roadmap, and dead-end evaluations — not code.
+- **Public (this repo):** framework code, API routes, cron workflows, data-source _types_ (`src/lib/data-sources.ts`), the curated labs JSON shipped at build time (`data/ai-labs.json`), the public transparency summary (`public/data-sources.md`).
+- **Private (`~/Obsidian/agent-vault/projects/aipulse/`, gitignored here):** north-star spec (`docs/AI_PULSE_V3_SPEC.md`), session handoffs (`HANDOFF.md`, `docs/handoff-archive.md`), design spec v2 (`docs/design-spec-v2.md`), per-feature PRDs (`docs/prd-*.md`), issue breakdowns (`docs/issues-*.md`), research findings (`docs/research-*.md`). These contain phase roadmap, curation rationale, and dead-end evaluations — not code.
 
 ## First read, in order
-1. `docs/AI_PULSE_V3_SPEC.md` — the north-star spec (Parts 0–12). Non-negotiables in Part 0 and Part 1.
-2. `~/Obsidian/agent-vault/projects/aipulse/HANDOFF.md` — where the last session ended. (Lives in the agent vault, not this repo — see "Where the intelligence lives" above.)
+1. `~/Obsidian/agent-vault/projects/aipulse/docs/AI_PULSE_V3_SPEC.md` — the north-star spec (Parts 0–12). Non-negotiables in Part 0 and Part 1. (Lives in the agent vault, not this repo.)
+2. `~/Obsidian/agent-vault/projects/aipulse/HANDOFF.md` — where the last session ended. (Lives in the agent vault, not this repo.)
 3. `src/lib/data-sources.ts` — typed endpoint registry with sanity ranges and caveats. This is the source of truth.
 4. `public/data-sources.md` — the public transparency summary (source names + governance only; endpoint URLs and sanity ranges stay in `data-sources.ts`).
 
