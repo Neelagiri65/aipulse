@@ -2,19 +2,124 @@
 
 ## Current state (2026-04-21)
 
-- **Main:** `af3fb05` (session 28). Prod deploy green. Visual smoke 25/25 against `aipulse-pi.vercel.app` in 49.3s.
-- **Sources:** 23 · **Crons:** 8 · **Active panels:** 7 · **LeftNav buttons:** 9 (Audit + Agents soon-disabled) · **Unit tests:** 224/224 · **Visual smoke:** 25/25
+- **Main:** `6ab92b4` (session 29). Prod deploy green. Visual smoke 26/26 against `aipulse-pi.vercel.app` in 53.5s.
+- **Sources:** 23 · **Crons:** 8 · **Active panels:** 7 · **LeftNav buttons:** 9 (Audit + Agents soon-disabled) · **Unit tests:** 224/224 · **Visual smoke:** 26/26
 - **First-load:** Map-only, no panels open. Every panel opens on demand via LeftNav.
 - **Panel cap (FIX-01):** ≥1440px → 2 visible panels side-by-side; <1440px → 1 visible panel (opening evicts the oldest visible from zorder head).
 - **Top-bar tabs:** The Map / The Wire (Globe tab hidden; ViewTabId="globe" still exists in code for future revival).
 - **Panels:** Win chrome v2 live — accent colours (wire/models=teal, tools=green, benchmarks=amber, research/labs=violet, regional-wire=orange), per-panel stat bars, persistent FilterPanel rail (icon-only <1440px), keyboard shortcuts (Esc, 1-9). Right-anchored panels (tools, models) reserve the FilterPanel rail width so they no longer render behind it. Tool-health maximise is 80% × centred with a pinned 2-col grid (FIX-02).
 - **Layers live on globe/map:** live pulse (GH events), AI Labs (32 labs, violet), Regional RSS (5 publishers, amber), Hacker News (HN orange), registry.
+- **Filter panel:** 11 toggles across Event types (6) / Signal (1) / Layers (4 — ai-labs, regional-rss, registry, hn). Every dot-producing layer is now gated; unchecking all 11 empties the map (locked by `Unchecking every filter empties the map` smoke).
 
 ## Queued features (pending grill → PRD)
 
 1. **Expand Tool Health** — add Vercel, Supabase, Cloudflare, Upstash status pages (current grid: OpenAI, Anthropic, GitHub, npm).
 2. **Security incidents panel** — GitHub Security Advisories API, OWASP feeds, CVE/NVD. Needs source-trust review per non-negotiables.
 3. **Free-tier infrastructure tracking** — status + limits for AI-era dev stack providers. Needs PRD on what "status" means vs Tool Health (likely a separate panel, not a merge).
+
+---
+
+### Session 29 — Honest-filter contract · SHIPPED
+
+**Status:** Two commits direct on `main` through `6ab92b4`. Prod smoke
+**26/26 green in 53.5s** against `https://aipulse-pi.vercel.app` after
+the Vercel rebuild.
+
+Session brief (user, verbatim): *"The filter checkboxes (Push, Pull
+Requests, Issues, Releases, Forks, Stars) are unchecked in your
+screenshot, but the map still shows clusters... Fix the filter logic
+so it works as expected. If a filter is off, those dots must disappear
+from the map."* First real user-feedback-driven fix after the P0 ship.
+
+**Shipped this session (2 commits, direct on main):**
+
+| # | Commit    | Scope                                                          |
+| - | --------- | -------------------------------------------------------------- |
+| 1 | `b1d5117` | `fix(dashboard): honour Registry + HN filters on the map`      |
+| 2 | `6ab92b4` | `fix(dashboard): route auxiliary GH events so filters hold...` |
+
+1. **Registry + HN gates** (`b1d5117`) — the Registry layer (520+
+   curated slate dots) and the HN layer (orange community-discussion
+   dots) bypassed `FilterPanel` entirely and flowed straight into the
+   map point set. Added `registry` and `hn` to `FilterLayerId` +
+   `DEFAULT_FILTERS` (both default-on, preserving the current default
+   view), rendered under the "Layers" category with on-map swatch
+   colours. `Dashboard.tsx` now gates `registryFiltered` and
+   `hnPoints` behind their toggles.
+
+2. **Auxiliary event-type routing** (`6ab92b4`) — 28 markers still
+   survived with every filter off. The GH Events API emits types
+   (`IssueCommentEvent`, `PullRequestReviewEvent`, `CreateEvent` and a
+   few others) that `eventTypeToFilterId` returned `null` for, so they
+   flowed through `livePoints` without any filter check. Fixed in two
+   places: (a) expanded `eventTypeToFilterId` to route every live GH
+   type to its closest existing bucket (comments → issue, reviews →
+   pr, create/delete/commit-comment → push); (b) safety net in
+   `livePoints` — drop points whose event type has no mapping, so any
+   future GH type stays honest-by-default until explicitly routed.
+
+**Playwright smoke added:** `Unchecking every filter empties the map
+(honest-filter contract)` in `tests/visual/03-interactions.spec.ts`.
+Scopes to `complementary[name="Globe filters"]` and matches whichever
+variant the viewport rendered — `role=checkbox` on the full panel
+(≥1440px) or `aria-pressed` buttons on the icon rail (below). Clicks
+every enabled toggle until zero remain, then asserts zero
+`.leaflet-marker-icon` and zero `.marker-cluster`. Guards the contract
+for every future dot-producing layer added to the dashboard.
+
+**Files changed (session 29):**
+
+- New (0).
+- Modified (4): `src/components/chrome/FilterPanel.tsx`,
+  `src/components/dashboard/Dashboard.tsx`,
+  `tests/visual/03-interactions.spec.ts`, `HANDOFF.md`.
+- Deleted (0). Touched outside project directory (0).
+
+**Test + build state:**
+
+- Unit tests: **224/224 ✓** (no new unit tests — the contract lives in
+  the visual smoke).
+- `npx tsc --noEmit`: clean (only the pre-existing
+  `wire-rss.test.ts` StoreSpy + nullable errors from session 21
+  remain).
+- `npm run build`: ✓ 6 static pages, 17 dynamic routes intact.
+- Visual smoke against prod: **26/26 green in 53.5s** at `6ab92b4`
+  vs `https://aipulse-pi.vercel.app` (25 existing + 1 honest-filter).
+
+**AUDITOR-REVIEW: PENDING (this session):**
+
+- *Auxiliary event-type grouping* — `IssueCommentEvent` routes to
+  `issue`, but GH emits the same type for PR comments too. Arguably
+  lossy if a user unchecks "Pull requests" expecting PR-comment dots
+  to vanish (they'd still render under "Issues"). Acceptable tradeoff
+  vs. adding a 7th checkbox, but flag for an eyeball.
+- *Default-on for the 2 new filter ids* — `registry: true` and
+  `hn: true` in `DEFAULT_FILTERS` preserve the current map. If a
+  future session wants the map to start sparser (pure live-pulse
+  only), flipping those defaults is a 2-line change.
+- *Icon-rail viewport coverage* — the honest-filter smoke runs at
+  Playwright's `Desktop Chrome` default (1280px → icon rail). The
+  `role=checkbox` branch is still typed into the locator but not
+  exercised. A 1440+ variant of the smoke would cover the full panel
+  explicitly; skipped here to keep the suite flat.
+
+**NEXT (for session 30 — user to pick):**
+
+1. *Share the fix + ask for more feedback.* The honest-filter fix is
+   the first user-feedback-driven ship. Follow the same loop: send
+   the live link, see what breaks next.
+2. *Tool Health expansion* (queued) — Vercel, Supabase, Cloudflare,
+   Upstash status pages. Still the smallest warm-up unlock.
+3. *Audit pending items* above — five small UX calls across FIX-01,
+   FIX-02, and the filter grouping choice.
+4. *Playwright smoke at 1440px viewport* — optional companion to
+   the honest-filter smoke so both FilterPanel variants are covered.
+
+**Session 30 entry point:** `main` is clean at `6ab92b4`. First
+command: `git status && npx vitest run` to confirm the 224-unit
+baseline. Re-run the visual smoke only if touching anything that
+affects FilterPanel, Dashboard filter logic, or the livePoints
+pipeline.
 
 ---
 
