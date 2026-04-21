@@ -1,0 +1,62 @@
+import { describe, expect, it } from "vitest";
+import { buildShareUrl, composeShareText } from "@/lib/email/share-urls";
+
+describe("buildShareUrl — LinkedIn", () => {
+  it("points at the official share-offsite endpoint", () => {
+    const u = buildShareUrl({
+      platform: "linkedin",
+      url: "https://aipulse.dev/digest/2026-04-22#tool-health",
+      text: "ignored by LinkedIn",
+    });
+    expect(u.startsWith("https://www.linkedin.com/sharing/share-offsite/?")).toBe(
+      true,
+    );
+  });
+
+  it("URL-encodes the share URL", () => {
+    const u = buildShareUrl({
+      platform: "linkedin",
+      url: "https://aipulse.dev/digest/2026-04-22#tool-health",
+      text: "",
+    });
+    expect(u).toContain(
+      "url=https%3A%2F%2Faipulse.dev%2Fdigest%2F2026-04-22%23tool-health",
+    );
+  });
+});
+
+describe("buildShareUrl — X", () => {
+  it("points at the intent/tweet endpoint with text and url", () => {
+    const u = buildShareUrl({
+      platform: "x",
+      url: "https://aipulse.dev/digest/2026-04-22#benchmarks",
+      text: "Benchmarks: Claude 4 moved up one rank — via AI Pulse",
+    });
+    expect(u.startsWith("https://x.com/intent/tweet?")).toBe(true);
+    expect(u).toContain(
+      "url=https%3A%2F%2Faipulse.dev%2Fdigest%2F2026-04-22%23benchmarks",
+    );
+    expect(u).toContain(
+      "text=Benchmarks%3A+Claude+4+moved+up+one+rank+%E2%80%94+via+AI+Pulse",
+    );
+  });
+
+  it("handles emoji/unicode in the text", () => {
+    const u = buildShareUrl({
+      platform: "x",
+      url: "https://aipulse.dev/digest/2026-04-22",
+      text: "Δ 3 tool incidents today",
+    });
+    expect(u).toContain("text=");
+    // Smoke: it parses as a URL without throwing.
+    expect(() => new URL(u)).not.toThrow();
+  });
+});
+
+describe("composeShareText", () => {
+  it("joins title and headline with the AI Pulse byline", () => {
+    expect(
+      composeShareText("Benchmarks", "Claude 4 moved up one rank on LMArena"),
+    ).toBe("Benchmarks: Claude 4 moved up one rank on LMArena — via AI Pulse");
+  });
+});
