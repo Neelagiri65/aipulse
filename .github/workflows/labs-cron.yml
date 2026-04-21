@@ -39,6 +39,7 @@ jobs:
     timeout-minutes: 6
     steps:
       - name: Warm /api/labs on Vercel
+        id: warm
         env:
           INGEST_URL: ${{ secrets.INGEST_URL }}
         run: |
@@ -49,9 +50,47 @@ jobs:
           BASE="${INGEST_URL%/api/ingest}"
           URL="$BASE/api/labs"
           echo "GET $URL"
+          set +e
           RESPONSE=$(curl -sS -f --max-time 240 "$URL")
+          STATUS=$?
+          set -e
+          if [ "$STATUS" -ne 0 ]; then
+            echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+            echo "count=0" >> "$GITHUB_OUTPUT"
+            echo "::error::/api/labs warm failed with curl exit $STATUS"
+            exit 0
+          fi
           COUNT=$(echo "$RESPONSE" | node -e "let s=''; process.stdin.on('data',c=>s+=c).on('end',()=>{try{console.log(JSON.parse(s).labs?.length ?? 0)}catch{console.log(0)}})")
+          echo "status=0" >> "$GITHUB_OUTPUT"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
           echo "Labs returned: $COUNT"
           if [ "$COUNT" -lt 20 ]; then
             echo "::warning::fewer than 20 labs returned — registry / GH upstream may be degraded"
           fi
+
+      - name: Record cron health
+        if: always()
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          WARM_STATUS: ${{ steps.warm.outputs.status }}
+          LAB_COUNT: ${{ steps.warm.outputs.count }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "INGEST_URL or INGEST_SECRET unset; skipping cron-health record"
+            exit 0
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/cron-health/record"
+          if [ "$WARM_STATUS" = "0" ]; then
+            BODY=$(printf '{"workflow":"labs-cron","ok":true,"itemsProcessed":%s}' "${LAB_COUNT:-0}")
+          else
+            BODY=$(printf '{"workflow":"labs-cron","ok":false,"error":"warm curl exited %s"}' "${WARM_STATUS:-unknown}")
+          fi
+          echo "POST $URL"
+          curl -sS --max-time 30 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            --data "$BODY" \
+            "$URL" || echo "cron-health record POST failed (non-fatal)"

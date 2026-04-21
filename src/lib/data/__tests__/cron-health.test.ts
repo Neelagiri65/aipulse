@@ -91,12 +91,18 @@ describe("CRON_WORKFLOWS registry", () => {
     expect(
       CRON_WORKFLOWS["registry-discover-deps"].expectedIntervalMinutes,
     ).toBe(360);
+    expect(CRON_WORKFLOWS["labs-cron"].expectedIntervalMinutes).toBe(360);
+    expect(CRON_WORKFLOWS["benchmarks-ingest"].expectedIntervalMinutes).toBe(
+      1440,
+    );
   });
 
   it("has all documented workflows — nothing silently dropped", () => {
     const keys = Object.keys(CRON_WORKFLOWS).sort();
     expect(keys).toEqual([
+      "benchmarks-ingest",
       "globe-ingest",
+      "labs-cron",
       "registry-backfill-events",
       "registry-discover",
       "registry-discover-deps",

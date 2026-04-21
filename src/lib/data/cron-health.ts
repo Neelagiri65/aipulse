@@ -13,11 +13,12 @@
  *   - CRON_WORKFLOWS is the single source of truth for which crons
  *     are monitored and what their expected interval is. Adding a
  *     cron here is what makes it show up in the StatusBar chip.
- *   - benchmarks-ingest and labs-cron are not monitored yet: the
- *     benchmarks cron runs the ingest script directly on the Actions
- *     runner (no Vercel round-trip), and labs-cron is a read-side
- *     cache warmer on /api/labs. Both will need their own wiring
- *     pattern and are deferred.
+ *   - Two wiring shapes exist: (1) routes that call writeCronHealth
+ *     directly after their runIngest — the default for the 7
+ *     Vercel-round-trip ingest endpoints; (2) workflows that can't
+ *     call writeCronHealth in-process (benchmarks-ingest runs a script
+ *     on the Actions runner; labs-cron is a read-side cache warmer)
+ *     use /api/cron-health/record to post their outcome.
  */
 
 import { Redis } from "@upstash/redis";
@@ -37,6 +38,8 @@ export const CRON_WORKFLOWS = {
   "registry-discover-topics": { expectedIntervalMinutes: 120 },
   "registry-discover": { expectedIntervalMinutes: 360 },
   "registry-discover-deps": { expectedIntervalMinutes: 360 },
+  "labs-cron": { expectedIntervalMinutes: 360 },
+  "benchmarks-ingest": { expectedIntervalMinutes: 1440 },
 } as const;
 
 export type CronWorkflowName = keyof typeof CRON_WORKFLOWS;

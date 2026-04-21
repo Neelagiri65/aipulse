@@ -50,16 +50,29 @@ jobs:
           node-version: "24"
 
       - name: Run benchmarks ingest
+        id: ingest
         run: |
+          set +e
           node \
             --experimental-strip-types \
             --no-warnings=ExperimentalTypeStripping \
             scripts/ingest-benchmarks.mts
+          STATUS=$?
+          set -e
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          # Per PRD AC 13 the script exits 0 on upstream failure; a
+          # non-zero here is a real script-side error worth surfacing.
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::warning::benchmarks ingest script exited $STATUS"
+          fi
+          exit 0
 
       - name: Commit if changed
+        id: commit
         run: |
           if git diff --quiet --exit-code data/benchmarks/lmarena-latest.json; then
             echo "No change to data/benchmarks/lmarena-latest.json; skipping commit."
+            echo "rows=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -67,6 +80,36 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/benchmarks/lmarena-latest.json
 
+          ROWS=$(node -e "console.log(JSON.parse(require('fs').readFileSync('data/benchmarks/lmarena-latest.json','utf8')).rows?.length ?? 0)")
+          echo "rows=$ROWS" >> "$GITHUB_OUTPUT"
+
           PUBLISH_DATE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('data/benchmarks/lmarena-latest.json','utf8')).meta?.leaderboardPublishDate ?? 'unknown')")
           git commit -m "chore(benchmarks): refresh lmarena snapshot (publishDate=${PUBLISH_DATE})"
           git push
+
+      - name: Record cron health
+        if: always()
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          INGEST_STATUS: ${{ steps.ingest.outputs.status }}
+          ROWS: ${{ steps.commit.outputs.rows }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "INGEST_URL or INGEST_SECRET unset; skipping cron-health record"
+            exit 0
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/cron-health/record"
+          if [ "$INGEST_STATUS" = "0" ]; then
+            BODY=$(printf '{"workflow":"benchmarks-ingest","ok":true,"itemsProcessed":%s}' "${ROWS:-0}")
+          else
+            BODY=$(printf '{"workflow":"benchmarks-ingest","ok":false,"error":"ingest script exited %s"}' "${INGEST_STATUS:-unknown}")
+          fi
+          echo "POST $URL"
+          curl -sS --max-time 30 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            --data "$BODY" \
+            "$URL" || echo "cron-health record POST failed (non-fatal)"
