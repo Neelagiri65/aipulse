@@ -81,7 +81,7 @@ export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
   return (
     <aside
       className="fixed right-3 z-40 ap-panel-surface"
-      style={{ top: 72, width: 220 }}
+      style={{ top: 100, width: 220 }}
       aria-label="Globe filters"
     >
       <header className="flex items-center gap-2 px-3 py-2 border-b border-border/60">

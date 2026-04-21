@@ -9,6 +9,7 @@ import { MetricTicker } from "@/components/dashboard/MetricTicker";
 import { MetricsRow } from "@/components/dashboard/MetricsRow";
 import { WirePage, type WireItem } from "@/components/dashboard/WirePage";
 import { TopBar, type ViewTabId } from "@/components/chrome/TopBar";
+import { StatusBar } from "@/components/chrome/StatusBar";
 
 // Leaflet is client-only (touches `window` at import). Lazy-load with
 // ssr:false so the map bundle + its CSS only ship to the browser.
@@ -328,24 +329,26 @@ export function Dashboard() {
   } | null>(null);
   useEffect(() => {
     const W = typeof window !== "undefined" ? window.innerWidth : 1440;
+    // Win y-values sit below TopBar (48px) + StatusBar (28px) = 76px
+    // total chrome, with a 24px safety margin before the first panel.
     setInitialPos({
-      wire: { x: 64, y: 72, w: 380, h: 540 },
-      tools: { x: Math.max(460, W - 420), y: 72, w: 376, h: 540 },
+      wire: { x: 64, y: 100, w: 380, h: 540 },
+      tools: { x: Math.max(460, W - 420), y: 100, w: 376, h: 540 },
       // Models floats slightly down-left of Tools so opening it doesn't
       // stack directly on top of the default layout. Still anchored to
       // the right half; Wire owns the left.
-      models: { x: Math.max(440, W - 440), y: 132, w: 376, h: 520 },
+      models: { x: Math.max(440, W - 440), y: 160, w: 376, h: 520 },
       // Research opens beside Wire on the left half so paper rows (long
       // titles) get comfortable width without clashing with Models on
-      // the right. Staggered y=160 so a two-panel open doesn't stack.
-      research: { x: 92, y: 160, w: 420, h: 540 },
+      // the right. Staggered so a two-panel open doesn't stack.
+      research: { x: 92, y: 188, w: 420, h: 540 },
       // Benchmarks is a 7-column table — needs a wider default than
       // Models. Centres on the viewport so it reads as the "rank table"
-      // view; staggered y=200 so opening alongside Wire/Tools doesn't
-      // stack on top of either.
+      // view; staggered so opening alongside Wire/Tools doesn't stack
+      // on top of either.
       benchmarks: {
         x: Math.max(120, Math.floor((W - 540) / 2)),
-        y: 200,
+        y: 228,
         w: 540,
         h: 560,
       },
@@ -353,11 +356,11 @@ export function Dashboard() {
       // ~60px/row = ~1920px scroll height, so the panel is scrollable,
       // not full-height; 420 wide keeps long lab names + city on one
       // line at typical viewports.
-      labs: { x: 108, y: 220, w: 420, h: 560 },
+      labs: { x: 108, y: 248, w: 420, h: 560 },
       // Regional Wire sits slightly down-right of Labs so opening both
       // doesn't stack. 420 wide matches the Labs sibling; 5 rows are
       // short, so the panel is compact at 420h.
-      "regional-wire": { x: 136, y: 260, w: 420, h: 420 },
+      "regional-wire": { x: 136, y: 288, w: 420, h: 420 },
     });
   }, []);
 
@@ -476,16 +479,29 @@ export function Dashboard() {
         onTabChange={setActiveTab}
       />
 
+      <StatusBar
+        status={status.data}
+        freshness={{
+          isInitialLoading: status.isInitialLoading,
+          lastSuccessAt: status.lastSuccessAt,
+          intervalMs: STATUS_POLL_MS,
+          error: status.error,
+        }}
+        verifiedSourceCount={VERIFIED_SOURCES.length}
+        pendingSourceCount={PENDING_SOURCES.length}
+      />
+
       {/* Grid lattice overlay — decorative, above globe but below chrome. */}
       <div className="ap-stage-grid" aria-hidden />
 
       {/* Full-viewport stage. MAP (default) and GLOBE render a geospatial
           canvas behind floating chrome; WIRE swaps in a full-screen
           chronological feed. CoverageBadge hovers over both map + globe
-          so the transparency contract stays visible regardless of view. */}
+          so the transparency contract stays visible regardless of view.
+          paddingTop = TopBar (48px) + StatusBar (28px). */}
       <div
         className="fixed inset-0"
-        style={{ paddingTop: 48, paddingBottom: 168, zIndex: 3 }}
+        style={{ paddingTop: 76, paddingBottom: 168, zIndex: 3 }}
       >
         {activeTab === "map" && (
           <div className="relative h-full w-full">
