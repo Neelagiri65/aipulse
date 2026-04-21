@@ -296,13 +296,13 @@ export function Dashboard() {
   // feed without any geospatial stage.
   const [activeTab, setActiveTab] = useState<ViewTabId>("map");
 
-  // Floating panel layout state. Models starts closed so the default
-  // view on first load is the same three-surface layout (wire + tools)
-  // the existing users know; Models opens on demand via the left nav.
+  // Floating panel layout state. All panels start closed so first load
+  // is map-only — the observatory stage reads before any panel chrome
+  // occludes it. Every panel opens on demand via the left nav.
   const [panels, setPanels] = useState<Record<PanelId, { open: boolean; min: boolean }>>(
     {
-      wire: { open: true, min: false },
-      tools: { open: true, min: false },
+      wire: { open: false, min: false },
+      tools: { open: false, min: false },
       models: { open: false, min: false },
       research: { open: false, min: false },
       benchmarks: { open: false, min: false },
