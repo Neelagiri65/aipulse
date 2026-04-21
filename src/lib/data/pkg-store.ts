@@ -24,12 +24,27 @@ import { Redis } from "@upstash/redis";
 const KEY_PREFIX = "pkg:";
 const LATEST_SUFFIX = ":latest";
 
-/** Rolling counters published by pypistats.org. Keys mirror the
- *  upstream JSON: {last_day, last_week, last_month}. */
+/**
+ * Per-package metric bag. Every field is optional — each registry populates
+ * whatever windows its upstream natively exposes:
+ *   - PyPI (pypistats):   {lastDay, lastWeek, lastMonth}
+ *   - npm:                {lastDay, lastWeek, lastMonth}
+ *   - crates.io:          {last90d, allTime}
+ *   - Docker Hub:         {allTime, stars}
+ *   - Homebrew:           {lastMonth, last90d, lastYear}
+ * We never synthesise a window the source doesn't give us (a 7d count
+ * divided from a 90d window is a lie). Readers surface "—" for missing
+ * fields; day-over-day diffs from the daily snapshot ZSET reconstruct
+ * arbitrary windows over time.
+ */
 export type PackageCounter = {
-  lastDay: number;
-  lastWeek: number;
-  lastMonth: number;
+  lastDay?: number;
+  lastWeek?: number;
+  lastMonth?: number;
+  last90d?: number;
+  lastYear?: number;
+  allTime?: number;
+  stars?: number;
 };
 
 /** One source's latest blob. `source` identifies the registry

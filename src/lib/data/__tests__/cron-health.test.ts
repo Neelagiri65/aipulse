@@ -98,6 +98,9 @@ describe("CRON_WORKFLOWS registry", () => {
     expect(CRON_WORKFLOWS["daily-snapshot"].expectedIntervalMinutes).toBe(
       1440,
     );
+    expect(CRON_WORKFLOWS["pkg-pypi"].expectedIntervalMinutes).toBe(360);
+    expect(CRON_WORKFLOWS["pkg-npm"].expectedIntervalMinutes).toBe(360);
+    expect(CRON_WORKFLOWS["pkg-crates"].expectedIntervalMinutes).toBe(360);
   });
 
   it("has all documented workflows — nothing silently dropped", () => {
@@ -107,6 +110,8 @@ describe("CRON_WORKFLOWS registry", () => {
       "daily-snapshot",
       "globe-ingest",
       "labs-cron",
+      "pkg-crates",
+      "pkg-npm",
       "pkg-pypi",
       "registry-backfill-events",
       "registry-discover",

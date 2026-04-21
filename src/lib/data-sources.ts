@@ -770,6 +770,60 @@ export const PYPI_DOWNLOADS: DataSource = {
   powersFeature: ["sdk-adoption-panel"],
 };
 
+export const NPM_DOWNLOADS: DataSource = {
+  id: "npm-downloads",
+  name: "npm — download counters (api.npmjs.org)",
+  category: "package-adoption",
+  url: "https://www.npmjs.com",
+  apiUrl: "https://api.npmjs.org/downloads/point/{window}/{pkg}",
+  responseFormat: "json",
+  updateFrequency: "six-hourly",
+  rateLimit: {
+    note: "No documented per-IP limit on api.npmjs.org; npm's public analytics endpoint. Cron runs fetch 5 packages × 3 windows = 15 calls every 6h → 60 calls/day. Scoped packages use the raw `@scope/name` path — do NOT url-encode the `/`, npm 404s the encoded form.",
+  },
+  auth: "none",
+  measures:
+    "Rolling download counters (last_day / last_week / last_month) for the five npm packages that together cover the Anthropic, OpenAI, LangChain, and llama index JavaScript ecosystems: @anthropic-ai/sdk, openai, @langchain/core, ai, llamaindex. Per-package failures isolate into `failures[]`; whole-package failure (any of the three windows erroring) skips the package rather than writing a half-populated row. AI Pulse mirrors the numbers verbatim — no re-ranking, no normalisation.",
+  sanityCheck: {
+    description:
+      "Each tracked package's `last_week` should fall in the 10k–50M range — these are established AI JS SDKs. openai was ~18M/week on the 2026-04-21 verification probe. A zero across polls for any single package indicates api.npmjs.org shape drift or a package rename — investigate before attributing to dead adoption.",
+    expectedMin: 10_000,
+    expectedMax: 50_000_000,
+    unit: "downloads per package per week",
+  },
+  verifiedAt: "2026-04-21",
+  caveat:
+    "api.npmjs.org IS npm's own analytics endpoint (first-party), not a third-party mirror — unlike pypistats for PyPI. Known caveat per npm's own docs: downloads count every `npm install` request, including CI caches, mirror fetches, and yarn/pnpm hits that proxy through npm. Not a unique-user measure. Switching to npm's weekly-downloads API for more stable numbers is a queued follow-up once the panel design nails down the aggregation.",
+  powersFeature: ["sdk-adoption-panel"],
+};
+
+export const CRATES_DOWNLOADS: DataSource = {
+  id: "crates-downloads",
+  name: "crates.io — Rust crate download counters",
+  category: "package-adoption",
+  url: "https://crates.io",
+  apiUrl: "https://crates.io/api/v1/crates/{name}",
+  responseFormat: "json",
+  updateFrequency: "six-hourly",
+  rateLimit: {
+    note: "crates.io requires a User-Agent identifying the caller + contact (https://crates.io/data-access); anonymous requests without UA are blocked. Cron runs fetch 4 crates × 1 call = 4 calls every 6h → 16 calls/day. No documented per-IP rate cap for identified callers.",
+  },
+  auth: "none",
+  measures:
+    "Two counters per tracked crate (candle-core, burn, tch, ort): `downloads` (all-time total) and `recent_downloads` (rolling last 90 days). crates.io does NOT expose last-day or last-week windows — AI Pulse only populates {last90d, allTime} and surfaces '—' for the PyPI/npm windows rather than synthesising them from the 90d bucket.",
+  sanityCheck: {
+    description:
+      "Each tracked crate's `recent_downloads` (90d) should fall in the 50k–20M range. candle-core was 2.1M / ort was 3.5M on the 2026-04-21 verification probe. Zero indicates crates.io shape drift or the crate was yanked — investigate before attributing to 'nobody uses Rust for ML'.",
+    expectedMin: 50_000,
+    expectedMax: 20_000_000,
+    unit: "recent (90d) downloads per crate",
+  },
+  verifiedAt: "2026-04-21",
+  caveat:
+    "First-party provenance (crates.io is the official Rust registry's own API). `downloads` counts every `cargo build` fetch including CI caches; it is not a unique-user measure. Rust AI/ML is still an early ecosystem — expect a long tail of near-zero crates. The 4-crate slate is deliberately narrow; adding a crate is a code change under Auditor review, not a config flag.",
+  powersFeature: ["sdk-adoption-panel"],
+};
+
 // ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
@@ -799,6 +853,8 @@ export const ALL_SOURCES: readonly DataSource[] = [
   RSS_AIM,
   RSS_MIT_TR_AI,
   PYPI_DOWNLOADS,
+  NPM_DOWNLOADS,
+  CRATES_DOWNLOADS,
 ] as const;
 
 export const VERIFIED_SOURCES: readonly DataSource[] = ALL_SOURCES.filter(

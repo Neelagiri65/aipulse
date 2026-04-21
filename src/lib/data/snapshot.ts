@@ -35,9 +35,11 @@ import { readLatest, type PackageLatest } from "@/lib/data/pkg-store";
 import benchmarksPayload from "../../../data/benchmarks/lmarena-latest.json";
 
 /** Package-registry sources whose `pkg:{source}:latest` blobs contribute
- *  to the daily snapshot. Track A PR 1 ships "pypi"; PRs 2/3 append the
- *  npm / crates / docker / homebrew siblings as they land. */
-const PACKAGE_SOURCES = ["pypi"] as const;
+ *  to the daily snapshot. Track A PR 1 shipped "pypi"; PR 2 added
+ *  "npm" + "crates"; PR 3 appends "docker" + "brew". Each source
+ *  populates whichever counter windows its upstream API natively exposes
+ *  — the snapshot entry type is a superset, never a synthesis. */
+const PACKAGE_SOURCES = ["pypi", "npm", "crates"] as const;
 
 const KEY_PREFIX = "snapshot:";
 const INDEX_KEY = "snapshot:index";
@@ -82,11 +84,22 @@ export type SnapshotBenchmarks = {
   top3: SnapshotBenchmark[];
 };
 
+/**
+ * One package's counter snapshot. Every window is optional — each
+ * registry populates whichever windows its upstream natively exposes
+ * (PyPI/npm: day/week/month; crates: last90d/allTime; Docker: allTime/
+ * stars; Homebrew: month/90d/year). Missing fields surface as "—" in
+ * readers; we never synthesise a window the source didn't give us.
+ */
 export type SnapshotPackageEntry = {
   name: string;
-  lastDay: number;
-  lastWeek: number;
-  lastMonth: number;
+  lastDay?: number;
+  lastWeek?: number;
+  lastMonth?: number;
+  last90d?: number;
+  lastYear?: number;
+  allTime?: number;
+  stars?: number;
 };
 
 /** Keyed by registry source id (pypi / npm / docker / crates / homebrew).
@@ -168,17 +181,24 @@ export function summariseRegistry(
   };
 }
 
-/** Convert a `pkg:{source}:latest` blob into sorted snapshot entries. */
+/** Convert a `pkg:{source}:latest` blob into sorted snapshot entries.
+ *  Each entry carries only the counter fields the registry populated —
+ *  undefined windows are omitted from the JSON, not zero-filled. */
 export function summarisePackageLatest(
   latest: PackageLatest,
 ): SnapshotPackageEntry[] {
   return Object.entries(latest.counters)
-    .map(([name, c]) => ({
-      name,
-      lastDay: c.lastDay,
-      lastWeek: c.lastWeek,
-      lastMonth: c.lastMonth,
-    }))
+    .map(([name, c]) => {
+      const entry: SnapshotPackageEntry = { name };
+      if (c.lastDay !== undefined) entry.lastDay = c.lastDay;
+      if (c.lastWeek !== undefined) entry.lastWeek = c.lastWeek;
+      if (c.lastMonth !== undefined) entry.lastMonth = c.lastMonth;
+      if (c.last90d !== undefined) entry.last90d = c.last90d;
+      if (c.lastYear !== undefined) entry.lastYear = c.lastYear;
+      if (c.allTime !== undefined) entry.allTime = c.allTime;
+      if (c.stars !== undefined) entry.stars = c.stars;
+      return entry;
+    })
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 

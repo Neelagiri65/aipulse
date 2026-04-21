@@ -1,0 +1,54 @@
+name: pkg-npm
+
+# npm adoption ingest: fetch last-day / last-week / last-month download
+# counters from api.npmjs.org for the tracked AI-SDK package slate
+# (@anthropic-ai/sdk, openai, @langchain/core, ai, llamaindex) and
+# overwrite the `pkg:npm:latest` blob in Upstash Redis.
+#
+# Cadence: every 6 hours at :25 (00:25, 06:25, 12:25, 18:25 UTC).
+# Offset 10 min after pkg-pypi (:15) to stagger concurrent Vercel
+# invocations; still lands well before the 04:00 UTC snapshot read.
+#
+# Required repo secrets (shared with other ingest workflows):
+#   INGEST_URL     — e.g. https://aipulse-pi.vercel.app/api/ingest
+#                    (we strip /api/ingest and append the npm path)
+#   INGEST_SECRET  — shared secret matching the Vercel env var
+
+on:
+  schedule:
+    - cron: "25 0,6,12,18 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Attribution tag (cron | manual)"
+        required: false
+        default: "manual"
+        type: string
+
+concurrency:
+  group: pkg-npm
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Trigger npm ingest on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.source || 'cron' }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/pkg/npm?source=$SOURCE"
+          echo "POST $URL"
+          RESPONSE=$(curl -sS -f --max-time 150 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"
