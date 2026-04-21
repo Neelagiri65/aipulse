@@ -2,6 +2,147 @@
 
 ## Current state (2026-04-21)
 
+### Session 25 — Design spec v2 + global status bar + 4 Chinese labs · SHIPPED
+
+**Status:** Three commits landed direct on `main` and deployed to prod.
+Visual smoke against prod: **26/26 green in 56.7s** at commit `49abf78`
+(Vercel deployment id `4431506427`, state `success`).
+
+| # | Commit    | Scope                                              |
+| - | --------- | -------------------------------------------------- |
+| 1 | `09ddb31` | `docs(design): add v2 UI/UX overhaul spec`        |
+| 2 | `ddbd9f3` | `feat(chrome): global status bar (FIX-09)`        |
+| 3 | `49abf78` | `feat(labs): add 4 Chinese labs`                   |
+
+Session brief (user, verbatim): *"Read HANDOFF.md. Three things this
+session: 1) Save docs/design-spec-v2.md with the full UI/UX overhaul
+spec. 2) Global status bar — single-line between top nav and map …
+3) Add 4 Chinese labs to data/ai-labs.json … Two commits: status bar
+first, Chinese labs second. Ship both on main."*
+
+**Shipped this session (3/3, each as a discrete commit):**
+
+1. **Design spec v2** (`09ddb31`) — `docs/design-spec-v2.md`, 91 lines.
+   Captures the World-Monitor-vs-AI-Pulse comparison, the six design
+   principles (map-is-the-product, one-panel-at-a-time, info-dense not
+   spacious, hierarchy-through-typography, semantic colour, every-number-
+   cited), and the P0–P2 fix queue (FIX-01 through FIX-12). Reference
+   doc for every future UI session so we stop re-discovering the same
+   issues.
+
+2. **Global status bar** (`ddbd9f3`) — FIX-09 from the new spec. New
+   component `src/components/chrome/StatusBar.tsx` (196 lines) renders a
+   single-line bar between TopBar (48px) and the map stage at
+   `top:48 height:28`:
+
+       "N/N OPERATIONAL · N DEGRADED · N OUTAGE · N SOURCES · LIVE"
+
+   Fold logic mirrors `MetricsRow.toolsOpsCard` /
+   `TopBar.deriveSeverity`: an "operational" tool with an active
+   incident counts as **degraded, not operational** (trust invariant).
+   Overall dot is red if any outage, amber if any degraded, green
+   otherwise. Degraded/outage segments render only when non-zero so a
+   healthy fleet reads as one clean line. Live indicator is driven by
+   status-poll freshness (Connecting → Live → Stale → Offline).
+
+   Stage-offset accounting: paddingTop 48→76, `.ap-icon-nav` top
+   48→76, `FilterPanel` top 72→100, default Win y-positions +28.
+   LeftNav rail now sits under the status bar cleanly.
+
+   Unit tests: +6 for `deriveSev` covering the operational+incident
+   fold, explicit degraded + fold bundling, outage counts, and
+   unknown handling. Total 206/206 green.
+
+3. **Four Chinese labs** (`49abf78`) — Moonshot, MiniMax, Zhipu AI,
+   ByteDance Seed. Registry goes **32 → 36** entries; CN coverage
+   **5 → 9**; tracked flagship repos **47 → 55** (still well under
+   the 5000-req/hr GH budget at 4 cron runs/day):
+
+   | id                       | HQ              | url                      | orgs             |
+   | ------------------------ | --------------- | ------------------------ | ---------------- |
+   | `moonshot-beijing`       | Beijing Haidian | `moonshot.ai`           | `MoonshotAI`     |
+   | `minimax-shanghai`       | Shanghai        | `minimax.io`            | `MiniMax-AI`     |
+   | `zhipu-beijing`          | Beijing Haidian | `zhipuai.cn`            | `zai-org`        |
+   | `bytedance-seed-beijing` | Beijing Haidian | `seed.bytedance.com`    | `ByteDance-Seed` |
+
+   Each entry carries the two-URL contract from PR #5: `hqSourceUrl`
+   (Wikipedia infobox for HQ city provenance) and `url` (first-party
+   site for the click target, never Wikipedia). Zhipu/Tsinghua org
+   overlap is handled via `notes`: newer flagship work is attributed
+   to Zhipu (`zai-org/GLM-4.5`, `GLM-V`); earlier ChatGLM/GLM-4 work
+   remains under Tsinghua (`THUDM/ChatGLM3`, `GLM-4`). No activity
+   double-counting — the tracked repo lists don't overlap.
+
+   `public/data-sources.md` updated: "32 curated labs" → "36 curated
+   labs" and the GH-activity-fetcher arithmetic refreshed.
+
+**Files changed (session 25):**
+
+- New (3): `docs/design-spec-v2.md`,
+  `src/components/chrome/StatusBar.tsx`,
+  `src/components/chrome/__tests__/StatusBar.test.ts`
+- Modified (5): `src/components/dashboard/Dashboard.tsx`,
+  `src/components/chrome/FilterPanel.tsx`, `src/app/globals.css`,
+  `data/ai-labs.json`, `public/data-sources.md`
+- Deleted: 0
+
+**Test + build state:**
+
+- Unit tests: **206/206 ✓** (+6 from `deriveSev` tests; was 200).
+- `npm run build`: ✓ compiled in 1.9s, TypeScript clean.
+- Playwright visual smoke (prod): **26/26 green in 56.7s** against
+  `https://aipulse-pi.vercel.app` @ `49abf78`. No regression from
+  session 24's baseline.
+
+**AUDITOR-REVIEW: PENDING (this session's additions):**
+
+- *Status bar at 1920px / 1280px / 1024px* — layout uses `px-4 gap-2`
+  with 10px monospace. Auditor should confirm the full line reads
+  without truncation at 1024px (narrowest desktop). Mobile gate hides
+  it below 768px along with the rest of the chrome, so 360/375 is a
+  no-op.
+- *Segment colour palette* — green/amber/red read fine against the
+  dark bg at fg-muted tracking, but the combined glyph-dot + divider
+  dots might look busy. Auditor should eyeball vs. the existing
+  TopBar `SeveritySummary`, which this is semantically similar to.
+- *Zhipu `zai-org` flagship-repo choice* — GLM-4.5 and GLM-V are my
+  best-effort picks as of training cutoff 2026-01. If either repo
+  has been renamed or consolidated, the activity fetcher returns 404
+  and the lab dims to a stale violet dot — graceful degradation, no
+  fabricated numbers. Auditor should spot-check the three other new
+  labs' flagship repos too (Kimi-K2, MiniMax-M1, Seed-OSS, BAGEL).
+- *MiniMax HQ coord* — I used central Shanghai (31.2304, 121.4737 /
+  People's Square) pending a more precise district-level source. If
+  MiniMax's HQ is documented as Pudong or Xuhui, bump the coord and
+  refresh `hqSourceUrl`.
+
+**NEXT (for session 26):**
+
+1. P0 fixes from `docs/design-spec-v2.md` that weren't covered by
+   prior sessions: **FIX-01 single-panel mode on viewport < 1440px**
+   (close-all-then-open behaviour) and **FIX-02 tool-health maximise
+   cleanup** (2-column grid, hide placeholder, 80% width centred).
+2. *Optional* — FIX-05 / FIX-06 / FIX-07 (P1 polish: font-size
+   standardisation, panel density, wire timestamp precision). Session
+   24 already covered some of this; cross-check vs. current CSS before
+   duplicating work.
+3. *Evaluate* the three empirical-probe items from session 25
+   planning: OpenRouter stats API, Gitee trending, Papers With Code
+   SOTA. Kimi's audit called these out as "needs empirical test"; no
+   code, just curl + confirm. Would unblock decisions for session 27+.
+4. *Park* — editorial + moderation-risk items from the Kimi audit
+   (distillation/security incidents, WeChat/X monitoring, China gov
+   policy releases). Not in scope for an aggregator.
+
+**Session 26 entry point:** `main` is clean at `49abf78`. First
+command: `git status && npx vitest run` to confirm the 206-unit
+baseline. Only re-run the visual smoke if touching anything that
+affects TopBar, StatusBar, LeftNav, or panel chrome positioning.
+
+---
+
+## Previous sessions
+
 ### Session 24 — Polish round + lab-dot test hardening + prod smoke · MERGED
 
 **Status:** PR #6 merged to `main` at 2026-04-20 23:40 UTC (merge commit `8421253`). Branch `fix/polish-round` deleted. Visual smoke against prod: **26/26 green in 55.5s** — the session-22 lab-dot flake is resolved.
@@ -49,8 +190,6 @@ Session brief (user, one-line): *"All of them. Polish 5, 6, 7 + lab-dot test har
 **Session 25 entry point:** `main` is clean at `8421253`. First command: `git status && npx vitest run && npm run test:visual` to confirm the 200-unit + 26-visual baseline, then pick the next deliverable with the user.
 
 ---
-
-## Previous sessions
 
 ### Session 23 — UI/UX trust-blocker fixes from screenshot review · MERGED
 
