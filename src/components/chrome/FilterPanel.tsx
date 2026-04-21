@@ -72,59 +72,160 @@ export type FilterPanelProps = {
 };
 
 /**
- * Right-edge fixed filter panel. Always visible (unlike the Win chrome
- * panels toggled from LeftNav). Toggles are consumed upstream to filter
- * the globe's points in place — no separate "run filter" button.
+ * Right-edge fixed filter panel. Part of the chrome, never dismissible
+ * (docs/design-spec-v2.md → FIX-14). At ≥1440px renders as the full
+ * 220px labelled panel; below 1440px collapses to a 44px icon rail
+ * (coloured dot per layer, tooltip-on-hover, click still toggles) so
+ * the map reclaims horizontal space on narrow desktops without losing
+ * filter access.
  */
 export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
   const cats: Layer["category"][] = ["Event types", "Signal", "Layers"];
   return (
-    <aside
-      className="fixed right-3 z-40 ap-panel-surface"
-      style={{ top: 100, width: 220 }}
-      aria-label="Globe filters"
+    <>
+      {/* Full panel — 1440px+ only. The responsive swap uses two sibling
+          DOM nodes rather than one element with conditional classes so
+          each variant's internal markup can stay tailored to its density
+          (labels vs. icons) without branching logic. */}
+      <aside
+        className="ap-filter-panel--full fixed right-3 z-40 ap-panel-surface"
+        style={{ top: 100, width: 220 }}
+        aria-label="Globe filters"
+      >
+        <header className="flex items-center gap-2 px-3 py-2 border-b border-border/60">
+          <FunnelIcon />
+          <span
+            className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em]"
+            style={{ color: "var(--ap-fg)" }}
+          >
+            Filter
+          </span>
+        </header>
+        <div className="space-y-4 p-3">
+          {cats.map((cat) => (
+            <div key={cat}>
+              <div
+                className="mb-2 font-mono text-[9px] uppercase"
+                style={{ color: "var(--ap-fg-dim)", letterSpacing: "0.14em" }}
+              >
+                {cat}
+              </div>
+              <div className="space-y-1.5">
+                {LAYERS.filter((l) => l.category === cat).map((layer) => (
+                  <FilterRow
+                    key={layer.id}
+                    layer={layer}
+                    enabled={filters[layer.id]}
+                    onToggle={() => onToggle(layer.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <footer className="flex items-center gap-2 border-t border-border/60 p-3">
+          <button
+            type="button"
+            onClick={onReset}
+            className="flex-1 rounded-sm border border-border/60 px-2 py-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+          >
+            Reset
+          </button>
+        </footer>
+      </aside>
+
+      {/* Icon-only rail — shown below 1440px. Each layer is a 36px button
+          with its coloured dot; tooltips via native `title`. Click still
+          toggles. Reset pinned at the bottom as a ↺ glyph. */}
+      <aside
+        className="ap-filter-panel--icons fixed right-3 z-40 ap-panel-surface"
+        style={{ top: 100, width: 44 }}
+        aria-label="Globe filters"
+      >
+        <div
+          className="flex items-center justify-center border-b border-border/60"
+          style={{ height: 34 }}
+          title="Filter"
+        >
+          <FunnelIcon />
+        </div>
+        <div className="flex flex-col items-center gap-1 py-2">
+          {LAYERS.map((layer) => (
+            <FilterIconButton
+              key={layer.id}
+              layer={layer}
+              enabled={filters[layer.id]}
+              onToggle={() => onToggle(layer.id)}
+            />
+          ))}
+        </div>
+        <div
+          className="flex items-center justify-center border-t border-border/60 py-2"
+        >
+          <button
+            type="button"
+            onClick={onReset}
+            title="Reset filters"
+            aria-label="Reset filters"
+            className="flex h-6 w-6 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+          >
+            <ResetIcon />
+          </button>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+function FilterIconButton({
+  layer,
+  enabled,
+  onToggle,
+}: {
+  layer: Layer;
+  enabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={`${layer.label}${enabled ? "" : " (off)"}`}
+      aria-label={layer.label}
+      aria-pressed={enabled}
+      className="flex h-7 w-7 items-center justify-center rounded-sm transition-all hover:bg-white/5"
+      style={{
+        opacity: enabled ? 1 : 0.35,
+      }}
     >
-      <header className="flex items-center gap-2 px-3 py-2 border-b border-border/60">
-        <FunnelIcon />
-        <span
-          className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em]"
-          style={{ color: "var(--ap-fg)" }}
-        >
-          Filter
-        </span>
-      </header>
-      <div className="space-y-4 p-3">
-        {cats.map((cat) => (
-          <div key={cat}>
-            <div
-              className="mb-2 font-mono text-[9px] uppercase"
-              style={{ color: "var(--ap-fg-dim)", letterSpacing: "0.14em" }}
-            >
-              {cat}
-            </div>
-            <div className="space-y-1.5">
-              {LAYERS.filter((l) => l.category === cat).map((layer) => (
-                <FilterRow
-                  key={layer.id}
-                  layer={layer}
-                  enabled={filters[layer.id]}
-                  onToggle={() => onToggle(layer.id)}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-      <footer className="flex items-center gap-2 border-t border-border/60 p-3">
-        <button
-          type="button"
-          onClick={onReset}
-          className="flex-1 rounded-sm border border-border/60 px-2 py-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
-        >
-          Reset
-        </button>
-      </footer>
-    </aside>
+      <span
+        className="inline-block rounded-full"
+        style={{
+          width: 10,
+          height: 10,
+          background: layer.color,
+          boxShadow: enabled ? `0 0 6px ${layer.color}` : "none",
+        }}
+      />
+    </button>
+  );
+}
+
+function ResetIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="1 4 1 10 7 10" />
+      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+    </svg>
   );
 }
 

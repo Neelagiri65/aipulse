@@ -469,6 +469,17 @@
 }
 
 /* --------------------------------------------------------------------------
+   Filter strip responsive swap (FIX-14). Full 220px labelled panel at
+   ≥1440px; below that, the 44px icon rail. The two variants live as
+   sibling elements in FilterPanel.tsx; this is just the show/hide logic.
+   -------------------------------------------------------------------------- */
+.ap-filter-panel--icons { display: none; }
+@media (max-width: 1439px) {
+  .ap-filter-panel--full  { display: none !important; }
+  .ap-filter-panel--icons { display: block; }
+}
+
+/* --------------------------------------------------------------------------
    Mobile gate — the dashboard HUD is built for ≥ 768px. Below that we hide
    the app and paint a centred "best viewed on desktop" notice so mobile
    readers see the right message instead of a broken layout (Polish 7).
