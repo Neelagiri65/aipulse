@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   snapshotKey,
   summariseEvents24h,
+  summarisePackageLatest,
   summariseRegistry,
   summariseSources,
   ymdUtc,
 } from "@/lib/data/snapshot";
 import type { RegistryEntry } from "@/lib/data/registry-shared";
+import type { PackageLatest } from "@/lib/data/pkg-store";
 
 describe("ymdUtc", () => {
   it("returns YYYY-MM-DD in UTC regardless of local zone", () => {
@@ -122,5 +124,34 @@ describe("summariseEvents24h", () => {
     const s = summariseEvents24h([{}, {}, {}]);
     expect(s.withAiConfig).toBe(0);
     expect(s.aiConfigShare).toBe(0);
+  });
+});
+
+describe("summarisePackageLatest", () => {
+  it("flattens the counters map into entries sorted by name", () => {
+    const latest: PackageLatest = {
+      source: "pypi",
+      fetchedAt: "2026-04-21T12:15:00Z",
+      counters: {
+        openai: { lastDay: 2, lastWeek: 14, lastMonth: 60 },
+        anthropic: { lastDay: 1, lastWeek: 7, lastMonth: 30 },
+      },
+      failures: [],
+    };
+    const entries = summarisePackageLatest(latest);
+    expect(entries).toEqual([
+      { name: "anthropic", lastDay: 1, lastWeek: 7, lastMonth: 30 },
+      { name: "openai", lastDay: 2, lastWeek: 14, lastMonth: 60 },
+    ]);
+  });
+
+  it("returns an empty list when no counters were fetched", () => {
+    const latest: PackageLatest = {
+      source: "pypi",
+      fetchedAt: "2026-04-21T12:15:00Z",
+      counters: {},
+      failures: [{ pkg: "anthropic", message: "HTTP 500" }],
+    };
+    expect(summarisePackageLatest(latest)).toEqual([]);
   });
 });

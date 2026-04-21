@@ -107,6 +107,7 @@ describe("CRON_WORKFLOWS registry", () => {
       "daily-snapshot",
       "globe-ingest",
       "labs-cron",
+      "pkg-pypi",
       "registry-backfill-events",
       "registry-discover",
       "registry-discover-deps",

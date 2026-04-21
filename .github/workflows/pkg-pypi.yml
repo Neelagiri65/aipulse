@@ -1,0 +1,56 @@
+name: pkg-pypi
+
+# PyPI adoption ingest: fetch /recent download counters from pypistats.org
+# for the tracked AI-SDK package slate (anthropic, openai, langchain,
+# transformers, torch, huggingface-hub, diffusers) and overwrite the
+# `pkg:pypi:latest` blob in Upstash Redis.
+#
+# Cadence: every 6 hours at :15 (00:15, 06:15, 12:15, 18:15 UTC).
+# Matches the labs-cron tempo and avoids colliding with benchmarks-ingest
+# (03:15) and daily-snapshot (04:00). The snapshot-collector reads
+# `pkg:pypi:latest` so we want the counters refreshed before 04:00; the
+# 00:15 slot guarantees the day's first write is well ahead of that.
+#
+# Required repo secrets (shared with other ingest workflows):
+#   INGEST_URL     — e.g. https://aipulse-pi.vercel.app/api/ingest
+#                    (we strip /api/ingest and append the PyPI path)
+#   INGEST_SECRET  — shared secret matching the Vercel env var
+
+on:
+  schedule:
+    - cron: "15 0,6,12,18 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Attribution tag (cron | manual)"
+        required: false
+        default: "manual"
+        type: string
+
+concurrency:
+  group: pkg-pypi
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Trigger PyPI ingest on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.source || 'cron' }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/pkg/pypi?source=$SOURCE"
+          echo "POST $URL"
+          RESPONSE=$(curl -sS -f --max-time 150 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"

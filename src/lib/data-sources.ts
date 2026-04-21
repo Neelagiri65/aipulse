@@ -32,6 +32,7 @@ export type DataSourceCategory =
   | "github-activity" // events, issues, contents
   | "model-benchmark"
   | "model-distribution" // download / adoption signals for specific models
+  | "package-adoption" // download counters from package registries (PyPI, npm, etc.)
   | "community-sentiment"
   | "press-rss" // editor-curated AI news feeds (RSS / Atom)
   | "published-research"
@@ -734,6 +735,42 @@ export const RSS_MIT_TR_AI: DataSource = {
 };
 
 // ---------------------------------------------------------------------------
+// PACKAGE-ADOPTION — registry download counters for the AI SDK slate
+// Track A of the multi-platform expansion (session 32). PyPI ships first;
+// npm + crates + Docker Hub + Homebrew land in PRs 2/3. All five registries
+// share the `pkg:{source}:latest` Redis layout and the same SDK-adoption
+// panel — shape is homogeneous so adding a sibling source is a new entry
+// here + a one-line addition to the snapshot collector.
+// ---------------------------------------------------------------------------
+
+export const PYPI_DOWNLOADS: DataSource = {
+  id: "pypi-downloads",
+  name: "PyPI — recent download counters (via pypistats.org)",
+  category: "package-adoption",
+  url: "https://pypistats.org",
+  apiUrl: "https://pypistats.org/api/packages/{pkg}/recent",
+  responseFormat: "json",
+  updateFrequency: "six-hourly",
+  rateLimit: {
+    note: "No documented per-IP limit on pypistats.org; the site asks callers to identify themselves via User-Agent. Cron runs fetch 7 packages × 4 times/day = 28 calls/day — trivial under any plausible budget. Next.js Data Cache is not used on the write path; the client reads the Upstash blob directly.",
+  },
+  auth: "none",
+  measures:
+    "Rolling download counters (last_day / last_week / last_month) for the seven packages that together cover the Anthropic, OpenAI, HuggingFace, and LangChain Python ecosystems: anthropic, openai, langchain, transformers, torch, huggingface-hub, diffusers. AI Pulse does NOT re-rank, normalise per-project, or weight by 'real user' estimates — the numbers are mirrored verbatim as pypistats publishes them. Per-package failures isolate: a 500 on `torch` marks that package stale but never tanks the whole response.",
+  sanityCheck: {
+    description:
+      "Each tracked package's `last_month` should fall in the 100k–500M range — these are established AI SDKs, not new arrivals. anthropic was 94.8M/month on the 2026-04-21 verification probe; openai was ~250M/month. A zero across a streak of polls for any single package indicates pypistats shape drift or a package rename — investigate before attributing to dead adoption.",
+    expectedMin: 100_000,
+    expectedMax: 500_000_000,
+    unit: "downloads per package per month",
+  },
+  verifiedAt: "2026-04-21",
+  caveat:
+    "pypistats.org is a third-party aggregator of PyPI's BigQuery download logs, same provenance class as ecosyste.ms — NOT PyPI itself. Known caveat from PyPI's own guidance: the logs include mirror hits, CI builds, and `pip install` retries, which inflate counts vs. 'real human installs' by an unknown multiplier. AI Pulse ships the raw numbers and surfaces this caveat alongside. Switching to Google BigQuery's `bigquery-public-data.pypi.downloads` is a queued v2 follow-up for first-party provenance (requires GCP auth + a billing account).",
+  powersFeature: ["sdk-adoption-panel"],
+};
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -761,6 +798,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   RSS_SYNCED_REVIEW,
   RSS_AIM,
   RSS_MIT_TR_AI,
+  PYPI_DOWNLOADS,
 ] as const;
 
 export const VERIFIED_SOURCES: readonly DataSource[] = ALL_SOURCES.filter(

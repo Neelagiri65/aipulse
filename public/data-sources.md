@@ -2,7 +2,7 @@
 
 Every number on this dashboard traces back to a publicly verifiable source. AI Pulse aggregates — it does not invent metrics, re-score labs, or manufacture values. When a source is unavailable, the affected card falls to graceful degradation with a "last known value" and timestamp rather than blanking silently.
 
-As of 2026-04-21, AI Pulse tracks **23 verified sources** across GitHub activity, status pages, published research, model distribution, community sentiment, regional press, and model benchmarks.
+As of 2026-04-21, AI Pulse tracks **24 verified sources** across GitHub activity, status pages, published research, model distribution, package adoption, community sentiment, regional press, and model benchmarks.
 
 ---
 
@@ -29,6 +29,9 @@ As of 2026-04-21, AI Pulse tracks **23 verified sources** across GitHub activity
 - GitHub Issues — anthropics/claude-code
 - HuggingFace Models API — text-generation by downloads
 - arXiv API — cs.AI + cs.LG, recent
+
+### Package adoption (1)
+- PyPI — recent download counters (via pypistats.org)
 
 ### Community sentiment (1)
 - Hacker News — AI-filtered story stream

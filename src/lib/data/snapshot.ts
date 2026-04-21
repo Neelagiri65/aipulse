@@ -31,7 +31,13 @@ import { readWindow, readMeta as readGlobeMeta } from "@/lib/data/globe-store";
 import { fetchAllStatus } from "@/lib/data/fetch-status";
 import type { BenchmarksPayload } from "@/lib/data/benchmarks-lmarena";
 import type { RegistryEntry } from "@/lib/data/registry-shared";
+import { readLatest, type PackageLatest } from "@/lib/data/pkg-store";
 import benchmarksPayload from "../../../data/benchmarks/lmarena-latest.json";
+
+/** Package-registry sources whose `pkg:{source}:latest` blobs contribute
+ *  to the daily snapshot. Track A PR 1 ships "pypi"; PRs 2/3 append the
+ *  npm / crates / docker / homebrew siblings as they land. */
+const PACKAGE_SOURCES = ["pypi"] as const;
 
 const KEY_PREFIX = "snapshot:";
 const INDEX_KEY = "snapshot:index";
@@ -76,6 +82,17 @@ export type SnapshotBenchmarks = {
   top3: SnapshotBenchmark[];
 };
 
+export type SnapshotPackageEntry = {
+  name: string;
+  lastDay: number;
+  lastWeek: number;
+  lastMonth: number;
+};
+
+/** Keyed by registry source id (pypi / npm / docker / crates / homebrew).
+ *  Each entry array is sorted by name so day-over-day diffs stay stable. */
+export type SnapshotPackages = Record<string, SnapshotPackageEntry[]>;
+
 export type DailySnapshot = {
   /** YYYY-MM-DD in UTC. Also the key suffix and ZSET member. */
   date: string;
@@ -86,6 +103,9 @@ export type DailySnapshot = {
   events24h: SnapshotEvents24h | null;
   tools: SnapshotTool[];
   benchmarks: SnapshotBenchmarks | null;
+  /** Null when the package store is unreachable; otherwise a map keyed
+   *  by source — `{}` when no registry has landed counters yet. */
+  packages: SnapshotPackages | null;
   failures: Array<{ step: string; message: string }>;
 };
 
@@ -146,6 +166,20 @@ export function summariseRegistry(
     geocodeRate: total > 0 ? withLocation / total : 0,
     byConfigKind,
   };
+}
+
+/** Convert a `pkg:{source}:latest` blob into sorted snapshot entries. */
+export function summarisePackageLatest(
+  latest: PackageLatest,
+): SnapshotPackageEntry[] {
+  return Object.entries(latest.counters)
+    .map(([name, c]) => ({
+      name,
+      lastDay: c.lastDay,
+      lastWeek: c.lastWeek,
+      lastMonth: c.lastMonth,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /** Extract the aiConfigShare from an array of 24h globe points. */
@@ -256,6 +290,21 @@ export async function buildDailySnapshot(
     });
   }
 
+  let packages: SnapshotPackages | null = null;
+  try {
+    const result: SnapshotPackages = {};
+    for (const src of PACKAGE_SOURCES) {
+      const latest = await readLatest(src);
+      result[src] = latest ? summarisePackageLatest(latest) : [];
+    }
+    packages = result;
+  } catch (e) {
+    failures.push({
+      step: "packages",
+      message: e instanceof Error ? e.message : String(e),
+    });
+  }
+
   return {
     date,
     capturedAt: now.toISOString(),
@@ -264,6 +313,7 @@ export async function buildDailySnapshot(
     events24h,
     tools,
     benchmarks,
+    packages,
     failures,
   };
 }
