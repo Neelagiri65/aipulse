@@ -504,5 +504,73 @@
     "repos": [
       { "owner": "togethercomputer", "repo": "RedPajama-Data", "sourceUrl": "https://github.com/togethercomputer/RedPajama-Data" }
     ]
+  },
+  {
+    "id": "moonshot-beijing",
+    "displayName": "Moonshot AI",
+    "kind": "industry",
+    "city": "Beijing",
+    "country": "CN",
+    "lat": 39.9833,
+    "lng": 116.3167,
+    "url": "https://www.moonshot.ai",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Moonshot_AI",
+    "orgs": ["MoonshotAI"],
+    "repos": [
+      { "owner": "MoonshotAI", "repo": "Kimi-K2", "sourceUrl": "https://github.com/MoonshotAI/Kimi-K2" },
+      { "owner": "MoonshotAI", "repo": "Kimi-Audio", "sourceUrl": "https://github.com/MoonshotAI/Kimi-Audio" }
+    ],
+    "notes": "Founded 2023 by Yang Zhilin; flagship consumer product is the Kimi chatbot. HQ in Haidian (Zhongguancun)."
+  },
+  {
+    "id": "minimax-shanghai",
+    "displayName": "MiniMax",
+    "kind": "industry",
+    "city": "Shanghai",
+    "country": "CN",
+    "lat": 31.2304,
+    "lng": 121.4737,
+    "url": "https://www.minimax.io",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/MiniMax_(company)",
+    "orgs": ["MiniMax-AI"],
+    "repos": [
+      { "owner": "MiniMax-AI", "repo": "MiniMax-01", "sourceUrl": "https://github.com/MiniMax-AI/MiniMax-01" },
+      { "owner": "MiniMax-AI", "repo": "MiniMax-M1", "sourceUrl": "https://github.com/MiniMax-AI/MiniMax-M1" }
+    ],
+    "notes": "Founded 2021 by Yan Junjie; consumer apps include Hailuo AI and Talkie. HQ coord points to central Shanghai pending a more precise district-level source."
+  },
+  {
+    "id": "zhipu-beijing",
+    "displayName": "Zhipu AI",
+    "kind": "industry",
+    "city": "Beijing",
+    "country": "CN",
+    "lat": 40.0099,
+    "lng": 116.3222,
+    "url": "https://www.zhipuai.cn",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Zhipu_AI",
+    "orgs": ["zai-org"],
+    "repos": [
+      { "owner": "zai-org", "repo": "GLM-4.5", "sourceUrl": "https://github.com/zai-org/GLM-4.5" },
+      { "owner": "zai-org", "repo": "GLM-V", "sourceUrl": "https://github.com/zai-org/GLM-V" }
+    ],
+    "notes": "Industry spin-off from Tsinghua KEG (see tsinghua-thudm). Recent flagship releases consolidated under the zai-org GitHub org; earlier ChatGLM/GLM-4 work is still hosted under THUDM and is attributed to the Tsinghua entry."
+  },
+  {
+    "id": "bytedance-seed-beijing",
+    "displayName": "ByteDance Seed",
+    "kind": "industry",
+    "city": "Beijing",
+    "country": "CN",
+    "lat": 39.9905,
+    "lng": 116.3017,
+    "url": "https://seed.bytedance.com",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/ByteDance",
+    "orgs": ["ByteDance-Seed"],
+    "repos": [
+      { "owner": "ByteDance-Seed", "repo": "Seed-OSS", "sourceUrl": "https://github.com/ByteDance-Seed/Seed-OSS" },
+      { "owner": "ByteDance-Seed", "repo": "BAGEL", "sourceUrl": "https://github.com/ByteDance-Seed/BAGEL" }
+    ],
+    "notes": "ByteDance's foundation-model research arm, producing the Doubao/Seed model series. HQ coord points to ByteDance's Zhichun Road / Haidian campus."
   }
 ]
