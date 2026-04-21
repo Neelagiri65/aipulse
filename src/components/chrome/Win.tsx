@@ -26,6 +26,18 @@ export type WinProps = {
   /** Panel-identity accent (default teal). See `WinAccent`. */
   accent?: WinAccent;
   /**
+   * Maximise geometry (FIX-02).
+   *
+   * - `"default"` (the original) — near-full: `w = innerW - 32`, hugs
+   *   the viewport edges. Used by panels with wide tabular content
+   *   (benchmarks) where every horizontal pixel pays off.
+   * - `"centered"` — 80% viewport width, centred. Used by panels
+   *   whose maximised content benefits from breathing room + a visible
+   *   map frame (tool-health cards, etc.). Gives the observatory the
+   *   "window, not page" feel from design-spec-v2 principle 1.
+   */
+  maximizedLayout?: "default" | "centered";
+  /**
    * Optional master-detail summary row rendered under the titlebar.
    * 10px monospace, divider-dotted. Leave undefined to render no row.
    * Data derivation lives in Dashboard, not here — this slot is pure UI.
@@ -52,6 +64,7 @@ export function Win({
   maximized,
   topmost,
   accent = "teal",
+  maximizedLayout = "default",
   statBar,
   onFocus,
   onClose,
@@ -76,9 +89,18 @@ export function Win({
   useEffect(() => {
     if (maximized) {
       if (!prevPosRef.current) prevPosRef.current = pos;
-      const w = Math.max(320, window.innerWidth - 32);
       const h = Math.max(240, window.innerHeight - 140);
-      setPos({ x: 16, y: 60, w, h });
+      if (maximizedLayout === "centered") {
+        // 80% width, centred horizontally. Floor keeps the panel at least
+        // as wide as the default restore so narrow viewports don't shrink
+        // past usable content width.
+        const w = Math.max(320, Math.floor(window.innerWidth * 0.8));
+        const x = Math.max(16, Math.floor((window.innerWidth - w) / 2));
+        setPos({ x, y: 60, w, h });
+      } else {
+        const w = Math.max(320, window.innerWidth - 32);
+        setPos({ x: 16, y: 60, w, h });
+      }
     } else if (prevPosRef.current) {
       setPos(prevPosRef.current);
       prevPosRef.current = null;

@@ -755,6 +755,7 @@ export function Dashboard() {
               zIndex={z("tools")}
               minimized={panels.tools.min}
               maximized={maxId === "tools"}
+              maximizedLayout="centered"
               topmost={topmostOpenId === "tools"}
               onFocus={() => focus("tools")}
               onClose={() =>
@@ -769,7 +770,10 @@ export function Dashboard() {
               onMaximize={() => setMaxId((m) => (m === "tools" ? null : "tools"))}
             >
               <div className="p-3">
-                <HealthCardGrid data={status.data?.data} />
+                <HealthCardGrid
+                  data={status.data?.data}
+                  maximized={maxId === "tools"}
+                />
                 {status.error && (
                   <p className="mt-2 font-mono text-[9px] uppercase tracking-wider text-amber-400/80">
                     Status poll error: {status.error}

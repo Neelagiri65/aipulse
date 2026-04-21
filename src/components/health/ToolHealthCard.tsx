@@ -231,15 +231,22 @@ function AwaitingBody() {
 
 function LiveBody({ data }: { data: ToolHealthData }) {
   // Only render rows for metrics we actually have a source for right now.
-  // When no rows are available we render nothing — the severity pill in
-  // the header already communicates status; a placeholder line only
-  // added noise (especially at maximised width).
+  // When no row is available, render a small badge instead of collapsing
+  // the body — hiding entirely caused layout shift when data eventually
+  // landed (session-23 hid, session-26 spec amendment restores this as a
+  // 10px mono 0.5-opacity inline badge, matching source-citation style).
   const rows: Array<{ label: string; value: string }> = [];
   if (data.openIssues !== undefined) {
     rows.push({ label: "Open issues", value: data.openIssues.toLocaleString() });
   }
 
-  if (rows.length === 0) return null;
+  if (rows.length === 0) {
+    return (
+      <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground opacity-50">
+        metrics pending
+      </p>
+    );
+  }
 
   return (
     <div className="space-y-2.5">
