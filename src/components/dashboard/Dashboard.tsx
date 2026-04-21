@@ -336,13 +336,19 @@ export function Dashboard() {
     const W = typeof window !== "undefined" ? window.innerWidth : 1440;
     // Win y-values sit below TopBar (48px) + StatusBar (28px) = 76px
     // total chrome, with a 24px safety margin before the first panel.
+    // Right-anchored panels reserve the FilterPanel rail so they don't
+    // render behind it on first open: 220w + 12 right-offset + 8 gap at
+    // ≥1440px, 44w + 12 + 8 below — matches FilterPanel.tsx breakpoints.
+    const filterReserve = W >= 1440 ? 240 : 64;
+    const rightAnchor = (panelW: number, floor: number) =>
+      Math.max(floor, W - panelW - filterReserve);
     setInitialPos({
       wire: { x: 64, y: 100, w: 380, h: 540 },
-      tools: { x: Math.max(460, W - 420), y: 100, w: 376, h: 540 },
+      tools: { x: rightAnchor(376, 460), y: 100, w: 376, h: 540 },
       // Models floats slightly down-left of Tools so opening it doesn't
       // stack directly on top of the default layout. Still anchored to
       // the right half; Wire owns the left.
-      models: { x: Math.max(440, W - 440), y: 160, w: 376, h: 520 },
+      models: { x: rightAnchor(376, 440), y: 160, w: 376, h: 520 },
       // Research opens beside Wire on the left half so paper rows (long
       // titles) get comfortable width without clashing with Models on
       // the right. Staggered so a two-panel open doesn't stack.
