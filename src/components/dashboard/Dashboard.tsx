@@ -556,6 +556,7 @@ export function Dashboard() {
             <Win
               id="wire"
               title="Live feed · gh-events"
+              accent="teal"
               initial={initialPos.wire}
               zIndex={z("wire")}
               minimized={panels.wire.min}
@@ -585,6 +586,7 @@ export function Dashboard() {
             <Win
               id="tools"
               title="Tool health"
+              accent="green"
               initial={initialPos.tools}
               zIndex={z("tools")}
               minimized={panels.tools.min}
@@ -617,6 +619,7 @@ export function Dashboard() {
             <Win
               id="models"
               title="Top models · hf-downloads"
+              accent="teal"
               initial={initialPos.models}
               zIndex={z("models")}
               minimized={panels.models.min}
@@ -646,6 +649,7 @@ export function Dashboard() {
             <Win
               id="research"
               title="Recent papers · arxiv"
+              accent="violet"
               initial={initialPos.research}
               zIndex={z("research")}
               minimized={panels.research.min}
@@ -680,6 +684,7 @@ export function Dashboard() {
             <Win
               id="benchmarks"
               title="Chatbot Arena · top 20 · lmarena-leaderboard"
+              accent="amber"
               initial={initialPos.benchmarks}
               zIndex={z("benchmarks")}
               minimized={panels.benchmarks.min}
@@ -714,6 +719,7 @@ export function Dashboard() {
             <Win
               id="labs"
               title="AI Labs · 7d activity · curated registry"
+              accent="violet"
               initial={initialPos.labs}
               zIndex={z("labs")}
               minimized={panels.labs.min}
@@ -743,6 +749,7 @@ export function Dashboard() {
             <Win
               id="regional-wire"
               title="Regional Wire · non-SV publishers · 24h activity"
+              accent="orange"
               initial={initialPos["regional-wire"]}
               zIndex={z("regional-wire")}
               minimized={panels["regional-wire"].min}

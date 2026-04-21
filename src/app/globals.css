@@ -261,19 +261,31 @@
 .ap-win--minimized { height: auto !important; min-height: 0; }
 .ap-win--minimized .ap-win__body { display: none; }
 
+/* ----------------------------------------------------------------------------
+   Panel accent — identity, not state (docs/design-spec-v2.md § Principle 1.5).
+   `--ap-win-accent` and `--ap-win-accent-glow` are set per accent class below;
+   the titledot + topmost glow read from them. Even a degraded Tools panel keeps
+   its green accent — the stat bar carries state, not the chrome.
+   ------------------------------------------------------------------------- */
+.ap-win--accent-teal   { --ap-win-accent: #2dd4bf; --ap-win-accent-glow: rgba(45, 212, 191, 0.35); }
+.ap-win--accent-green  { --ap-win-accent: #22c55e; --ap-win-accent-glow: rgba(34, 197, 94, 0.35); }
+.ap-win--accent-amber  { --ap-win-accent: #f59e0b; --ap-win-accent-glow: rgba(245, 158, 11, 0.35); }
+.ap-win--accent-violet { --ap-win-accent: #a855f7; --ap-win-accent-glow: rgba(168, 85, 247, 0.35); }
+.ap-win--accent-orange { --ap-win-accent: #f97316; --ap-win-accent-glow: rgba(249, 115, 22, 0.35); }
+
 /* Topmost panel keeps the full accent glow + crisp border; rest dim. */
 .ap-win--topmost {
   border-color: var(--ap-border-strong);
   box-shadow:
-    0 0 0 1px rgba(45, 212, 191, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.04),
     0 26px 70px -18px rgba(0, 0, 0, 0.9),
-    0 0 70px -18px var(--ap-accent-glow);
+    0 0 70px -18px var(--ap-win-accent-glow, var(--ap-accent-glow));
 }
 .ap-win--behind {
   opacity: 0.86;
   border-color: var(--ap-border);
   box-shadow:
-    0 0 0 1px rgba(45, 212, 191, 0.03),
+    0 0 0 1px rgba(255, 255, 255, 0.02),
     0 12px 32px -18px rgba(0, 0, 0, 0.7);
 }
 .ap-win--behind:hover {
@@ -303,9 +315,28 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--ap-accent);
-  box-shadow: 0 0 6px var(--ap-accent-glow);
+  background: var(--ap-win-accent, var(--ap-accent));
+  box-shadow: 0 0 6px var(--ap-win-accent-glow, var(--ap-accent-glow));
   flex-shrink: 0;
+}
+/* Master-detail stat bar — 10px mono, sits between titlebar and body.
+   Kept divider-free here; the StatBar helper renders "·" separators so the
+   Win frame stays content-agnostic. */
+.ap-win__statbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--ap-border);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ap-fg-dim);
+  background: rgba(255, 255, 255, 0.015);
+  flex-shrink: 0;
+  min-height: 24px;
 }
 .ap-win__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ap-win__buttons { display: flex; gap: 0; margin-right: -4px; }
