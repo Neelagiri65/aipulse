@@ -187,7 +187,12 @@ export function Dashboard() {
     const meta = p.meta as { type?: string; hasAiConfig?: boolean } | undefined;
     if (filters["ai-config-only"] && !meta?.hasAiConfig) return false;
     const fid = eventTypeToFilterId(meta?.type);
-    if (fid && !filters[fid]) return false;
+    // An event whose GH type doesn't map to any of the 6 buckets has no
+    // checkbox to hide it → honest-filter contract leak. Drop it. The
+    // mapping covers every type we've seen in the wild; if a new type
+    // surfaces, it'll be hidden until explicitly routed.
+    if (!fid) return false;
+    if (!filters[fid]) return false;
     return true;
   });
 

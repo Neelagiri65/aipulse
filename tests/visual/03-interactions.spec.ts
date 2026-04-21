@@ -107,20 +107,25 @@ test.describe("interactions", () => {
     await switchTab(page, "The Map");
     await waitForMapReady(page);
 
-    // Use the desktop filter panel (≥1440px; Playwright viewport is
-    // 1440×900). Checkboxes have role="checkbox" and aria-checked set
-    // from the filter state — click each until all are unchecked.
-    const filterPanel = page.locator(".ap-filter-panel--full");
-    const checked = filterPanel.locator('[role="checkbox"][aria-checked="true"]');
-    // Click checked boxes until none remain. Cap the loop at 20 to
+    // FilterPanel renders two sibling DOM nodes (full panel at ≥1440px,
+    // icon rail below). Playwright's `Desktop Chrome` preset runs at
+    // 1280px → icon rail is the visible variant, but both are in the
+    // DOM. Scope to the visible complementary and toggle via whichever
+    // role the rendered variant uses (checkbox for full, pressed button
+    // for icon rail). Same contract applies to both.
+    const panel = page.getByRole("complementary", { name: "Globe filters" });
+    const on = panel.locator(
+      '[role="checkbox"][aria-checked="true"], button[aria-pressed="true"]',
+    );
+    // Click toggles until none remain enabled. Cap the loop at 20 to
     // guard against a render bug causing an infinite toggle.
     for (let i = 0; i < 20; i++) {
-      const count = await checked.count();
+      const count = await on.count();
       if (count === 0) break;
-      await checked.first().click();
+      await on.first().click({ force: true });
       await page.waitForTimeout(80);
     }
-    await expect(checked).toHaveCount(0);
+    await expect(on).toHaveCount(0);
 
     // Wait for the next paint + any throttled map updates before
     // asserting emptiness.

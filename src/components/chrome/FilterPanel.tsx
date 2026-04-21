@@ -315,14 +315,37 @@ function FunnelIcon() {
   );
 }
 
-/** Map a GitHub event type string to our internal filter id. */
+/** Map a GitHub event type string to our internal filter id.
+ *
+ * The GH Events API emits ~20 event types; the panel exposes 6 buckets.
+ * Auxiliary types are routed to the closest bucket so every live event
+ * is gated by a checkbox — otherwise unchecking every filter would
+ * still leave the map dotted (session-29 bug). Grouping:
+ *  - IssueCommentEvent            → issue (GH treats PR comments as
+ *                                    issue comments too; acceptable
+ *                                    lossiness vs. splitting hairs).
+ *  - PullRequestReviewEvent +
+ *    PullRequestReviewCommentEvent → pr (review activity is PR work).
+ *  - CreateEvent + DeleteEvent +
+ *    CommitCommentEvent           → push (git-object mutations land
+ *                                    closest to push activity).
+ *
+ * Unrecognised types return null and are dropped by the caller, keeping
+ * the honest-filter contract forward-compatible.
+ */
 export function eventTypeToFilterId(type?: string): FilterLayerId | null {
   switch (type) {
     case "PushEvent":
+    case "CreateEvent":
+    case "DeleteEvent":
+    case "CommitCommentEvent":
       return "push";
     case "PullRequestEvent":
+    case "PullRequestReviewEvent":
+    case "PullRequestReviewCommentEvent":
       return "pr";
     case "IssuesEvent":
+    case "IssueCommentEvent":
       return "issue";
     case "ReleaseEvent":
       return "release";
