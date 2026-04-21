@@ -2,6 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 
+/**
+ * Panel-identity accent. Drives the titlebar dot colour and the topmost
+ * glow. Identity, not state — a Tools panel with a degraded tool keeps
+ * its green accent; state is carried by the per-panel stat bar + global
+ * StatusBar. See `docs/design-spec-v2.md` → Principle 1.5.
+ */
+export type WinAccent = "teal" | "amber" | "green" | "violet" | "orange";
+
 export type WinProps = {
   id: string;
   title: string;
@@ -15,6 +23,14 @@ export type WinProps = {
    * stack of open panels is visually parseable without closing any.
    */
   topmost?: boolean;
+  /** Panel-identity accent (default teal). See `WinAccent`. */
+  accent?: WinAccent;
+  /**
+   * Optional master-detail summary row rendered under the titlebar.
+   * 10px monospace, divider-dotted. Leave undefined to render no row.
+   * Data derivation lives in Dashboard, not here — this slot is pure UI.
+   */
+  statBar?: React.ReactNode;
   onFocus?: (id: string) => void;
   onClose?: (id: string) => void;
   onMinimize?: (id: string) => void;
@@ -35,6 +51,8 @@ export function Win({
   minimized,
   maximized,
   topmost,
+  accent = "teal",
+  statBar,
   onFocus,
   onClose,
   onMinimize,
@@ -124,7 +142,7 @@ export function Win({
 
   return (
     <div
-      className={`ap-win ${minimized ? "ap-win--minimized" : ""} ${topmost === false ? "ap-win--behind" : "ap-win--topmost"}`}
+      className={`ap-win ap-win--accent-${accent} ${minimized ? "ap-win--minimized" : ""} ${topmost === false ? "ap-win--behind" : "ap-win--topmost"}`}
       style={{
         left: pos.x,
         top: pos.y,
@@ -195,6 +213,7 @@ export function Win({
       </div>
       {!minimized && (
         <>
+          {statBar && <div className="ap-win__statbar">{statBar}</div>}
           <div className="ap-win__body">{children}</div>
           <div className="ap-win__resize" onMouseDown={onResizeDown} />
         </>

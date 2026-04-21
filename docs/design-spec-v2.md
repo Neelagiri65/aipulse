@@ -89,3 +89,84 @@ Never use font sizes outside these 4 values in any panel.
 - Dismiss with × but re-shows if incident escalates
 
 Implement P0 fixes first. Commit each separately. Run Playwright after P0 to verify no regressions. Then P1 as a second branch if time permits. P2 is next session.
+
+---
+
+## Addendum — external review (folded in session 26)
+
+External review challenged the spec on component discipline. The folded items below become part of the spec contract; the rejected items are logged so they don't resurface.
+
+### Principle 1.5 — PANEL CHROME IS ONE COMPONENT
+
+`src/components/chrome/Win.tsx` is the floating-panel frame. Every panel rendered on the map / globe stage (wire, tools, models, research, benchmarks, labs, regional-wire) MUST mount inside a `Win`. No forked panel frames. Chrome consistency is a trust signal — a stack of windows that don't share a titlebar reads as "collection of features", not a single product.
+
+`Win` carries three contracts the rest of the app depends on:
+
+- Titlebar triple: **coloured dot · uppercase-mono title · — □ ×**. 14px title (session-24 type scale), 6px dot. Never inline a bespoke titlebar in a panel body.
+- `accent` prop: one of `teal | amber | green | violet | orange`. Panel identity, not state. The stat bar carries state.
+- `statBar` slot: one-line master-detail row (10px mono) rendered under the titlebar when provided.
+
+### Accent palette (identity, never state)
+
+| Panel           | Accent  | Reason                                              |
+| --------------- | ------- | --------------------------------------------------- |
+| wire            | teal    | primary "live pulse" identity (GH events)           |
+| tools           | green   | tool-health is the one semantic green layer         |
+| models          | teal    | model catalog sits alongside the live pulse         |
+| research        | violet  | arXiv/research papers — matches labs-adjacent hue   |
+| benchmarks      | amber   | leaderboards are delta/rank-sensitive → amber       |
+| labs            | violet  | labs + research share the academic/violet family    |
+| regional-wire   | orange  | RSS layer matches the orange dots on the map        |
+
+Accents are static per panel. Even when Tools has a degraded tool, the accent dot stays green — the stat bar reports "`5 OPERATIONAL · 1 DEGRADED`", and the global `StatusBar` / `TopBar` carry the fleet-level state.
+
+### FIX-13 — MASTER-DETAIL STAT BAR (new)
+
+Every panel renders a one-line summary row between the titlebar and the content:
+
+- Tools: `"N OPERATIONAL · N DEGRADED · N OUTAGE"` (suppress zero segments)
+- AI Labs: country counts, top 5 `"9 CN · 10 US · 4 EU · 3 CA · 1 IL"`
+- Research: category counts `"12 cs.AI · 8 cs.LG"` (top 3 by volume)
+- Wire (LiveFeed panel): `"N GH · N HN · N RSS"` — extends the existing Wire-tab header pattern
+- Regional Wire: `"N SOURCES · N ARTICLES · N PUBLISHERS"`
+- Benchmarks: `"Top Elo: N · M models · published YYYY-MM-DD"`
+- Models: `"N providers · N models · N flagships"` (flagships = provider.flagship === true)
+
+Empty state: render `—` when the upstream data is undefined. Never fabricate counts.
+
+### FIX-14 — FILTER STRIP IS PERSISTENT
+
+The right-edge `FilterPanel` is part of the chrome, not a Win-toggle. Never dismissible.
+
+- ≥1440px: full 220px width, labels + checkboxes.
+- <1440px: icon-only 44px rail (colour-dot per layer, tooltip on hover, click still toggles).
+- Collapsed below 768px by the existing mobile gate (no change).
+
+### FIX-15 — KEYBOARD SHORTCUTS
+
+Dev-audience shortcuts, window-level:
+
+- `Esc` — close the topmost open panel. Does nothing if no panel is open. Must not clobber the Globe's event-detail card Esc (card Esc binds while a card is selected).
+- `1`–`9` — toggle the nth nav item (skipping `soon` items). Same behaviour as clicking the nav button.
+- `/` — deferred. No global search target exists yet. Revisit when one lands.
+
+### FIX-02 amendment — "Metrics pending" as badge, not hidden
+
+Session-23 hid the "additional metrics pending dedicated sources" line entirely. External review is right: hiding causes layout shift when data lands. Re-introduce as a 10px mono badge at opacity 0.5, sharing the same inline metadata style as source citations.
+
+### REJECTED (logged so they don't resurface)
+
+- **Coordinate readout in bottom-right** (World Monitor's `32° 4.85 N`). Cosmetic command-centre flavour; blocks nothing; defer indefinitely.
+- **Bottom ticker restyle** to a pulsing-LED effect. The current ticker works; visual polish for its own sake is out of scope.
+- **FIX-11 proper mobile** (distinct mobile layout). Session-24 mobile gate + "Best viewed on desktop" is the decided answer. Do not half-build a mobile experience.
+
+### Implementation order (session 26)
+
+Four commits on one branch (`feat/panel-chrome-v2`):
+
+1. `feat(chrome): Win accent + stat-bar slot` — extend Win, update all 7 call sites. No stat bars rendered yet.
+2. `feat(chrome): panel stat bars` — per-panel data derivation + render.
+3. `feat(chrome): filter strip <1440px icon-only` — responsive variant.
+4. `feat(chrome): keyboard shortcuts` — Esc + 1-9.
+
+Playwright visual smoke after each commit (or at PR end — same budget).

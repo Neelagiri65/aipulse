@@ -9,7 +9,12 @@ import { MetricTicker } from "@/components/dashboard/MetricTicker";
 import { MetricsRow } from "@/components/dashboard/MetricsRow";
 import { WirePage, type WireItem } from "@/components/dashboard/WirePage";
 import { TopBar, type ViewTabId } from "@/components/chrome/TopBar";
-import { StatusBar } from "@/components/chrome/StatusBar";
+import { StatusBar, deriveSev } from "@/components/chrome/StatusBar";
+import { StatBar, type StatSegment } from "@/components/chrome/StatBar";
+import {
+  topCategoryCounts,
+  topCountryCounts,
+} from "@/lib/stats/panel-stats";
 
 // Leaflet is client-only (touches `window` at import). Lazy-load with
 // ssr:false so the map bundle + its CSS only ship to the browser.
@@ -453,6 +458,104 @@ export function Dashboard() {
 
   const z = (id: PanelId) => 30 + zorder.indexOf(id);
 
+  // Per-panel master-detail stat bars (FIX-13). Derivation lives here so
+  // the typed payloads stay close to the polled endpoints; StatBar itself
+  // is pure presentational. `segments` is allowed to be empty — StatBar
+  // renders "—" rather than fabricating counts.
+  const wireStatBar = (() => {
+    const gh = events.data?.coverage.windowSize;
+    const hnCount = hn.data?.items.length;
+    const segs: Array<StatSegment | null> = [
+      gh != null ? { label: "GH", value: gh } : null,
+      hnCount != null ? { label: "HN", value: hnCount } : null,
+    ];
+    return <StatBar segments={segs} />;
+  })();
+
+  const toolsStatBar = (() => {
+    if (!status.data) return <StatBar segments={[]} />;
+    const sev = deriveSev(status.data);
+    const segs: Array<StatSegment | null> = [
+      { label: "OPERATIONAL", value: sev.operational, tone: "op" },
+      sev.degraded > 0
+        ? { label: "DEGRADED", value: sev.degraded, tone: "degrade" }
+        : null,
+      sev.outage > 0
+        ? { label: "OUTAGE", value: sev.outage, tone: "outage" }
+        : null,
+    ];
+    return <StatBar segments={segs} />;
+  })();
+
+  const modelsStatBar = (() => {
+    const list = models.data?.models;
+    if (!list || list.length === 0) return <StatBar segments={[]} />;
+    const orgs = new Set(list.map((m) => m.author).filter(Boolean)).size;
+    return (
+      <StatBar
+        segments={[
+          { label: "MODELS", value: list.length },
+          { label: "ORGS", value: orgs },
+        ]}
+      />
+    );
+  })();
+
+  const researchStatBar = (() => {
+    const papers = research.data?.papers;
+    if (!papers || papers.length === 0) return <StatBar segments={[]} />;
+    const top = topCategoryCounts(papers, (p) => p.primaryCategory, 3);
+    return (
+      <StatBar
+        segments={top.map(({ key, count }) => ({ label: key, value: count }))}
+      />
+    );
+  })();
+
+  const benchmarksStatBar = (() => {
+    if (!benchmarks.data || !benchmarks.data.ok) {
+      return <StatBar segments={[]} />;
+    }
+    const { rows, meta } = benchmarks.data;
+    const topElo = rows[0]?.rating;
+    return (
+      <StatBar
+        segments={[
+          topElo != null
+            ? { label: "TOP ELO", value: Math.round(topElo) }
+            : null,
+          { label: "MODELS", value: rows.length },
+        ]}
+        trailing={`PUBLISHED ${meta.leaderboardPublishDate}`}
+      />
+    );
+  })();
+
+  const labsStatBar = (() => {
+    const list = labs.data?.labs;
+    if (!list || list.length === 0) return <StatBar segments={[]} />;
+    const top = topCountryCounts(list, 5);
+    return (
+      <StatBar
+        segments={top.map(({ key, count }) => ({ label: key, value: count }))}
+      />
+    );
+  })();
+
+  const regionalWireStatBar = (() => {
+    const sources = rss.data?.sources;
+    const items = rss.data?.items;
+    if (!sources || sources.length === 0) return <StatBar segments={[]} />;
+    return (
+      <StatBar
+        segments={[
+          { label: "SOURCES", value: sources.length },
+          items != null ? { label: "ARTICLES", value: items.length } : null,
+        ]}
+      />
+    );
+  })();
+
   // Topmost open panel — the one at the end of zorder that's also open
   // and not minimized. Drives the ap-win--topmost vs --behind treatment
   // so a stack of open panels reads as a legible z-order rather than
@@ -464,6 +567,62 @@ export function Dashboard() {
     }
     return null;
   })();
+
+  // Keyboard shortcuts (FIX-15). Esc closes the topmost open panel;
+  // 1-9 toggles the nth nav item (skipping `soon` items).
+  //
+  // Esc coordination with the Globe event-detail card: Globe binds its
+  // own Esc listener while a card is selected (event-detail uses
+  // role="dialog"); when the card is open we yield to that listener
+  // by no-oping here, so a single Escape press dismisses the card
+  // rather than nuking both card + topmost panel.
+  //
+  // Input safety: skip when focus is in an input/textarea/contenteditable
+  // so users typing in the eventual search field don't lose keystrokes.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === "Escape") {
+        // Yield to Globe's card Esc handler when a card is open.
+        if (typeof document !== "undefined" && document.querySelector('[role="dialog"]')) {
+          return;
+        }
+        if (!topmostOpenId) return;
+        e.preventDefault();
+        setPanels((p) => ({
+          ...p,
+          [topmostOpenId]: { open: false, min: false },
+        }));
+        return;
+      }
+
+      // 1-9 → nth nav item (1-indexed).
+      if (e.key >= "1" && e.key <= "9") {
+        const idx = Number(e.key) - 1;
+        const item = navItems[idx];
+        if (!item || item.soon) return;
+        e.preventDefault();
+        toggle(item.id);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // navItems is rebuilt on every render but only reads counts; the
+    // ids + soon flags are stable, so re-binding on each render is fine
+    // and the deps array can stay narrow.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topmostOpenId]);
 
   return (
     <>
@@ -556,6 +715,8 @@ export function Dashboard() {
             <Win
               id="wire"
               title="Live feed · gh-events"
+              accent="teal"
+              statBar={wireStatBar}
               initial={initialPos.wire}
               zIndex={z("wire")}
               minimized={panels.wire.min}
@@ -585,6 +746,8 @@ export function Dashboard() {
             <Win
               id="tools"
               title="Tool health"
+              accent="green"
+              statBar={toolsStatBar}
               initial={initialPos.tools}
               zIndex={z("tools")}
               minimized={panels.tools.min}
@@ -617,6 +780,8 @@ export function Dashboard() {
             <Win
               id="models"
               title="Top models · hf-downloads"
+              accent="teal"
+              statBar={modelsStatBar}
               initial={initialPos.models}
               zIndex={z("models")}
               minimized={panels.models.min}
@@ -646,6 +811,8 @@ export function Dashboard() {
             <Win
               id="research"
               title="Recent papers · arxiv"
+              accent="violet"
+              statBar={researchStatBar}
               initial={initialPos.research}
               zIndex={z("research")}
               minimized={panels.research.min}
@@ -680,6 +847,8 @@ export function Dashboard() {
             <Win
               id="benchmarks"
               title="Chatbot Arena · top 20 · lmarena-leaderboard"
+              accent="amber"
+              statBar={benchmarksStatBar}
               initial={initialPos.benchmarks}
               zIndex={z("benchmarks")}
               minimized={panels.benchmarks.min}
@@ -714,6 +883,8 @@ export function Dashboard() {
             <Win
               id="labs"
               title="AI Labs · 7d activity · curated registry"
+              accent="violet"
+              statBar={labsStatBar}
               initial={initialPos.labs}
               zIndex={z("labs")}
               minimized={panels.labs.min}
@@ -743,6 +914,8 @@ export function Dashboard() {
             <Win
               id="regional-wire"
               title="Regional Wire · non-SV publishers · 24h activity"
+              accent="orange"
+              statBar={regionalWireStatBar}
               initial={initialPos["regional-wire"]}
               zIndex={z("regional-wire")}
               minimized={panels["regional-wire"].min}
