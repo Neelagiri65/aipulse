@@ -6,8 +6,12 @@
  * is added without `verifiedAt`, the dashboard must not consume it —
  * render graceful-degradation state instead.
  *
- * This file is the single source of truth. `public/data-sources.md` is
- * its human-readable mirror and must stay in sync.
+ * This file is the single source of truth — endpoint URLs, sanity-range
+ * bounds, rate-limit notes, and per-source caveats all live here and stay
+ * private to the repo contributors. `public/data-sources.md` is a names-
+ * only transparency summary for the public dashboard (category + source
+ * name + governance principles); it does not mirror this file's detail,
+ * by design. See CLAUDE.md "Where the intelligence lives".
  *
  * Adding a new source → CHECKPOINT. Requires Auditor review per CLAUDE.md.
  */

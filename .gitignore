@@ -51,3 +51,14 @@ next-env.d.ts
 /test-results
 /playwright-report
 /playwright/.cache
+
+# Private docs — live in ~/Obsidian/agent-vault/projects/aipulse/.
+# Session handoffs, internal PRDs, research findings, design specs, and the
+# archived session log are intelligence, not code, and don't belong in the
+# public repo. Keep the patterns here so stray local copies are never
+# accidentally tracked.
+/HANDOFF.md
+/docs/handoff-archive.md
+/docs/design-spec-v2.md
+/docs/prd-*.md
+/docs/research-*.md

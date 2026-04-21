@@ -93,8 +93,7 @@
     "repos": [
       { "owner": "microsoft", "repo": "semantic-kernel", "sourceUrl": "https://github.com/microsoft/semantic-kernel" },
       { "owner": "microsoft", "repo": "autogen", "sourceUrl": "https://github.com/microsoft/autogen" }
-    ],
-    "notes": "Tracked repos scoped to Microsoft's AI-research flagships (semantic-kernel, autogen) — not the firehose `microsoft` org, to avoid conflating bot/CI pushes with AI-research activity."
+    ]
   },
   {
     "id": "nvidia-research",
@@ -141,8 +140,7 @@
     "repos": [
       { "owner": "mit-han-lab", "repo": "streaming-llm", "sourceUrl": "https://github.com/mit-han-lab/streaming-llm" },
       { "owner": "mit-han-lab", "repo": "efficientvit", "sourceUrl": "https://github.com/mit-han-lab/efficientvit" }
-    ],
-    "notes": "MIT AI research spans CSAIL / Media Lab / several subgroups. HAN Lab (Song Han) chosen as the most-active canonical AI GitHub org; other subgroups excluded to avoid double-counting."
+    ]
   },
   {
     "id": "stanford-crfm",
@@ -157,8 +155,7 @@
     "orgs": ["stanford-crfm"],
     "repos": [
       { "owner": "stanford-crfm", "repo": "helm", "sourceUrl": "https://github.com/stanford-crfm/helm" }
-    ],
-    "notes": "Stanford's Center for Research on Foundation Models. Represents Stanford AI at Gates Computer Science coordinates; stanford-nlp and stanford-futuredata excluded to avoid double-counting."
+    ]
   },
   {
     "id": "cmu-neulab",
@@ -173,8 +170,7 @@
     "orgs": ["neulab"],
     "repos": [
       { "owner": "neulab", "repo": "prompt2model", "sourceUrl": "https://github.com/neulab/prompt2model" }
-    ],
-    "notes": "Graham Neubig's NeuLab at CMU LTI — chosen as the most-active canonical CMU AI GitHub org."
+    ]
   },
   {
     "id": "lmsys-berkeley",
@@ -189,8 +185,7 @@
     "orgs": ["lm-sys"],
     "repos": [
       { "owner": "lm-sys", "repo": "FastChat", "sourceUrl": "https://github.com/lm-sys/FastChat" }
-    ],
-    "notes": "Large Model Systems Organization — UC Berkeley / Sky Computing lineage. Represents Berkeley AI at Soda Hall coordinates."
+    ]
   },
   {
     "id": "vector-toronto",
@@ -266,8 +261,7 @@
     "orgs": ["matsuolab"],
     "repos": [
       { "owner": "matsuolab", "repo": "weblab-10b", "sourceUrl": "https://github.com/matsuolab/weblab-10b" }
-    ],
-    "notes": "Matsuo Lab (Yutaka Matsuo, UTokyo Engineering) — Japan academic AI; Sakana AI is the Japan industry representative."
+    ]
   },
   {
     "id": "inria-paris",
@@ -282,8 +276,7 @@
     "orgs": ["inria"],
     "repos": [
       { "owner": "inria", "repo": "spoc", "sourceUrl": "https://github.com/inria/spoc" }
-    ],
-    "notes": "INRIA publishes across many subgroup orgs (inria-flowers, inria-thoth, etc.). The canonical `inria` org is tracked as the representative signal."
+    ]
   },
   {
     "id": "mpi-is-tubingen",
@@ -313,8 +306,7 @@
     "orgs": ["eth-sri"],
     "repos": [
       { "owner": "eth-sri", "repo": "lmql", "sourceUrl": "https://github.com/eth-sri/lmql" }
-    ],
-    "notes": "Secure, Reliable, and Intelligent Systems Lab — chosen as the canonical ETH AI GitHub org."
+    ]
   },
   {
     "id": "mistral-paris",
@@ -424,8 +416,7 @@
     "repos": [
       { "owner": "huggingface", "repo": "transformers", "sourceUrl": "https://github.com/huggingface/transformers" },
       { "owner": "huggingface", "repo": "datasets", "sourceUrl": "https://github.com/huggingface/datasets" }
-    ],
-    "notes": "Incorporated in New York; engineering distributed NYC + Paris. HQ plotted at NYC coords per Wikipedia."
+    ]
   },
   {
     "id": "allenai-seattle",
@@ -456,8 +447,7 @@
     "orgs": ["FlagOpen"],
     "repos": [
       { "owner": "FlagOpen", "repo": "FlagEmbedding", "sourceUrl": "https://github.com/FlagOpen/FlagEmbedding" }
-    ],
-    "notes": "BAAI publishes through the FlagOpen GitHub org. Other BAAI-affiliated orgs (e.g. BAAI-Agents) excluded to avoid double-counting."
+    ]
   },
   {
     "id": "ai4bharat-chennai",
@@ -472,8 +462,7 @@
     "orgs": ["AI4Bharat"],
     "repos": [
       { "owner": "AI4Bharat", "repo": "IndicTrans2", "sourceUrl": "https://github.com/AI4Bharat/IndicTrans2" }
-    ],
-    "notes": "India's most-active open-source AI research consortium. Originally approved as IIT Bombay / IISc; AI4Bharat (IIT Madras) selected instead because it has a canonical org + flagship repos that IIT Bombay and IISc do not centralise."
+    ]
   },
   {
     "id": "xai-paloalto",
@@ -519,8 +508,7 @@
     "repos": [
       { "owner": "MoonshotAI", "repo": "Kimi-K2", "sourceUrl": "https://github.com/MoonshotAI/Kimi-K2" },
       { "owner": "MoonshotAI", "repo": "Kimi-Audio", "sourceUrl": "https://github.com/MoonshotAI/Kimi-Audio" }
-    ],
-    "notes": "Founded 2023 by Yang Zhilin; flagship consumer product is the Kimi chatbot. HQ in Haidian (Zhongguancun)."
+    ]
   },
   {
     "id": "minimax-shanghai",
@@ -536,8 +524,7 @@
     "repos": [
       { "owner": "MiniMax-AI", "repo": "MiniMax-01", "sourceUrl": "https://github.com/MiniMax-AI/MiniMax-01" },
       { "owner": "MiniMax-AI", "repo": "MiniMax-M1", "sourceUrl": "https://github.com/MiniMax-AI/MiniMax-M1" }
-    ],
-    "notes": "Founded 2021 by Yan Junjie; consumer apps include Hailuo AI and Talkie. HQ coord points to central Shanghai pending a more precise district-level source."
+    ]
   },
   {
     "id": "zhipu-beijing",
@@ -553,8 +540,7 @@
     "repos": [
       { "owner": "zai-org", "repo": "GLM-4.5", "sourceUrl": "https://github.com/zai-org/GLM-4.5" },
       { "owner": "zai-org", "repo": "GLM-V", "sourceUrl": "https://github.com/zai-org/GLM-V" }
-    ],
-    "notes": "Industry spin-off from Tsinghua KEG (see tsinghua-thudm). Recent flagship releases consolidated under the zai-org GitHub org; earlier ChatGLM/GLM-4 work is still hosted under THUDM and is attributed to the Tsinghua entry."
+    ]
   },
   {
     "id": "bytedance-seed-beijing",
@@ -570,7 +556,6 @@
     "repos": [
       { "owner": "ByteDance-Seed", "repo": "Seed-OSS", "sourceUrl": "https://github.com/ByteDance-Seed/Seed-OSS" },
       { "owner": "ByteDance-Seed", "repo": "BAGEL", "sourceUrl": "https://github.com/ByteDance-Seed/BAGEL" }
-    ],
-    "notes": "ByteDance's foundation-model research arm, producing the Doubao/Seed model series. HQ coord points to ByteDance's Zhichun Road / Haidian campus."
+    ]
   }
 ]
