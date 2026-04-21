@@ -568,6 +568,62 @@ export function Dashboard() {
     return null;
   })();
 
+  // Keyboard shortcuts (FIX-15). Esc closes the topmost open panel;
+  // 1-9 toggles the nth nav item (skipping `soon` items).
+  //
+  // Esc coordination with the Globe event-detail card: Globe binds its
+  // own Esc listener while a card is selected (event-detail uses
+  // role="dialog"); when the card is open we yield to that listener
+  // by no-oping here, so a single Escape press dismisses the card
+  // rather than nuking both card + topmost panel.
+  //
+  // Input safety: skip when focus is in an input/textarea/contenteditable
+  // so users typing in the eventual search field don't lose keystrokes.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === "Escape") {
+        // Yield to Globe's card Esc handler when a card is open.
+        if (typeof document !== "undefined" && document.querySelector('[role="dialog"]')) {
+          return;
+        }
+        if (!topmostOpenId) return;
+        e.preventDefault();
+        setPanels((p) => ({
+          ...p,
+          [topmostOpenId]: { open: false, min: false },
+        }));
+        return;
+      }
+
+      // 1-9 → nth nav item (1-indexed).
+      if (e.key >= "1" && e.key <= "9") {
+        const idx = Number(e.key) - 1;
+        const item = navItems[idx];
+        if (!item || item.soon) return;
+        e.preventDefault();
+        toggle(item.id);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // navItems is rebuilt on every render but only reads counts; the
+    // ids + soon flags are stable, so re-binding on each render is fine
+    // and the deps array can stay narrow.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topmostOpenId]);
+
   return (
     <>
       <TopBar
