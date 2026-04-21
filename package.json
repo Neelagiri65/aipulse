@@ -16,7 +16,9 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
+    "@react-email/components": "^1.0.12",
     "@upstash/redis": "^1.37.0",
+    "@vercel/analytics": "^2.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "leaflet": "^1.9.4",
@@ -26,6 +28,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-globe.gl": "^2.37.1",
+    "resend": "^6.12.2",
     "shadcn": "^4.3.0",
     "tailwind-merge": "^3.5.0",
     "three": "^0.184.0",
