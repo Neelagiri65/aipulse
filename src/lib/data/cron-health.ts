@@ -44,6 +44,8 @@ export const CRON_WORKFLOWS = {
   "pkg-pypi": { expectedIntervalMinutes: 360 },
   "pkg-npm": { expectedIntervalMinutes: 360 },
   "pkg-crates": { expectedIntervalMinutes: 360 },
+  "pkg-docker": { expectedIntervalMinutes: 360 },
+  "pkg-brew": { expectedIntervalMinutes: 360 },
 } as const;
 
 export type CronWorkflowName = keyof typeof CRON_WORKFLOWS;

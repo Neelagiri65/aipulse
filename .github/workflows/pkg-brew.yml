@@ -1,0 +1,56 @@
+name: pkg-brew
+
+# Homebrew adoption ingest: fetch formulae.brew.sh/api/formula/{name}.json
+# for the tracked formulae (ollama) and overwrite the `pkg:brew:latest`
+# blob in Upstash Redis. Captures {lastMonth, last90d, lastYear} from
+# analytics.install.30d / 90d / 365d buckets, summed across install
+# command forms (ollama / ollama@0.1.5 / ollama HEAD).
+#
+# Cadence: every 6 hours at :55 (00:55, 06:55, 12:55, 18:55 UTC). Last
+# slot in the registry 10-minute stagger (pypi :15 / npm :25 / crates
+# :35 / docker :45 / brew :55). Single-formula slate for now; any
+# addition is a code change under Auditor review.
+#
+# Required repo secrets (shared with other ingest workflows):
+#   INGEST_URL     — e.g. https://aipulse-pi.vercel.app/api/ingest
+#                    (we strip /api/ingest and append the brew path)
+#   INGEST_SECRET  — shared secret matching the Vercel env var
+
+on:
+  schedule:
+    - cron: "55 0,6,12,18 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Attribution tag (cron | manual)"
+        required: false
+        default: "manual"
+        type: string
+
+concurrency:
+  group: pkg-brew
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Trigger Homebrew ingest on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.source || 'cron' }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/pkg/brew?source=$SOURCE"
+          echo "POST $URL"
+          RESPONSE=$(curl -sS -f --max-time 150 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"

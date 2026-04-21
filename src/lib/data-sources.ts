@@ -824,6 +824,60 @@ export const CRATES_DOWNLOADS: DataSource = {
   powersFeature: ["sdk-adoption-panel"],
 };
 
+export const DOCKER_HUB_PULLS: DataSource = {
+  id: "docker-hub-pulls",
+  name: "Docker Hub — container pull counters",
+  category: "package-adoption",
+  url: "https://hub.docker.com",
+  apiUrl: "https://hub.docker.com/v2/repositories/{namespace}/{name}",
+  responseFormat: "json",
+  updateFrequency: "six-hourly",
+  rateLimit: {
+    note: "Docker Hub v2 repository endpoint. Anon limit is 200 requests per 6-hour window (header verified); cron runs fetch 2 images × 1 call each = 2 calls every 6h → 8 calls/day. Two orders of magnitude under budget; no auth required.",
+  },
+  auth: "none",
+  measures:
+    "Two counters per tracked image (ollama/ollama, vllm/vllm-openai): `pull_count` (all-time total across every tag) and `star_count`. Docker Hub does NOT publish per-day or per-week pull breakdowns at the repository level — AI Pulse populates {allTime, stars} and reconstructs day-over-day deltas from the daily snapshot ZSET rather than synthesising windows. vllm/vllm-openai was 18.4M / 275★ on the 2026-04-21 verification probe.",
+  sanityCheck: {
+    description:
+      "Each tracked image's `pull_count` should fall in the 1M–500M range (established AI inference images). Zero indicates Docker Hub shape drift or the image was unlisted — investigate before attributing to dead adoption.",
+    expectedMin: 1_000_000,
+    expectedMax: 500_000_000,
+    unit: "all-time pulls per image",
+  },
+  verifiedAt: "2026-04-21",
+  caveat:
+    "First-party provenance (hub.docker.com's own v2 API). Known caveat per Docker's own analytics docs: `pull_count` increments on every layer request, not per unique `docker pull` invocation — CI runners that don't cache inflate the number. Also includes automated scanner / security tool pulls. Not a unique-user measure. GHCR (ghcr.io) images are deliberately out of scope — session-32 research ruled the separate OAuth handshake not worth it for one image (text-generation-inference); revisit with a dedicated fetcher if the slate grows.",
+  powersFeature: ["sdk-adoption-panel"],
+};
+
+export const HOMEBREW_INSTALLS: DataSource = {
+  id: "homebrew-installs",
+  name: "Homebrew — formula install counters",
+  category: "package-adoption",
+  url: "https://formulae.brew.sh",
+  apiUrl: "https://formulae.brew.sh/api/formula/{name}.json",
+  responseFormat: "json",
+  updateFrequency: "six-hourly",
+  rateLimit: {
+    note: "CDN-fronted static JSON; no documented per-IP limit. Cron runs fetch 1 formula × 1 call = 1 call every 6h → 4 calls/day. Trivial.",
+  },
+  auth: "none",
+  measures:
+    "Install counters for each tracked formula (ollama): 30-day / 90-day / 365-day buckets exposed via `analytics.install.{30d|90d|365d}`. Homebrew keys each bucket by install command form (ollama, ollama@0.1.5, ollama HEAD) — AI Pulse sums across keys so the headline number matches how Homebrew's own analytics dashboard presents the formula. ollama's 90d install count was 207,803 on the 2026-04-21 verification probe.",
+  sanityCheck: {
+    description:
+      "Each tracked formula's 90d install count should fall in the 10k–5M range (established CLI tools). Zero indicates formulae.brew.sh shape drift or the formula was renamed — investigate before attributing to dead adoption.",
+    expectedMin: 10_000,
+    expectedMax: 5_000_000,
+    unit: "90d installs per formula",
+  },
+  verifiedAt: "2026-04-21",
+  caveat:
+    "First-party provenance (formulae.brew.sh is Homebrew's own analytics endpoint). Homebrew's analytics are opt-out but on by default — the counts cover every user who hasn't disabled `brew analytics off`, which Homebrew's own documentation estimates at ~95%+ of installs. Not a unique-user measure (a user reinstalling daily counts daily). The single-formula slate is deliberately narrow; adding a formula is a code change under Auditor review, not a config flag. Track A scope; SDK Adoption panel will surface this alongside PyPI/npm/crates/Docker so the Homebrew CLI-install story shows alongside the library-import story.",
+  powersFeature: ["sdk-adoption-panel"],
+};
+
 // ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
@@ -855,6 +909,8 @@ export const ALL_SOURCES: readonly DataSource[] = [
   PYPI_DOWNLOADS,
   NPM_DOWNLOADS,
   CRATES_DOWNLOADS,
+  DOCKER_HUB_PULLS,
+  HOMEBREW_INSTALLS,
 ] as const;
 
 export const VERIFIED_SOURCES: readonly DataSource[] = ALL_SOURCES.filter(
