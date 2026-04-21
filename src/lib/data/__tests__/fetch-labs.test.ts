@@ -268,4 +268,26 @@ describe("fetchLabActivity", () => {
     const result = await fetchLabActivity(runOpts(fetchImpl));
     expect(result.generatedAt).toBe(FIXED_NOW.toISOString());
   });
+
+  it("honours a windowMs override so callers can re-bucket to 24h", async () => {
+    // Events at 1h, 12h, 36h, 6d. A 24h window should keep only the first two.
+    const hour = 60 * 60 * 1000;
+    const fetchImpl = fetchStub({
+      "lab-a/flagship": {
+        status: 200,
+        body: [
+          makeEvent("1h", "PushEvent", 1 * hour),
+          makeEvent("12h", "PushEvent", 12 * hour),
+          makeEvent("36h", "PushEvent", 36 * hour),
+          makeEvent("6d", "PushEvent", 6 * 24 * hour),
+        ],
+      },
+      "lab-a/other": { status: 200, body: [] },
+      "lab-b/core": { status: 200, body: [] },
+    });
+    const opts = { ...runOpts(fetchImpl), windowMs: 24 * hour };
+    const result = await fetchLabActivity(opts);
+    const a = result.labs.find((l) => l.id === "lab-a")!;
+    expect(a.total).toBe(2);
+  });
 });

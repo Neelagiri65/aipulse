@@ -94,6 +94,13 @@ export type LabsFetchOptions = {
   fetchImpl?: typeof fetch;
   /** Inject GH token for tests. Defaults to `process.env.GH_TOKEN`. */
   token?: string;
+  /**
+   * Override the activity window. Defaults to `WINDOW_MS` (7 days). The
+   * daily-snapshot collector passes 24h so the same cached per-repo event
+   * payloads can be re-bucketed for the digest's labs section without
+   * spending an additional round of GH Events requests.
+   */
+  windowMs?: number;
 };
 
 type RawEvent = {
@@ -203,7 +210,8 @@ export async function fetchLabActivity(
   opts: LabsFetchOptions = {},
 ): Promise<LabsPayload> {
   const now = opts.now ?? new Date();
-  const cutoffMs = now.getTime() - WINDOW_MS;
+  const windowMs = opts.windowMs ?? WINDOW_MS;
+  const cutoffMs = now.getTime() - windowMs;
   const registry = resolveRegistry(opts.registryOverride);
   const fetchImpl = opts.fetchImpl ?? fetch;
   const token = opts.token ?? process.env.GH_TOKEN;

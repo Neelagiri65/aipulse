@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   snapshotKey,
   summariseEvents24h,
+  summariseLabs24h,
   summarisePackageLatest,
   summariseRegistry,
   summariseSources,
@@ -9,6 +10,7 @@ import {
 } from "@/lib/data/snapshot";
 import type { RegistryEntry } from "@/lib/data/registry-shared";
 import type { PackageLatest } from "@/lib/data/pkg-store";
+import type { LabActivity, LabsPayload } from "@/lib/data/fetch-labs";
 
 describe("ymdUtc", () => {
   it("returns YYYY-MM-DD in UTC regardless of local zone", () => {
@@ -153,5 +155,114 @@ describe("summarisePackageLatest", () => {
       failures: [{ pkg: "anthropic", message: "HTTP 500" }],
     };
     expect(summarisePackageLatest(latest)).toEqual([]);
+  });
+});
+
+function mkLab(overrides: Partial<LabActivity> = {}): LabActivity {
+  return {
+    id: "lab-x",
+    displayName: "Lab X",
+    kind: "industry",
+    city: "Testville",
+    country: "US",
+    lat: 0,
+    lng: 0,
+    hqSourceUrl: "https://example.com/x",
+    url: "https://example.com/x",
+    orgs: ["lab-x"],
+    repos: [],
+    total: 0,
+    byType: {},
+    stale: false,
+    ...overrides,
+  };
+}
+
+function mkPayload(labs: LabActivity[]): LabsPayload {
+  return {
+    labs,
+    generatedAt: "2026-04-22T04:00:00Z",
+    failures: [],
+  };
+}
+
+describe("summariseLabs24h", () => {
+  it("returns the top-N labs by total activity, 0-activity filtered, desc", () => {
+    const payload = mkPayload([
+      mkLab({ id: "quiet", displayName: "Quiet", total: 0 }),
+      mkLab({
+        id: "busy",
+        displayName: "Busy",
+        total: 42,
+        byType: { PushEvent: 30, PullRequestEvent: 12 },
+      }),
+      mkLab({ id: "mid", displayName: "Mid", total: 5, byType: { PushEvent: 5 } }),
+    ]);
+    const result = summariseLabs24h(payload);
+    expect(result.map((l) => l.id)).toEqual(["busy", "mid"]);
+    expect(result[0].total).toBe(42);
+    expect(result[0].byType).toEqual({ PushEvent: 30, PullRequestEvent: 12 });
+  });
+
+  it("caps output at topN (default 10)", () => {
+    const labs = Array.from({ length: 15 }, (_, i) =>
+      mkLab({ id: `lab-${i}`, displayName: `Lab ${i}`, total: 100 - i }),
+    );
+    const result = summariseLabs24h(mkPayload(labs));
+    expect(result).toHaveLength(10);
+    expect(result[0].id).toBe("lab-0");
+    expect(result[9].id).toBe("lab-9");
+  });
+
+  it("respects topN override", () => {
+    const labs = Array.from({ length: 5 }, (_, i) =>
+      mkLab({ id: `lab-${i}`, displayName: `Lab ${i}`, total: 5 - i }),
+    );
+    const result = summariseLabs24h(mkPayload(labs), 3);
+    expect(result).toHaveLength(3);
+    expect(result.map((l) => l.id)).toEqual(["lab-0", "lab-1", "lab-2"]);
+  });
+
+  it("carries the stale flag through so readers can surface it honestly", () => {
+    const payload = mkPayload([
+      mkLab({ id: "live", total: 3, stale: false }),
+      mkLab({ id: "gappy", total: 5, stale: true }),
+    ]);
+    const result = summariseLabs24h(payload);
+    expect(result.find((l) => l.id === "gappy")!.stale).toBe(true);
+    expect(result.find((l) => l.id === "live")!.stale).toBe(false);
+  });
+
+  it("returns an empty array when no labs crossed the activity threshold", () => {
+    const payload = mkPayload([
+      mkLab({ id: "a", total: 0 }),
+      mkLab({ id: "b", total: 0 }),
+    ]);
+    expect(summariseLabs24h(payload)).toEqual([]);
+  });
+
+  it("projects only the snapshot-relevant fields (no repos, no urls)", () => {
+    const payload = mkPayload([
+      mkLab({
+        id: "a",
+        displayName: "A",
+        total: 1,
+        byType: { PushEvent: 1 },
+        repos: [
+          {
+            owner: "a",
+            repo: "r",
+            sourceUrl: "https://github.com/a/r",
+            total: 1,
+            byType: { PushEvent: 1 },
+            stale: false,
+          },
+        ],
+      }),
+    ]);
+    const [entry] = summariseLabs24h(payload);
+    expect(Object.keys(entry).sort()).toEqual(
+      ["byType", "city", "country", "displayName", "id", "kind", "stale", "total"].sort(),
+    );
   });
 });

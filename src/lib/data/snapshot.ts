@@ -32,7 +32,22 @@ import { fetchAllStatus } from "@/lib/data/fetch-status";
 import type { BenchmarksPayload } from "@/lib/data/benchmarks-lmarena";
 import type { RegistryEntry } from "@/lib/data/registry-shared";
 import { readLatest, type PackageLatest } from "@/lib/data/pkg-store";
+import {
+  fetchLabActivity,
+  type LabActivity,
+  type LabsPayload,
+} from "@/lib/data/fetch-labs";
+import type { LabKind } from "@/lib/data/labs-registry";
 import benchmarksPayload from "../../../data/benchmarks/lmarena-latest.json";
+
+/** Window used when `buildDailySnapshot` reads labs activity. Deliberately
+ *  24h (not the 7d default in `fetch-labs.ts`) so the snapshot carries a
+ *  day-over-day diffable labs datum for the digest composer. */
+const LABS_WINDOW_MS_24H = 24 * 60 * 60 * 1000;
+/** Cap on labs per snapshot; digest readers surface top-N, remainder are
+ *  noise for day-over-day diffs. Matches the benchmarks top3 pattern —
+ *  capture enough to be meaningful, not enough to bloat the blob. */
+const LABS_TOP_N = 10;
 
 /** Package-registry sources whose `pkg:{source}:latest` blobs contribute
  *  to the daily snapshot. Track A PR 1 shipped "pypi"; PR 2 added
@@ -106,6 +121,25 @@ export type SnapshotPackageEntry = {
  *  Each entry array is sorted by name so day-over-day diffs stay stable. */
 export type SnapshotPackages = Record<string, SnapshotPackageEntry[]>;
 
+/**
+ * One lab's 24h activity summary. Projection of the richer `LabActivity`
+ * that only keeps fields the digest composer diffs or displays —
+ * repos[] and URLs are dropped because the email cites the lab by name
+ * and links to /labs on the site rather than to the raw GH URLs.
+ */
+export type SnapshotLabEntry = {
+  id: string;
+  displayName: string;
+  kind: LabKind;
+  city: string;
+  country: string;
+  total: number;
+  byType: Record<string, number>;
+  /** True when any of the lab's tracked repos failed to fetch in the
+   *  24h window. Propagated so the digest can caveat "partial view". */
+  stale: boolean;
+};
+
 export type DailySnapshot = {
   /** YYYY-MM-DD in UTC. Also the key suffix and ZSET member. */
   date: string;
@@ -119,6 +153,10 @@ export type DailySnapshot = {
   /** Null when the package store is unreachable; otherwise a map keyed
    *  by source — `{}` when no registry has landed counters yet. */
   packages: SnapshotPackages | null;
+  /** Null when the labs fetch throws (missing GH_TOKEN, upstream down);
+   *  otherwise the top-N labs by 24h activity. `[]` means "all tracked
+   *  labs were quiet in the last 24h" — an honest empty, not a failure. */
+  labs24h: SnapshotLabEntry[] | null;
   failures: Array<{ step: string; message: string }>;
 };
 
@@ -178,6 +216,47 @@ export function summariseRegistry(
     withLocation,
     geocodeRate: total > 0 ? withLocation / total : 0,
     byConfigKind,
+  };
+}
+
+/**
+ * Project a `LabsPayload` into the snapshot's `labs24h` shape. Pure.
+ *
+ * Rules:
+ *  - Labs with `total === 0` are dropped (no 24h activity → nothing to
+ *    diff; including them would just inflate the blob with zeroes).
+ *  - Remaining labs sort by `total` descending; ties preserve input order
+ *    so the output is deterministic for a given input.
+ *  - Output is capped at `topN` (default 10). Day-over-day diffs operate
+ *    on the intersection, so labs outside the top-N on both days won't
+ *    appear in the digest — that's the intended "only surface labs that
+ *    moved the needle" behaviour.
+ *  - Only snapshot-relevant fields are kept. `repos`, `url`, `hqSourceUrl`,
+ *    `orgs`, `notes`, `lat`, `lng` are dropped — the email cites labs by
+ *    name and links to /labs on the site for per-repo detail.
+ */
+export function summariseLabs24h(
+  payload: LabsPayload,
+  topN: number = LABS_TOP_N,
+): SnapshotLabEntry[] {
+  return payload.labs
+    .filter((l) => l.total > 0)
+    .slice()
+    .sort((a, b) => b.total - a.total)
+    .slice(0, topN)
+    .map(projectLabEntry);
+}
+
+function projectLabEntry(lab: LabActivity): SnapshotLabEntry {
+  return {
+    id: lab.id,
+    displayName: lab.displayName,
+    kind: lab.kind,
+    city: lab.city,
+    country: lab.country,
+    total: lab.total,
+    byType: lab.byType,
+    stale: lab.stale,
   };
 }
 
@@ -325,6 +404,24 @@ export async function buildDailySnapshot(
     });
   }
 
+  let labs24h: SnapshotLabEntry[] | null = null;
+  try {
+    // 24h window is narrower than labs-cron's 7-day default. The per-repo
+    // GH responses are Next-data-cached with a 6h TTL keyed on the request
+    // URL, so this second fetch typically reads from cache and costs zero
+    // additional GitHub requests when labs-cron has run within 6h.
+    const payload = await fetchLabActivity({
+      windowMs: LABS_WINDOW_MS_24H,
+      now,
+    });
+    labs24h = summariseLabs24h(payload);
+  } catch (e) {
+    failures.push({
+      step: "labs24h",
+      message: e instanceof Error ? e.message : String(e),
+    });
+  }
+
   return {
     date,
     capturedAt: now.toISOString(),
@@ -334,6 +431,7 @@ export async function buildDailySnapshot(
     tools,
     benchmarks,
     packages,
+    labs24h,
     failures,
   };
 }
