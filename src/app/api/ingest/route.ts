@@ -15,6 +15,7 @@
 
 import { NextResponse } from "next/server";
 import { runIngest } from "@/lib/data/fetch-events";
+import { writeCronHealth } from "@/lib/data/cron-health";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,7 +45,25 @@ export async function POST(request: Request) {
     ? Math.max(1, Math.min(10, Number.parseInt(apiPagesParam, 10) || 5))
     : undefined;
 
-  const result = await runIngest({ archiveBackfill: backfill, apiPages });
+  let result;
+  try {
+    result = await runIngest({ archiveBackfill: backfill, apiPages });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await writeCronHealth("globe-ingest", { ok: false, error: msg });
+    throw e;
+  }
+  const firstFailure = result.meta.failures[0]?.message ?? null;
+  await writeCronHealth(
+    "globe-ingest",
+    // fetch-events.runIngest currently returns on best-effort: it writes
+    // whatever it gathered even if a sub-step failed. We treat the run
+    // as healthy if at least one point landed, failing if the batch was
+    // empty AND at least one step reported a failure.
+    result.points.length > 0 || result.meta.failures.length === 0
+      ? { ok: true, itemsProcessed: result.points.length }
+      : { ok: false, error: firstFailure ?? "ingest produced no points" },
+  );
 
   return NextResponse.json({
     ok: true,

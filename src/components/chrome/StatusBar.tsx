@@ -3,37 +3,48 @@
 import type { StatusResult } from "@/lib/data/fetch-status";
 import type { FreshnessState } from "@/components/chrome/TopBar";
 
+export type CronHealthSummary = {
+  total: number;
+  healthy: number;
+  stale: number;
+};
+
 export type StatusBarProps = {
   status?: StatusResult;
   freshness: FreshnessState;
   verifiedSourceCount: number;
   pendingSourceCount: number;
+  cronHealth?: CronHealthSummary;
 };
 
 /**
  * Single-line status bar between TopBar and the map stage (design-spec-v2
  * FIX-09). Gives instant system health without opening the Tools panel:
- * "4/5 OPERATIONAL · 1 DEGRADED · 23 SOURCES · LIVE".
+ * "4/5 OPERATIONAL · 1 DEGRADED · 23 SOURCES · 7/7 CRONS · LIVE".
  *
  * Tone fold (mirrors MetricsRow.toolsOpsCard and TopBar.deriveSeverity):
  * an "operational" tool with an active incident counts as degraded, not
- * operational — that's the trust invariant. Overall tone is red if any
- * outage, amber if any degraded, green otherwise.
+ * operational — that's the trust invariant. A stale cron (no success in
+ * 2× its expected interval) folds into the degraded bucket: the data it
+ * feeds is ageing even if nothing visibly errored. Overall tone is red
+ * if any outage, amber if any degraded-class signal, green otherwise.
  */
 export function StatusBar({
   status,
   freshness,
   verifiedSourceCount,
   pendingSourceCount,
+  cronHealth,
 }: StatusBarProps) {
   const sev = deriveSev(status);
   const total = sev.total;
+  const cronStale = cronHealth?.stale ?? 0;
   const tone: Tone =
     total === 0
       ? "pending"
       : sev.outage > 0
         ? "bad"
-        : sev.degraded > 0
+        : sev.degraded > 0 || cronStale > 0
           ? "warn"
           : "good";
 
@@ -100,6 +111,44 @@ export function StatusBar({
             </>
           )}
         </a>
+        {cronHealth && cronHealth.total > 0 && (
+          <>
+            <Divider />
+            <a
+              href="/api/cron-health"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground"
+              title={
+                cronHealth.stale > 0
+                  ? `${cronHealth.stale} cron workflow${cronHealth.stale === 1 ? "" : "s"} have not run in 2× their expected interval`
+                  : "All monitored cron workflows ran within their expected interval"
+              }
+            >
+              {cronHealth.stale > 0 ? (
+                <>
+                  <span
+                    className="tabular-nums"
+                    style={{ color: "var(--sev-degrade)" }}
+                  >
+                    {cronHealth.stale}
+                  </span>{" "}
+                  Cron{cronHealth.stale === 1 ? "" : "s"} Stale
+                </>
+              ) : (
+                <>
+                  <span
+                    className="tabular-nums"
+                    style={{ color: "var(--sev-op)" }}
+                  >
+                    {cronHealth.healthy}/{cronHealth.total}
+                  </span>{" "}
+                  Crons
+                </>
+              )}
+            </a>
+          </>
+        )}
         <Divider />
         <span
           className={`tabular-nums ${liveLabel.className}`}

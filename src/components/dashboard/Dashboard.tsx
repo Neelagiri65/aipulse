@@ -98,11 +98,33 @@ const LABS_POLL_MS = 10 * 60 * 1000;
 // real upstream refresh without churning the edge layer — publisher
 // feeds update slowly (often hourly), minute-level cadence is wasteful.
 const RSS_POLL_MS = 10 * 60 * 1000;
+// Cron health: a cron goes stale after 2× its expected interval. The
+// fastest monitored cron is globe-ingest at 5min (stale at 10min), so
+// a 5-min poll catches the first stale transition within one tick.
+const CRON_HEALTH_POLL_MS = 5 * 60 * 1000;
 
 type RegistryResult = {
   ok: boolean;
   entries: RegistryEntry[];
   meta: RegistryMeta | null;
+  generatedAt: string;
+};
+
+type CronHealthResult = {
+  total: number;
+  healthy: number;
+  stale: number;
+  crons: Array<{
+    workflow: string;
+    lastSuccessAt: string | null;
+    lastFailureAt: string | null;
+    lastError: string | null;
+    itemsProcessed: number;
+    errorCount: number;
+    expectedIntervalMinutes: number;
+    updatedAt: string;
+    stale: boolean;
+  }>;
   generatedAt: string;
 };
 
@@ -137,6 +159,10 @@ export function Dashboard() {
   );
   const labs = usePolledEndpoint<LabsPayload>("/api/labs", LABS_POLL_MS);
   const rss = usePolledEndpoint<RssWireResult>("/api/rss", RSS_POLL_MS);
+  const cronHealth = usePolledEndpoint<CronHealthResult>(
+    "/api/cron-health",
+    CRON_HEALTH_POLL_MS,
+  );
 
   const rawPoints: GlobePoint[] = events.data?.points ?? [];
   const lastUpdatedAt = events.data?.polledAt;
@@ -659,6 +685,15 @@ export function Dashboard() {
         }}
         verifiedSourceCount={VERIFIED_SOURCES.length}
         pendingSourceCount={PENDING_SOURCES.length}
+        cronHealth={
+          cronHealth.data
+            ? {
+                total: cronHealth.data.total,
+                healthy: cronHealth.data.healthy,
+                stale: cronHealth.data.stale,
+              }
+            : undefined
+        }
       />
 
       {/* Grid lattice overlay — decorative, above globe but below chrome. */}

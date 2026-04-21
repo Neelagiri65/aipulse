@@ -24,6 +24,7 @@
 
 import { NextResponse } from "next/server";
 import { runEventsBackfill } from "@/lib/data/registry-events-backfill";
+import { writeCronHealth } from "@/lib/data/cron-health";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,7 +58,21 @@ export async function POST(request: Request) {
     ? clamp(Number.parseInt(windowParam, 10) || 240, 60, 720)
     : 240;
 
-  const result = await runEventsBackfill({ source, cap, windowMinutes });
+  let result;
+  try {
+    result = await runEventsBackfill({ source, cap, windowMinutes });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await writeCronHealth("registry-backfill-events", {
+      ok: false,
+      error: msg,
+    });
+    throw e;
+  }
+  await writeCronHealth("registry-backfill-events", {
+    ok: true,
+    itemsProcessed: result.written,
+  });
 
   return NextResponse.json({ ok: true, result });
 }

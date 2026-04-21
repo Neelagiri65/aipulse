@@ -27,6 +27,7 @@
 
 import { NextResponse } from "next/server";
 import { runDepsDiscovery, TARGET_PACKAGES } from "@/lib/data/registry-deps";
+import { writeCronHealth } from "@/lib/data/cron-health";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,11 +66,22 @@ export async function POST(request: Request) {
         .filter((p) => p.length > 0 && TARGET_PACKAGES.includes(p))
     : undefined;
 
-  const result = await runDepsDiscovery({
-    source,
-    cap,
-    pagesPerPackage,
-    packages,
+  let result;
+  try {
+    result = await runDepsDiscovery({
+      source,
+      cap,
+      pagesPerPackage,
+      packages,
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await writeCronHealth("registry-discover-deps", { ok: false, error: msg });
+    throw e;
+  }
+  await writeCronHealth("registry-discover-deps", {
+    ok: true,
+    itemsProcessed: result.written,
   });
 
   return NextResponse.json({ ok: true, result });

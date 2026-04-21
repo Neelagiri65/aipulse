@@ -28,6 +28,7 @@
 
 import { NextResponse } from "next/server";
 import { runRegistryDiscovery } from "@/lib/data/registry-discovery";
+import { writeCronHealth } from "@/lib/data/cron-health";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,11 +65,22 @@ export async function POST(request: Request) {
     : 3;
   const skipKnown = skipKnownParam === "0" ? false : true;
 
-  const result = await runRegistryDiscovery({
-    source,
-    maxVerify,
-    searchPagesPerKind,
-    skipKnown,
+  let result;
+  try {
+    result = await runRegistryDiscovery({
+      source,
+      maxVerify,
+      searchPagesPerKind,
+      skipKnown,
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await writeCronHealth("registry-discover", { ok: false, error: msg });
+    throw e;
+  }
+  await writeCronHealth("registry-discover", {
+    ok: true,
+    itemsProcessed: result.written,
   });
 
   return NextResponse.json({ ok: true, result });

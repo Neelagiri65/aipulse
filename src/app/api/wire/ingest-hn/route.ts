@@ -21,6 +21,7 @@
 
 import { NextResponse } from "next/server";
 import { runIngest } from "@/lib/data/wire-hn";
+import { writeCronHealth } from "@/lib/data/cron-health";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,7 +50,23 @@ export async function POST(request: Request) {
     ? clamp(Number.parseInt(capParam, 10) || 20, 1, 20)
     : 20;
 
-  const result = await runIngest({ cap, source });
+  let result;
+  try {
+    result = await runIngest({ cap, source });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await writeCronHealth("wire-ingest-hn", { ok: false, error: msg });
+    throw e;
+  }
+  await writeCronHealth(
+    "wire-ingest-hn",
+    result.ok
+      ? { ok: true, itemsProcessed: result.written }
+      : {
+          ok: false,
+          error: result.failures[0]?.message ?? "ingest returned ok:false",
+        },
+  );
   return NextResponse.json({ ok: result.ok, result });
 }
 

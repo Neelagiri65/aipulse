@@ -24,6 +24,7 @@
 
 import { NextResponse } from "next/server";
 import { runTopicsDiscovery, TOPICS } from "@/lib/data/registry-topics";
+import { writeCronHealth } from "@/lib/data/cron-health";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,11 +63,25 @@ export async function POST(request: Request) {
         .filter((t) => t.length > 0 && TOPICS.includes(t))
     : undefined;
 
-  const result = await runTopicsDiscovery({
-    source,
-    cap,
-    pagesPerTopic,
-    topics,
+  let result;
+  try {
+    result = await runTopicsDiscovery({
+      source,
+      cap,
+      pagesPerTopic,
+      topics,
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await writeCronHealth("registry-discover-topics", {
+      ok: false,
+      error: msg,
+    });
+    throw e;
+  }
+  await writeCronHealth("registry-discover-topics", {
+    ok: true,
+    itemsProcessed: result.written,
   });
 
   return NextResponse.json({ ok: true, result });
