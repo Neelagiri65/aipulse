@@ -30,6 +30,7 @@ import { validateEmail } from "@/lib/email/validation";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { parseGeo } from "@/lib/geo";
 import { hashEmail, mintToken } from "@/lib/email/hash";
+import { encryptEmail } from "@/lib/mail/email-encryption";
 import { sendConfirm, type EmailSender } from "@/lib/email/resend";
 import {
   findByConfirmToken,
@@ -61,6 +62,9 @@ export type SubscribeDeps = {
   now?: () => number;
   tokenSecret?: string;
   turnstileSecret?: string;
+  /** Override the email-encryption fn for tests; default calls the real
+   *  AES-GCM encrypt (which reads SUBSCRIBER_EMAIL_ENC_KEY from env). */
+  encryptEmailFn?: (plaintext: string) => string | null;
 };
 
 export async function handleSubscribe(
@@ -184,6 +188,19 @@ export async function handleSubscribe(
     );
 
   const createdAt = existing?.createdAt ?? new Date(deps.now?.() ?? Date.now()).toISOString();
+  const encryptFn =
+    deps.encryptEmailFn ??
+    ((plaintext: string) => {
+      try {
+        return encryptEmail(plaintext);
+      } catch {
+        // fail-soft: if the key isn't configured or crypto throws, we
+        // still write the record without plaintext — digest-send later
+        // will skip this subscriber until re-encrypt runs.
+        return null;
+      }
+    });
+  const encryptedEmail = encryptFn(email);
   const record: SubscriberRecord = {
     emailHash,
     status: "pending",
@@ -196,6 +213,7 @@ export async function handleSubscribe(
     createdAt,
     confirmToken,
     unsubToken,
+    encryptedEmail,
   };
 
   await writeSubscriber(record, { client: deps.subscriberClient });

@@ -35,6 +35,15 @@ export type SubscriberRecord = {
   confirmToken?: string;
   unsubToken: string;
   lastDeliveryError?: string;
+  /**
+   * AES-256-GCM ciphertext of the plaintext email, base64-encoded.
+   * Populated at subscribe-time (we have the plaintext in the POST body);
+   * cleared to null on unsubscribe so a former subscriber's address is
+   * not sitting in the ledger. Absence (undefined) on older records is
+   * backwards-compatible with the S33 shape — `readConfirmedSubscribersWithEmail`
+   * simply skips them.
+   */
+  encryptedEmail?: string | null;
 };
 
 export type SubscriberClient = Pick<
@@ -107,7 +116,12 @@ export async function updateSubscriberStatus(
   patch: Partial<
     Pick<
       SubscriberRecord,
-      "status" | "confirmedAt" | "unsubscribedAt" | "confirmToken" | "lastDeliveryError"
+      | "status"
+      | "confirmedAt"
+      | "unsubscribedAt"
+      | "confirmToken"
+      | "lastDeliveryError"
+      | "encryptedEmail"
     >
   >,
   opts: Opts = {},
@@ -217,6 +231,65 @@ export async function deleteSubscriber(
   } catch {
     /* fail-soft */
   }
+}
+
+export type ConfirmedSubscriberWithEmail = {
+  emailHash: string;
+  email: string;
+  unsubToken: string;
+  geo: SubscriberRecord["geo"];
+};
+
+/**
+ * Iterate every confirmed subscriber and return a list with decrypted
+ * plaintext emails. Skips records that are:
+ *   - not `confirmed` status
+ *   - missing `encryptedEmail` (S33 legacy records never re-subscribed)
+ *   - fail-to-decrypt (stale ciphertext under a rotated key, etc.)
+ *
+ * Decrypt is imported from `@/lib/mail/email-encryption` but injected
+ * via `opts.decrypt` so tests avoid touching `SUBSCRIBER_EMAIL_ENC_KEY`.
+ */
+export async function readConfirmedSubscribersWithEmail(
+  opts: Opts & { decrypt?: (ciphertext: string) => string } = {},
+): Promise<ConfirmedSubscriberWithEmail[]> {
+  const r = opts.client ?? defaultClient();
+  if (!r) return [];
+  let hashes: string[] = [];
+  try {
+    hashes = await r.smembers("sub:index");
+  } catch {
+    return [];
+  }
+  const decrypt =
+    opts.decrypt ??
+    ((ct: string) => {
+      // Lazy import to keep non-send call sites free of the crypto dep.
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const m = require("@/lib/mail/email-encryption") as {
+        decryptEmail: (s: string) => string;
+      };
+      return m.decryptEmail(ct);
+    });
+  const out: ConfirmedSubscriberWithEmail[] = [];
+  for (const hash of hashes) {
+    const rec = await readSubscriber(hash, { client: r });
+    if (!rec || rec.status !== "confirmed") continue;
+    if (!rec.encryptedEmail) continue;
+    let email: string;
+    try {
+      email = decrypt(rec.encryptedEmail);
+    } catch {
+      continue;
+    }
+    out.push({
+      emailHash: rec.emailHash,
+      email,
+      unsubToken: rec.unsubToken,
+      geo: rec.geo,
+    });
+  }
+  return out;
 }
 
 function parseRecord(value: unknown): SubscriberRecord | null {

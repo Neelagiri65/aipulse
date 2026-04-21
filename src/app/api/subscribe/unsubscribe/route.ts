@@ -81,6 +81,9 @@ export async function handleUnsubscribe(
     {
       status: "unsubscribed",
       unsubscribedAt: new Date(deps.now?.() ?? Date.now()).toISOString(),
+      // Clear the encrypted plaintext so a former subscriber's address
+      // is not retained. The emailHash stays for the anonymised count.
+      encryptedEmail: null,
     },
     { client: deps.subscriberClient },
   );

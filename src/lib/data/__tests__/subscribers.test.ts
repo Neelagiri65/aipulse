@@ -8,6 +8,7 @@ import {
   findByUnsubToken,
   indexConfirmToken,
   indexUnsubToken,
+  readConfirmedSubscribersWithEmail,
   readSubscriber,
   subscriberKey,
   type SubscriberClient,
@@ -172,6 +173,101 @@ describe("deleteSubscriber", () => {
     await writeSubscriber(baseRecord(hash), { client });
     await deleteSubscriber(hash, { client });
     expect(await readSubscriber(hash, { client })).toBeNull();
+  });
+});
+
+describe("encryptedEmail lifecycle", () => {
+  it("round-trips encryptedEmail through write+read", async () => {
+    const client = newClient();
+    const hash = hashEmail("a@x.com");
+    await writeSubscriber(
+      { ...baseRecord(hash), encryptedEmail: "ZW5jcnlwdGVkLWNpcGhlcnRleHQ=" },
+      { client },
+    );
+    const out = await readSubscriber(hash, { client });
+    expect(out?.encryptedEmail).toBe("ZW5jcnlwdGVkLWNpcGhlcnRleHQ=");
+  });
+
+  it("updateSubscriberStatus can clear encryptedEmail to null", async () => {
+    const client = newClient();
+    const hash = hashEmail("a@x.com");
+    await writeSubscriber(
+      {
+        ...baseRecord(hash),
+        status: "confirmed",
+        encryptedEmail: "abc",
+      },
+      { client },
+    );
+    const next = await updateSubscriberStatus(
+      hash,
+      { status: "unsubscribed", encryptedEmail: null },
+      { client },
+    );
+    expect(next?.status).toBe("unsubscribed");
+    expect(next?.encryptedEmail).toBeNull();
+  });
+});
+
+describe("readConfirmedSubscribersWithEmail", () => {
+  const fakeDecrypt = (ct: string) => `plain:${ct}`;
+
+  it("returns only confirmed subscribers with encryptedEmail set", async () => {
+    const client = newClient();
+    const confirmedWithEmail = hashEmail("a@x.com");
+    const confirmedNoEmail = hashEmail("b@x.com");
+    const pending = hashEmail("c@x.com");
+    const unsubscribed = hashEmail("d@x.com");
+    await writeSubscriber(
+      { ...baseRecord(confirmedWithEmail), status: "confirmed", encryptedEmail: "ct-a" },
+      { client },
+    );
+    await writeSubscriber(
+      { ...baseRecord(confirmedNoEmail), status: "confirmed" },
+      { client },
+    );
+    await writeSubscriber(
+      { ...baseRecord(pending), status: "pending", encryptedEmail: "ct-c" },
+      { client },
+    );
+    await writeSubscriber(
+      {
+        ...baseRecord(unsubscribed),
+        status: "unsubscribed",
+        encryptedEmail: null,
+      },
+      { client },
+    );
+    const list = await readConfirmedSubscribersWithEmail({
+      client,
+      decrypt: fakeDecrypt,
+    });
+    expect(list).toHaveLength(1);
+    expect(list[0].emailHash).toBe(confirmedWithEmail);
+    expect(list[0].email).toBe("plain:ct-a");
+  });
+
+  it("skips records whose ciphertext fails to decrypt", async () => {
+    const client = newClient();
+    const hash = hashEmail("a@x.com");
+    await writeSubscriber(
+      { ...baseRecord(hash), status: "confirmed", encryptedEmail: "bad-ct" },
+      { client },
+    );
+    const list = await readConfirmedSubscribersWithEmail({
+      client,
+      decrypt: () => {
+        throw new Error("tamper");
+      },
+    });
+    expect(list).toHaveLength(0);
+  });
+
+  it("returns [] when client is unavailable", async () => {
+    const list = await readConfirmedSubscribersWithEmail({
+      decrypt: fakeDecrypt,
+    });
+    expect(list).toEqual([]);
   });
 });
 
