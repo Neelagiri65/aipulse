@@ -2,9 +2,11 @@
 
 ## Current state (2026-04-21)
 
-- **Main:** `fde8345` (session 26). Prod deploy green. Visual smoke 26/26 against `aipulse-pi.vercel.app`.
-- **Sources:** 23 · **Crons:** 8 · **Active panels:** 7 · **LeftNav buttons:** 9 · **Unit tests:** 213/213 · **Visual smoke:** 26/26
-- **Panels:** Win chrome v2 live — accent colours (wire/models=teal, tools=green, benchmarks=amber, research/labs=violet, regional-wire=orange), per-panel stat bars, persistent FilterPanel rail (icon-only <1440px), keyboard shortcuts (Esc, 1-9).
+- **Main:** `65eaa3a` (session 27). Prod deploy green. Visual smoke 25/25 against `aipulse-pi.vercel.app`.
+- **Sources:** 23 · **Crons:** 8 · **Active panels:** 7 · **LeftNav buttons:** 9 (Audit + Agents soon-disabled) · **Unit tests:** 213/213 · **Visual smoke:** 25/25
+- **First-load:** Map-only, no panels open. Every panel opens on demand via LeftNav.
+- **Top-bar tabs:** The Map / The Wire (Globe tab hidden; ViewTabId="globe" still exists in code for future revival).
+- **Panels:** Win chrome v2 live — accent colours (wire/models=teal, tools=green, benchmarks=amber, research/labs=violet, regional-wire=orange), per-panel stat bars, persistent FilterPanel rail (icon-only <1440px), keyboard shortcuts (Esc, 1-9). Right-anchored panels (tools, models) reserve the FilterPanel rail width so they no longer render behind it.
 - **Layers live on globe/map:** live pulse (GH events), AI Labs (32 labs, violet), Regional RSS (5 publishers, amber), Hacker News (HN orange), registry.
 
 ## Queued features (pending grill → PRD)
@@ -13,12 +15,155 @@
 2. **Security incidents panel** — GitHub Security Advisories API, OWASP feeds, CVE/NVD. Needs source-trust review per non-negotiables.
 3. **Free-tier infrastructure tracking** — status + limits for AI-era dev stack providers. Needs PRD on what "status" means vs Tool Health (likely a separate panel, not a merge).
 
-## Active UI fixes (session 27 — ship immediately, no PRD)
+---
 
-1. No panels open on page load — map only, clean start.
-2. Panels must not render behind the filter strip (z-index / layout).
-3. Hide Audit from nav (grey with "SOON" or remove).
-4. Hide THE GLOBE tab from top nav.
+### Session 27 — Context diet + 4 UI fixes · SHIPPED
+
+**Status:** 7 commits direct on `main` through `65eaa3a`. Prod smoke
+**25/25 green in 47s** against `https://aipulse-pi.vercel.app` after
+the Vercel deploy completed.
+
+Session brief (user, verbatim): *"Read HANDOFF.md. Four UI fixes first,
+then queue the new features: 1) No panels open on page load — map only,
+clean start. 2) Panels must not render behind the filter strip. 3) Hide
+Audit from nav (grey with "SOON" or remove). 4) Hide THE GLOBE tab from
+top nav. Do the 4 UI fixes first. Commit each separately. Ship to main."*
+Also, before the fixes: trim sessions 20-24 to one-line summaries so the
+active HANDOFF targets 15-20KB.
+
+**Shipped this session (7 commits, direct on main):**
+
+| # | Commit    | Scope                                                              |
+| - | --------- | ------------------------------------------------------------------ |
+| 0 | `67ad45c` | `chore(handoff): split sessions 6-19 into docs/handoff-archive.md` |
+| 1 | `6cfb7c6` | `chore(handoff): trim sessions 20-24 to one-line summaries`        |
+| 2 | `29d14f8` | `fix(dashboard): start with no panels open — map-only first load`  |
+| 3 | `807b42a` | `fix(dashboard): right-anchored panels reserve FilterPanel rail`   |
+| 4 | `40d156a` | `fix(chrome): park Audit from nav + TopBar — soon-disabled`        |
+| 5 | `fc7b781` | `fix(chrome): hide The Globe tab from the TopBar switcher`         |
+| 6 | `65eaa3a` | `test(visual): realign panel + Globe-tab smokes to session-27`     |
+
+1. **Archive split** (`67ad45c`) — moves sessions 6-19 into
+   `docs/handoff-archive.md` (2,264 lines of cold storage, never
+   auto-loaded). Active HANDOFF drops 193KB → 57KB. Archive has its
+   own header + pointer in active HANDOFF; grep or Read a specific
+   section when historical context is genuinely needed.
+
+2. **Handoff trim** (`6cfb7c6`) — compresses sessions 20-24 to
+   one-line summaries (commit hash + shipped scope). Sessions 25
+   and 26 keep full detail. Active HANDOFF now 20KB; hits the
+   advisor's 15-20KB target. Adds "Queued features (pending grill →
+   PRD)" section up top so the three new feature asks (Tool Health
+   expansion, Security incidents panel, Free-tier infra tracking)
+   land in context before any session-27 work starts.
+
+3. **Fix 1 — no panels open on first load** (`29d14f8`) — flips
+   every panel default from `{ open: true }` to `{ open: false }`
+   in `Dashboard.tsx`. First load now renders the observatory stage
+   (globe/map + TopBar + StatusBar + LeftNav + FilterPanel) with
+   zero panel chrome occluding the map. Every panel opens on demand
+   via LeftNav.
+
+4. **Fix 2 — right-anchored panels reserve FilterPanel rail**
+   (`807b42a`) — Tools and Models used `W - 420` for their default
+   x, which at 1440px viewport placed their right edge at 1396 —
+   188px overlap with the full FilterPanel rail (spans 1208-1428,
+   z-40). Panels (z-30..37) rendered behind the rail and were
+   largely occluded the moment they were opened. New helper
+   `rightAnchor(panelW, floor)` subtracts `filterReserve` (240 at
+   ≥1440px full rail, 64 at the icon-only rail below 1440) so panel
+   right edges land 8px inside the rail's left boundary. Floor
+   values from the prior `Math.max` preserved so narrow viewports
+   don't underflow.
+
+5. **Fix 3 — park Audit from nav + TopBar** (`40d156a`) — LeftNav
+   Audit button gains `soon: true` and renders greyed + "soon"
+   badge, sharing Agents' parked-feature styling. TopBar drops its
+   `/audit` text link. The deterministic `/audit` page itself stays
+   reachable via direct URL for anyone who has it bookmarked; it
+   just isn't first-class UI anymore. Chrome test updated to expect
+   Audit in the soon-disabled block alongside Agents.
+
+6. **Fix 4 — hide The Globe tab** (`fc7b781`) — removes the Globe
+   `TabButton` from `TopBar.tsx`. `ViewTabId="globe"` stays in the
+   type and the render branch in `Dashboard.tsx` still handles it,
+   so re-enabling the tab later is a one-line revert. Retired the
+   `@globe` smoke test alongside the tab (no user path to exercise).
+   Three tabs competing for the centre slot felt indecisive; the 3D
+   surface loses on zoom fidelity anyway.
+
+7. **Smoke-test realignment** (`65eaa3a`) — follow-up after the
+   first prod smoke came back 22/25. Three assertions had gone
+   stale: (a) "Wire is open by default" and (b) "Tools is open by
+   default" in `02-dashboard-panels` — both now open via
+   `openPanelViaNav` first, same pattern as Models/Research/
+   Benchmarks; (c) `04-chrome` asserted the Globe tab was visible
+   — inverted to `toHaveCount(0)` so the test now guards against
+   accidental re-add.
+
+**Files changed (session 27):**
+
+- Docs (2): `HANDOFF.md` (trim + this entry),
+  `docs/handoff-archive.md` (new, 2,264 lines).
+- Chrome (2): `src/components/chrome/TopBar.tsx` (Globe tab removed,
+  /audit link removed, comment updated),
+  `src/components/dashboard/Dashboard.tsx` (defaults closed,
+  `rightAnchor` helper, audit `soon: true`, audit-redirect branch
+  in `toggle()` removed).
+- Visual smoke tests (3): `tests/visual/01-dashboard-views.spec.ts`
+  (@globe test retired, import list trimmed),
+  `tests/visual/02-dashboard-panels.spec.ts` (Wire + Tools tests
+  now open-via-nav),
+  `tests/visual/04-chrome.spec.ts` (Globe tab → `toHaveCount(0)`,
+  Audit moved into soon-disabled loop).
+- Deleted (0). Touched outside project directory (0).
+
+**Test + build state:**
+
+- Unit tests: **213/213 ✓** (unchanged baseline).
+- `npx tsc --noEmit`: clean (only the pre-existing
+  `wire-rss.test.ts` StoreSpy + nullable errors flagged in session
+  21 as out-of-scope remain).
+- `npm run build`: ✓ compiled in 2.0s, 6 static pages, 17 dynamic
+  routes intact.
+- Visual smoke against prod: **25/25 green in 47s** at `65eaa3a`
+  vs `https://aipulse-pi.vercel.app`. Suite dropped 26 → 25 because
+  the `@globe` smoke retired alongside the tab.
+
+**AUDITOR-REVIEW: PENDING (this session):**
+
+- *Fix 2 rightAnchor constants* — 240px reserve at ≥1440 / 64px
+  below assumes the FilterPanel never grows past its current width.
+  If a future fix widens the full rail (e.g. a search affordance),
+  bump both constants in lockstep or factor them into shared
+  FilterPanel exports.
+- *Fix 3 /audit page discoverability* — direct URL still works, but
+  without the TopBar link or LeftNav button there is no in-product
+  entry. If Auditor wants to keep the page truly reachable for
+  internal use, consider a footnote in `/data-sources.md` or a
+  developer-only keyboard shortcut.
+- *Fix 4 Globe parking* — the `activeTab === "globe"` branch in
+  Dashboard is now unreachable via UI. If it stays parked for more
+  than a session or two, delete the dead render branch + ViewTabId
+  member to shrink the type surface.
+
+**NEXT (for session 28 — user to pick):**
+
+1. *Grill one of the queued features.* Tool Health expansion is the
+   smallest — Vercel/Supabase/Cloudflare/Upstash status pages are
+   all public APIs with the same shape as the existing 4 tools.
+   Security incidents and Free-tier infra tracking need tighter
+   grilling on source-trust and scope.
+2. *Consider trimming session 25 to a one-liner* next session,
+   leaving only 26 + 27 in full detail. Active HANDOFF would drop
+   another ~8KB and stay inside the 15-20KB band as session detail
+   keeps accumulating.
+3. *Audit the three pending items above* when next in the codebase
+   — all three are small.
+
+**Session 28 entry point:** `main` is clean at `65eaa3a`. First
+command: `git status && npx vitest run` to confirm the 213-unit
+baseline, then pick a queued feature or follow the NEXT #1 above.
 
 ---
 
