@@ -13,8 +13,8 @@ import {
  * gates them behind `activeTab === "map" || activeTab === "globe"`).
  * Tests use the Map stage (faster to become interactive than Globe).
  *
- * Wire + Tools are open by default; Models / Research / Benchmarks open
- * on first nav click. Each test opens exactly one panel so the
+ * Session 27 flipped every panel to closed-by-default (map-only first
+ * load). Every panel test now opens its panel via the nav first so the
  * screenshot captures the panel in focus.
  */
 
@@ -25,17 +25,19 @@ test.describe("dashboard panels", () => {
     await waitForMapReady(page);
   });
 
-  test("Wire panel (Live feed · gh-events) is open by default", async ({
+  test("Wire panel (Live feed · gh-events) opens on nav click", async ({
     page,
   }) => {
+    await openPanelViaNav(page, "Wire");
     const wire = panelByTitle(page, /Live feed/i);
-    await expect(wire).toBeVisible();
+    await expect(wire).toBeVisible({ timeout: 15_000 });
     await shot(page, "panel-wire");
   });
 
-  test("Tools panel (Tool health) is open by default", async ({ page }) => {
+  test("Tools panel (Tool health) opens on nav click", async ({ page }) => {
+    await openPanelViaNav(page, "Tools");
     const tools = panelByTitle(page, /Tool health/i);
-    await expect(tools).toBeVisible();
+    await expect(tools).toBeVisible({ timeout: 15_000 });
     await shot(page, "panel-tools");
   });
 

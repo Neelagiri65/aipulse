@@ -13,7 +13,9 @@ test.describe("chrome", () => {
     await expect(page.getByText("AI PULSE").first()).toBeVisible();
     await expect(page.getByRole("tab", { name: "The Map" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "The Wire" })).toBeVisible();
-    await expect(page.getByRole("tab", { name: "The Globe" })).toBeVisible();
+    // Session 27 hid the Globe tab from the switcher. Assert absence so
+    // the test catches any accidental re-add.
+    await expect(page.getByRole("tab", { name: "The Globe" })).toHaveCount(0);
 
     // Freshness pill cycles through connecting… / live · Xs / stale / offline.
     const pill = page
