@@ -3,6 +3,7 @@ import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { CursorGlow } from "@/components/chrome/CursorGlow";
 import { MobileNotice } from "@/components/chrome/MobileNotice";
+import { GlobalOverlays } from "@/components/chrome/GlobalOverlays";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -46,6 +47,7 @@ export default function RootLayout({
           {children}
         </div>
         <MobileNotice />
+        <GlobalOverlays />
       </body>
     </html>
   );
