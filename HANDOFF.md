@@ -2,11 +2,12 @@
 
 ## Current state (2026-04-21)
 
-- **Main:** `65eaa3a` (session 27). Prod deploy green. Visual smoke 25/25 against `aipulse-pi.vercel.app`.
-- **Sources:** 23 · **Crons:** 8 · **Active panels:** 7 · **LeftNav buttons:** 9 (Audit + Agents soon-disabled) · **Unit tests:** 213/213 · **Visual smoke:** 25/25
+- **Main:** `af3fb05` (session 28). Prod deploy green. Visual smoke 25/25 against `aipulse-pi.vercel.app` in 49.3s.
+- **Sources:** 23 · **Crons:** 8 · **Active panels:** 7 · **LeftNav buttons:** 9 (Audit + Agents soon-disabled) · **Unit tests:** 224/224 · **Visual smoke:** 25/25
 - **First-load:** Map-only, no panels open. Every panel opens on demand via LeftNav.
+- **Panel cap (FIX-01):** ≥1440px → 2 visible panels side-by-side; <1440px → 1 visible panel (opening evicts the oldest visible from zorder head).
 - **Top-bar tabs:** The Map / The Wire (Globe tab hidden; ViewTabId="globe" still exists in code for future revival).
-- **Panels:** Win chrome v2 live — accent colours (wire/models=teal, tools=green, benchmarks=amber, research/labs=violet, regional-wire=orange), per-panel stat bars, persistent FilterPanel rail (icon-only <1440px), keyboard shortcuts (Esc, 1-9). Right-anchored panels (tools, models) reserve the FilterPanel rail width so they no longer render behind it.
+- **Panels:** Win chrome v2 live — accent colours (wire/models=teal, tools=green, benchmarks=amber, research/labs=violet, regional-wire=orange), per-panel stat bars, persistent FilterPanel rail (icon-only <1440px), keyboard shortcuts (Esc, 1-9). Right-anchored panels (tools, models) reserve the FilterPanel rail width so they no longer render behind it. Tool-health maximise is 80% × centred with a pinned 2-col grid (FIX-02).
 - **Layers live on globe/map:** live pulse (GH events), AI Labs (32 labs, violet), Regional RSS (5 publishers, amber), Hacker News (HN orange), registry.
 
 ## Queued features (pending grill → PRD)
@@ -14,6 +15,149 @@
 1. **Expand Tool Health** — add Vercel, Supabase, Cloudflare, Upstash status pages (current grid: OpenAI, Anthropic, GitHub, npm).
 2. **Security incidents panel** — GitHub Security Advisories API, OWASP feeds, CVE/NVD. Needs source-trust review per non-negotiables.
 3. **Free-tier infrastructure tracking** — status + limits for AI-era dev stack providers. Needs PRD on what "status" means vs Tool Health (likely a separate panel, not a merge).
+
+---
+
+### Session 28 — FIX-01 single-panel mode + FIX-02 tool-health maximise · SHIPPED
+
+**Status:** Two commits direct on `main` through `af3fb05`. Prod smoke
+**25/25 green in 49.3s** against `https://aipulse-pi.vercel.app` after
+the Vercel deploy (`dpl_8D1ynC3RusepXdRghRQ7wqccf5jx`, created
+13:35:43 BST — ~15s after the `af3fb05` commit).
+
+Session brief (user, verbatim): *"A. Skip straight to FIX-01 + FIX-02.
+The session 27 fixes are already shipped. Build both, ship to main."*
+(Session started with a paste of the session-27 prompt by mistake; I
+flagged the mismatch, user confirmed the pivot.)
+
+**Shipped this session (2 commits, direct on main):**
+
+| # | Commit    | Scope                                                       |
+| - | --------- | ----------------------------------------------------------- |
+| 1 | `c9d2dbb` | `feat(dashboard): FIX-01 single-panel mode — viewport cap`  |
+| 2 | `af3fb05` | `feat(chrome): FIX-02 tool-health maximise — 80% centred`   |
+
+1. **FIX-01 — viewport cap on visible panels** (`c9d2dbb`) —
+   `Dashboard.toggle()` now enforces a cap: 2 visible panels at
+   ≥1440px (the observatory posture, side-by-side reads fine), 1
+   visible panel below 1440 (laptop / narrow desktop — a second open
+   panel crowds the map out). Opening a new panel evicts the oldest
+   visible from `zorder` head-first until the cap is met. Minimised
+   panels don't count toward the cap (they're not occluding the map).
+   Closing a visible panel via a second nav click stays a plain
+   toggle with no cascade. Pure logic lives in
+   `src/lib/panels/panel-cap.ts` (`togglePanelWithCap` +
+   `capForViewportWidth`) so the branching (cap-1 vs cap-2, eviction
+   order, minimised-as-non-visible, toggle-closed path) is
+   unit-testable without mounting Dashboard. **+11 unit tests** in
+   `src/lib/panels/__tests__/panel-cap.test.ts`; suite 213 → 224.
+
+2. **FIX-02 — tool-health maximise cleanup** (`af3fb05`) — three
+   coordinated changes behind a single feel:
+
+   - **Win.tsx** gains `maximizedLayout?: "default" | "centered"`.
+     The `"default"` path (innerW − 32 width, hugs edges) stays for
+     tabular-wide panels like Benchmarks where every horizontal pixel
+     pays off. `"centered"` renders the panel at 80% width × centred,
+     giving the "window, not page" feel from design-spec-v2
+     principle 1. `y` and `h` unchanged.
+   - **HealthCardGrid.tsx** takes a `maximized?: boolean` flag. When
+     true it pins to a 2-col grid (`md:grid-cols-2`) per the spec —
+     the auto-fit rule landed at 3 cols at 80% of 1440, making each
+     card body (incident list + sparkline stack) read too narrow.
+     Restored-panel behaviour unchanged (auto-fit 300-min to 1fr).
+   - **ToolHealthCard.LiveBody** re-introduces the "metrics pending"
+     badge when a tool has no dedicated metric rows yet. 10px mono,
+     `tracking-wider`, 0.5 opacity — matches the source-citation
+     style. Replaces session-23's full-hide which caused layout
+     shift when data eventually landed. This is the session-26 spec
+     amendment.
+
+   Dashboard wires Tools to `maximizedLayout="centered"` and passes
+   `maximized={maxId === "tools"}` into `HealthCardGrid`. Other
+   panels unchanged — their maximise geometry + stat-bar derivation
+   stay on the default path.
+
+**Files changed (session 28):**
+
+- New (2): `src/lib/panels/panel-cap.ts`,
+  `src/lib/panels/__tests__/panel-cap.test.ts`.
+- Modified (4): `src/components/dashboard/Dashboard.tsx`,
+  `src/components/chrome/Win.tsx`,
+  `src/components/health/HealthCardGrid.tsx`,
+  `src/components/health/ToolHealthCard.tsx`.
+- Deleted (0). Touched outside project directory (0).
+
+**Test + build state:**
+
+- Unit tests: **224/224 ✓** (+11 from `panel-cap.test.ts`;
+  baseline was 213).
+- `npx tsc --noEmit`: clean (only the pre-existing
+  `wire-rss.test.ts` StoreSpy + nullable errors flagged in session
+  21 as out-of-scope remain).
+- `npm run build`: ✓ 6 static pages, 17 dynamic routes intact.
+- Visual smoke against prod: **25/25 green in 49.3s** at `af3fb05`
+  vs `https://aipulse-pi.vercel.app`. No smoke added for FIX-01 /
+  FIX-02 this session — FIX-01 is a no-op against the current suite
+  (viewport 1440, cap=2, each test opens ≤1 panel) and FIX-02 only
+  triggers on maximise which no smoke exercises. Playwright
+  coverage for these is NEXT-candidate material.
+
+**AUDITOR-REVIEW: PENDING (this session):**
+
+- *FIX-01 boundary choice* — cap flips from 1 to 2 at exactly
+  ≥1440px, matching the FilterPanel icon-rail breakpoint. If either
+  threshold moves in a future fix (e.g. a search affordance widens
+  the rail, pushing the panel-cap boundary up), they should move
+  together. Consider factoring the boundary into a shared chrome
+  constant.
+- *FIX-01 1366 / 1280 / 1024 behaviour* — confirm the single-panel
+  mode reads as "clean swap" when the user fans through nav items
+  (each click closes the current + opens the new one). A rapid
+  series of clicks on 1024 should feel like a tab switcher, not a
+  stutter.
+- *FIX-02 80% centred at 1920 / 1440 / 1280* — confirm the tool-
+  health maximise reads as "observatory window" rather than awkward
+  letterbox. 80% of 1280 = 1024; 80% of 1920 = 1536. Cards still
+  read comfortably at both.
+- *FIX-02 2-col pin with active incidents* — when a tool has an
+  `ActiveIncidentList` stacked on top of the sparkline, 2-col at
+  80% of 1280 is ~500px per card column. Confirm the incident body
+  doesn't crowd the sparkline on viewports at the narrow end.
+- *FIX-02 metrics-pending badge* across the 4 currently-live tools
+  — auditor should eyeball that the 10px 0.5-opacity badge reads
+  like a disclosure, not a broken state. If badge + incidents + no
+  sparkline stack up on the same card, confirm it doesn't feel
+  cluttered.
+
+**NEXT (for session 29 — user to pick):**
+
+1. *Playwright smoke for FIX-01 and FIX-02.* FIX-01: open Wire →
+   open Tools at 1024×768 viewport → Wire should be closed,
+   Tools visible. FIX-02: open Tools → click maximise → measure
+   panel width ≈ 80% viewport, grid shows 2 cols. Small adds that
+   would lock the spec into the suite.
+2. *Grill one of the queued features.* Tool Health expansion
+   (Vercel/Supabase/Cloudflare/Upstash status pages) is still the
+   smallest unlock. Security incidents and Free-tier infra
+   tracking need tighter grilling on source-trust + scope.
+3. *P1 polish from `docs/design-spec-v2.md`:* FIX-05 / FIX-06 /
+   FIX-07 (font-size standardisation, panel density sweep, wire
+   timestamp precision). Session 24 covered some of this; cross-
+   check current CSS before duplicating work.
+4. *Audit the pending items above* when next in the codebase —
+   all five are small visual/UX calls.
+5. *Extend `maximizedLayout="centered"` to other panels?* The
+   Tools panel is the only one using it today. If a future
+   audit finds Models / Research / Labs also read better at 80%
+   centred, it's a one-line flip per panel. Don't pre-empt —
+   wait for the next pass with fresh eyes.
+
+**Session 29 entry point:** `main` is clean at `af3fb05`. First
+command: `git status && npx vitest run` to confirm the 224-unit
+baseline. Only re-run the visual smoke if touching anything that
+affects Win chrome, FilterPanel, LeftNav, panel z-order, or
+Dashboard's toggle path.
 
 ---
 
@@ -354,147 +498,9 @@ affects Win chrome, FilterPanel, LeftNav, or panel z-order.
 
 ---
 
-### Session 25 — Design spec v2 + global status bar + 4 Chinese labs · SHIPPED
-
-**Status:** Three commits landed direct on `main` and deployed to prod.
-Visual smoke against prod: **26/26 green in 56.7s** at commit `49abf78`
-(Vercel deployment id `4431506427`, state `success`).
-
-| # | Commit    | Scope                                              |
-| - | --------- | -------------------------------------------------- |
-| 1 | `09ddb31` | `docs(design): add v2 UI/UX overhaul spec`        |
-| 2 | `ddbd9f3` | `feat(chrome): global status bar (FIX-09)`        |
-| 3 | `49abf78` | `feat(labs): add 4 Chinese labs`                   |
-
-Session brief (user, verbatim): *"Read HANDOFF.md. Three things this
-session: 1) Save docs/design-spec-v2.md with the full UI/UX overhaul
-spec. 2) Global status bar — single-line between top nav and map …
-3) Add 4 Chinese labs to data/ai-labs.json … Two commits: status bar
-first, Chinese labs second. Ship both on main."*
-
-**Shipped this session (3/3, each as a discrete commit):**
-
-1. **Design spec v2** (`09ddb31`) — `docs/design-spec-v2.md`, 91 lines.
-   Captures the World-Monitor-vs-AI-Pulse comparison, the six design
-   principles (map-is-the-product, one-panel-at-a-time, info-dense not
-   spacious, hierarchy-through-typography, semantic colour, every-number-
-   cited), and the P0–P2 fix queue (FIX-01 through FIX-12). Reference
-   doc for every future UI session so we stop re-discovering the same
-   issues.
-
-2. **Global status bar** (`ddbd9f3`) — FIX-09 from the new spec. New
-   component `src/components/chrome/StatusBar.tsx` (196 lines) renders a
-   single-line bar between TopBar (48px) and the map stage at
-   `top:48 height:28`:
-
-       "N/N OPERATIONAL · N DEGRADED · N OUTAGE · N SOURCES · LIVE"
-
-   Fold logic mirrors `MetricsRow.toolsOpsCard` /
-   `TopBar.deriveSeverity`: an "operational" tool with an active
-   incident counts as **degraded, not operational** (trust invariant).
-   Overall dot is red if any outage, amber if any degraded, green
-   otherwise. Degraded/outage segments render only when non-zero so a
-   healthy fleet reads as one clean line. Live indicator is driven by
-   status-poll freshness (Connecting → Live → Stale → Offline).
-
-   Stage-offset accounting: paddingTop 48→76, `.ap-icon-nav` top
-   48→76, `FilterPanel` top 72→100, default Win y-positions +28.
-   LeftNav rail now sits under the status bar cleanly.
-
-   Unit tests: +6 for `deriveSev` covering the operational+incident
-   fold, explicit degraded + fold bundling, outage counts, and
-   unknown handling. Total 206/206 green.
-
-3. **Four Chinese labs** (`49abf78`) — Moonshot, MiniMax, Zhipu AI,
-   ByteDance Seed. Registry goes **32 → 36** entries; CN coverage
-   **5 → 9**; tracked flagship repos **47 → 55** (still well under
-   the 5000-req/hr GH budget at 4 cron runs/day):
-
-   | id                       | HQ              | url                      | orgs             |
-   | ------------------------ | --------------- | ------------------------ | ---------------- |
-   | `moonshot-beijing`       | Beijing Haidian | `moonshot.ai`           | `MoonshotAI`     |
-   | `minimax-shanghai`       | Shanghai        | `minimax.io`            | `MiniMax-AI`     |
-   | `zhipu-beijing`          | Beijing Haidian | `zhipuai.cn`            | `zai-org`        |
-   | `bytedance-seed-beijing` | Beijing Haidian | `seed.bytedance.com`    | `ByteDance-Seed` |
-
-   Each entry carries the two-URL contract from PR #5: `hqSourceUrl`
-   (Wikipedia infobox for HQ city provenance) and `url` (first-party
-   site for the click target, never Wikipedia). Zhipu/Tsinghua org
-   overlap is handled via `notes`: newer flagship work is attributed
-   to Zhipu (`zai-org/GLM-4.5`, `GLM-V`); earlier ChatGLM/GLM-4 work
-   remains under Tsinghua (`THUDM/ChatGLM3`, `GLM-4`). No activity
-   double-counting — the tracked repo lists don't overlap.
-
-   `public/data-sources.md` updated: "32 curated labs" → "36 curated
-   labs" and the GH-activity-fetcher arithmetic refreshed.
-
-**Files changed (session 25):**
-
-- New (3): `docs/design-spec-v2.md`,
-  `src/components/chrome/StatusBar.tsx`,
-  `src/components/chrome/__tests__/StatusBar.test.ts`
-- Modified (5): `src/components/dashboard/Dashboard.tsx`,
-  `src/components/chrome/FilterPanel.tsx`, `src/app/globals.css`,
-  `data/ai-labs.json`, `public/data-sources.md`
-- Deleted: 0
-
-**Test + build state:**
-
-- Unit tests: **206/206 ✓** (+6 from `deriveSev` tests; was 200).
-- `npm run build`: ✓ compiled in 1.9s, TypeScript clean.
-- Playwright visual smoke (prod): **26/26 green in 56.7s** against
-  `https://aipulse-pi.vercel.app` @ `49abf78`. No regression from
-  session 24's baseline.
-
-**AUDITOR-REVIEW: PENDING (this session's additions):**
-
-- *Status bar at 1920px / 1280px / 1024px* — layout uses `px-4 gap-2`
-  with 10px monospace. Auditor should confirm the full line reads
-  without truncation at 1024px (narrowest desktop). Mobile gate hides
-  it below 768px along with the rest of the chrome, so 360/375 is a
-  no-op.
-- *Segment colour palette* — green/amber/red read fine against the
-  dark bg at fg-muted tracking, but the combined glyph-dot + divider
-  dots might look busy. Auditor should eyeball vs. the existing
-  TopBar `SeveritySummary`, which this is semantically similar to.
-- *Zhipu `zai-org` flagship-repo choice* — GLM-4.5 and GLM-V are my
-  best-effort picks as of training cutoff 2026-01. If either repo
-  has been renamed or consolidated, the activity fetcher returns 404
-  and the lab dims to a stale violet dot — graceful degradation, no
-  fabricated numbers. Auditor should spot-check the three other new
-  labs' flagship repos too (Kimi-K2, MiniMax-M1, Seed-OSS, BAGEL).
-- *MiniMax HQ coord* — I used central Shanghai (31.2304, 121.4737 /
-  People's Square) pending a more precise district-level source. If
-  MiniMax's HQ is documented as Pudong or Xuhui, bump the coord and
-  refresh `hqSourceUrl`.
-
-**NEXT (for session 26):**
-
-1. P0 fixes from `docs/design-spec-v2.md` that weren't covered by
-   prior sessions: **FIX-01 single-panel mode on viewport < 1440px**
-   (close-all-then-open behaviour) and **FIX-02 tool-health maximise
-   cleanup** (2-column grid, hide placeholder, 80% width centred).
-2. *Optional* — FIX-05 / FIX-06 / FIX-07 (P1 polish: font-size
-   standardisation, panel density, wire timestamp precision). Session
-   24 already covered some of this; cross-check vs. current CSS before
-   duplicating work.
-3. *Evaluate* the three empirical-probe items from session 25
-   planning: OpenRouter stats API, Gitee trending, Papers With Code
-   SOTA. Kimi's audit called these out as "needs empirical test"; no
-   code, just curl + confirm. Would unblock decisions for session 27+.
-4. *Park* — editorial + moderation-risk items from the Kimi audit
-   (distillation/security incidents, WeChat/X monitoring, China gov
-   policy releases). Not in scope for an aggregator.
-
-**Session 26 entry point:** `main` is clean at `49abf78`. First
-command: `git status && npx vitest run` to confirm the 206-unit
-baseline. Only re-run the visual smoke if touching anything that
-affects TopBar, StatusBar, LeftNav, or panel chrome positioning.
-
----
-
 ## Earlier sessions — summary line only
 
+- **Session 25** — `49abf78` (3 commits direct on `main`). Design spec v2 added (`docs/design-spec-v2.md`, 91 lines — 6 principles + FIX-01..12), global StatusBar (FIX-09, between TopBar and map, N OP · N DEGRADED · N OUTAGE), +4 Chinese labs (Moonshot, MiniMax, Zhipu, ByteDance Seed; 32→36 entries, 47→55 tracked repos). 206/206 unit, 26/26 prod smoke.
 - **Session 24** — `8421253` (PR #6, merged). Polish round: four-tier type scale tokens, publisher event-time tooltips, mobile gate with MobileNotice overlay, lab-dot test hardening via `__apMap` hook. 26/26 prod smoke. 200/200 unit.
 - **Session 23** — `383a481` (PR #5, merged). UI/UX trust blockers: panel z-order emphasis (`topmost` prop + `.ap-win--topmost/--behind`), AI Labs `url` field (32 labs, no Wikipedia click targets), Regional Wire inline article links + `publisherUrl`, Tool Health grid auto-fit. 200/200 unit.
 - **Session 22** — `5f5af28` (PR #4, merged). Regional RSS ship + cron seed: 114 items across 5 publishers (The Register, Heise, Synced Review, MarkTechPost, MIT TR). 25/26 prod smoke (lab-dot flake resolved in session 24).
