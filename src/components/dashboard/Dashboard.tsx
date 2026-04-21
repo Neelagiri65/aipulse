@@ -423,17 +423,13 @@ export function Dashboard() {
       icon: "regional-wire",
       count: rss.data?.sources.length ?? null,
     },
-    { id: "audit", label: "Audit", icon: "audit" },
+    { id: "audit", label: "Audit", icon: "audit", soon: true },
   ];
 
   const focus = (id: PanelId) =>
     setZorder((z) => [...z.filter((x) => x !== id), id]);
 
   const toggle = (id: string) => {
-    if (id === "audit") {
-      window.location.href = "/audit";
-      return;
-    }
     if (
       id !== "wire" &&
       id !== "tools" &&

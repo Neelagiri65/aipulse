@@ -30,9 +30,10 @@ test.describe("chrome", () => {
     const nav = page.getByRole("navigation", { name: "Panel navigation" });
     // LeftNav buttons use `title` attribute as the stable identifier —
     // the accessible name includes the count/soon badge text so
-    // role+name matching doesn't work for exact labels. Session 21
-    // widened this list 8 → 9 with "Regional Wire" between AI Labs and
-    // Audit (sibling map-layer panel; sits next to its HQ-layer cousin).
+    // role+name matching doesn't work for exact labels. Session 27
+    // parked Audit alongside Agents as soon-disabled (the deterministic
+    // audit page is staying live but is hidden from the nav until it
+    // earns a full panel treatment).
     for (const label of [
       "Wire",
       "Tools",
@@ -41,14 +42,16 @@ test.describe("chrome", () => {
       "Benchmarks",
       "AI Labs",
       "Regional Wire",
-      "Audit",
     ]) {
       await expect(nav.locator(`button[title="${label}"]`)).toBeVisible();
     }
-    // Agents is soon-flagged → title includes " · coming soon", disabled.
-    const agents = nav.locator('button[title="Agents · coming soon"]');
-    await expect(agents).toBeVisible();
-    await expect(agents).toBeDisabled();
+    // Agents + Audit are soon-flagged → titles include " · coming soon",
+    // rendered disabled.
+    for (const label of ["Agents", "Audit"]) {
+      const btn = nav.locator(`button[title="${label} · coming soon"]`);
+      await expect(btn).toBeVisible();
+      await expect(btn).toBeDisabled();
+    }
     await shot(page, "chrome-leftnav");
   });
 

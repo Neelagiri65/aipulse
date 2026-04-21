@@ -82,12 +82,6 @@ export function TopBar({
           verified={VERIFIED_SOURCES.length}
           pending={PENDING_SOURCES.length}
         />
-        <a
-          href="/audit"
-          className="hidden font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground md:inline"
-        >
-          Audit
-        </a>
         <span className="hidden font-mono text-[11px] tracking-wider text-teal-300 sm:inline">
           {now}
         </span>
