@@ -199,21 +199,24 @@ export function Dashboard() {
     const repo = (p.meta as { repo?: string } | undefined)?.repo;
     if (repo) liveRepoSet.add(repo);
   }
-  const dedupedRegistry = registryPoints.filter((p) => {
-    const fn = (p.meta as { fullName?: string } | undefined)?.fullName;
-    return !fn || !liveRepoSet.has(fn);
-  });
+  // Registry layer — curated repos with resolved HQ coords. Gated by
+  // the `registry` filter (default ON); unchecking hides the full slate
+  // base-map layer so pure live-pulse density reads without the baseline
+  // noise. Event-type filters don't apply to registry (no `type` field)
+  // and the `ai-config-only` filter is a no-op on registry (every entry
+  // has AI config by definition).
+  const registryFiltered: GlobePoint[] = filters.registry
+    ? registryPoints.filter((p) => {
+        const fn = (p.meta as { fullName?: string } | undefined)?.fullName;
+        return !fn || !liveRepoSet.has(fn);
+      })
+    : [];
 
-  // Registry layer respects the ai-config-only filter (tautologically
-  // true — every registry entry has AI config) but not event-type
-  // filters (registry points have no `type`). Registry is the base
-  // map; event-type filters only narrow the live pulse layer.
-  //
   // HN points carry kind="hn" + locationLabel from the author's HN
   // profile. FlatMap + Globe detect kind and render them in HN orange.
-  // No filter applied: HN is a parallel signal (community discussion,
-  // not GH activity), so event-type + ai-config filters don't apply.
-  const hnPoints: GlobePoint[] = hn.data?.points ?? [];
+  // Gated by the `hn` filter (default ON) so users who want GH-only
+  // density can opt out of the community-discussion signal.
+  const hnPoints: GlobePoint[] = filters.hn ? hn.data?.points ?? [] : [];
 
   // AI Labs layer — curated HQ coords from data/ai-labs.json, sized by
   // 7d activity across flagship repos. Plotted even when the lab is
@@ -232,7 +235,7 @@ export function Dashboard() {
     : [];
   const points: GlobePoint[] = [
     ...livePoints,
-    ...dedupedRegistry,
+    ...registryFiltered,
     ...hnPoints,
     ...labPoints,
     ...rssPoints,

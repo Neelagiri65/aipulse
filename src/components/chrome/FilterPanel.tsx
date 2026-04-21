@@ -9,7 +9,9 @@ export type FilterLayerId =
   | "watch"
   | "ai-config-only"
   | "ai-labs"
-  | "regional-rss";
+  | "regional-rss"
+  | "registry"
+  | "hn";
 
 export type FilterState = Record<FilterLayerId, boolean>;
 
@@ -29,6 +31,13 @@ export const DEFAULT_FILTERS: FilterState = {
   // to counterbalance the SV/English axis, so hiding it by default
   // would defeat the anti-bias purpose of including it at all.
   "regional-rss": true,
+  // Registry default ON: 520+ curated repos are the "base map" that
+  // makes empty-event windows still legible. Users who want pure live-
+  // pulse density opt out via the toggle.
+  registry: true,
+  // HN default ON: community-discussion dots are the parallel signal
+  // alongside GH activity. Users who want GH-only opt out here.
+  hn: true,
 };
 
 type Layer = {
@@ -61,6 +70,21 @@ const LAYERS: Layer[] = [
     id: "regional-rss",
     label: "Regional RSS",
     color: "#f97316",
+    category: "Layers",
+  },
+  {
+    // Registry dot colour matches Dashboard.tsx registryPoints `color`
+    // (slate 300). Keeps the swatch honest to what lands on the map.
+    id: "registry",
+    label: "Registry",
+    color: "#cbd5e1",
+    category: "Layers",
+  },
+  {
+    // HN brand orange — matches the rendered dot + pill in WirePage.
+    id: "hn",
+    label: "Hacker News",
+    color: "#ff6600",
     category: "Layers",
   },
 ];

@@ -94,4 +94,45 @@ test.describe("interactions", () => {
     await expect(filter).toBeVisible();
     await shot(page, "interaction-filter-panel");
   });
+
+  test("Unchecking every filter empties the map (honest-filter contract)", async ({
+    page,
+  }) => {
+    // The user-surfaced bug (session 29) was: registry + HN dots
+    // rendered regardless of filter state because those two layers
+    // bypassed FilterPanel entirely. With the fix, every dot-producing
+    // layer is gated by a filter toggle, so unchecking all 11 filters
+    // leaves the map with zero leaflet markers / clusters.
+    await openDashboard(page);
+    await switchTab(page, "The Map");
+    await waitForMapReady(page);
+
+    // Use the desktop filter panel (≥1440px; Playwright viewport is
+    // 1440×900). Checkboxes have role="checkbox" and aria-checked set
+    // from the filter state — click each until all are unchecked.
+    const filterPanel = page.locator(".ap-filter-panel--full");
+    const checked = filterPanel.locator('[role="checkbox"][aria-checked="true"]');
+    // Click checked boxes until none remain. Cap the loop at 20 to
+    // guard against a render bug causing an infinite toggle.
+    for (let i = 0; i < 20; i++) {
+      const count = await checked.count();
+      if (count === 0) break;
+      await checked.first().click();
+      await page.waitForTimeout(80);
+    }
+    await expect(checked).toHaveCount(0);
+
+    // Wait for the next paint + any throttled map updates before
+    // asserting emptiness.
+    await page.waitForTimeout(1200);
+
+    // FlatMap renders via L.marker + L.divIcon (→ `.leaflet-marker-icon`)
+    // and the clustering plugin wraps dense groups in `.marker-cluster`.
+    // Either being present means a dot is still on the map.
+    const markers = page.locator(".leaflet-marker-icon");
+    const clusters = page.locator(".marker-cluster");
+    expect(await markers.count()).toBe(0);
+    expect(await clusters.count()).toBe(0);
+    await shot(page, "interaction-filters-off-empty-map");
+  });
 });
