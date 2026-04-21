@@ -1,0 +1,49 @@
+name: daily-snapshot
+
+# Daily snapshot archival — POSTs /api/snapshot/record once per UTC day
+# to capture registry count, geocode rate, 24h event volume, AI-config
+# share, tool health per tool, benchmark top-3, and source counts into
+# Upstash (key: snapshot:{YYYY-MM-DD}, no TTL). The /api/history
+# endpoint reads these back for trend charting.
+#
+# Cadence: daily at 04:00 UTC. The 00:00 slot is already taken by
+# labs-cron-warm; 04:00 picks up benchmarks-ingest's 03:15 commit
+# (so today's snapshot includes today's leaderboard refresh) without
+# colliding with anything else.
+#
+# Required repo secrets (shared with other workflows):
+#   INGEST_URL    — e.g. https://aipulse-pi.vercel.app/api/ingest
+#                    (we strip /api/ingest and append /api/snapshot/record)
+#   INGEST_SECRET — shared secret matching the Vercel env var.
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: daily-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger daily snapshot on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/snapshot/record"
+          echo "POST $URL"
+          RESPONSE=$(curl -sS -f --max-time 150 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"

@@ -40,6 +40,7 @@ export const CRON_WORKFLOWS = {
   "registry-discover-deps": { expectedIntervalMinutes: 360 },
   "labs-cron": { expectedIntervalMinutes: 360 },
   "benchmarks-ingest": { expectedIntervalMinutes: 1440 },
+  "daily-snapshot": { expectedIntervalMinutes: 1440 },
 } as const;
 
 export type CronWorkflowName = keyof typeof CRON_WORKFLOWS;
