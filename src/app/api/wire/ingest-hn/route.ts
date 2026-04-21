@@ -17,62 +17,43 @@
  * Cadence: invoked every 15 minutes via GitHub Actions cron
  * (.github/workflows/wire-ingest-hn.yml). The 5,20,35,50 slot keeps
  * this cron from colliding with the existing ingest jobs.
+ *
+ * This route is the first consumer of withIngest — the shared wrapper
+ * that handles INGEST_SECRET auth, try/catch, and cron-health
+ * recording. The remaining six wired ingest routes still inline that
+ * boilerplate; they'll migrate one at a time as they need changes.
  */
 
 import { NextResponse } from "next/server";
+import { withIngest } from "@/app/api/_lib/withIngest";
 import { runIngest } from "@/lib/data/wire-hn";
-import { writeCronHealth } from "@/lib/data/cron-health";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-export async function POST(request: Request) {
-  const requiredSecret = process.env.INGEST_SECRET;
-  if (!requiredSecret) {
-    return NextResponse.json(
-      { ok: false, error: "INGEST_SECRET not configured on server" },
-      { status: 503 },
-    );
-  }
-  const provided = request.headers.get("x-ingest-secret");
-  if (provided !== requiredSecret) {
-    return NextResponse.json(
-      { ok: false, error: "unauthorized" },
-      { status: 401 },
-    );
-  }
-
-  const url = new URL(request.url);
-  const source = url.searchParams.get("source") ?? "cron";
-  const capParam = url.searchParams.get("cap");
-  const cap = capParam
-    ? clamp(Number.parseInt(capParam, 10) || 20, 1, 20)
-    : 20;
-
-  let result;
-  try {
-    result = await runIngest({ cap, source });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    await writeCronHealth("wire-ingest-hn", { ok: false, error: msg });
-    throw e;
-  }
-  await writeCronHealth(
-    "wire-ingest-hn",
+export const POST = withIngest({
+  workflow: "wire-ingest-hn",
+  run: async (request) => {
+    const url = new URL(request.url);
+    const source = url.searchParams.get("source") ?? "cron";
+    const capParam = url.searchParams.get("cap");
+    const cap = capParam
+      ? clamp(Number.parseInt(capParam, 10) || 20, 1, 20)
+      : 20;
+    return runIngest({ cap, source });
+  },
+  toOutcome: (result) =>
     result.ok
       ? { ok: true, itemsProcessed: result.written }
       : {
           ok: false,
           error: result.failures[0]?.message ?? "ingest returned ok:false",
         },
-  );
-  return NextResponse.json({ ok: result.ok, result });
-}
+  toResponse: (result) => NextResponse.json({ ok: result.ok, result }),
+});
 
-export async function GET(request: Request) {
-  return POST(request);
-}
+export const GET = POST;
 
 function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
