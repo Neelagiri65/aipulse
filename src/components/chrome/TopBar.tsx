@@ -27,8 +27,10 @@ export type TopBarProps = {
 
 /**
  * Fixed-top header. Left: brand. Centre: view-tab switcher (THE MAP /
- * THE WIRE / THE GLOBE — map is the default because progressive-tile
- * rendering holds up at zoom where the 3D globe texture goes grainy).
+ * THE WIRE — map is the default because progressive-tile rendering
+ * holds up at zoom where the 3D globe texture goes grainy). Globe view
+ * is still reachable via ViewTabId="globe" but the tab is hidden from
+ * the nav; the 3D surface stays in the codebase for future re-enable.
  * Right: freshness pill + severity summary + sources count + UTC clock.
  * Full-width (no max-w container) so the LeftNav rail can pin to the
  * literal viewport edge beneath it.
@@ -64,12 +66,6 @@ export function TopBar({
             id="wire"
             label="The Wire"
             active={activeTab === "wire"}
-            onSelect={handleTab}
-          />
-          <TabButton
-            id="globe"
-            label="The Globe"
-            active={activeTab === "globe"}
             onSelect={handleTab}
           />
         </div>

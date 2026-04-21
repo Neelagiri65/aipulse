@@ -3,14 +3,17 @@ import {
   openDashboard,
   shot,
   switchTab,
-  waitForGlobeReady,
   waitForMapReady,
   waitForWireReady,
 } from "./_helpers";
 
 /**
- * Views — the three top-bar tabs. Each test is independent so a flake in
- * one (e.g. headless WebGL for Globe) doesn't hide regressions in the others.
+ * Views — the two user-facing top-bar tabs. Each test is independent so
+ * a flake in one doesn't hide regressions in the other.
+ *
+ * The Globe tab was hidden from the nav in session 27 (ViewTabId="globe"
+ * still exists in the codebase). No user-facing path to the Globe view
+ * currently exists, so its smoke test is retired until the tab returns.
  *
  * Assertions are intentionally light (visible element checks, tab aria-state),
  * not exact-pixel diffs — the suite is a *smoke* harness, not a regression
@@ -33,14 +36,6 @@ test.describe("dashboard views", () => {
     await waitForWireReady(page);
     await expect(page.getByText(/Chronological/).first()).toBeVisible();
     await shot(page, "view-wire", { fullPage: true });
-  });
-
-  test("@globe — The Globe renders three.js canvas", async ({ page }) => {
-    await openDashboard(page);
-    await switchTab(page, "The Globe");
-    await waitForGlobeReady(page);
-    await expect(page.locator("canvas").first()).toBeVisible();
-    await shot(page, "view-globe");
   });
 
   test("default tab on load is The Map", async ({ page }) => {
