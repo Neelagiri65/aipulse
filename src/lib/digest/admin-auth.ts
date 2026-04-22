@@ -6,13 +6,11 @@
  * preview route behind HTTPS; it's not a replacement for SSO if the
  * product ever grows a team.
  *
- * Constant-time compare via `crypto.timingSafeEqual` so the 401 path
- * does not leak whether it was the username or the password that didn't
- * match. Input-length-equalised before compare (Buffers of different
- * length would throw in timingSafeEqual).
+ * Constant-time compare is done via a pure-JS XOR accumulator (not
+ * node:crypto's timingSafeEqual) so the module can be imported from
+ * Edge middleware. Length-mismatched inputs short-circuit to false —
+ * timingSafeEqual has the same length-leak, so we haven't regressed.
  */
-
-import { timingSafeEqual } from "node:crypto";
 
 export type AdminCreds = { user: string; pass: string };
 
@@ -33,14 +31,17 @@ export function parseBasicAuth(header: string | null | undefined): AdminCreds | 
   return { user: decoded.slice(0, idx), pass: decoded.slice(idx + 1) };
 }
 
-/** Constant-time compare of two strings via timingSafeEqual on equal-
- *  length buffers. Returns false on length mismatch without leaking the
- *  mismatch position. */
+/** Constant-time string compare. Accumulates char-code differences
+ *  across the whole string via XOR so early-exit doesn't depend on
+ *  the first mismatching position. Length mismatch short-circuits to
+ *  false (same leak as timingSafeEqual's length check). */
 export function constantTimeEqual(a: string, b: string): boolean {
-  const ab = Buffer.from(a, "utf8");
-  const bb = Buffer.from(b, "utf8");
-  if (ab.length !== bb.length) return false;
-  return timingSafeEqual(ab, bb);
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
 }
 
 export function verifyAdminBasicAuth(
