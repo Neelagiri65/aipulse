@@ -1,22 +1,26 @@
 import { describe, expect, it } from "vitest";
 import { BETA_COOKIE_NAME, hasCookie, isBetaEnabled } from "@/lib/beta";
 
-describe("isBetaEnabled", () => {
+describe("isBetaEnabled (post-Session-34: default-on)", () => {
   it("returns true when env flag is 'all'", () => {
     expect(isBetaEnabled({ envFlag: "all" })).toBe(true);
   });
 
-  it("returns false when env flag is 'off' and no other signal", () => {
+  it("returns true when env flag is undefined (default-on)", () => {
+    expect(isBetaEnabled({ envFlag: undefined })).toBe(true);
+  });
+
+  it("returns false when env flag is 'off' and no override signal", () => {
     expect(isBetaEnabled({ envFlag: "off" })).toBe(false);
   });
 
-  it("returns true when ?beta=1 is on the URL", () => {
+  it("treats ?beta=1 as a kill-switch override (force-on)", () => {
     expect(
       isBetaEnabled({ envFlag: "off", url: "https://aipulse.dev/?beta=1" }),
     ).toBe(true);
   });
 
-  it("returns false for ?beta=0 or missing param", () => {
+  it("stays off when ?beta=1 is absent and env is 'off'", () => {
     expect(
       isBetaEnabled({ envFlag: "off", url: "https://aipulse.dev/?beta=0" }),
     ).toBe(false);
@@ -25,7 +29,7 @@ describe("isBetaEnabled", () => {
     ).toBe(false);
   });
 
-  it("returns true when the aip_beta cookie is present", () => {
+  it("treats the aip_beta cookie as a kill-switch override", () => {
     expect(
       isBetaEnabled({
         envFlag: "off",
@@ -34,8 +38,11 @@ describe("isBetaEnabled", () => {
     ).toBe(true);
   });
 
-  it("handles malformed URL gracefully (no throw, falls through)", () => {
+  it("handles malformed URL gracefully (no throw, falls through to env)", () => {
+    // env "off", malformed URL, no cookie → off
     expect(isBetaEnabled({ envFlag: "off", url: "not a url" })).toBe(false);
+    // env undefined (default-on), malformed URL → on
+    expect(isBetaEnabled({ url: "not a url" })).toBe(true);
   });
 });
 

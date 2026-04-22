@@ -109,6 +109,7 @@ describe("CRON_WORKFLOWS registry", () => {
     const keys = Object.keys(CRON_WORKFLOWS).sort();
     expect(keys).toEqual([
       "benchmarks-ingest",
+      "daily-digest",
       "daily-snapshot",
       "globe-ingest",
       "labs-cron",

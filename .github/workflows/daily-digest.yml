@@ -1,0 +1,52 @@
+name: daily-digest
+
+# Daily email digest — POSTs /api/digest/send once per UTC day to:
+#   1. Build today's DigestBody from snapshot diffs + HN + 24h incidents.
+#   2. Hard-gate on SPF/DKIM/DMARC via Resend + DNS.
+#   3. Load confirmed subscribers (decrypted via SUBSCRIBER_EMAIL_ENC_KEY).
+#   4. Batch-send through Resend (≤100 per batch, 5xx retry).
+#   5. Archive the body to digest:{YYYY-MM-DD} for /digest/{date}.
+#
+# Cadence: daily at 08:00 UTC. Pickings up after the 04:00 UTC snapshot
+# so today's snapshot is the one that ships.
+#
+# Required repo secrets (shared with other workflows):
+#   INGEST_URL    — e.g. https://aipulse-pi.vercel.app/api/ingest
+#                    (we strip /api/ingest and append /api/digest/send)
+#   INGEST_SECRET — shared secret matching the Vercel env var.
+#
+# Required Vercel env vars (not repo secrets — the route reads these):
+#   RESEND_API_KEY, RESEND_DOMAIN_ID, EMAIL_FROM_ADDRESS,
+#   EMAIL_UNSUB_MAILTO, SUBSCRIBER_EMAIL_ENC_KEY.
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: daily-digest
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger daily digest send on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/digest/send"
+          echo "POST $URL"
+          RESPONSE=$(curl -sS -f --max-time 540 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"

@@ -41,6 +41,7 @@ export const CRON_WORKFLOWS = {
   "labs-cron": { expectedIntervalMinutes: 360 },
   "benchmarks-ingest": { expectedIntervalMinutes: 1440 },
   "daily-snapshot": { expectedIntervalMinutes: 1440 },
+  "daily-digest": { expectedIntervalMinutes: 1440 },
   "pkg-pypi": { expectedIntervalMinutes: 360 },
   "pkg-npm": { expectedIntervalMinutes: 360 },
   "pkg-crates": { expectedIntervalMinutes: 360 },

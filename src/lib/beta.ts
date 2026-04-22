@@ -1,18 +1,23 @@
 /**
  * beta gate — controls whether the email-capture modal is visible to
- * a given visitor. Stays "off" until session 34 ships the daily digest;
- * capturing addresses before there's a digest to send is a broken
- * promise.
+ * a given visitor.
+ *
+ * As of Session 34 (digest send shipped) the default is ON. The gate
+ * still exists so `NEXT_PUBLIC_BETA_ENABLED="off"` can kill-switch the
+ * subscribe surface if we need to pull it fast; explicit query/cookie
+ * overrides still turn it on during a kill-switched incident so the
+ * operator can test a fix against production without rolling env.
  *
  * Evaluation order:
- *   1. NEXT_PUBLIC_BETA_ENABLED === "all"     → on for everyone.
- *   2. `?beta=1` in the request URL            → on (middleware sets a
- *      sticky cookie so subsequent visits stay on without the param).
- *   3. `aip_beta` cookie present on request   → on.
- *   4. Otherwise                               → off.
+ *   1. NEXT_PUBLIC_BETA_ENABLED === "off" AND no override signal → off.
+ *   2. `?beta=1` in the request URL              → on (middleware sets
+ *      a sticky cookie so subsequent visits stay on without the param).
+ *   3. `aip_beta` cookie present                  → on.
+ *   4. Otherwise (env is "all", undefined, or anything else)  → on.
  *
- * No other cookie values count — the presence check is deliberate so
- * the cookie can be deleted to opt back out.
+ * The previous gate (envFlag === "all" → on, else → off) gave us a
+ * tight beta-window during sessions 33/34 when subscribe captured
+ * addresses but there was no digest to send. That constraint is gone.
  */
 
 export const BETA_COOKIE_NAME = "aip_beta";
@@ -25,22 +30,28 @@ export type BetaSignals = {
 };
 
 export function isBetaEnabled(signals: BetaSignals): boolean {
-  const envFlag = signals.envFlag ?? process.env.NEXT_PUBLIC_BETA_ENABLED;
-  if (envFlag === "all") return true;
+  const hasOverride = hasBetaOverride(signals);
+  if (hasOverride) return true;
 
+  const envFlag = signals.envFlag ?? process.env.NEXT_PUBLIC_BETA_ENABLED;
+  if (envFlag === "off") return false;
+
+  return true;
+}
+
+function hasBetaOverride(signals: BetaSignals): boolean {
   if (signals.url !== undefined) {
     try {
-      const url = typeof signals.url === "string"
-        ? new URL(signals.url)
-        : signals.url;
+      const url =
+        typeof signals.url === "string" ? new URL(signals.url) : signals.url;
       if (url.searchParams.get("beta") === "1") return true;
     } catch {
-      // malformed URL → treat as no beta param, fall through
+      // malformed URL → fall through to other signals
     }
   }
 
-  if (signals.cookieHeader) {
-    if (hasCookie(signals.cookieHeader, BETA_COOKIE_NAME)) return true;
+  if (signals.cookieHeader && hasCookie(signals.cookieHeader, BETA_COOKIE_NAME)) {
+    return true;
   }
 
   return false;
