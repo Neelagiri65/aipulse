@@ -102,8 +102,8 @@ const LABS_POLL_MS = 10 * 60 * 1000;
 // feeds update slowly (often hourly), minute-level cadence is wasteful.
 const RSS_POLL_MS = 10 * 60 * 1000;
 // Cron health: a cron goes stale after 2× its expected interval. The
-// fastest monitored cron is globe-ingest at 5min (stale at 10min), so
-// a 5-min poll catches the first stale transition within one tick.
+// fastest monitored cron is wire-ingest-hn at 15min (stale at 30min),
+// so a 5-min poll catches the first stale transition within one tick.
 const CRON_HEALTH_POLL_MS = 5 * 60 * 1000;
 // SDK Adoption: route is CDN-cached for 5min (s-maxage=300) and the
 // underlying snapshot cron only writes once a day. 5-min poll matches

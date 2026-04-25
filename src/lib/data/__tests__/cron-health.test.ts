@@ -76,7 +76,7 @@ describe("isCronStale", () => {
 
 describe("CRON_WORKFLOWS registry", () => {
   it("matches the expected cadences of the monitored workflows", () => {
-    expect(CRON_WORKFLOWS["globe-ingest"].expectedIntervalMinutes).toBe(5);
+    expect(CRON_WORKFLOWS["globe-ingest"].expectedIntervalMinutes).toBe(30);
     expect(CRON_WORKFLOWS["wire-ingest-hn"].expectedIntervalMinutes).toBe(15);
     expect(CRON_WORKFLOWS["wire-ingest-rss"].expectedIntervalMinutes).toBe(30);
     expect(

@@ -57,7 +57,22 @@ describe("SdkAdoptionPanel", () => {
     expect(html).toContain("openai");
   });
 
-  it("renders the matrix when initialViewMode='heatmap' is set", () => {
+  it("hides the heatmap toggle when fewer than 14 days of data exist", () => {
+    // Fixture above has 3 days of data → heatmap unavailable.
+    const html = renderToStaticMarkup(
+      <SdkAdoptionPanel
+        data={dto()}
+        error={null}
+        isInitialLoading={false}
+        originUrl="https://aipulse.dev"
+      />,
+    );
+    expect(html).not.toMatch(/aria-pressed[^>]*>Heatmap/);
+    expect(html).toMatch(/Heatmap unlocks at 14 days/);
+    expect(html).toMatch(/3\/14 so far/);
+  });
+
+  it("ignores initialViewMode='heatmap' when the data is under the unlock threshold", () => {
     const html = renderToStaticMarkup(
       <SdkAdoptionPanel
         data={dto()}
@@ -67,13 +82,34 @@ describe("SdkAdoptionPanel", () => {
         initialViewMode="heatmap"
       />,
     );
-    expect(html).toContain('role="grid"');
+    expect(html).not.toContain('role="grid"');
+    expect(html).toMatch(/Tracking since/);
   });
 
-  it("renders both view-toggle buttons regardless of mode", () => {
+  it("exposes both view-toggle buttons when data has ≥14 days, defaults to List", () => {
+    const richDto: SdkAdoptionDto = {
+      generatedAt: "2026-05-10T12:00:00Z",
+      packages: [
+        {
+          id: "pypi:transformers",
+          label: "transformers",
+          registry: "pypi",
+          latest: { count: 5_000_000, fetchedAt: "2026-05-10T04:00:00Z" },
+          days: Array.from({ length: 14 }, (_, i) => ({
+            date: `2026-04-${(27 + i).toString().padStart(2, "0")}`,
+            count: 100 + i * 10,
+            delta: null,
+          })),
+          firstParty: false,
+          caveat: null,
+          counterName: "lastDay",
+          counterUnits: "downloads/day",
+        },
+      ],
+    };
     const html = renderToStaticMarkup(
       <SdkAdoptionPanel
-        data={dto()}
+        data={richDto}
         error={null}
         isInitialLoading={false}
         originUrl="https://aipulse.dev"
@@ -81,6 +117,39 @@ describe("SdkAdoptionPanel", () => {
     );
     expect(html).toMatch(/aria-pressed="true"[^>]*>List/);
     expect(html).toMatch(/aria-pressed="false"[^>]*>Heatmap/);
+  });
+
+  it("renders the matrix when ≥14 days of data and initialViewMode='heatmap'", () => {
+    const richDto: SdkAdoptionDto = {
+      generatedAt: "2026-05-10T12:00:00Z",
+      packages: [
+        {
+          id: "pypi:transformers",
+          label: "transformers",
+          registry: "pypi",
+          latest: { count: 5_000_000, fetchedAt: "2026-05-10T04:00:00Z" },
+          days: Array.from({ length: 14 }, (_, i) => ({
+            date: `2026-04-${(27 + i).toString().padStart(2, "0")}`,
+            count: 100 + i * 10,
+            delta: null,
+          })),
+          firstParty: false,
+          caveat: null,
+          counterName: "lastDay",
+          counterUnits: "downloads/day",
+        },
+      ],
+    };
+    const html = renderToStaticMarkup(
+      <SdkAdoptionPanel
+        data={richDto}
+        error={null}
+        isInitialLoading={false}
+        originUrl="https://aipulse.dev"
+        initialViewMode="heatmap"
+      />,
+    );
+    expect(html).toContain('role="grid"');
   });
 
   it("renders loading state when isInitialLoading and no data", () => {

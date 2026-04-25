@@ -137,10 +137,10 @@ export function MatrixHeatmap({
                           ? () => onCellClick(r.id, d)
                           : undefined
                       }
-                      title={formatTooltip(day)}
+                      title={formatCellTooltip(r.id, r.days, d)}
                     >
                       <span className="cell-sr">
-                        {formatTooltip(day)}
+                        {formatCellTooltip(r.id, r.days, d)}
                       </span>
                     </td>
                   );
@@ -151,6 +151,25 @@ export function MatrixHeatmap({
         })}
       </tbody>
     </table>
+  );
+}
+
+/**
+ * Compact legend strip rendered below the matrix. The matrix is only
+ * legible if the visitor knows the colour convention; without this,
+ * green/red flickers read as random noise.
+ */
+export function MatrixLegend(): React.ReactElement {
+  return (
+    <div className="sdk-matrix-legend" role="note" aria-label="Heatmap colour scale">
+      <span>Δ vs 30d baseline</span>
+      <span className="legend-sample legend-sample-neg" aria-hidden="true" />
+      <span>declining</span>
+      <span className="legend-sample legend-sample-flat" aria-hidden="true" />
+      <span>flat / no data</span>
+      <span className="legend-sample legend-sample-pos" aria-hidden="true" />
+      <span>growing</span>
+    </div>
   );
 }
 
@@ -168,12 +187,37 @@ function formatDelta(delta: number | null): string {
   return `${sign}${pct}%`;
 }
 
-function formatTooltip(
-  day: { date: string; count: number | null; delta: number | null } | undefined,
+/**
+ * Cell tooltip format: "{pkgId} · {date} · {count formatted} · {±N}% vs {priorDate}".
+ * The prior-date suffix turns the abstract "delta" into something a
+ * reader can parse — it's not a 30-day baseline number, it's "vs the
+ * day before this one".
+ */
+export function formatCellTooltip(
+  pkgId: string,
+  days: Array<{ date: string; count: number | null; delta: number | null }>,
+  date: string,
 ): string {
-  if (!day) return "no data";
-  if (day.count === null) return `${day.date}: no data`;
-  return `${day.date}: ${day.count.toLocaleString()} (${formatDelta(day.delta)})`;
+  const idx = days.findIndex((d) => d.date === date);
+  if (idx === -1) return `${pkgId} · ${date} · no data`;
+  const day = days[idx];
+  if (day.count === null) return `${pkgId} · ${date} · no data`;
+  const formattedCount = formatCompactCount(day.count);
+  if (day.delta === null) {
+    return `${pkgId} · ${date} · ${formattedCount} · baseline`;
+  }
+  const priorDate = idx > 0 ? days[idx - 1].date : null;
+  if (!priorDate) {
+    return `${pkgId} · ${date} · ${formattedCount} · ${formatDelta(day.delta)}`;
+  }
+  return `${pkgId} · ${date} · ${formattedCount} · ${formatDelta(day.delta)} vs ${priorDate}`;
+}
+
+function formatCompactCount(n: number): string {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return n.toLocaleString();
 }
 
 export default MatrixHeatmap;

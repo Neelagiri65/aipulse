@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   MatrixHeatmap,
+  MatrixLegend,
   cellClassFromDelta,
   visibleColumnDates,
+  formatCellTooltip,
 } from "@/components/panels/sdk-adoption/MatrixHeatmap";
 import type { SdkAdoptionPackage } from "@/lib/data/sdk-adoption";
 
@@ -153,7 +155,63 @@ describe("MatrixHeatmap render", () => {
     expect(html).toMatch(/no.*rows/i);
   });
 
-  it("includes data-date and data-pkg-id on each data cell for click handling", () => {
+  it("composes a cell tooltip with pkgId · date · count · delta vs prior date", () => {
+    const days = [
+      { date: "2026-04-23", count: 4_000_000, delta: null },
+      { date: "2026-04-24", count: 4_390_000, delta: 0.0975 },
+      { date: "2026-04-25", count: 4_500_000, delta: 0.025 },
+    ];
+    const tip = formatCellTooltip("pypi:anthropic", days, "2026-04-24");
+    expect(tip).toContain("pypi:anthropic");
+    expect(tip).toContain("2026-04-24");
+    expect(tip).toContain("4.4M");
+    expect(tip).toContain("+10%");
+    expect(tip).toContain("vs 2026-04-23");
+  });
+
+  it("falls back to 'baseline' for the first column where there's no prior", () => {
+    const days = [{ date: "d1", count: 100, delta: null }];
+    expect(formatCellTooltip("pypi:foo", days, "d1")).toContain("baseline");
+  });
+
+  it("falls back to 'no data' when the cell has null count", () => {
+    const days = [{ date: "d1", count: null, delta: null }];
+    expect(formatCellTooltip("pypi:foo", days, "d1")).toContain("no data");
+  });
+});
+
+describe("MatrixLegend", () => {
+  it("renders three colour samples and the 'declining/flat/growing' labels", () => {
+    const html = renderToStaticMarkup(<MatrixLegend />);
+    expect(html).toContain("legend-sample-neg");
+    expect(html).toContain("legend-sample-flat");
+    expect(html).toContain("legend-sample-pos");
+    expect(html).toMatch(/declining/);
+    expect(html).toMatch(/flat/);
+    expect(html).toMatch(/growing/);
+    expect(html).toContain('role="note"');
+  });
+});
+
+describe("MatrixHeatmap render — extras", () => {
+  function row(
+    id: string,
+    days: Array<{ date: string; count: number | null; delta: number | null }>,
+  ): SdkAdoptionPackage {
+    return {
+      id,
+      label: id.split(":")[1] ?? id,
+      registry: id.split(":")[0] as SdkAdoptionPackage["registry"],
+      latest: { count: days[days.length - 1]?.count ?? null, fetchedAt: null },
+      days,
+      firstParty: true,
+      caveat: null,
+      counterName: "lastDay",
+      counterUnits: "downloads/day",
+    };
+  }
+
+  it("includes data-date and data-pkg-id on each data cell for click handling (extras)", () => {
     const rows = [
       row("pypi:transformers", [{ date: "2026-04-25", count: 1, delta: 0.2 }]),
     ];

@@ -1092,3 +1092,34 @@
   border-radius: 3px;
   margin: 0 0 14px;
 }
+
+/* SDK panel legend + toolbar gating note. */
+.sdk-adoption-panel .sdk-adoption-toolbar-note {
+  font-size: 10px;
+  color: rgba(148, 163, 184, 0.6);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sdk-adoption-panel .sdk-matrix-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(148, 163, 184, 0.7);
+  padding: 6px 0 0;
+}
+
+.sdk-adoption-panel .legend-sample {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.sdk-adoption-panel .legend-sample-neg  { background: rgba(239, 68, 68, 0.7); }
+.sdk-adoption-panel .legend-sample-flat { background: rgba(148, 163, 184, 0.3); }
+.sdk-adoption-panel .legend-sample-pos  { background: rgba(34, 197, 94, 0.7); }

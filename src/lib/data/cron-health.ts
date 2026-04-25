@@ -31,7 +31,12 @@ const KEY_PREFIX = "cron:health:";
  * Intervals are the `schedule: - cron:` cadence of that workflow.
  */
 export const CRON_WORKFLOWS = {
-  "globe-ingest": { expectedIntervalMinutes: 5 },
+  // GitHub Actions scheduled crons drift under load — actual cadence
+  // for this 5-min schedule is closer to 30-40 min in practice. The
+  // declared interval is what the cron-health "stale" check uses, so
+  // labelling it 30 min reflects observed reality and stops the
+  // StatusBar from flagging stale on every miss-of-five-minutes.
+  "globe-ingest": { expectedIntervalMinutes: 30 },
   "wire-ingest-hn": { expectedIntervalMinutes: 15 },
   "wire-ingest-rss": { expectedIntervalMinutes: 30 },
   "registry-backfill-events": { expectedIntervalMinutes: 60 },

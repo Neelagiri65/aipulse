@@ -22,7 +22,10 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
 import { stripLeadingNullDates } from "@/lib/data/sdk-adoption-view";
-import { MatrixHeatmap } from "@/components/panels/sdk-adoption/MatrixHeatmap";
+import {
+  MatrixHeatmap,
+  MatrixLegend,
+} from "@/components/panels/sdk-adoption/MatrixHeatmap";
 import { RowDrawer } from "@/components/panels/sdk-adoption/RowDrawer";
 import { SparklineListView } from "@/components/panels/sdk-adoption/SparklineListView";
 
@@ -118,6 +121,11 @@ export function SdkAdoptionPanel({
   // makes the matrix less broken AND keeps the list compact.
   const trimmed = stripLeadingNullDates(data);
   const columnDates = deriveColumnDates(trimmed);
+  // Heatmap is hidden until we have enough columns to make a pattern
+  // meaningful. With 4 days of data, a single bad day looks like a
+  // crash; with 14+ the day-over-day noise averages out.
+  const heatmapAvailable = columnDates.length >= HEATMAP_MIN_DAYS;
+  const effectiveViewMode = heatmapAvailable ? viewMode : "list";
   const focusedPackage =
     focusedRowId !== null
       ? trimmed.packages.find((p) => p.id === focusedRowId) ?? null
@@ -125,25 +133,39 @@ export function SdkAdoptionPanel({
 
   return (
     <div className="sdk-adoption-panel">
-      <div className="sdk-adoption-toolbar" role="toolbar" aria-label="View mode">
-        <button
-          type="button"
-          className={`sdk-view-toggle ${viewMode === "list" ? "is-active" : ""}`}
-          onClick={() => setViewMode("list")}
-          aria-pressed={viewMode === "list"}
+      {heatmapAvailable ? (
+        <div
+          className="sdk-adoption-toolbar"
+          role="toolbar"
+          aria-label="View mode"
         >
-          List
-        </button>
-        <button
-          type="button"
-          className={`sdk-view-toggle ${viewMode === "heatmap" ? "is-active" : ""}`}
-          onClick={() => setViewMode("heatmap")}
-          aria-pressed={viewMode === "heatmap"}
+          <button
+            type="button"
+            className={`sdk-view-toggle ${effectiveViewMode === "list" ? "is-active" : ""}`}
+            onClick={() => setViewMode("list")}
+            aria-pressed={effectiveViewMode === "list"}
+          >
+            List
+          </button>
+          <button
+            type="button"
+            className={`sdk-view-toggle ${effectiveViewMode === "heatmap" ? "is-active" : ""}`}
+            onClick={() => setViewMode("heatmap")}
+            aria-pressed={effectiveViewMode === "heatmap"}
+          >
+            Heatmap
+          </button>
+        </div>
+      ) : (
+        <p
+          className="sdk-adoption-toolbar-note"
+          aria-label="Heatmap availability"
         >
-          Heatmap
-        </button>
-      </div>
-      {viewMode === "list" ? (
+          Heatmap unlocks at {HEATMAP_MIN_DAYS} days of data
+          ({columnDates.length}/{HEATMAP_MIN_DAYS} so far).
+        </p>
+      )}
+      {effectiveViewMode === "list" ? (
         <SparklineListView
           data={trimmed}
           originUrl={originUrl}
@@ -151,13 +173,16 @@ export function SdkAdoptionPanel({
           onRowClick={(pkgId) => setFocusedRowId(pkgId)}
         />
       ) : (
-        <MatrixHeatmap
-          rows={trimmed.packages}
-          columnDates={columnDates}
-          viewportWidth={vw}
-          focusedRowId={focusedRowId}
-          onCellClick={(pkgId) => setFocusedRowId(pkgId)}
-        />
+        <>
+          <MatrixHeatmap
+            rows={trimmed.packages}
+            columnDates={columnDates}
+            viewportWidth={vw}
+            focusedRowId={focusedRowId}
+            onCellClick={(pkgId) => setFocusedRowId(pkgId)}
+          />
+          <MatrixLegend />
+        </>
       )}
       {focusedPackage ? (
         <RowDrawer
@@ -170,6 +195,13 @@ export function SdkAdoptionPanel({
     </div>
   );
 }
+
+/** Minimum non-null column count before the Heatmap toggle is exposed.
+ *  Below this, day-over-day noise dominates the visual; the matrix
+ *  shows red/green flickers that aren't real signal. 14 days = two
+ *  full weekly cycles, enough to absorb mid-week vs weekend variance.
+ */
+const HEATMAP_MIN_DAYS = 14;
 
 function deriveColumnDates(data: SdkAdoptionDto): string[] {
   // All rows share the same column-date axis (assembler emits the same
