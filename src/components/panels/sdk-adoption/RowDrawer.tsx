@@ -111,9 +111,19 @@ export function RowDrawer({
             <span aria-hidden="true"> · </span>
             <span>{pkg.counterUnits}</span>
             {pkg.firstParty ? (
-              <span className="badge badge-first-party">first-party</span>
+              <span
+                className="badge badge-first-party"
+                title="First-party data path — counts come direct from the registry."
+              >
+                first-party
+              </span>
             ) : (
-              <span className="badge badge-aggregator">aggregator</span>
+              <span
+                className="badge badge-aggregator"
+                title="Aggregated counts — includes CI/CD, mirrors, and automated installs. Not unique developers."
+              >
+                aggregator
+              </span>
             )}
           </div>
         </header>

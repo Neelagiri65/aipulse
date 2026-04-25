@@ -151,7 +151,7 @@ export function SparklineListView({
                     {!p.firstParty ? (
                       <span
                         className="badge badge-aggregator"
-                        title="Aggregated counts (third-party data path)"
+                        title="Aggregated counts — includes CI/CD, mirrors, and automated installs. Not unique developers."
                       >
                         agg
                       </span>

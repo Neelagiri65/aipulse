@@ -130,11 +130,21 @@ export function StatusBar({
                 <>
                   <span
                     className="tabular-nums"
+                    style={{ color: "var(--sev-op)" }}
+                  >
+                    {cronHealth.healthy}/{cronHealth.total}
+                  </span>{" "}
+                  Crons
+                  <span aria-hidden className="mx-1 text-muted-foreground/50">
+                    ·
+                  </span>
+                  <span
+                    className="tabular-nums"
                     style={{ color: "var(--sev-degrade)" }}
                   >
                     {cronHealth.stale}
                   </span>{" "}
-                  Cron{cronHealth.stale === 1 ? "" : "s"} Stale
+                  Stale
                 </>
               ) : (
                 <>

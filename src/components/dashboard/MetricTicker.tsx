@@ -4,11 +4,19 @@ import type { GlobeEventsResult } from "@/lib/data/fetch-events";
 import type { StatusResult } from "@/lib/data/fetch-status";
 import { getSourceById } from "@/lib/data-sources";
 
+export type CronHealthSnapshot = {
+  total: number;
+  healthy: number;
+  stale: number;
+};
+
 export type MetricTickerProps = {
   status?: StatusResult;
   events?: GlobeEventsResult;
   verifiedSourceCount: number;
   pendingSourceCount: number;
+  /** Cron-health summary so the Sources tile can surface healthy/stale split. */
+  cronHealth?: CronHealthSnapshot;
   /** True until the first status poll lands. */
   statusLoading: boolean;
   /** True until the first events poll lands. */
@@ -23,6 +31,12 @@ type Metric = {
   stamp?: string;
   /** Tone: neutral (default), good (emerald), warn (amber), bad (rose), pending (muted italic). */
   tone?: "neutral" | "good" | "warn" | "bad" | "pending";
+  /**
+   * Hover caveat. Surfaces what the number does and does not mean —
+   * downloads counts include CI bots, geocoder coverage is biased toward
+   * English-speaking regions, etc. Rendered as a title= on the cell.
+   */
+  caveat?: string;
 };
 
 export function MetricTicker({
@@ -30,6 +44,7 @@ export function MetricTicker({
   events,
   verifiedSourceCount,
   pendingSourceCount,
+  cronHealth,
   statusLoading,
   eventsLoading,
 }: MetricTickerProps) {
@@ -39,7 +54,7 @@ export function MetricTicker({
     aiConfigRatioMetric(events, eventsLoading),
     toolsOperationalMetric(status, statusLoading),
     coverageMetric(events, eventsLoading),
-    sourcesVerifiedMetric(verifiedSourceCount, pendingSourceCount),
+    sourcesVerifiedMetric(verifiedSourceCount, pendingSourceCount, cronHealth),
   ];
 
   return (
@@ -59,7 +74,10 @@ export function MetricTicker({
 function MetricCell({ metric }: { metric: Metric }) {
   const toneClass = toneClassname(metric.tone);
   return (
-    <div className="min-w-[180px] flex-1 px-4 py-3">
+    <div
+      className="min-w-[180px] flex-1 px-4 py-3"
+      title={metric.caveat}
+    >
       <div className="flex items-baseline justify-between gap-2">
         <span className={`ap-type-metric ${toneClass}`}>
           {metric.value}
@@ -160,6 +178,9 @@ function claudeCodeIssuesMetric(status: StatusResult | undefined, loading: boole
   };
 }
 
+const EVENTS_CAVEAT =
+  "Counts placeable GitHub events (commits, issues, PRs) — not unique developers. A single contributor pushing 50 commits in one session inflates the count.";
+
 function aiEventsMetric(events: GlobeEventsResult | undefined, loading: boolean): Metric {
   if (loading && !events) {
     return {
@@ -167,6 +188,7 @@ function aiEventsMetric(events: GlobeEventsResult | undefined, loading: boolean)
       value: LOADING_VALUE,
       sourceIds: ["gh-events"],
       tone: "pending",
+      caveat: EVENTS_CAVEAT,
     };
   }
   const n = events?.coverage.windowSize ?? 0;
@@ -177,8 +199,12 @@ function aiEventsMetric(events: GlobeEventsResult | undefined, loading: boolean)
     sourceIds: ["gh-events"],
     tone: n > 0 ? "neutral" : "pending",
     stamp: events?.polledAt ? pollAge(events.polledAt) : undefined,
+    caveat: EVENTS_CAVEAT,
   };
 }
+
+const AI_CONFIG_CAVEAT =
+  "Lower bound — counts repos with AI-tool config files present (CLAUDE.md, .cursorrules, .aider.conf, etc.). Many AI-using repos have no config files; many template-copied configs see no real usage.";
 
 function aiConfigRatioMetric(events: GlobeEventsResult | undefined, loading: boolean): Metric {
   if (loading && !events) {
@@ -187,6 +213,7 @@ function aiConfigRatioMetric(events: GlobeEventsResult | undefined, loading: boo
       value: LOADING_VALUE,
       sourceIds: ["gh-contents"],
       tone: "pending",
+      caveat: AI_CONFIG_CAVEAT,
     };
   }
   const total = events?.coverage.windowSize ?? 0;
@@ -197,6 +224,7 @@ function aiConfigRatioMetric(events: GlobeEventsResult | undefined, loading: boo
     value: pct !== undefined ? `${ai.toLocaleString()} · ${pct}%` : NO_DATA_VALUE,
     sourceIds: ["gh-contents"],
     tone: pct !== undefined && pct > 0 ? "good" : "pending",
+    caveat: AI_CONFIG_CAVEAT,
   };
 }
 
@@ -241,6 +269,9 @@ function toolsOperationalMetric(status: StatusResult | undefined, loading: boole
   };
 }
 
+const COVERAGE_CAVEAT =
+  "Share of events with parseable locations. Biased toward English-speaking regions — non-Latin scripts, transliterations, and ambiguous city names fail the dictionary geocoder. China, Japan, Korea, Russia, Middle East are systematically under-represented.";
+
 function coverageMetric(events: GlobeEventsResult | undefined, loading: boolean): Metric {
   if (loading && !events) {
     return {
@@ -248,6 +279,7 @@ function coverageMetric(events: GlobeEventsResult | undefined, loading: boolean)
       value: LOADING_VALUE,
       sourceIds: ["gh-events"],
       tone: "pending",
+      caveat: COVERAGE_CAVEAT,
     };
   }
   const pct = events?.coverage.locationCoveragePct;
@@ -264,15 +296,47 @@ function coverageMetric(events: GlobeEventsResult | undefined, loading: boolean)
     value: pct !== undefined ? `${pct}%` : NO_DATA_VALUE,
     sourceIds: ["gh-events"],
     tone,
+    caveat: COVERAGE_CAVEAT,
   };
 }
 
-function sourcesVerifiedMetric(verified: number, pending: number): Metric {
+function sourcesVerifiedMetric(
+  verified: number,
+  pending: number,
+  cronHealth?: CronHealthSnapshot,
+): Metric {
+  // Source count is the registry size (constant). Cron-health is current.
+  // Surface both so "X sources verified" never contradicts a stale cron in
+  // the StatusBar above. Stamp slot carries the live cron state; the tone
+  // tracks staleness, not pending registry entries, because crons are the
+  // load-bearing freshness signal — pending entries are documented gaps.
+  const stale = cronHealth?.stale ?? 0;
+  const total = cronHealth?.total ?? 0;
+  const healthy = cronHealth?.healthy ?? 0;
+  const labelParts = ["Sources verified"];
+  if (pending > 0) labelParts.push(`${pending} pending`);
+  const stamp = cronHealth
+    ? stale > 0
+      ? `${healthy}/${total} crons · ${stale} stale`
+      : `${healthy}/${total} crons`
+    : undefined;
+  const tone: Metric["tone"] = !cronHealth
+    ? pending === 0
+      ? "good"
+      : "neutral"
+    : stale > 0
+      ? "warn"
+      : pending === 0
+        ? "good"
+        : "neutral";
   return {
-    label: pending > 0 ? `Sources verified · ${pending} pending` : "Sources verified",
+    label: labelParts.join(" · "),
     value: `${verified}`,
     sourceIds: [],
-    tone: pending === 0 ? "good" : "neutral",
+    tone,
+    stamp,
+    caveat:
+      "Source count = registry entries we have verified. Cron health is the live freshness signal — a stale cron means the data feeding that source is ageing.",
   };
 }
 

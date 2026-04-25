@@ -1098,6 +1098,15 @@ export function Dashboard() {
           events={events.data}
           verifiedSourceCount={VERIFIED_SOURCES.length}
           pendingSourceCount={PENDING_SOURCES.length}
+          cronHealth={
+            cronHealth.data
+              ? {
+                  total: cronHealth.data.total,
+                  healthy: cronHealth.data.healthy,
+                  stale: cronHealth.data.stale,
+                }
+              : undefined
+          }
           statusLoading={status.isInitialLoading}
           eventsLoading={events.isInitialLoading}
         />
