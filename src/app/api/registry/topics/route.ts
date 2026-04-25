@@ -17,9 +17,12 @@
  *   - topics=<csv>             Comma-separated subset of topics to sweep.
  *                              Unspecified → full TOPICS list.
  *
- * maxDuration=120 matches /backfill-events: Search API is slow (2s
- * inter-call delays) and each verified candidate runs 6 Contents probes
- * plus ≤2 verifier calls, so a cap=60 pass routinely needs 90s.
+ * maxDuration=300 matches /digest/send + /registry/discover. Production
+ * runs were 504-ing at the previous 120s cap because Search inter-call
+ * delays + per-candidate verifier work routinely push past 90s on a
+ * cap=60 sweep — the 90s estimate in the original comment was optimistic.
+ * Bumped to 300s for headroom; cap=60 + pagesPerTopic=2 still bounds the
+ * total work, the timeout was just the wrong tripwire.
  */
 
 import { NextResponse } from "next/server";
@@ -28,7 +31,7 @@ import { writeCronHealth } from "@/lib/data/cron-health";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   const requiredSecret = process.env.INGEST_SECRET;

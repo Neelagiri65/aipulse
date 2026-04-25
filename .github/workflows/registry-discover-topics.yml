@@ -69,7 +69,7 @@ jobs:
             URL="$URL&topics=$TOPICS"
           fi
           echo "POST $URL"
-          RESPONSE=$(curl -sS -f --max-time 150 \
+          RESPONSE=$(curl -sS -f --max-time 290 \
             -H "x-ingest-secret: $INGEST_SECRET" \
             -X POST \
             "$URL")
