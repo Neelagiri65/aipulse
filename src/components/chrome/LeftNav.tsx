@@ -90,6 +90,7 @@ type NavIconName =
   | "benchmarks"
   | "labs"
   | "regional-wire"
+  | "sdk-adoption"
   | "security"
   | "audit";
 
@@ -175,6 +176,17 @@ function NavIcon({ name }: { name: NavIconName }) {
           <circle cx="12" cy="12" r="9" />
           <path d="M3 12h18" />
           <path d="M12 3a15 15 0 0 1 4 9 15 15 0 0 1-4 9 15 15 0 0 1-4-9 15 15 0 0 1 4-9z" />
+        </svg>
+      );
+    case "sdk-adoption":
+      return (
+        <svg {...common}>
+          <rect x="3" y="3" width="6" height="6" rx="1" />
+          <rect x="11" y="3" width="6" height="6" rx="1" />
+          <rect x="3" y="11" width="6" height="6" rx="1" />
+          <rect x="11" y="11" width="6" height="6" rx="1" />
+          <rect x="3" y="19" width="6" height="2" rx="1" />
+          <rect x="11" y="19" width="6" height="2" rx="1" />
         </svg>
       );
     case "security":

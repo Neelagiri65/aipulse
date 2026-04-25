@@ -64,6 +64,8 @@ import { LabsPanel } from "@/components/labs/LabsPanel";
 import type { RssWireResult } from "@/lib/data/wire-rss";
 import { RegionalWirePanel } from "@/components/wire/RegionalWirePanel";
 import { rssToGlobePoints } from "@/components/wire/rss-to-points";
+import { SdkAdoptionPanel } from "@/components/panels/sdk-adoption/SdkAdoptionPanel";
+import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
 import { track } from "@/lib/analytics";
 
 const STATUS_POLL_MS = 5 * 60 * 1000;
@@ -103,6 +105,10 @@ const RSS_POLL_MS = 10 * 60 * 1000;
 // fastest monitored cron is globe-ingest at 5min (stale at 10min), so
 // a 5-min poll catches the first stale transition within one tick.
 const CRON_HEALTH_POLL_MS = 5 * 60 * 1000;
+// SDK Adoption: route is CDN-cached for 5min (s-maxage=300) and the
+// underlying snapshot cron only writes once a day. 5-min poll matches
+// the cache TTL so each real upstream flip is picked up exactly once.
+const SDK_ADOPTION_POLL_MS = 5 * 60 * 1000;
 
 type RegistryResult = {
   ok: boolean;
@@ -136,7 +142,8 @@ type PanelId =
   | "research"
   | "benchmarks"
   | "labs"
-  | "regional-wire";
+  | "regional-wire"
+  | "sdk-adoption";
 
 export function Dashboard() {
   const status = usePolledEndpoint<StatusResult>("/api/status", STATUS_POLL_MS);
@@ -160,6 +167,10 @@ export function Dashboard() {
   );
   const labs = usePolledEndpoint<LabsPayload>("/api/labs", LABS_POLL_MS);
   const rss = usePolledEndpoint<RssWireResult>("/api/rss", RSS_POLL_MS);
+  const sdkAdoption = usePolledEndpoint<SdkAdoptionDto>(
+    "/api/panels/sdk-adoption",
+    SDK_ADOPTION_POLL_MS,
+  );
   const cronHealth = usePolledEndpoint<CronHealthResult>(
     "/api/cron-health",
     CRON_HEALTH_POLL_MS,
@@ -347,6 +358,7 @@ export function Dashboard() {
       benchmarks: { open: false, min: false },
       labs: { open: false, min: false },
       "regional-wire": { open: false, min: false },
+      "sdk-adoption": { open: false, min: false },
     },
   );
   const [zorder, setZorder] = useState<PanelId[]>([
@@ -357,6 +369,7 @@ export function Dashboard() {
     "benchmarks",
     "labs",
     "regional-wire",
+    "sdk-adoption",
   ]);
   const [maxId, setMaxId] = useState<PanelId | null>(null);
 
@@ -370,6 +383,7 @@ export function Dashboard() {
     benchmarks: { x: number; y: number; w: number; h: number };
     labs: { x: number; y: number; w: number; h: number };
     "regional-wire": { x: number; y: number; w: number; h: number };
+    "sdk-adoption": { x: number; y: number; w: number; h: number };
   } | null>(null);
   useEffect(() => {
     const W = typeof window !== "undefined" ? window.innerWidth : 1440;
@@ -411,6 +425,16 @@ export function Dashboard() {
       // doesn't stack. 420 wide matches the Labs sibling; 5 rows are
       // short, so the panel is compact at 420h.
       "regional-wire": { x: 136, y: 288, w: 420, h: 420 },
+      // SDK Adoption is a wide table (matrix + sticky row labels);
+      // 720 wide gives the 30-day grid breathing room above 1280px and
+      // crops gracefully via the responsive helper below 1280. Centred
+      // horizontally so it doesn't stack on Labs/Wire on first open.
+      "sdk-adoption": {
+        x: Math.max(120, Math.floor((W - 720) / 2)),
+        y: 168,
+        w: 720,
+        h: 540,
+      },
     });
   }, []);
 
@@ -462,6 +486,12 @@ export function Dashboard() {
       icon: "regional-wire",
       count: rss.data?.sources.length ?? null,
     },
+    {
+      id: "sdk-adoption",
+      label: "SDK Adoption",
+      icon: "sdk-adoption",
+      count: sdkAdoption.data?.packages.length ?? null,
+    },
     { id: "audit", label: "Audit", icon: "audit", soon: true },
   ];
 
@@ -476,7 +506,8 @@ export function Dashboard() {
       id !== "research" &&
       id !== "benchmarks" &&
       id !== "labs" &&
-      id !== "regional-wire"
+      id !== "regional-wire" &&
+      id !== "sdk-adoption"
     )
       return;
     const pid = id as PanelId;
@@ -1005,6 +1036,47 @@ export function Dashboard() {
                 data={rss.data}
                 error={rss.error}
                 isInitialLoading={rss.isInitialLoading}
+              />
+            </Win>
+          )}
+
+          {initialPos && panels["sdk-adoption"].open && (
+            <Win
+              id="sdk-adoption"
+              title="SDK Adoption · within-package daily Δ vs 30d baseline"
+              accent="violet"
+              initial={initialPos["sdk-adoption"]}
+              zIndex={z("sdk-adoption")}
+              minimized={panels["sdk-adoption"].min}
+              maximized={maxId === "sdk-adoption"}
+              topmost={topmostOpenId === "sdk-adoption"}
+              onFocus={() => focus("sdk-adoption")}
+              onClose={() =>
+                setPanels((p) => ({
+                  ...p,
+                  "sdk-adoption": { open: false, min: false },
+                }))
+              }
+              onMinimize={() =>
+                setPanels((p) => ({
+                  ...p,
+                  "sdk-adoption": {
+                    ...p["sdk-adoption"],
+                    min: !p["sdk-adoption"].min,
+                  },
+                }))
+              }
+              onMaximize={() =>
+                setMaxId((m) => (m === "sdk-adoption" ? null : "sdk-adoption"))
+              }
+            >
+              <SdkAdoptionPanel
+                data={sdkAdoption.data ?? null}
+                error={sdkAdoption.error ?? null}
+                isInitialLoading={sdkAdoption.isInitialLoading}
+                originUrl={
+                  typeof window !== "undefined" ? window.location.origin : ""
+                }
               />
             </Win>
           )}
