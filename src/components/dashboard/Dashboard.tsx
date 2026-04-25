@@ -66,6 +66,8 @@ import { RegionalWirePanel } from "@/components/wire/RegionalWirePanel";
 import { rssToGlobePoints } from "@/components/wire/rss-to-points";
 import { SdkAdoptionPanel } from "@/components/panels/sdk-adoption/SdkAdoptionPanel";
 import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
+import { ModelUsagePanel } from "@/components/panels/model-usage/ModelUsagePanel";
+import type { ModelUsageDto } from "@/lib/data/openrouter-types";
 import { track } from "@/lib/analytics";
 
 const STATUS_POLL_MS = 5 * 60 * 1000;
@@ -109,6 +111,9 @@ const CRON_HEALTH_POLL_MS = 5 * 60 * 1000;
 // underlying snapshot cron only writes once a day. 5-min poll matches
 // the cache TTL so each real upstream flip is picked up exactly once.
 const SDK_ADOPTION_POLL_MS = 5 * 60 * 1000;
+// Model Usage: cron writes every 6h. Match the 5-min CDN cache TTL —
+// upstream rankings barely move minute-to-minute.
+const MODEL_USAGE_POLL_MS = 5 * 60 * 1000;
 
 type RegistryResult = {
   ok: boolean;
@@ -143,7 +148,8 @@ type PanelId =
   | "benchmarks"
   | "labs"
   | "regional-wire"
-  | "sdk-adoption";
+  | "sdk-adoption"
+  | "model-usage";
 
 export function Dashboard() {
   const status = usePolledEndpoint<StatusResult>("/api/status", STATUS_POLL_MS);
@@ -170,6 +176,10 @@ export function Dashboard() {
   const sdkAdoption = usePolledEndpoint<SdkAdoptionDto>(
     "/api/panels/sdk-adoption",
     SDK_ADOPTION_POLL_MS,
+  );
+  const modelUsage = usePolledEndpoint<ModelUsageDto>(
+    "/api/panels/model-usage",
+    MODEL_USAGE_POLL_MS,
   );
   const cronHealth = usePolledEndpoint<CronHealthResult>(
     "/api/cron-health",
@@ -359,6 +369,7 @@ export function Dashboard() {
       labs: { open: false, min: false },
       "regional-wire": { open: false, min: false },
       "sdk-adoption": { open: false, min: false },
+      "model-usage": { open: false, min: false },
     },
   );
   const [zorder, setZorder] = useState<PanelId[]>([
@@ -370,6 +381,7 @@ export function Dashboard() {
     "labs",
     "regional-wire",
     "sdk-adoption",
+    "model-usage",
   ]);
   const [maxId, setMaxId] = useState<PanelId | null>(null);
 
@@ -384,6 +396,7 @@ export function Dashboard() {
     labs: { x: number; y: number; w: number; h: number };
     "regional-wire": { x: number; y: number; w: number; h: number };
     "sdk-adoption": { x: number; y: number; w: number; h: number };
+    "model-usage": { x: number; y: number; w: number; h: number };
   } | null>(null);
   useEffect(() => {
     const W = typeof window !== "undefined" ? window.innerWidth : 1440;
@@ -434,6 +447,16 @@ export function Dashboard() {
         y: 168,
         w: 720,
         h: 540,
+      },
+      // Model Usage is a 4-column dense list; 460 wide keeps the
+      // pricing pair + context cell on one line at every viewport.
+      // Right-anchored beneath Tools so opening it alongside the
+      // default Tools panel doesn't fully overlap.
+      "model-usage": {
+        x: rightAnchor(460, 420),
+        y: 220,
+        w: 460,
+        h: 600,
       },
     });
   }, []);
@@ -492,6 +515,12 @@ export function Dashboard() {
       icon: "sdk-adoption",
       count: sdkAdoption.data?.packages.length ?? null,
     },
+    {
+      id: "model-usage",
+      label: "Model Usage",
+      icon: "model-usage",
+      count: modelUsage.data?.rows.length ?? null,
+    },
     { id: "audit", label: "Audit", icon: "audit", soon: true },
   ];
 
@@ -507,7 +536,8 @@ export function Dashboard() {
       id !== "benchmarks" &&
       id !== "labs" &&
       id !== "regional-wire" &&
-      id !== "sdk-adoption"
+      id !== "sdk-adoption" &&
+      id !== "model-usage"
     )
       return;
     const pid = id as PanelId;
@@ -1074,6 +1104,47 @@ export function Dashboard() {
                 data={sdkAdoption.data ?? null}
                 error={sdkAdoption.error ?? null}
                 isInitialLoading={sdkAdoption.isInitialLoading}
+                originUrl={
+                  typeof window !== "undefined" ? window.location.origin : ""
+                }
+              />
+            </Win>
+          )}
+
+          {initialPos && panels["model-usage"].open && (
+            <Win
+              id="model-usage"
+              title="Model Usage · OpenRouter request volume, weekly"
+              accent="teal"
+              initial={initialPos["model-usage"]}
+              zIndex={z("model-usage")}
+              minimized={panels["model-usage"].min}
+              maximized={maxId === "model-usage"}
+              topmost={topmostOpenId === "model-usage"}
+              onFocus={() => focus("model-usage")}
+              onClose={() =>
+                setPanels((p) => ({
+                  ...p,
+                  "model-usage": { open: false, min: false },
+                }))
+              }
+              onMinimize={() =>
+                setPanels((p) => ({
+                  ...p,
+                  "model-usage": {
+                    ...p["model-usage"],
+                    min: !p["model-usage"].min,
+                  },
+                }))
+              }
+              onMaximize={() =>
+                setMaxId((m) => (m === "model-usage" ? null : "model-usage"))
+              }
+            >
+              <ModelUsagePanel
+                data={modelUsage.data ?? null}
+                error={modelUsage.error ?? null}
+                isInitialLoading={modelUsage.isInitialLoading}
                 originUrl={
                   typeof window !== "undefined" ? window.location.origin : ""
                 }

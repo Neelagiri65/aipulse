@@ -91,6 +91,7 @@ type NavIconName =
   | "labs"
   | "regional-wire"
   | "sdk-adoption"
+  | "model-usage"
   | "security"
   | "audit";
 
@@ -187,6 +188,15 @@ function NavIcon({ name }: { name: NavIconName }) {
           <rect x="11" y="11" width="6" height="6" rx="1" />
           <rect x="3" y="19" width="6" height="2" rx="1" />
           <rect x="11" y="19" width="6" height="2" rx="1" />
+        </svg>
+      );
+    case "model-usage":
+      // Stacked horizontal bars suggest a ranked leaderboard.
+      return (
+        <svg {...common}>
+          <rect x="3" y="4" width="14" height="3" rx="1" />
+          <rect x="3" y="10" width="11" height="3" rx="1" />
+          <rect x="3" y="16" width="8" height="3" rx="1" />
         </svg>
       );
     case "security":
