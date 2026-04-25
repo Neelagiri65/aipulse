@@ -120,6 +120,7 @@ export function composeSdkAdoptionSection(
         detail: `${formatCount(top[window] as number)} ${WINDOW_LABEL[window]}`,
         sourceLabel: REGISTRY_LABEL[reg],
         sourceUrl: REGISTRY_SOURCE[reg],
+        panelHref: `/panels/sdk-adoption?focus=${encodeURIComponent(`${reg}:${top.name}`)}`,
         caveat: reg === "pypi" ? PYPI_CAVEAT : undefined,
       });
     }
@@ -167,6 +168,7 @@ export function composeSdkAdoptionSection(
         detail: `${sign}${formatCount(Math.abs(best.delta))} ${WINDOW_LABEL[window]} day-over-day`,
         sourceLabel: REGISTRY_LABEL[reg],
         sourceUrl: REGISTRY_SOURCE[reg],
+        panelHref: `/panels/sdk-adoption?focus=${encodeURIComponent(`${reg}:${best.entry.name}`)}`,
         caveat: reg === "pypi" ? PYPI_CAVEAT : undefined,
       });
     }

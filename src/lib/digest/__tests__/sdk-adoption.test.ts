@@ -22,6 +22,37 @@ describe("composeSdkAdoptionSection", () => {
     expect(sec.items.length).toBeGreaterThan(0);
   });
 
+  it("emits a panelHref deep-link to /panels/sdk-adoption?focus={pkgId} on each item (bootstrap)", () => {
+    const today: SnapshotPackages = {
+      pypi: [{ name: "transformers", lastDay: 500 }],
+      npm: [{ name: "@anthropic-ai/sdk", lastDay: 100 }],
+    };
+    const sec = composeSdkAdoptionSection({ today, yesterday: null });
+    const pypiItem = sec.items.find((i) => i.sourceLabel === "PyPI");
+    const npmItem = sec.items.find((i) => i.sourceLabel === "npm");
+    expect(pypiItem?.panelHref).toBe(
+      "/panels/sdk-adoption?focus=pypi%3Atransformers",
+    );
+    expect(npmItem?.panelHref).toBe(
+      "/panels/sdk-adoption?focus=npm%3A%40anthropic-ai%2Fsdk",
+    );
+  });
+
+  it("emits a panelHref deep-link on each diff-mode mover", () => {
+    const today: SnapshotPackages = {
+      pypi: [{ name: "transformers", lastWeek: 100_000 }],
+    };
+    const yesterday: SnapshotPackages = {
+      pypi: [{ name: "transformers", lastWeek: 90_000 }],
+    };
+    const sec = composeSdkAdoptionSection({ today, yesterday });
+    expect(sec.mode).toBe("diff");
+    const item = sec.items[0];
+    expect(item.panelHref).toBe(
+      "/panels/sdk-adoption?focus=pypi%3Atransformers",
+    );
+  });
+
   it("carries the PyPI aggregator caveat verbatim on PyPI items", () => {
     const today: SnapshotPackages = {
       pypi: [{ name: "anthropic", lastDay: 100, lastWeek: 500, lastMonth: 2000 }],

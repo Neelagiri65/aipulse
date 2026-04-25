@@ -138,7 +138,7 @@ function SectionBlock({
       {section.items.length > 0 ? (
         <div>
           {section.items.map((item, i) => (
-            <ItemRow key={i} item={item} />
+            <ItemRow key={i} item={item} baseUrl={baseUrl} />
           ))}
         </div>
       ) : null}
@@ -174,7 +174,13 @@ function SectionBlock({
   );
 }
 
-function ItemRow({ item }: { item: DigestSectionItem }): React.JSX.Element {
+function ItemRow({
+  item,
+  baseUrl,
+}: {
+  item: DigestSectionItem;
+  baseUrl: string;
+}): React.JSX.Element {
   return (
     <div style={styles.item}>
       <Text style={styles.itemHeadline}>
@@ -183,11 +189,19 @@ function ItemRow({ item }: { item: DigestSectionItem }): React.JSX.Element {
       {item.detail ? (
         <Text style={styles.itemDetail}>{item.detail}</Text>
       ) : null}
-      {item.sourceUrl ? (
+      {item.sourceUrl || item.panelHref ? (
         <Text style={styles.itemSource}>
-          <Link href={item.sourceUrl} style={styles.link}>
-            {item.sourceLabel ?? displaySource(item.sourceUrl)}
-          </Link>
+          {item.sourceUrl ? (
+            <Link href={item.sourceUrl} style={styles.link}>
+              {item.sourceLabel ?? displaySource(item.sourceUrl)}
+            </Link>
+          ) : null}
+          {item.sourceUrl && item.panelHref ? " · " : ""}
+          {item.panelHref ? (
+            <Link href={`${baseUrl}${item.panelHref}`} style={styles.link}>
+              View on AI Pulse →
+            </Link>
+          ) : null}
         </Text>
       ) : null}
       {item.caveat ? (

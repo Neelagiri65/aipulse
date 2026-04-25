@@ -96,4 +96,14 @@ test.describe("dashboard panels", () => {
     await openPanelViaNav(page, "Benchmarks");
     await expect(panelByTitle(page, /Chatbot Arena/i)).toHaveCount(0);
   });
+
+  test("SDK Adoption panel opens on nav click", async ({ page }) => {
+    await openPanelViaNav(page, "SDK Adoption");
+    const sdk = panelByTitle(page, /SDK Adoption/i);
+    await expect(sdk).toBeVisible({ timeout: 15_000 });
+    // Panel can take one /api/panels/sdk-adoption fetch to settle —
+    // empty/loading state is also an acceptable visual.
+    await page.waitForTimeout(800);
+    await shot(page, "panel-sdk-adoption");
+  });
 });

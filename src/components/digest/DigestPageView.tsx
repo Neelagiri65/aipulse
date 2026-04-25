@@ -48,6 +48,7 @@ export function DigestPageView({
           key={section.id}
           section={section}
           permalink={permalink}
+          baseUrl={baseUrl}
         />
       ))}
 
@@ -67,9 +68,11 @@ export function DigestPageView({
 function DigestSectionView({
   section,
   permalink,
+  baseUrl,
 }: {
   section: DigestSection;
   permalink: string;
+  baseUrl: string;
 }): React.JSX.Element {
   const sectionUrl = `${permalink}#${section.anchorSlug}`;
   return (
@@ -96,7 +99,7 @@ function DigestSectionView({
       {section.items.length > 0 ? (
         <ul className="mb-4 space-y-3">
           {section.items.map((item, i) => (
-            <DigestItemView key={i} item={item} />
+            <DigestItemView key={i} item={item} baseUrl={baseUrl} />
           ))}
         </ul>
       ) : null}
@@ -140,8 +143,10 @@ function DigestSectionView({
 
 function DigestItemView({
   item,
+  baseUrl,
 }: {
   item: DigestSectionItem;
+  baseUrl: string;
 }): React.JSX.Element {
   return (
     <li className="border-l-2 border-border pl-3">
@@ -160,6 +165,26 @@ function DigestItemView({
             className="underline underline-offset-2 text-primary/80 hover:text-primary"
           >
             {item.sourceLabel ?? displaySource(item.sourceUrl)}
+          </a>
+          {item.panelHref ? (
+            <>
+              {" · "}
+              <a
+                href={`${baseUrl}${item.panelHref}`}
+                className="underline underline-offset-2 text-primary/80 hover:text-primary"
+              >
+                View on AI Pulse →
+              </a>
+            </>
+          ) : null}
+        </p>
+      ) : item.panelHref ? (
+        <p className="mt-0.5 text-[11px]">
+          <a
+            href={`${baseUrl}${item.panelHref}`}
+            className="underline underline-offset-2 text-primary/80 hover:text-primary"
+          >
+            View on AI Pulse →
           </a>
         </p>
       ) : null}

@@ -29,6 +29,11 @@ export type DigestSectionItem = {
   sourceLabel?: string;
   /** Source URL that backs this specific item's numbers. */
   sourceUrl?: string;
+  /** Optional in-product deep-link path. Relative — renderers prepend
+   *  the active baseUrl. SDK adoption rows use this to point at
+   *  /panels/sdk-adoption?focus={pkgId}; other sections may add their
+   *  own deep destinations later. */
+  panelHref?: string;
   /** Verbatim caveat text (e.g. pypistats aggregator caveat). Renders
    *  in small text under the item. */
   caveat?: string;
