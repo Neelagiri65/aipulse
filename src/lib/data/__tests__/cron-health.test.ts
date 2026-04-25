@@ -113,6 +113,7 @@ describe("CRON_WORKFLOWS registry", () => {
       "daily-snapshot",
       "globe-ingest",
       "labs-cron",
+      "openrouter-rankings",
       "pkg-brew",
       "pkg-crates",
       "pkg-docker",
