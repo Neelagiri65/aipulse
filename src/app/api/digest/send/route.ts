@@ -13,11 +13,14 @@
  *
  * Required envs at run time:
  *   - INGEST_SECRET              — cron auth, shared across workflows.
+ *   - SUBSCRIBER_EMAIL_ENC_KEY   — 32-byte hex key for decryption.
+ *
+ * Required for actual delivery (any missing → run is skipped with
+ * reason:"resend-not-configured" and 200 so the cron stays green):
  *   - RESEND_API_KEY             — batch send + domains.get().
  *   - RESEND_DOMAIN_ID           — the registered domain on Resend.
  *   - EMAIL_FROM_ADDRESS         — "AI Pulse <digest@aipulse.dev>" format.
  *   - EMAIL_UNSUB_MAILTO         — mailto for the List-Unsubscribe header.
- *   - SUBSCRIBER_EMAIL_ENC_KEY   — 32-byte hex key for decryption.
  *
  * Optional envs:
  *   - NEXT_PUBLIC_SITE_ORIGIN    — overrides the request-derived base URL
@@ -45,22 +48,48 @@ import { renderDigestHtml } from "@/lib/email/templates/digest";
 import { extractSenderDomain } from "@/lib/email/resend";
 import type { DomainClient } from "@/lib/digest/domain-verify";
 import type { BatchSender, BatchSendResult } from "@/lib/digest/sender";
-import { sendDigestForDate } from "@/lib/digest/send-orchestrator";
+import {
+  sendDigestForDate,
+  type SendDigestForDateResult,
+} from "@/lib/digest/send-orchestrator";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-export const POST = withIngest({
+type RouteResult =
+  | SendDigestForDateResult
+  | {
+      ok: false;
+      reason: "resend-not-configured";
+      message: string;
+      missing: string[];
+    };
+
+export const POST = withIngest<RouteResult>({
   workflow: "daily-digest",
   run: async (request: Request) => {
     const date = ymdUtc();
     const now = new Date();
 
-    const from = requireEnv("EMAIL_FROM_ADDRESS");
-    const apiKey = requireEnv("RESEND_API_KEY");
-    const domainId = requireEnv("RESEND_DOMAIN_ID");
-    const unsubMailto = requireEnv("EMAIL_UNSUB_MAILTO");
+    const from = process.env.EMAIL_FROM_ADDRESS;
+    const apiKey = process.env.RESEND_API_KEY;
+    const domainId = process.env.RESEND_DOMAIN_ID;
+    const unsubMailto = process.env.EMAIL_UNSUB_MAILTO;
+
+    if (!from || !apiKey || !domainId || !unsubMailto) {
+      const missing: string[] = [];
+      if (!from) missing.push("EMAIL_FROM_ADDRESS");
+      if (!apiKey) missing.push("RESEND_API_KEY");
+      if (!domainId) missing.push("RESEND_DOMAIN_ID");
+      if (!unsubMailto) missing.push("EMAIL_UNSUB_MAILTO");
+      return {
+        ok: false,
+        reason: "resend-not-configured",
+        message: `daily digest paused — sender domain not yet wired through Resend. Missing env: ${missing.join(", ")}.`,
+        missing,
+      };
+    }
 
     const domainName = extractSenderDomain(from);
     if (!domainName) {
@@ -111,6 +140,13 @@ export const POST = withIngest({
   },
   toOutcome: (result) => {
     if (!result.ok) {
+      // Skipped runs (Resend not yet configured) are intentionally ok in
+      // cron-health terms — the workflow is paused, not broken. Surfacing
+      // them as failures pollutes the GitHub profile activity feed and
+      // hides the real signal once Resend is live.
+      if (result.reason === "resend-not-configured") {
+        return { ok: true, itemsProcessed: 0 };
+      }
       return { ok: false, error: `${result.reason}: ${result.message}` };
     }
     if (result.send.failedChunks > 0 && result.send.sent === 0) {
@@ -123,6 +159,17 @@ export const POST = withIngest({
   },
   toResponse: (result) => {
     if (!result.ok) {
+      if (result.reason === "resend-not-configured") {
+        return NextResponse.json(
+          {
+            ok: false,
+            reason: result.reason,
+            message: result.message,
+            missing: result.missing,
+          },
+          { status: 200 },
+        );
+      }
       return NextResponse.json(
         {
           ok: false,
@@ -149,12 +196,6 @@ export const POST = withIngest({
 });
 
 export const GET = POST;
-
-function requireEnv(name: string): string {
-  const v = process.env[name];
-  if (!v) throw new Error(`missing required env var: ${name}`);
-  return v;
-}
 
 function inferBaseUrl(request: Request): string {
   const fromEnv = process.env.NEXT_PUBLIC_SITE_ORIGIN;
