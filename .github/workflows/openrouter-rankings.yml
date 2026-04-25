@@ -1,0 +1,60 @@
+name: openrouter-rankings
+
+# OpenRouter Model Usage ingest: fetch the live `top-weekly` + `trending`
+# rankings from openrouter.ai's frontend endpoint, fall back to the
+# documented v1 catalogue if frontend goes bad, write the live DTO and
+# (once per UTC day) append the daily snapshot to Upstash Redis.
+#
+# Cadence: every 6 hours at :45 (00:45, 06:45, 12:45, 18:45 UTC).
+# Avoids the existing :00 (labs-cron, registry-discover-deps), :15
+# (pkg-* workflows), and :25/:55 (rss-ingest) minute slots so all
+# workflows can co-exist on the runner pool.
+#
+# Required repo secrets (shared):
+#   INGEST_URL     — e.g. https://aipulse-pi.vercel.app/api/ingest
+#                    We strip /api/ingest and append the cron path.
+#   INGEST_SECRET  — shared secret matching Vercel env
+
+on:
+  schedule:
+    - cron: "45 0,6,12,18 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Attribution tag (cron | manual)"
+        required: false
+        default: "manual"
+        type: string
+
+concurrency:
+  group: openrouter-rankings
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger OpenRouter rankings ingest on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.source || 'cron' }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/cron/openrouter-rankings?source=$SOURCE"
+          echo "POST $URL"
+          # --max-time 290 matches the Vercel maxDuration headroom we use
+          # in the other ingest workflows; the route itself is bounded at
+          # 120s by `export const maxDuration = 120` but we leave the
+          # client side generous so a slow OpenRouter response doesn't
+          # surface as a curl timeout.
+          RESPONSE=$(curl -sS -f --max-time 290 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"
