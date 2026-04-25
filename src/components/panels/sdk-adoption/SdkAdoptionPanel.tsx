@@ -1,27 +1,30 @@
 "use client";
 
 /**
- * SdkAdoptionPanel — top-level panel for the SDK Adoption matrix.
+ * SdkAdoptionPanel — top-level panel for the SDK Adoption surface.
  *
- * Presentational + minimal state: receives the DTO from a parent (the
- * Dashboard's polled hook or the standalone /panels/sdk-adoption page)
- * and manages the drawer-open state internally. State is just one
- * thing: which row id is focused (drawer mounts iff a focused row is
- * set AND that row exists in the DTO).
+ * Default view is the SparklineListView. Matrix heatmap is the
+ * secondary view, accessible via the "View heatmap" toggle. The
+ * matrix-first default was unreadable during the 30-day baseline-fill
+ * window because most cells were null; the list handles sparse data
+ * gracefully and is dense enough to scan at a glance.
  *
- * `initialFocusedRowId` lets the standalone page pass `?focus=` in
- * from the URL on first mount; the panel then takes over for subsequent
- * row clicks.
+ * Internal state is two things:
+ *   - viewMode: "list" | "heatmap"
+ *   - focusedRowId: which row's drawer is open (mounts iff that row
+ *     exists in the DTO).
  *
- * Empty / loading / error fallbacks are first-class — the panel is
- * shown before there's a baseline (per PRD §6 ship-deep-not-wide).
+ * `initialFocusedRowId` (from `?focus=` on the standalone page) seeds
+ * the drawer on first mount.
  */
 
 import * as React from "react";
 import { useEffect, useState } from "react";
 import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
+import { stripLeadingNullDates } from "@/lib/data/sdk-adoption-view";
 import { MatrixHeatmap } from "@/components/panels/sdk-adoption/MatrixHeatmap";
 import { RowDrawer } from "@/components/panels/sdk-adoption/RowDrawer";
+import { SparklineListView } from "@/components/panels/sdk-adoption/SparklineListView";
 
 export type SdkAdoptionPanelProps = {
   data: SdkAdoptionDto | null;
@@ -41,6 +44,9 @@ export type SdkAdoptionPanelProps = {
    *  retry button reloads the page (the polled endpoint refetches on
    *  the next visibility/interval tick). */
   onRetry?: () => void;
+  /** Override the initial view. Tests use this; consumers should rely
+   *  on the toggle. */
+  initialViewMode?: "list" | "heatmap";
 };
 
 export function SdkAdoptionPanel({
@@ -51,10 +57,12 @@ export function SdkAdoptionPanel({
   initialFocusedRowId,
   viewportWidth,
   onRetry,
+  initialViewMode = "list",
 }: SdkAdoptionPanelProps): React.ReactElement {
   const [focusedRowId, setFocusedRowId] = useState<string | null>(
     initialFocusedRowId ?? null,
   );
+  const [viewMode, setViewMode] = useState<"list" | "heatmap">(initialViewMode);
   const [vw, setVw] = useState<number>(
     viewportWidth ??
       (typeof window !== "undefined" ? window.innerWidth : 1440),
@@ -106,21 +114,51 @@ export function SdkAdoptionPanel({
     );
   }
 
-  const columnDates = deriveColumnDates(data);
+  // Strip leading null-only columns before rendering either view —
+  // makes the matrix less broken AND keeps the list compact.
+  const trimmed = stripLeadingNullDates(data);
+  const columnDates = deriveColumnDates(trimmed);
   const focusedPackage =
     focusedRowId !== null
-      ? data.packages.find((p) => p.id === focusedRowId) ?? null
+      ? trimmed.packages.find((p) => p.id === focusedRowId) ?? null
       : null;
 
   return (
     <div className="sdk-adoption-panel">
-      <MatrixHeatmap
-        rows={data.packages}
-        columnDates={columnDates}
-        viewportWidth={vw}
-        focusedRowId={focusedRowId}
-        onCellClick={(pkgId) => setFocusedRowId(pkgId)}
-      />
+      <div className="sdk-adoption-toolbar" role="toolbar" aria-label="View mode">
+        <button
+          type="button"
+          className={`sdk-view-toggle ${viewMode === "list" ? "is-active" : ""}`}
+          onClick={() => setViewMode("list")}
+          aria-pressed={viewMode === "list"}
+        >
+          List
+        </button>
+        <button
+          type="button"
+          className={`sdk-view-toggle ${viewMode === "heatmap" ? "is-active" : ""}`}
+          onClick={() => setViewMode("heatmap")}
+          aria-pressed={viewMode === "heatmap"}
+        >
+          Heatmap
+        </button>
+      </div>
+      {viewMode === "list" ? (
+        <SparklineListView
+          data={trimmed}
+          originUrl={originUrl}
+          focusedRowId={focusedRowId}
+          onRowClick={(pkgId) => setFocusedRowId(pkgId)}
+        />
+      ) : (
+        <MatrixHeatmap
+          rows={trimmed.packages}
+          columnDates={columnDates}
+          viewportWidth={vw}
+          focusedRowId={focusedRowId}
+          onCellClick={(pkgId) => setFocusedRowId(pkgId)}
+        />
+      )}
       {focusedPackage ? (
         <RowDrawer
           pkg={focusedPackage}

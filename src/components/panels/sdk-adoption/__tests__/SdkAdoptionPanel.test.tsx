@@ -40,7 +40,7 @@ function dto(): SdkAdoptionDto {
 }
 
 describe("SdkAdoptionPanel", () => {
-  it("renders the matrix when data is present", () => {
+  it("defaults to the SparklineListView when data is present", () => {
     const html = renderToStaticMarkup(
       <SdkAdoptionPanel
         data={dto()}
@@ -49,9 +49,38 @@ describe("SdkAdoptionPanel", () => {
         originUrl="https://aipulse.dev"
       />,
     );
-    expect(html).toContain('role="grid"');
+    // List view emits "Tracking since {date}" and registry section
+    // headers; matrix view emits role=grid. The default is list.
+    expect(html).toMatch(/Tracking since/);
+    expect(html).not.toContain('role="grid"');
     expect(html).toContain("transformers");
     expect(html).toContain("openai");
+  });
+
+  it("renders the matrix when initialViewMode='heatmap' is set", () => {
+    const html = renderToStaticMarkup(
+      <SdkAdoptionPanel
+        data={dto()}
+        error={null}
+        isInitialLoading={false}
+        originUrl="https://aipulse.dev"
+        initialViewMode="heatmap"
+      />,
+    );
+    expect(html).toContain('role="grid"');
+  });
+
+  it("renders both view-toggle buttons regardless of mode", () => {
+    const html = renderToStaticMarkup(
+      <SdkAdoptionPanel
+        data={dto()}
+        error={null}
+        isInitialLoading={false}
+        originUrl="https://aipulse.dev"
+      />,
+    );
+    expect(html).toMatch(/aria-pressed="true"[^>]*>List/);
+    expect(html).toMatch(/aria-pressed="false"[^>]*>Heatmap/);
   });
 
   it("renders loading state when isInitialLoading and no data", () => {

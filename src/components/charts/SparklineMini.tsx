@@ -34,6 +34,11 @@ export type SparklineMiniProps = {
   /** Optional padding inside the viewBox so the stroke isn't clipped
    *  at the edges. Defaults to 1.5 (matches default strokeWidth). */
   padding?: number;
+  /** "linear" (default) plots raw values; "log" plots log10(v + 1) so a
+   *  10x range fits the same visual height as a 10x range elsewhere on
+   *  the chart. Use log when the same chart compares packages spanning
+   *  ~3+ orders of magnitude (brew:ollama at 2k vs pypi:openai at 10M). */
+  scale?: "linear" | "log";
 };
 
 export function SparklineMini({
@@ -44,8 +49,12 @@ export function SparklineMini({
   stroke,
   strokeWidth = 1.5,
   padding = 1.5,
+  scale = "linear",
 }: SparklineMiniProps): React.ReactElement {
-  const nonNull = data.filter((v): v is number => v !== null);
+  const transform = (v: number): number =>
+    scale === "log" ? Math.log10(Math.max(0, v) + 1) : v;
+  const transformed = data.map((v) => (v === null ? null : transform(v)));
+  const nonNull = transformed.filter((v): v is number => v !== null);
   const empty = nonNull.length === 0;
 
   const innerW = Math.max(0, width - padding * 2);
@@ -78,8 +87,8 @@ export function SparklineMini({
   const singlePoint =
     nonNull.length === 1
       ? (() => {
-          const i = data.findIndex((v) => v !== null);
-          return { cx: xFor(i), cy: yFor(data[i] as number) };
+          const i = transformed.findIndex((v) => v !== null);
+          return { cx: xFor(i), cy: yFor(transformed[i] as number) };
         })()
       : null;
 
@@ -88,8 +97,8 @@ export function SparklineMini({
   if (!singlePoint && !empty) {
     const segments: string[] = [];
     let inRun = false;
-    for (let i = 0; i < data.length; i++) {
-      const v = data[i];
+    for (let i = 0; i < transformed.length; i++) {
+      const v = transformed[i];
       if (v === null) {
         inRun = false;
         continue;

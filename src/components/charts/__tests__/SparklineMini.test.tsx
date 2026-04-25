@@ -64,6 +64,58 @@ describe("SparklineMini", () => {
     expect(mCount).toBe(2);
   });
 
+  it("renders a different path for log scale vs linear scale on wide-magnitude data", () => {
+    const data = [10, 100, 1000, 10000];
+    const linearHtml = renderToStaticMarkup(
+      <SparklineMini
+        data={data}
+        width={100}
+        height={50}
+        label="lin"
+        scale="linear"
+      />,
+    );
+    const logHtml = renderToStaticMarkup(
+      <SparklineMini
+        data={data}
+        width={100}
+        height={50}
+        label="log"
+        scale="log"
+      />,
+    );
+    const linearD = linearHtml.match(/d="([^"]+)"/)?.[1] ?? "";
+    const logD = logHtml.match(/d="([^"]+)"/)?.[1] ?? "";
+    expect(linearD).not.toBe(logD);
+    // On linear scale, values 10..10000 are crammed near the bottom (top
+    // of viewBox in inverted y); on log, they spread out evenly.
+    const linearYs = (linearD.match(/[\d.]+/g) ?? [])
+      .map(Number)
+      .filter((_, i) => i % 2 === 1);
+    const logYs = (logD.match(/[\d.]+/g) ?? [])
+      .map(Number)
+      .filter((_, i) => i % 2 === 1);
+    // Spread = max-min y. Log spread should exceed linear spread for
+    // exponentially distributed data.
+    const linearSpread = Math.max(...linearYs) - Math.min(...linearYs);
+    const logSpread = Math.max(...logYs) - Math.min(...logYs);
+    expect(logSpread).toBeGreaterThanOrEqual(linearSpread);
+  });
+
+  it("treats zero counts safely in log scale (log10(0+1) = 0, no NaN)", () => {
+    const html = renderToStaticMarkup(
+      <SparklineMini
+        data={[0, 1, 10, 100]}
+        width={100}
+        height={50}
+        label="zero-safe"
+        scale="log"
+      />,
+    );
+    const d = html.match(/d="([^"]+)"/)?.[1] ?? "";
+    expect(d).not.toMatch(/NaN/);
+  });
+
   it("renders path coordinates inside the viewBox bounds", () => {
     const html = renderToStaticMarkup(
       <SparklineMini
