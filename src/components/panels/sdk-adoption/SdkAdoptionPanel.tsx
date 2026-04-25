@@ -37,6 +37,10 @@ export type SdkAdoptionPanelProps = {
   /** Override viewport width for tests. Defaults to window.innerWidth
    *  (1440 fallback when window is unavailable, matching SSR). */
   viewportWidth?: number;
+  /** Optional retry hook for the error fallback. When omitted, the
+   *  retry button reloads the page (the polled endpoint refetches on
+   *  the next visibility/interval tick). */
+  onRetry?: () => void;
 };
 
 export function SdkAdoptionPanel({
@@ -46,6 +50,7 @@ export function SdkAdoptionPanel({
   originUrl,
   initialFocusedRowId,
   viewportWidth,
+  onRetry,
 }: SdkAdoptionPanelProps): React.ReactElement {
   const [focusedRowId, setFocusedRowId] = useState<string | null>(
     initialFocusedRowId ?? null,
@@ -72,9 +77,21 @@ export function SdkAdoptionPanel({
   }
 
   if (!data && error) {
+    const handleRetry = () => {
+      if (onRetry) onRetry();
+      else if (typeof window !== "undefined") window.location.reload();
+    };
     return (
       <div className="sdk-adoption-panel sdk-adoption-error" role="alert">
-        Couldn&apos;t load SDK adoption data — try again in a minute.
+        <p>Couldn&apos;t load SDK adoption data — try again in a minute.</p>
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="sdk-adoption-retry"
+          aria-label="Retry loading SDK adoption data"
+        >
+          Retry now
+        </button>
       </div>
     );
   }
@@ -82,8 +99,9 @@ export function SdkAdoptionPanel({
   if (!data || data.packages.length === 0) {
     return (
       <div className="sdk-adoption-panel sdk-adoption-empty" role="status">
-        Collecting baseline. First cells light up tomorrow; the matrix
-        fills out over the next 30 days as daily snapshots accumulate.
+        Collecting baseline. The matrix fills out over the next 30 days
+        as daily snapshots accumulate; cells start lighting up after the
+        first two snapshots land.
       </div>
     );
   }

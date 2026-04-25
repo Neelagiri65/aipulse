@@ -130,4 +130,59 @@ describe("SdkAdoptionPanel", () => {
     );
     expect(html).not.toContain('role="dialog"');
   });
+
+  it("error fallback renders a Retry button with an aria-label", () => {
+    const html = renderToStaticMarkup(
+      <SdkAdoptionPanel
+        data={null}
+        error={"upstream 500"}
+        isInitialLoading={false}
+        originUrl="https://aipulse.dev"
+      />,
+    );
+    expect(html).toContain('aria-label="Retry loading SDK adoption data"');
+    expect(html).toMatch(/Retry now/);
+  });
+
+  it("empty-state copy mentions the 30-day baseline window explicitly", () => {
+    const empty: SdkAdoptionDto = { packages: [], generatedAt: "now" };
+    const html = renderToStaticMarkup(
+      <SdkAdoptionPanel
+        data={empty}
+        error={null}
+        isInitialLoading={false}
+        originUrl="https://aipulse.dev"
+      />,
+    );
+    expect(html).toMatch(/30 days/i);
+  });
+
+  it("propagates the stale row class from MatrixHeatmap to the rendered output", () => {
+    const stale: SdkAdoptionDto = {
+      generatedAt: "now",
+      packages: [
+        {
+          id: "pypi:transformers",
+          label: "transformers",
+          registry: "pypi",
+          // fetchedAt missing → MatrixHeatmap will mark the row stale.
+          latest: { count: 1, fetchedAt: null },
+          days: [{ date: "2026-04-25", count: 1, delta: null }],
+          firstParty: false,
+          caveat: null,
+          counterName: "lastDay",
+          counterUnits: "downloads/day",
+        },
+      ],
+    };
+    const html = renderToStaticMarkup(
+      <SdkAdoptionPanel
+        data={stale}
+        error={null}
+        isInitialLoading={false}
+        originUrl="https://aipulse.dev"
+      />,
+    );
+    expect(html).toContain("row-stale");
+  });
 });
