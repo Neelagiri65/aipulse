@@ -37,6 +37,7 @@ import { ymdUtc } from "@/lib/data/snapshot";
 import { readSnapshot } from "@/lib/data/snapshot";
 import { readWire } from "@/lib/data/hn-store";
 import { fetchIncidents24h } from "@/lib/digest/fetch-incidents-24h";
+import { redisOpenRouterStore } from "@/lib/data/openrouter-store";
 import {
   readConfirmedSubscribersWithEmail,
   updateSubscriberStatus,
@@ -117,6 +118,7 @@ export const POST = withIngest<RouteResult>({
       loadSnapshot: (d) => readSnapshot(d),
       loadHn: () => readWire(),
       loadIncidents24h: () => fetchIncidents24h({ now: now.getTime() }),
+      loadModelUsageSnapshots: () => redisOpenRouterStore.readSnapshots(),
       loadSubscribers: () =>
         readConfirmedSubscribersWithEmail({ decrypt: decryptEmail }),
       batchSender,

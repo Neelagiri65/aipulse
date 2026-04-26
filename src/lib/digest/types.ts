@@ -15,7 +15,8 @@ export type DigestSectionId =
   | "hn"
   | "benchmarks"
   | "sdk-adoption"
-  | "labs";
+  | "labs"
+  | "model-usage";
 
 /** One bullet inside a digest section. Items render with an optional
  *  per-item source link; any section-level source(s) live on the

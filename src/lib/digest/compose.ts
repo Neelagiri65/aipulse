@@ -19,12 +19,14 @@
 import type { DailySnapshot } from "@/lib/data/snapshot";
 import type { HnWireResult } from "@/lib/data/wire-hn";
 import type { HistoricalIncident } from "@/lib/data/status-history";
+import type { ModelUsageSnapshotRow } from "@/lib/data/openrouter-types";
 import type { DigestBody, DigestMode, DigestSection } from "@/lib/digest/types";
 import { composeHnSection } from "@/lib/digest/sections/hn";
 import { composeToolHealthSection } from "@/lib/digest/sections/tool-health";
 import { composeBenchmarksSection } from "@/lib/digest/sections/benchmarks";
 import { composeSdkAdoptionSection } from "@/lib/digest/sections/sdk-adoption";
 import { composeLabsSection } from "@/lib/digest/sections/labs";
+import { composeModelUsageSection } from "@/lib/digest/sections/model-usage";
 import { detectEmptyDay } from "@/lib/digest/empty-day";
 
 const GREETING_TEMPLATE = "Good morning from AI Pulse — here's what moved in {geoCountry} and beyond in the last 24h.";
@@ -37,6 +39,13 @@ export type ComposeDigestInput = {
   hn: HnWireResult;
   incidents24h: HistoricalIncident[];
   now: Date;
+  /**
+   * OpenRouter snapshot history (date → top-N slugs). Optional —
+   * omit on existing call sites until the snapshot reader lands;
+   * the section composer self-gates on ≥7 days so passing fewer
+   * silently drops the section.
+   */
+  modelUsageSnapshots?: Record<string, ModelUsageSnapshotRow>;
 };
 
 export function composeDigest(input: ComposeDigestInput): DigestBody {
@@ -65,12 +74,20 @@ export function composeDigest(input: ComposeDigestInput): DigestBody {
     yesterday: yesterday?.labs24h ?? null,
   });
 
+  const modelUsage = input.modelUsageSnapshots
+    ? composeModelUsageSection({
+        snapshots: input.modelUsageSnapshots,
+        today: today.date,
+      })
+    : null;
+
   const sections: DigestSection[] = [
     toolHealth,
     hnSection,
     benchmarks,
     sdkAdoption,
     labs,
+    ...(modelUsage ? [modelUsage] : []),
   ];
 
   const mode = selectBodyMode({
@@ -143,5 +160,7 @@ function pickLeadHook(
   if (labs && labs.mode === "diff") return labs.headline;
   const sdk = sections.find((s) => s.id === "sdk-adoption");
   if (sdk && sdk.mode === "diff") return sdk.headline;
+  const modelUsage = sections.find((s) => s.id === "model-usage");
+  if (modelUsage && modelUsage.mode === "diff") return modelUsage.headline;
   return null;
 }

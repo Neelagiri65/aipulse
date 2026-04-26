@@ -25,6 +25,7 @@ import { requireAdminBasicAuth } from "@/lib/digest/admin-auth";
 import { buildDigestForDate, previousUtcDate } from "@/lib/digest/build";
 import { readSnapshot, ymdUtc } from "@/lib/data/snapshot";
 import { readWire } from "@/lib/data/hn-store";
+import { redisOpenRouterStore } from "@/lib/data/openrouter-store";
 import { DigestPageView } from "@/components/digest/DigestPageView";
 import { renderDigestHtml } from "@/lib/email/templates/digest";
 
@@ -61,6 +62,7 @@ export default async function AdminDigestPreviewPage({
     // the snapshot-driven sections. Tool Health still renders from
     // the snapshot's `tools[]` state.
     loadIncidents24h: async () => [],
+    loadModelUsageSnapshots: () => redisOpenRouterStore.readSnapshots(),
   });
 
   if (!build.ok) {

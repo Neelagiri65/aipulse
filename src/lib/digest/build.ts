@@ -14,6 +14,7 @@
 import type { DailySnapshot } from "@/lib/data/snapshot";
 import type { HnWireResult } from "@/lib/data/wire-hn";
 import type { HistoricalIncident } from "@/lib/data/status-history";
+import type { ModelUsageSnapshotRow } from "@/lib/data/openrouter-types";
 import { composeDigest } from "@/lib/digest/compose";
 import type { DigestBody } from "@/lib/digest/types";
 
@@ -31,6 +32,12 @@ export type BuildDigestOpts = {
   loadSnapshot: (date: string) => Promise<DailySnapshot | null>;
   loadHn: () => Promise<HnWireResult>;
   loadIncidents24h: () => Promise<HistoricalIncident[]>;
+  /**
+   * Optional: load the OpenRouter snapshot history (date → top-N
+   * slugs). When omitted or returning fewer than 7 days, the
+   * Model Usage section silently self-gates and is not emitted.
+   */
+  loadModelUsageSnapshots?: () => Promise<Record<string, ModelUsageSnapshotRow>>;
 };
 
 export async function buildDigestForDate(
@@ -47,6 +54,9 @@ export async function buildDigestForDate(
   const yesterday = await opts.loadSnapshot(opts.previousDate);
   const hn = await opts.loadHn();
   const incidents24h = await opts.loadIncidents24h();
+  const modelUsageSnapshots = opts.loadModelUsageSnapshots
+    ? await opts.loadModelUsageSnapshots()
+    : undefined;
   try {
     const body = composeDigest({
       today,
@@ -54,6 +64,7 @@ export async function buildDigestForDate(
       hn,
       incidents24h,
       now: opts.now,
+      modelUsageSnapshots,
     });
     return { ok: true, body };
   } catch (e) {
