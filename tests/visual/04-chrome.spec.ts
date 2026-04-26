@@ -27,16 +27,15 @@ test.describe("chrome", () => {
     await shot(page, "chrome-topbar", { fullPage: false });
   });
 
-  test("LeftNav exposes all ten panel buttons", async ({ page }) => {
+  test("LeftNav exposes all eleven panel buttons", async ({ page }) => {
     await openDashboard(page);
     const nav = page.getByRole("navigation", { name: "Panel navigation" });
     // LeftNav buttons use `title` attribute as the stable identifier —
     // the accessible name includes the count/soon badge text so
     // role+name matching doesn't work for exact labels. Session 27
-    // parked Audit alongside Agents as soon-disabled (the deterministic
-    // audit page is staying live but is hidden from the nav until it
-    // earns a full panel treatment). Session 35 added "SDK Adoption"
-    // as the 10th live panel.
+    // parked Audit alongside Agents as soon-disabled. Session 35 added
+    // "SDK Adoption"; session 38 added "Model Usage" — eleventh live
+    // panel, ranks LLMs by real OpenRouter request volume.
     for (const label of [
       "Wire",
       "Tools",
@@ -46,6 +45,7 @@ test.describe("chrome", () => {
       "AI Labs",
       "Regional Wire",
       "SDK Adoption",
+      "Model Usage",
     ]) {
       await expect(nav.locator(`button[title="${label}"]`)).toBeVisible();
     }

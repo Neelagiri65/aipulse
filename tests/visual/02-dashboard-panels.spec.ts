@@ -106,4 +106,15 @@ test.describe("dashboard panels", () => {
     await page.waitForTimeout(800);
     await shot(page, "panel-sdk-adoption");
   });
+
+  test("Model Usage panel opens on nav click", async ({ page }) => {
+    await openPanelViaNav(page, "Model Usage");
+    const mu = panelByTitle(page, /Model Usage/i);
+    await expect(mu).toBeVisible({ timeout: 15_000 });
+    // Panel can take one /api/panels/model-usage fetch to settle —
+    // pre-cron empty state is also an acceptable visual until the
+    // first 6h cron fires in prod.
+    await page.waitForTimeout(800);
+    await shot(page, "panel-model-usage");
+  });
 });
