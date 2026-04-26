@@ -131,6 +131,13 @@ export function ModelUsageList({
           </button>
         ))}
       </div>
+      <div className="model-usage-header-row" aria-hidden="true">
+        <span className="model-usage-rank">Rank</span>
+        <span className="model-usage-label">Model</span>
+        <span className="model-usage-author">Provider</span>
+        <span className="model-usage-rank-bar-head">Position</span>
+        <span className="model-usage-pricing">$/1M</span>
+      </div>
       <ul className="model-usage-rows" role="list">
         {sorted.map((row) => {
           const focused = focusedSlug === row.slug;

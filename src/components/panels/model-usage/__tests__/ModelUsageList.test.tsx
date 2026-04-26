@@ -49,6 +49,20 @@ function mkDto(rows: ModelUsageRow[]): ModelUsageDto {
 }
 
 describe("ModelUsageList — rendering", () => {
+  it("renders a column-header row above the data rows", () => {
+    const html = renderToStaticMarkup(
+      <ModelUsageList data={mkDto([mkRow(1, "anthropic/m")])} />,
+    );
+    expect(html).toContain("model-usage-header-row");
+    // Each header label appears literally; the row labels are reused
+    // CSS classes so the header inherits the same column widths.
+    expect(html).toContain("Rank");
+    expect(html).toContain("Model");
+    expect(html).toContain("Provider");
+    expect(html).toContain("Position");
+    expect(html).toContain("$/1M");
+  });
+
   it("renders a row per model with the rank padded to 2 digits", () => {
     const html = renderToStaticMarkup(
       <ModelUsageList

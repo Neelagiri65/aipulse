@@ -131,21 +131,35 @@ export function ModelUsagePanel({
 
   return (
     <div className="model-usage-panel" data-ordering={data.ordering}>
-      <header className="model-usage-header">
-        <p
-          className="model-usage-caveat"
-          title={OPENROUTER_SOURCE_CAVEAT}
-        >
-          {data.sourceCaveat}
-        </p>
-        {fallbackBanner}
-        {trendingBanner}
-      </header>
+      {(fallbackBanner || trendingBanner) && (
+        <header className="model-usage-header">
+          {fallbackBanner}
+          {trendingBanner}
+        </header>
+      )}
       <ModelUsageList
         data={data}
         focusedSlug={focusedSlug}
         onRowClick={(slug) => setFocusedSlug(slug)}
       />
+      <footer
+        className="model-usage-footer"
+        title={OPENROUTER_SOURCE_CAVEAT}
+      >
+        <span aria-hidden="true" className="model-usage-footer-icon">ⓘ</span>
+        <span>
+          OpenRouter reflects API-first developer spend. Direct customers
+          invisible.{" "}
+          <a
+            href="https://openrouter.ai/rankings"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="model-usage-footer-link"
+          >
+            Source ↗
+          </a>
+        </span>
+      </footer>
       {focusedRow ? (
         <RowDrawer
           row={focusedRow}

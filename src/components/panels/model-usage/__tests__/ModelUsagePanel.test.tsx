@@ -82,7 +82,7 @@ describe("ModelUsagePanel", () => {
     expect(html).toContain("Collecting baseline");
   });
 
-  it("renders the canonical caveat in the header", () => {
+  it("renders the canonical caveat as a hover tooltip on the footer", () => {
     const html = renderToStaticMarkup(
       <ModelUsagePanel
         data={mkDto([mkRow(1, "anthropic/m")])}
@@ -93,6 +93,20 @@ describe("ModelUsagePanel", () => {
     );
     expect(html).toContain("OpenRouter request volume");
     expect(html).toContain("not end-user adoption");
+  });
+
+  it("renders the one-line footer with source link to OpenRouter rankings", () => {
+    const html = renderToStaticMarkup(
+      <ModelUsagePanel
+        data={mkDto([mkRow(1, "anthropic/m")])}
+        error={null}
+        isInitialLoading={false}
+        originUrl="https://aipulse.dev"
+      />,
+    );
+    expect(html).toContain("OpenRouter reflects API-first developer spend");
+    expect(html).toContain("Direct customers");
+    expect(html).toContain('href="https://openrouter.ai/rankings"');
   });
 
   it("shows the catalogue-fallback banner when ordering is fallback", () => {
