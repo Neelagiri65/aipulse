@@ -480,18 +480,253 @@
 }
 
 /* --------------------------------------------------------------------------
-   Mobile gate — the dashboard HUD is built for ≥ 768px. Below that we hide
-   the app and paint a centred "best viewed on desktop" notice so mobile
-   readers see the right message instead of a broken layout (Polish 7).
+   Mobile shell — rendered only at viewports ≤767px (gated by useIsMobile in
+   Dashboard). The desktop "windows on a stage" paradigm doesn't fit a
+   375px screen; the mobile shell takes the same panel components but
+   stacks them as a single-active-tab feed. Replaced the previous
+   "best viewed on desktop" gate in S39.
    -------------------------------------------------------------------------- */
-.ap-mobile-only { display: none; }
+.ap-mobile-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  background: rgba(6, 8, 10, 0.98);
+  color: var(--ap-fg);
+  font-family: var(--font-jetbrains-mono);
+}
+
+.ap-mobile-topbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 48px;
+  background: rgba(10, 13, 16, 0.92);
+  border-bottom: 1px solid var(--ap-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.ap-mobile-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: var(--ap-fg);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ap-mobile-brand__name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.ap-mobile-brand__beta {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ap-fg-dim);
+}
+
+.ap-mobile-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  flex: none;
+}
+
+.ap-mobile-chip--ok      { color: var(--sev-op);      background: rgba(34, 197, 94, 0.08); }
+.ap-mobile-chip--warn    { color: var(--sev-degrade); background: rgba(245, 158, 11, 0.08); }
+.ap-mobile-chip--bad     { color: var(--sev-outage);  background: rgba(239, 68, 68, 0.08); }
+.ap-mobile-chip--pending { color: var(--sev-pending); background: rgba(255, 255, 255, 0.04); }
+
+.ap-mobile-tabs {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  padding: 6px 8px;
+  height: 44px;
+  background: rgba(10, 13, 16, 0.85);
+  border-bottom: 1px solid var(--ap-border);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+.ap-mobile-tabs::-webkit-scrollbar { display: none; }
+
+.ap-mobile-tabs__item {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--ap-fg-muted);
+  font-family: inherit;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+
+.ap-mobile-tabs__item.is-active {
+  color: var(--ap-accent);
+  background: rgba(45, 212, 191, 0.08);
+  border-color: rgba(45, 212, 191, 0.35);
+}
+
+.ap-mobile-tabs__count {
+  font-size: 9px;
+  padding: 1px 5px;
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--ap-fg);
+  letter-spacing: 0;
+  border-radius: 2px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.ap-mobile-tabs__item.is-active .ap-mobile-tabs__count {
+  background: rgba(45, 212, 191, 0.18);
+  color: var(--ap-accent);
+}
+
+.ap-mobile-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+.ap-mobile-panel {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ap-mobile-panel--padded { padding: 12px; gap: 12px; }
+
+.ap-mobile-map {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.ap-mobile-map > :first-child:not(.ap-mobile-map__caveat):not(.ap-mobile-map__loading) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.ap-mobile-map__loading {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--ap-fg-muted);
+}
+
+.ap-mobile-map__caveat {
+  flex: none;
+  padding: 6px 12px;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ap-fg-dim);
+  background: rgba(10, 13, 16, 0.85);
+  border-top: 1px solid var(--ap-border);
+}
+
+.ap-mobile-error {
+  margin: 8px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(252, 211, 77, 0.85);
+}
+
+.ap-mobile-footer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px;
+  height: 32px;
+  background: rgba(10, 13, 16, 0.92);
+  border-top: 1px solid var(--ap-border);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ap-fg-muted);
+}
+
+.ap-mobile-footer__cron--ok   { color: var(--sev-op); }
+.ap-mobile-footer__cron--warn { color: var(--sev-degrade); }
+
+.ap-mobile-footer__link {
+  color: var(--ap-accent);
+  text-decoration: none;
+}
+.ap-mobile-footer__link:hover { text-decoration: underline; }
+
+/* --------------------------------------------------------------------------
+   Per-panel mobile overrides. The dense desktop list grids assume
+   ≥420px panel width; below that we collapse to a 2-col layout that
+   keeps name + key metric visible and pushes the rank-position bar to
+   the row's right edge.
+   -------------------------------------------------------------------------- */
 @media (max-width: 767px) {
-  .ap-desktop-only { display: none !important; }
-  .ap-mobile-only {
-    display: flex;
-    background: rgba(6, 8, 10, 0.98);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+  .model-usage-row,
+  .model-usage-header-row {
+    grid-template-columns: 24px minmax(0, 1.4fr) 56px;
+    gap: 8px;
+  }
+  .model-usage-author,
+  .model-usage-rank-bar {
+    display: none;
+  }
+  .model-usage-header-row span:nth-child(3),
+  .model-usage-header-row span:nth-child(4) {
+    display: none;
+  }
+  .model-usage-name { font-size: 11px; }
+  .model-usage-pricing { font-size: 10.5px; }
+
+  .sdk-adoption-panel .sdk-list-row {
+    grid-template-columns: minmax(0, 1.4fr) 64px 60px;
+    gap: 8px;
+  }
+  .sdk-adoption-panel .sdk-list-row-trend,
+  .sdk-adoption-panel .sdk-list-row-coverage {
+    display: none;
+  }
+
+  /* Tool Health: the auto-fit grid uses 300px min — too wide for 375px
+     viewport. Force single-column at mobile so cards read end-to-end. */
+  .ap-mobile-panel--padded > .grid {
+    grid-template-columns: 1fr !important;
   }
 }
 

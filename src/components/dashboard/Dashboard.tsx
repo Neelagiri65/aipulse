@@ -72,6 +72,8 @@ import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
 import { ModelUsagePanel } from "@/components/panels/model-usage/ModelUsagePanel";
 import type { ModelUsageDto } from "@/lib/data/openrouter-types";
 import { track } from "@/lib/analytics";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
+import { MobileDashboard } from "@/components/dashboard/MobileDashboard";
 
 const STATUS_POLL_MS = 5 * 60 * 1000;
 const EVENTS_POLL_MS = 30 * 1000;
@@ -726,6 +728,60 @@ export function Dashboard() {
     // and the deps array can stay narrow.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topmostOpenId]);
+
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <MobileDashboard
+        points={points}
+        events={events.data}
+        eventsLoading={events.isInitialLoading}
+        eventsError={events.error ?? null}
+        status={status.data}
+        statusFreshness={{
+          isInitialLoading: status.isInitialLoading,
+          lastSuccessAt: status.lastSuccessAt,
+          intervalMs: STATUS_POLL_MS,
+          error: status.error,
+        }}
+        statusError={status.error ?? null}
+        wireRows={wireRows}
+        hn={hn.data}
+        hnLoading={hn.isInitialLoading}
+        models={models.data}
+        modelsLoading={models.isInitialLoading}
+        modelsError={models.error ?? null}
+        research={research.data}
+        researchLoading={research.isInitialLoading}
+        researchError={research.error ?? null}
+        benchmarks={benchmarks.data}
+        benchmarksLoading={benchmarks.isInitialLoading}
+        benchmarksError={benchmarks.error ?? null}
+        labs={labs.data}
+        labsLoading={labs.isInitialLoading}
+        labsError={labs.error ?? null}
+        rss={rss.data}
+        rssLoading={rss.isInitialLoading}
+        rssError={rss.error ?? null}
+        sdkAdoption={sdkAdoption.data}
+        sdkAdoptionLoading={sdkAdoption.isInitialLoading}
+        sdkAdoptionError={sdkAdoption.error ?? null}
+        modelUsage={modelUsage.data}
+        modelUsageLoading={modelUsage.isInitialLoading}
+        modelUsageError={modelUsage.error ?? null}
+        cronHealth={
+          cronHealth.data
+            ? {
+                total: cronHealth.data.total,
+                healthy: cronHealth.data.healthy,
+                stale: cronHealth.data.stale,
+              }
+            : undefined
+        }
+      />
+    );
+  }
 
   return (
     <>

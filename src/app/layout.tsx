@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { CursorGlow } from "@/components/chrome/CursorGlow";
-import { MobileNotice } from "@/components/chrome/MobileNotice";
 import { GlobalOverlays } from "@/components/chrome/GlobalOverlays";
 
 const dmSans = DM_Sans({
@@ -43,10 +42,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <div className="ap-stage-bg" aria-hidden />
         <CursorGlow />
-        <div className="ap-desktop-only relative z-10 flex flex-1 flex-col">
-          {children}
-        </div>
-        <MobileNotice />
+        <div className="relative z-10 flex flex-1 flex-col">{children}</div>
         <GlobalOverlays />
       </body>
     </html>
