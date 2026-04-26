@@ -398,3 +398,55 @@ export function filterLivePoints<T extends LiveEventLike>(
     return true;
   });
 }
+
+/**
+ * Six event-type filter ids. Kept as a runtime constant so the toggle
+ * helper + the empty-state detector both iterate the same set —
+ * adding a 7th type bucket only requires updating this one place.
+ */
+export const EVENT_TYPE_FILTER_IDS: ReadonlyArray<FilterLayerId> = [
+  "push",
+  "pr",
+  "issue",
+  "release",
+  "fork",
+  "watch",
+];
+
+/**
+ * Apply a single filter toggle, returning the new state.
+ *
+ * Special-cased semantics for ai-config-only: when flipped from OFF
+ * to ON, the helper also enables every event-type checkbox. The user
+ * intent on toggling "AI-config only" is "show me AI-config repos",
+ * not "show me AI-config repos *of types I have ticked*". Forcing the
+ * user to also know which event-type checkboxes must be on is a
+ * hidden dependency the UI doesn't surface.
+ *
+ * Disabling ai-config-only does NOT touch event-type state — the
+ * user might have curated specific buckets, and we want re-disabling
+ * the signal filter to be reversible without losing their selection.
+ *
+ * Every other toggle is a plain boolean flip.
+ */
+export function applyFilterToggle(
+  state: FilterState,
+  id: FilterLayerId,
+): FilterState {
+  const next: FilterState = { ...state, [id]: !state[id] };
+  if (id === "ai-config-only" && next["ai-config-only"] === true) {
+    for (const t of EVENT_TYPE_FILTER_IDS) next[t] = true;
+  }
+  return next;
+}
+
+/**
+ * True when ai-config-only is checked but every event-type bucket is
+ * off, i.e. the live-events filter chain returns nothing because
+ * there's no type-bucket left to keep. Drives a one-line note above
+ * the map so the user sees why the AI-config layer reads empty.
+ */
+export function isAiConfigStranded(filters: FilterState): boolean {
+  if (!filters["ai-config-only"]) return false;
+  return EVENT_TYPE_FILTER_IDS.every((t) => !filters[t]);
+}

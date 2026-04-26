@@ -38,7 +38,9 @@ import { LeftNav, type NavItem } from "@/components/chrome/LeftNav";
 import {
   FilterPanel,
   DEFAULT_FILTERS,
+  applyFilterToggle,
   filterLivePoints,
+  isAiConfigStranded,
   type FilterLayerId,
   type FilterState,
 } from "@/components/chrome/FilterPanel";
@@ -230,10 +232,13 @@ export function Dashboard() {
   // Filter logic itself is in FilterPanel.tsx (`filterLivePoints`) so
   // it's unit-testable — see __tests__/FilterPanel.test.ts.
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  // applyFilterToggle handles the ai-config-only auto-enable for event
+  // types — see FilterPanel.tsx for the full semantics + tests.
   const toggleFilter = (id: FilterLayerId) =>
-    setFilters((f) => ({ ...f, [id]: !f[id] }));
+    setFilters((f) => applyFilterToggle(f, id));
   const resetFilters = () => setFilters(DEFAULT_FILTERS);
   const livePoints = filterLivePoints(rawPoints, filters);
+  const aiConfigStranded = isAiConfigStranded(filters);
 
   // Dedup: if a registry repo also has a live event in the current
   // window, keep only the live event — it's the stronger signal and
@@ -772,12 +777,14 @@ export function Dashboard() {
           <div className="relative h-full w-full">
             <FlatMap points={points} lastUpdatedAt={lastUpdatedAt} />
             <CoverageBadge events={events.data} />
+            {aiConfigStranded && <AiConfigStrandedNote />}
           </div>
         )}
         {activeTab === "globe" && (
           <div className="relative h-full w-full">
             <Globe points={points} lastUpdatedAt={lastUpdatedAt} />
             <CoverageBadge events={events.data} />
+            {aiConfigStranded && <AiConfigStrandedNote />}
           </div>
         )}
         {activeTab === "wire" && (
@@ -1185,6 +1192,25 @@ function CoverageBadge({ events }: { events?: GlobeEventsResult }) {
     <div className="pointer-events-none absolute bottom-4 right-4 rounded-md border border-border/40 bg-background/70 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground backdrop-blur-sm">
       <span className="text-foreground/80">{coverage.windowSize}</span> events ·{" "}
       {coverage.windowMinutes}m window · {coverage.locationCoveragePct}% placeable
+    </div>
+  );
+}
+
+/**
+ * Sticky note above the map explaining why AI-Config Only is producing
+ * an empty layer: the user has every event-type checkbox off. The
+ * default toggle path enables event types automatically; this banner
+ * only fires when the user has manually unchecked them after enabling
+ * the signal filter.
+ */
+function AiConfigStrandedNote() {
+  return (
+    <div
+      role="status"
+      aria-label="AI-Config filter has no event types enabled"
+      className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-md border border-amber-400/40 bg-background/85 px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-wider text-amber-300 backdrop-blur-sm"
+    >
+      Enable event types to see AI-config results
     </div>
   );
 }

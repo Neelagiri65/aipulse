@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyFilterToggle,
   DEFAULT_FILTERS,
+  EVENT_TYPE_FILTER_IDS,
   eventTypeToFilterId,
   filterLivePoints,
+  isAiConfigStranded,
   type FilterState,
 } from "@/components/chrome/FilterPanel";
 
@@ -124,6 +127,98 @@ describe("filterLivePoints — meta-shape edge cases", () => {
     const ai = mkPoint("PushEvent", true);
     const out = filterLivePoints([ai], AI_ONLY);
     expect(out[0]).toBe(ai);
+  });
+});
+
+describe("applyFilterToggle — ai-config-only auto-enable for event types", () => {
+  it("flipping ai-config-only OFF→ON enables every event-type checkbox", () => {
+    // Reproduces the user-reported bug: ai-config-only on, all event
+    // types off, map empty. After this fix, toggling ai-config-only
+    // ON should bring every event-type filter back ON.
+    const allOff: FilterState = {
+      ...DEFAULT_FILTERS,
+      "ai-config-only": false,
+      push: false,
+      pr: false,
+      issue: false,
+      release: false,
+      fork: false,
+      watch: false,
+    };
+    const next = applyFilterToggle(allOff, "ai-config-only");
+    expect(next["ai-config-only"]).toBe(true);
+    for (const t of EVENT_TYPE_FILTER_IDS) {
+      expect(next[t]).toBe(true);
+    }
+  });
+
+  it("flipping ai-config-only ON→OFF leaves event-type state alone", () => {
+    // The reverse direction must NOT undo the user's curation —
+    // re-enabling ai-config-only later should remain a non-destructive
+    // operation if they had specific buckets ticked.
+    const onCurated: FilterState = {
+      ...DEFAULT_FILTERS,
+      "ai-config-only": true,
+      push: true,
+      pr: false,
+      issue: false,
+      release: false,
+      fork: false,
+      watch: false,
+    };
+    const next = applyFilterToggle(onCurated, "ai-config-only");
+    expect(next["ai-config-only"]).toBe(false);
+    expect(next.push).toBe(true);
+    expect(next.pr).toBe(false);
+    expect(next.fork).toBe(false);
+  });
+
+  it("toggling a non-signal filter is a plain boolean flip", () => {
+    const next = applyFilterToggle(DEFAULT_FILTERS, "push");
+    expect(next.push).toBe(false);
+    // Other state unchanged.
+    expect(next.pr).toBe(true);
+    expect(next["ai-config-only"]).toBe(false);
+  });
+
+  it("does not mutate the input state", () => {
+    const original: FilterState = { ...DEFAULT_FILTERS };
+    applyFilterToggle(original, "ai-config-only");
+    expect(original).toEqual(DEFAULT_FILTERS);
+  });
+});
+
+describe("isAiConfigStranded — empty-state warning detector", () => {
+  it("false when ai-config-only is off", () => {
+    expect(isAiConfigStranded(DEFAULT_FILTERS)).toBe(false);
+  });
+
+  it("false when ai-config-only is on AND at least one event type is on", () => {
+    const partialOn: FilterState = {
+      ...DEFAULT_FILTERS,
+      "ai-config-only": true,
+      push: true,
+      pr: false,
+      issue: false,
+      release: false,
+      fork: false,
+      watch: false,
+    };
+    expect(isAiConfigStranded(partialOn)).toBe(false);
+  });
+
+  it("true when ai-config-only is on AND every event type is off", () => {
+    const stranded: FilterState = {
+      ...DEFAULT_FILTERS,
+      "ai-config-only": true,
+      push: false,
+      pr: false,
+      issue: false,
+      release: false,
+      fork: false,
+      watch: false,
+    };
+    expect(isAiConfigStranded(stranded)).toBe(true);
   });
 });
 
