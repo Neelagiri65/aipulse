@@ -260,7 +260,7 @@
     "hqSourceUrl": "https://weblab.t.u-tokyo.ac.jp/en/",
     "orgs": ["matsuolab"],
     "repos": [
-      { "owner": "matsuolab", "repo": "weblab-10b", "sourceUrl": "https://github.com/matsuolab/weblab-10b" }
+      { "owner": "matsuolab", "repo": "multibanana", "sourceUrl": "https://github.com/matsuolab/multibanana" }
     ]
   },
   {
@@ -275,7 +275,7 @@
     "hqSourceUrl": "https://www.inria.fr/en",
     "orgs": ["inria"],
     "repos": [
-      { "owner": "inria", "repo": "spoc", "sourceUrl": "https://github.com/inria/spoc" }
+      { "owner": "INRIA", "repo": "spoon", "sourceUrl": "https://github.com/INRIA/spoon" }
     ]
   },
   {
@@ -290,7 +290,7 @@
     "hqSourceUrl": "https://is.mpg.de/",
     "orgs": ["mpi-is"],
     "repos": [
-      { "owner": "mpi-is", "repo": "shape-attentive-unet", "sourceUrl": "https://github.com/mpi-is/shape-attentive-unet" }
+      { "owner": "MPI-IS", "repo": "mesh", "sourceUrl": "https://github.com/MPI-IS/mesh" }
     ]
   },
   {
@@ -368,8 +368,7 @@
     "hqSourceUrl": "https://en.wikipedia.org/wiki/Stability_AI",
     "orgs": ["Stability-AI"],
     "repos": [
-      { "owner": "Stability-AI", "repo": "generative-models", "sourceUrl": "https://github.com/Stability-AI/generative-models" },
-      { "owner": "Stability-AI", "repo": "stablediffusion", "sourceUrl": "https://github.com/Stability-AI/stablediffusion" }
+      { "owner": "Stability-AI", "repo": "generative-models", "sourceUrl": "https://github.com/Stability-AI/generative-models" }
     ]
   },
   {
