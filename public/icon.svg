@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AI Pulse">
+  <rect width="512" height="512" fill="#06080a"/>
+  <!-- Pulsing ring -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#2dd4bf" stroke-width="6" stroke-opacity="0.35"/>
+  <circle cx="256" cy="256" r="140" fill="none" stroke="#2dd4bf" stroke-width="6" stroke-opacity="0.55"/>
+  <!-- Solid pulse dot -->
+  <circle cx="256" cy="256" r="92" fill="#2dd4bf"/>
+  <!-- Inner darker recess for "live" feel -->
+  <circle cx="256" cy="256" r="44" fill="#06080a"/>
+  <circle cx="256" cy="256" r="20" fill="#2dd4bf"/>
+</svg>

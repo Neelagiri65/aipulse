@@ -3,6 +3,7 @@ import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { CursorGlow } from "@/components/chrome/CursorGlow";
 import { GlobalOverlays } from "@/components/chrome/GlobalOverlays";
+import { ServiceWorkerRegister } from "@/components/chrome/ServiceWorkerRegister";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -20,6 +21,20 @@ export const metadata: Metadata = {
   title: "AI Pulse — live status & activity monitor for AI coding tools",
   description:
     "Real-time status pages for Anthropic, OpenAI, GitHub Copilot, plus a globe of public AI-coding events from the GitHub Events API. Every number cites its source. MVP scope: 3 tools + 1 activity feed.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "AI Pulse",
+  },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = {
@@ -44,6 +59,7 @@ export default function RootLayout({
         <CursorGlow />
         <div className="relative z-10 flex flex-1 flex-col">{children}</div>
         <GlobalOverlays />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

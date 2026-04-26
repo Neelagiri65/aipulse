@@ -728,6 +728,20 @@
   .ap-mobile-panel--padded > .grid {
     grid-template-columns: 1fr !important;
   }
+
+  /* Benchmarks table: 7 cols too tight at 375px. Hide Votes (col 5) —
+     secondary signal; Δ Rank + Δ Elo are the actionable deltas. */
+  .ap-mobile-panel table th:nth-child(5),
+  .ap-mobile-panel table td:nth-child(5) {
+    display: none;
+  }
+
+  /* WirePage uses px-6 (24px) headers/footers for desktop chrome.
+     Tighten to 12px on mobile so each row gets more content width. */
+  .ap-mobile-panel .px-6 {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
 }
 
 /* Live pulse used by brand dot + topbar */
