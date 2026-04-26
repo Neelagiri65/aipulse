@@ -32,12 +32,13 @@ const KEY_PREFIX = "cron:health:";
  */
 export const CRON_WORKFLOWS = {
   // GitHub Actions scheduled crons drift under load — actual cadence
-  // for this 5-min schedule is closer to 30-40 min in practice. The
-  // declared interval is what the cron-health "stale" check uses, so
-  // labelling it 30 min reflects observed reality and stops the
-  // StatusBar from flagging stale on every miss-of-five-minutes.
+  // for fast schedules is closer to 30-60 min in practice. Declared
+  // interval drives the cron-health "stale" check, so labelling these
+  // to observed reality stops the StatusBar from flagging stale on
+  // every missed tick. wire-ingest-hn bumped 15→60 in S39 for the
+  // same reason globe-ingest was bumped 5→30 in S35.
   "globe-ingest": { expectedIntervalMinutes: 30 },
-  "wire-ingest-hn": { expectedIntervalMinutes: 15 },
+  "wire-ingest-hn": { expectedIntervalMinutes: 60 },
   "wire-ingest-rss": { expectedIntervalMinutes: 30 },
   "registry-backfill-events": { expectedIntervalMinutes: 60 },
   "registry-discover-topics": { expectedIntervalMinutes: 120 },
