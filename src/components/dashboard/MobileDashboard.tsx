@@ -40,20 +40,16 @@ const FlatMap = dynamic(
   },
 );
 
-export type MobilePanelId =
-  | "map"
-  | "wire"
-  | "tools"
-  | "models"
+export type MobileTopTabId = "map" | "wire" | "health" | "models" | "more";
+export type MobileModelsSubId = "downloads" | "benchmarks" | "usage";
+export type MobileMoreSectionId =
   | "research"
-  | "benchmarks"
   | "labs"
   | "regional-wire"
-  | "sdk-adoption"
-  | "model-usage";
+  | "sdk-adoption";
 
 type MobileTab = {
-  id: MobilePanelId;
+  id: MobileTopTabId;
   label: string;
   count?: number | null;
 };
@@ -108,11 +104,28 @@ export type MobileDashboardProps = {
  * Mobile shell. Rendered only at viewports ≤767px (gated by `useIsMobile`
  * in Dashboard). The desktop "windows on a stage" paradigm fundamentally
  * doesn't fit a 375px screen; this component takes the same panel
- * components but stacks them as a single-active-tab feed: brand bar on
- * top, horizontally scrollable tab strip, full-width panel body below.
+ * components but consolidates them into 5 top tabs (Map / Wire / Health /
+ * Models / More) plus a sub-tab strip inside Models and an accordion
+ * inside More — 10 horizontal scroll targets becomes 5 visible tabs.
+ *
+ * Top-tab routing:
+ *   - map      → FlatMap with the same filtered points the desktop uses
+ *   - wire     → WirePage chronological feed
+ *   - health   → Tool Health cards (1-col on mobile)
+ *   - models   → sub-tab strip [Downloads | Bench | Usage] swapping
+ *                between ModelsPanel, BenchmarksPanel, ModelUsagePanel
+ *   - more     → accordion of Research, Labs, Regional, SDK Adoption,
+ *                each section collapsible. First section open by default
+ *                so the "More" tab isn't blank on first land.
  */
 export function MobileDashboard(props: MobileDashboardProps) {
-  const [active, setActive] = useState<MobilePanelId>("map");
+  const [active, setActive] = useState<MobileTopTabId>("map");
+  const [modelsSub, setModelsSub] = useState<MobileModelsSubId>("downloads");
+  // Default: research expanded so the More tab has visible content on
+  // first open. User can collapse / expand any section freely.
+  const [moreOpen, setMoreOpen] = useState<Set<MobileMoreSectionId>>(
+    new Set<MobileMoreSectionId>(["research"]),
+  );
 
   const tabs: MobileTab[] = [
     { id: "map", label: "Map" },
@@ -122,43 +135,40 @@ export function MobileDashboard(props: MobileDashboardProps) {
       count: props.events?.coverage.windowSize ?? null,
     },
     {
-      id: "tools",
-      label: "Tools",
+      id: "health",
+      label: "Health",
       count: props.status ? Object.keys(props.status.data).length : null,
     },
-    { id: "models", label: "Models", count: props.models?.models.length ?? null },
     {
-      id: "research",
-      label: "Research",
-      count: props.research?.papers.length ?? null,
+      id: "models",
+      label: "Models",
+      count: countForModelsTab(props),
     },
     {
-      id: "benchmarks",
-      label: "Bench",
-      count:
-        props.benchmarks && props.benchmarks.ok ? props.benchmarks.rows.length : null,
-    },
-    { id: "labs", label: "Labs", count: props.labs?.labs.length ?? null },
-    {
-      id: "regional-wire",
-      label: "Regional",
-      count: props.rss?.sources.length ?? null,
-    },
-    {
-      id: "sdk-adoption",
-      label: "SDK",
-      count: props.sdkAdoption?.packages.length ?? null,
-    },
-    {
-      id: "model-usage",
-      label: "Usage",
-      count: props.modelUsage?.rows.length ?? null,
+      id: "more",
+      label: "More",
+      count: countForMoreTab(props),
     },
   ];
 
-  const handleSelect = (id: MobilePanelId) => {
+  const handleSelect = (id: MobileTopTabId) => {
     setActive(id);
     track("panel_open", { panel: id, surface: "mobile" });
+  };
+
+  const handleModelsSub = (id: MobileModelsSubId) => {
+    setModelsSub(id);
+    track("panel_open", { panel: `models:${id}`, surface: "mobile" });
+  };
+
+  const toggleMore = (id: MobileMoreSectionId) => {
+    setMoreOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    track("panel_open", { panel: `more:${id}`, surface: "mobile" });
   };
 
   return (
@@ -228,7 +238,7 @@ export function MobileDashboard(props: MobileDashboardProps) {
             />
           </div>
         )}
-        {active === "tools" && (
+        {active === "health" && (
           <div className="ap-mobile-panel ap-mobile-panel--padded">
             <HealthCardGrid data={props.status?.data} maximized={true} />
             {props.statusError ? (
@@ -239,73 +249,18 @@ export function MobileDashboard(props: MobileDashboardProps) {
           </div>
         )}
         {active === "models" && (
-          <div className="ap-mobile-panel">
-            <ModelsPanel
-              data={props.models}
-              error={props.modelsError ?? undefined}
-              isInitialLoading={props.modelsLoading}
-            />
-          </div>
+          <ModelsTabBody
+            sub={modelsSub}
+            onSubChange={handleModelsSub}
+            props={props}
+          />
         )}
-        {active === "research" && (
-          <div className="ap-mobile-panel">
-            <ResearchPanel
-              data={props.research}
-              error={props.researchError ?? undefined}
-              isInitialLoading={props.researchLoading}
-            />
-          </div>
-        )}
-        {active === "benchmarks" && (
-          <div className="ap-mobile-panel">
-            <BenchmarksPanel
-              data={props.benchmarks}
-              error={props.benchmarksError ?? undefined}
-              isInitialLoading={props.benchmarksLoading}
-            />
-          </div>
-        )}
-        {active === "labs" && (
-          <div className="ap-mobile-panel">
-            <LabsPanel
-              data={props.labs}
-              error={props.labsError ?? undefined}
-              isInitialLoading={props.labsLoading}
-            />
-          </div>
-        )}
-        {active === "regional-wire" && (
-          <div className="ap-mobile-panel">
-            <RegionalWirePanel
-              data={props.rss}
-              error={props.rssError ?? undefined}
-              isInitialLoading={props.rssLoading}
-            />
-          </div>
-        )}
-        {active === "sdk-adoption" && (
-          <div className="ap-mobile-panel">
-            <SdkAdoptionPanel
-              data={props.sdkAdoption ?? null}
-              error={props.sdkAdoptionError}
-              isInitialLoading={props.sdkAdoptionLoading}
-              originUrl={
-                typeof window !== "undefined" ? window.location.origin : ""
-              }
-            />
-          </div>
-        )}
-        {active === "model-usage" && (
-          <div className="ap-mobile-panel">
-            <ModelUsagePanel
-              data={props.modelUsage ?? null}
-              error={props.modelUsageError}
-              isInitialLoading={props.modelUsageLoading}
-              originUrl={
-                typeof window !== "undefined" ? window.location.origin : ""
-              }
-            />
-          </div>
+        {active === "more" && (
+          <MoreTabBody
+            open={moreOpen}
+            onToggle={toggleMore}
+            props={props}
+          />
         )}
       </main>
 
@@ -355,4 +310,203 @@ function CronHealthChip({
       {cronHealth.stale > 0 ? ` · ${cronHealth.stale} stale` : ""}
     </span>
   );
+}
+
+/**
+ * Models tab body — three sub-views of "which AI models matter":
+ *   - downloads  → HuggingFace top downloads (popularity)
+ *   - benchmarks → Chatbot Arena Elo (quality)
+ *   - usage      → OpenRouter weekly spend ranking (real economic signal)
+ *
+ * The user picks the angle they care about; we don't pick for them. The
+ * sub-tab strip is always visible so the alternative views are one tap
+ * away — combining these into one tab is the consolidation; flattening
+ * them into a "Models" view that pretends downloads = quality would
+ * collapse three honest signals into one dishonest one.
+ */
+function ModelsTabBody({
+  sub,
+  onSubChange,
+  props,
+}: {
+  sub: MobileModelsSubId;
+  onSubChange: (id: MobileModelsSubId) => void;
+  props: MobileDashboardProps;
+}) {
+  const subTabs: Array<{ id: MobileModelsSubId; label: string }> = [
+    { id: "downloads", label: "Downloads" },
+    { id: "benchmarks", label: "Bench" },
+    { id: "usage", label: "Usage" },
+  ];
+  return (
+    <div className="ap-mobile-panel">
+      <div className="ap-mobile-subtabs" role="tablist" aria-label="Models view">
+        {subTabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={sub === t.id}
+            className={`ap-mobile-subtabs__item${sub === t.id ? " is-active" : ""}`}
+            onClick={() => onSubChange(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="ap-mobile-subtabs__body">
+        {sub === "downloads" && (
+          <ModelsPanel
+            data={props.models}
+            error={props.modelsError ?? undefined}
+            isInitialLoading={props.modelsLoading}
+          />
+        )}
+        {sub === "benchmarks" && (
+          <BenchmarksPanel
+            data={props.benchmarks}
+            error={props.benchmarksError ?? undefined}
+            isInitialLoading={props.benchmarksLoading}
+          />
+        )}
+        {sub === "usage" && (
+          <ModelUsagePanel
+            data={props.modelUsage ?? null}
+            error={props.modelUsageError}
+            isInitialLoading={props.modelUsageLoading}
+            originUrl={
+              typeof window !== "undefined" ? window.location.origin : ""
+            }
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * "More" tab body — accordion of the four secondary panels. Multi-open
+ * (no exclusion), so a user can keep Research expanded while peeking at
+ * Labs. First section (research) opens by default so the More tab is
+ * never blank on first land.
+ */
+function MoreTabBody({
+  open,
+  onToggle,
+  props,
+}: {
+  open: Set<MobileMoreSectionId>;
+  onToggle: (id: MobileMoreSectionId) => void;
+  props: MobileDashboardProps;
+}) {
+  const sections: Array<{
+    id: MobileMoreSectionId;
+    label: string;
+    count: number | null;
+    body: React.ReactNode;
+  }> = [
+    {
+      id: "research",
+      label: "Research",
+      count: props.research?.papers.length ?? null,
+      body: (
+        <ResearchPanel
+          data={props.research}
+          error={props.researchError ?? undefined}
+          isInitialLoading={props.researchLoading}
+        />
+      ),
+    },
+    {
+      id: "labs",
+      label: "AI Labs",
+      count: props.labs?.labs.length ?? null,
+      body: (
+        <LabsPanel
+          data={props.labs}
+          error={props.labsError ?? undefined}
+          isInitialLoading={props.labsLoading}
+        />
+      ),
+    },
+    {
+      id: "regional-wire",
+      label: "Regional Wire",
+      count: props.rss?.sources.length ?? null,
+      body: (
+        <RegionalWirePanel
+          data={props.rss}
+          error={props.rssError ?? undefined}
+          isInitialLoading={props.rssLoading}
+        />
+      ),
+    },
+    {
+      id: "sdk-adoption",
+      label: "SDK Adoption",
+      count: props.sdkAdoption?.packages.length ?? null,
+      body: (
+        <SdkAdoptionPanel
+          data={props.sdkAdoption ?? null}
+          error={props.sdkAdoptionError}
+          isInitialLoading={props.sdkAdoptionLoading}
+          originUrl={
+            typeof window !== "undefined" ? window.location.origin : ""
+          }
+        />
+      ),
+    },
+  ];
+  return (
+    <div className="ap-mobile-panel ap-mobile-more">
+      {sections.map((s) => {
+        const isOpen = open.has(s.id);
+        return (
+          <section key={s.id} className="ap-mobile-more__section">
+            <button
+              type="button"
+              className="ap-mobile-more__header"
+              aria-expanded={isOpen}
+              aria-controls={`mobile-more-${s.id}`}
+              onClick={() => onToggle(s.id)}
+            >
+              <span className="ap-mobile-more__chevron" aria-hidden>
+                {isOpen ? "▾" : "▸"}
+              </span>
+              <span className="ap-mobile-more__label">{s.label}</span>
+              {s.count != null ? (
+                <span className="ap-mobile-more__count">{s.count}</span>
+              ) : null}
+            </button>
+            {isOpen ? (
+              <div id={`mobile-more-${s.id}`} className="ap-mobile-more__body">
+                {s.body}
+              </div>
+            ) : null}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function countForModelsTab(props: MobileDashboardProps): number | null {
+  // Aggregate: number of distinct rows visible across the three sub-views
+  // (downloads + benchmarks + usage). When all three are loading the
+  // count is null — we don't fabricate.
+  const a = props.models?.models.length ?? 0;
+  const b =
+    props.benchmarks && props.benchmarks.ok ? props.benchmarks.rows.length : 0;
+  const c = props.modelUsage?.rows.length ?? 0;
+  const sum = a + b + c;
+  return sum > 0 ? sum : null;
+}
+
+function countForMoreTab(props: MobileDashboardProps): number | null {
+  const a = props.research?.papers.length ?? 0;
+  const b = props.labs?.labs.length ?? 0;
+  const c = props.rss?.sources.length ?? 0;
+  const d = props.sdkAdoption?.packages.length ?? 0;
+  const sum = a + b + c + d;
+  return sum > 0 ? sum : null;
 }

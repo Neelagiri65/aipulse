@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import type L from "leaflet";
 import type { MarkerClusterGroup } from "leaflet";
 import type { GlobePoint } from "@/components/globe/Globe";
@@ -717,11 +718,67 @@ function clusterFromPoints(points: GlobePoint[]): Cluster {
 }
 
 function MapLegend() {
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+
+  // Mobile: collapsed by default behind a 32px ⓘ button. Tap to expand
+  // into a tap-outside-to-dismiss panel. Always-on legend covers half
+  // the viewport on a 375px screen — strictly opt-in instead.
+  if (isMobile && !open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Show map legend"
+        className="absolute bottom-3 left-3 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/80 font-mono text-[14px] text-foreground/80 backdrop-blur-sm"
+        style={{ zIndex: 1000 }}
+      >
+        <span aria-hidden="true">ⓘ</span>
+      </button>
+    );
+  }
+
+  const Container = ({ children }: { children: React.ReactNode }) =>
+    isMobile ? (
+      <>
+        <button
+          type="button"
+          aria-label="Dismiss map legend"
+          onClick={() => setOpen(false)}
+          className="absolute inset-0 bg-background/40"
+          style={{ zIndex: 999 }}
+        />
+        <div
+          role="dialog"
+          aria-label="Map legend"
+          className="absolute bottom-3 left-3 right-3 max-h-[70vh] overflow-y-auto rounded-md border border-border/40 bg-background/95 p-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground backdrop-blur-md"
+          style={{ zIndex: 1000 }}
+        >
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[9px] text-foreground/60">Map legend</span>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close legend"
+              className="text-foreground/60 hover:text-foreground"
+            >
+              ✕
+            </button>
+          </div>
+          {children}
+        </div>
+      </>
+    ) : (
+      <div
+        className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border/40 bg-background/70 p-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground backdrop-blur-sm"
+        style={{ zIndex: 1000 }}
+      >
+        {children}
+      </div>
+    );
+
   return (
-    <div
-      className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border/40 bg-background/70 p-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground backdrop-blur-sm"
-      style={{ zIndex: 1000 }}
-    >
+    <Container>
       <div className="mb-1.5 text-[9px] text-foreground/60">Live event type</div>
       <ul className="space-y-1">
         <LegendRow color="#2dd4bf" label="Push" />
@@ -756,7 +813,7 @@ function MapLegend() {
         <DecayRow opacity={0.18} label="≤90d" />
         <DecayRow opacity={0.08} label=">90d" />
       </ul>
-    </div>
+    </Container>
   );
 }
 

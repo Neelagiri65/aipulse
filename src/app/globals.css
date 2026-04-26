@@ -555,8 +555,8 @@
 .ap-mobile-tabs {
   flex: none;
   display: flex;
-  gap: 2px;
-  padding: 6px 8px;
+  gap: 4px;
+  padding: 6px 12px;
   height: 44px;
   background: rgba(10, 13, 16, 0.85);
   border-bottom: 1px solid var(--ap-border);
@@ -690,6 +690,120 @@
   text-decoration: none;
 }
 .ap-mobile-footer__link:hover { text-decoration: underline; }
+
+/* --------------------------------------------------------------------------
+   Mobile MODELS tab — sub-tab strip [Downloads | Bench | Usage] + body.
+   Three sub-views of "which models matter": popularity, quality, spend.
+   -------------------------------------------------------------------------- */
+.ap-mobile-subtabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(10, 13, 16, 0.7);
+  border-bottom: 1px solid var(--ap-border);
+}
+
+.ap-mobile-subtabs__item {
+  flex: 1 1 0;
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 3px;
+  color: var(--ap-fg-muted);
+  font-family: var(--font-jetbrains-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ap-mobile-subtabs__item.is-active {
+  color: var(--ap-accent);
+  background: rgba(45, 212, 191, 0.08);
+  border-color: rgba(45, 212, 191, 0.35);
+}
+
+.ap-mobile-subtabs__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ap-mobile-subtabs__body > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile MORE tab — accordion. Multi-open, no exclusion. First section
+   defaults open so the More tab is never blank on first land.
+   -------------------------------------------------------------------------- */
+.ap-mobile-more {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ap-mobile-more__section {
+  border-bottom: 1px solid var(--ap-border);
+}
+
+.ap-mobile-more__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 14px;
+  background: rgba(10, 13, 16, 0.6);
+  border: 0;
+  color: var(--ap-fg);
+  font-family: var(--font-jetbrains-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 48px;
+}
+
+.ap-mobile-more__header:active,
+.ap-mobile-more__header[aria-expanded="true"] {
+  background: rgba(45, 212, 191, 0.04);
+}
+
+.ap-mobile-more__chevron {
+  width: 14px;
+  color: var(--ap-fg-muted);
+  font-size: 12px;
+  flex: none;
+}
+
+.ap-mobile-more__label { flex: 1 1 auto; min-width: 0; }
+
+.ap-mobile-more__count {
+  font-size: 9.5px;
+  padding: 2px 6px;
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--ap-fg);
+  letter-spacing: 0;
+  border-radius: 2px;
+  flex: none;
+}
+
+.ap-mobile-more__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+  border-top: 1px solid var(--ap-border-hair);
+}
+
+.ap-mobile-more__body > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
 
 /* --------------------------------------------------------------------------
    Per-panel mobile overrides. The dense desktop list grids assume

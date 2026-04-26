@@ -62,22 +62,25 @@ describe("MobileDashboard — shell", () => {
     expect(html).toContain("ap-mobile-brand");
   });
 
-  it("renders all ten tab labels", () => {
+  it("renders the five top-level tab labels", () => {
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
-    for (const label of [
-      "Map",
-      "Wire",
-      "Tools",
-      "Models",
-      "Research",
-      "Bench",
-      "Labs",
-      "Regional",
-      "SDK",
-      "Usage",
-    ]) {
+    for (const label of ["Map", "Wire", "Health", "Models", "More"]) {
       expect(html).toContain(`>${label}<`);
     }
+  });
+
+  it("does not render the pre-consolidation flat tabs (Tools/Research/Bench/Labs/Regional/SDK/Usage)", () => {
+    // These were standalone top tabs in the first mobile shell. After
+    // consolidation they live inside Models sub-tabs or the More
+    // accordion — never as their own scroll-strip entries.
+    const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
+    expect(html).not.toMatch(
+      /class="ap-mobile-tabs__label">Tools</,
+    );
+    expect(html).not.toMatch(
+      /class="ap-mobile-tabs__label">Research</,
+    );
+    expect(html).not.toMatch(/class="ap-mobile-tabs__label">SDK</);
   });
 
   it("default tab is Map (active class on the Map tab)", () => {
