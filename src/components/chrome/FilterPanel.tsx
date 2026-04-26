@@ -403,15 +403,21 @@ export function filterLivePoints<T extends LiveEventLike>(
  * Six event-type filter ids. Kept as a runtime constant so the toggle
  * helper + the empty-state detector both iterate the same set —
  * adding a 7th type bucket only requires updating this one place.
+ *
+ * `as const` narrows the type so consumers can use
+ * `(typeof EVENT_TYPE_FILTER_IDS)[number]` to get the union of just
+ * the six type ids (used by MapLegend's TYPE_LABEL / TYPE_COLOR).
  */
-export const EVENT_TYPE_FILTER_IDS: ReadonlyArray<FilterLayerId> = [
+export const EVENT_TYPE_FILTER_IDS = [
   "push",
   "pr",
   "issue",
   "release",
   "fork",
   "watch",
-];
+] as const satisfies ReadonlyArray<FilterLayerId>;
+
+export type EventTypeFilterId = (typeof EVENT_TYPE_FILTER_IDS)[number];
 
 /**
  * Apply a single filter toggle, returning the new state.

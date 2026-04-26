@@ -44,6 +44,7 @@ import {
   type FilterLayerId,
   type FilterState,
 } from "@/components/chrome/FilterPanel";
+import { MapLegend } from "@/components/chrome/MapLegend";
 import { usePolledEndpoint } from "@/lib/hooks/use-polled-endpoint";
 import { PENDING_SOURCES, VERIFIED_SOURCES } from "@/lib/data-sources";
 import type { GlobeEventsResult } from "@/lib/data/fetch-events";
@@ -777,6 +778,7 @@ export function Dashboard() {
           <div className="relative h-full w-full">
             <FlatMap points={points} lastUpdatedAt={lastUpdatedAt} />
             <CoverageBadge events={events.data} />
+            <MapLegend filters={filters} />
             {aiConfigStranded && <AiConfigStrandedNote />}
           </div>
         )}
@@ -784,6 +786,7 @@ export function Dashboard() {
           <div className="relative h-full w-full">
             <Globe points={points} lastUpdatedAt={lastUpdatedAt} />
             <CoverageBadge events={events.data} />
+            <MapLegend filters={filters} />
             {aiConfigStranded && <AiConfigStrandedNote />}
           </div>
         )}
