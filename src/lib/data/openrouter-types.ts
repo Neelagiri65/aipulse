@@ -33,6 +33,17 @@ export type ModelPricing = {
 export type ModelUsageRow = {
   /** 1-indexed within the active ordering. */
   rank: number;
+  /**
+   * 1-indexed rank in the previous-day snapshot (the cron's
+   * day-before-today fixed-time capture). Null when:
+   *   - no previous snapshot is on file (cold start, fewer than 1
+   *     full UTC day since first cron),
+   *   - the slug was not in the previous snapshot's top-N (i.e. it
+   *     entered the visible list since yesterday — render as "NEW"),
+   *   - the active ordering is catalogue-fallback (rank deltas don't
+   *     mean anything when the list isn't a popularity ranking).
+   */
+  previousRank: number | null;
   /** OpenRouter slug, e.g. "anthropic/claude-sonnet-4.6". Stable id. */
   slug: string;
   /** OpenRouter permaslug, version-pinned id. */

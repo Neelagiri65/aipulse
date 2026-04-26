@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   ModelUsageList,
+  classifyRankChange,
   computeRankBarFraction,
   formatContextLength,
   formatPricing,
@@ -19,6 +20,7 @@ function mkRow(
   const author = slug.split("/")[0]!;
   return {
     rank,
+    previousRank: null,
     slug,
     permaslug: `${slug}-1`,
     name: slug,
@@ -36,7 +38,10 @@ function mkRow(
   };
 }
 
-function mkDto(rows: ModelUsageRow[]): ModelUsageDto {
+function mkDto(
+  rows: ModelUsageRow[],
+  overrides: Partial<ModelUsageDto> = {},
+): ModelUsageDto {
   return {
     ordering: "top-weekly",
     generatedAt: "2026-04-26T00:00:00Z",
@@ -45,6 +50,7 @@ function mkDto(rows: ModelUsageRow[]): ModelUsageDto {
     trendingDiffersFromTopWeekly: false,
     sanityWarnings: [],
     sourceCaveat: OPENROUTER_SOURCE_CAVEAT,
+    ...overrides,
   };
 }
 
@@ -256,6 +262,86 @@ describe("providerDotSlug", () => {
   it("falls back to neutral for unknown vendors (no colour invented)", () => {
     expect(providerDotSlug("brand-new-lab")).toBe("neutral");
     expect(providerDotSlug("")).toBe("neutral");
+  });
+});
+
+describe("classifyRankChange", () => {
+  it("returns 'up' when previousRank is greater than current rank", () => {
+    expect(classifyRankChange(1, 5, "top-weekly")).toBe("up");
+    expect(classifyRankChange(3, 4, "top-weekly")).toBe("up");
+  });
+
+  it("returns 'down' when previousRank is less than current rank", () => {
+    expect(classifyRankChange(5, 1, "top-weekly")).toBe("down");
+    expect(classifyRankChange(4, 3, "top-weekly")).toBe("down");
+  });
+
+  it("returns 'flat' when ranks match", () => {
+    expect(classifyRankChange(3, 3, "top-weekly")).toBe("flat");
+  });
+
+  it("returns 'new' when previousRank is null and ordering is a real ranking", () => {
+    expect(classifyRankChange(1, null, "top-weekly")).toBe("new");
+    expect(classifyRankChange(7, null, "trending")).toBe("new");
+  });
+
+  it("returns 'hidden' on catalogue-fallback regardless of previousRank value", () => {
+    expect(classifyRankChange(1, 5, "catalogue-fallback")).toBe("hidden");
+    expect(classifyRankChange(1, null, "catalogue-fallback")).toBe("hidden");
+  });
+});
+
+describe("ModelUsageList — rank-change indicator rendering", () => {
+  it("renders ▲N for a climber", () => {
+    const html = renderToStaticMarkup(
+      <ModelUsageList
+        data={mkDto([mkRow(1, "anthropic/m", { previousRank: 5 })])}
+      />,
+    );
+    expect(html).toContain("rank-change-up");
+    expect(html).toMatch(/▲\s*4/);
+  });
+
+  it("renders ▼N for a decliner", () => {
+    const html = renderToStaticMarkup(
+      <ModelUsageList
+        data={mkDto([mkRow(5, "anthropic/m", { previousRank: 1 })])}
+      />,
+    );
+    expect(html).toContain("rank-change-down");
+    expect(html).toMatch(/▼\s*4/);
+  });
+
+  it("renders em-dash for unchanged rank", () => {
+    const html = renderToStaticMarkup(
+      <ModelUsageList
+        data={mkDto([mkRow(3, "anthropic/m", { previousRank: 3 })])}
+      />,
+    );
+    expect(html).toContain("rank-change-flat");
+    expect(html).toContain("—");
+  });
+
+  it("renders NEW pill for first-time-seen slugs", () => {
+    const html = renderToStaticMarkup(
+      <ModelUsageList
+        data={mkDto([mkRow(1, "anthropic/m", { previousRank: null })])}
+      />,
+    );
+    expect(html).toContain("rank-change-new");
+    expect(html).toContain("NEW");
+  });
+
+  it("hides the indicator entirely on catalogue-fallback", () => {
+    const html = renderToStaticMarkup(
+      <ModelUsageList
+        data={mkDto(
+          [mkRow(1, "anthropic/m", { previousRank: 5 })],
+          { ordering: "catalogue-fallback" },
+        )}
+      />,
+    );
+    expect(html).not.toContain("rank-change-");
   });
 });
 

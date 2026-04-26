@@ -1345,6 +1345,31 @@
   color: rgba(148, 163, 184, 0.85);
   text-align: right;
   font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.rank-change {
+  font-family: var(--font-geist-mono, ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 3px;
+  border-radius: 2px;
+  line-height: 1;
+}
+
+.rank-change-up   { color: #34d399; background: rgba(52, 211, 153, 0.1); }
+.rank-change-down { color: #f87171; background: rgba(248, 113, 113, 0.1); }
+.rank-change-flat { color: rgba(148, 163, 184, 0.55); }
+.rank-change-new  {
+  color: #2dd4bf;
+  background: rgba(45, 212, 191, 0.12);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .model-usage-row.row-top3 .model-usage-rank {

@@ -277,6 +277,61 @@ describe("assembleModelUsage", () => {
     );
   });
 
+  it("populates previousRank from prior snapshot slug list", () => {
+    const dto = assembleModelUsage({
+      primary: mkPaddedResp(["a/king", "x/mover", "b/queen"]),
+      previousSnapshotSlugs: ["a/king", "b/queen", "x/mover"],
+      frontendErrored: false,
+      primaryOrdering: "top-weekly",
+      now: fixedClock,
+    });
+    const king = dto.rows.find((r) => r.slug === "a/king")!;
+    const mover = dto.rows.find((r) => r.slug === "x/mover")!;
+    const queen = dto.rows.find((r) => r.slug === "b/queen")!;
+    expect(king.previousRank).toBe(1);
+    expect(mover.previousRank).toBe(3);
+    expect(queen.previousRank).toBe(2);
+  });
+
+  it("returns null previousRank for slugs absent from the prior snapshot (NEW entrants)", () => {
+    const dto = assembleModelUsage({
+      primary: mkPaddedResp(["a/king", "new/entrant"]),
+      previousSnapshotSlugs: ["a/king", "x/old"],
+      frontendErrored: false,
+      primaryOrdering: "top-weekly",
+      now: fixedClock,
+    });
+    const newRow = dto.rows.find((r) => r.slug === "new/entrant")!;
+    expect(newRow.previousRank).toBeNull();
+  });
+
+  it("returns null previousRank for every row when previousSnapshotSlugs is omitted", () => {
+    const dto = assembleModelUsage({
+      primary: mkPaddedResp(["a/king", "b/queen"]),
+      frontendErrored: false,
+      primaryOrdering: "top-weekly",
+      now: fixedClock,
+    });
+    for (const r of dto.rows) {
+      expect(r.previousRank).toBeNull();
+    }
+  });
+
+  it("suppresses previousRank entirely on catalogue-fallback ordering", () => {
+    const dto = assembleModelUsage({
+      primary: null,
+      catalogue: { data: padToSanity([mkRaw("a/king")]) },
+      previousSnapshotSlugs: ["a/king"],
+      frontendErrored: true,
+      primaryOrdering: "top-weekly",
+      now: fixedClock,
+    });
+    expect(dto.ordering).toBe("catalogue-fallback");
+    for (const r of dto.rows) {
+      expect(r.previousRank).toBeNull();
+    }
+  });
+
   it("falls back to catalogue ordered by recency when frontendErrored AND models[] empty", () => {
     const cat: RawCatalogueResponse = {
       data: padToSanity([

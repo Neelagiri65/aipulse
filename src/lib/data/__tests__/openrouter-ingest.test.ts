@@ -187,4 +187,56 @@ describe("runOpenRouterIngest", () => {
     await runOpenRouterIngest({ fetchRankings: fetcher, store, now: fixedClock });
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
+
+  it("seeds previousRank from yesterday's snapshot in the hash", async () => {
+    const store = mkStore();
+    // Pre-seed yesterday's snapshot with a different ranking — when
+    // today writes, every row's previousRank should reflect this list.
+    store.written.snapshots["2026-04-25"] = {
+      date: "2026-04-25",
+      ordering: "top-weekly",
+      slugs: ["b/second", "anthropic/claude-sonnet-4.6"],
+    };
+    store.presentDates.add("2026-04-25");
+    await runOpenRouterIngest({
+      fetchRankings: async () => mkFetched(),
+      store,
+      now: fixedClock,
+    });
+    const dto = store.written.dto!;
+    const sonnet = dto.rows.find((r) => r.slug === "anthropic/claude-sonnet-4.6")!;
+    expect(sonnet.previousRank).toBe(2);
+  });
+
+  it("walks back up to 7 days when yesterday's snapshot is missing (cron-skip tolerance)", async () => {
+    const store = mkStore();
+    // Day-2 prior is the only known prior — composer should still find it.
+    store.written.snapshots["2026-04-24"] = {
+      date: "2026-04-24",
+      ordering: "top-weekly",
+      slugs: ["anthropic/claude-sonnet-4.6"],
+    };
+    store.presentDates.add("2026-04-24");
+    await runOpenRouterIngest({
+      fetchRankings: async () => mkFetched(),
+      store,
+      now: fixedClock,
+    });
+    const dto = store.written.dto!;
+    const sonnet = dto.rows.find((r) => r.slug === "anthropic/claude-sonnet-4.6")!;
+    expect(sonnet.previousRank).toBe(1);
+  });
+
+  it("leaves previousRank null on cold start (no prior snapshots)", async () => {
+    const store = mkStore();
+    await runOpenRouterIngest({
+      fetchRankings: async () => mkFetched(),
+      store,
+      now: fixedClock,
+    });
+    const dto = store.written.dto!;
+    for (const r of dto.rows) {
+      expect(r.previousRank).toBeNull();
+    }
+  });
 });

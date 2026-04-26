@@ -34,6 +34,27 @@ import type {
   ModelUsageSnapshotRow,
 } from "@/lib/data/openrouter-types";
 
+/**
+ * Picks the slug list to seed `previousRank` from. Prefers exactly
+ * yesterday's snapshot, then walks back up to 7 days before giving
+ * up — covers a missed cron fire without surfacing stale rank
+ * deltas from a week ago.
+ */
+function resolvePreviousSnapshotSlugs(
+  snapshots: Record<string, ModelUsageSnapshotRow>,
+  todayDate: string,
+): string[] | undefined {
+  const dates = Object.keys(snapshots)
+    .filter((d) => d < todayDate)
+    .sort()
+    .reverse();
+  for (const d of dates.slice(0, 7)) {
+    const row = snapshots[d];
+    if (row && row.slugs.length > 0) return row.slugs;
+  }
+  return undefined;
+}
+
 export const SNAPSHOT_TOP_N = 50;
 
 export type RunOpenRouterIngestInput = {
@@ -66,19 +87,29 @@ export async function runOpenRouterIngest(
   const now = input.now ?? (() => new Date());
 
   const fetched = await fetchRankings();
+  const date = utcDate(now());
+  // Previous-snapshot lookup happens BEFORE we write today's. The
+  // hash is keyed by date so today's slot is either empty (first
+  // fire) or contains the earlier same-day write that we'll skip
+  // via writeDailySnapshotIfAbsent. Either way, the previous-day
+  // lookup is unaffected.
+  const allSnapshots = await store.readSnapshots();
+  const previousSnapshotSlugs = resolvePreviousSnapshotSlugs(
+    allSnapshots,
+    date,
+  );
   const dto = assembleModelUsage({
     primary: fetched.primary as RawFrontendResponse,
     secondary: fetched.secondary as RawFrontendResponse,
     catalogue: fetched.catalogue as RawCatalogueResponse,
     frontendErrored: fetched.frontendErrored,
     primaryOrdering: "top-weekly",
+    previousSnapshotSlugs,
     fetchedAt: fetched.fetchedAt,
     now,
   });
 
   await store.writeRankingsLatest(dto);
-
-  const date = utcDate(now());
   const snapshotRow: ModelUsageSnapshotRow = {
     date,
     ordering: dto.ordering,

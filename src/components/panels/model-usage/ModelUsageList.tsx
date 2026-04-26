@@ -164,6 +164,7 @@ export function ModelUsageList({
             >
               <span className="model-usage-rank" aria-label={`Rank ${row.rank}`}>
                 {String(row.rank).padStart(2, "0")}
+                <RankChange row={row} ordering={data.ordering} />
               </span>
               <span className="model-usage-label">
                 <span
@@ -283,4 +284,76 @@ export function computeRankBarFraction(rank: number, maxRank: number): number {
   if (rank < 1) return 1;
   if (rank > maxRank) return 1 / maxRank;
   return (maxRank - rank + 1) / maxRank;
+}
+
+export type RankChangeKind = "up" | "down" | "flat" | "new" | "hidden";
+
+/**
+ * Classify the day-over-day rank delta. catalogue-fallback always
+ * returns "hidden" because the list isn't a popularity ranking and
+ * deltas would be nonsense. Otherwise:
+ *   - previousRank === null → new entrant
+ *   - previousRank > rank   → climbed (up)
+ *   - previousRank < rank   → declined (down)
+ *   - previousRank === rank → unchanged (flat)
+ */
+export function classifyRankChange(
+  rank: number,
+  previousRank: number | null,
+  ordering: ModelUsageDto["ordering"],
+): RankChangeKind {
+  if (ordering === "catalogue-fallback") return "hidden";
+  if (previousRank === null) return "new";
+  if (previousRank > rank) return "up";
+  if (previousRank < rank) return "down";
+  return "flat";
+}
+
+function RankChange({
+  row,
+  ordering,
+}: {
+  row: ModelUsageRow;
+  ordering: ModelUsageDto["ordering"];
+}): React.ReactElement | null {
+  const kind = classifyRankChange(row.rank, row.previousRank, ordering);
+  if (kind === "hidden") return null;
+  if (kind === "new") {
+    return (
+      <span
+        className="rank-change rank-change-new"
+        aria-label="New entrant — was not in yesterday's top list"
+        title="New entrant since yesterday's snapshot"
+      >
+        NEW
+      </span>
+    );
+  }
+  if (kind === "flat") {
+    return (
+      <span
+        className="rank-change rank-change-flat"
+        aria-label="Rank unchanged from yesterday"
+        title="Same rank as yesterday's snapshot"
+      >
+        —
+      </span>
+    );
+  }
+  // up/down — previousRank is non-null at this point.
+  const delta = Math.abs(row.rank - (row.previousRank ?? row.rank));
+  const arrow = kind === "up" ? "▲" : "▼";
+  const className =
+    kind === "up" ? "rank-change rank-change-up" : "rank-change rank-change-down";
+  const verb = kind === "up" ? "climbed" : "fell";
+  return (
+    <span
+      className={className}
+      aria-label={`Rank ${verb} ${delta} since yesterday`}
+      title={`Was #${row.previousRank} yesterday`}
+    >
+      {arrow}
+      {delta}
+    </span>
+  );
 }

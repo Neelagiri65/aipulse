@@ -83,6 +83,14 @@ export type AssembleModelUsageInput = {
   frontendErrored: boolean;
   /** Which ordering the primary response was fetched under. */
   primaryOrdering: ModelUsageOrdering;
+  /**
+   * Optional previous-day snapshot slugs (in rank order). When
+   * provided, each row's `previousRank` is set from this list's
+   * index. Slugs not present here render as "NEW". Pass [] or omit
+   * for cold start / catalogue-fallback to suppress all rank-change
+   * indicators.
+   */
+  previousSnapshotSlugs?: string[];
   /** Optional max rows to keep on the DTO. Default = 100. */
   limit?: number;
   /** Optional fixed clock for deterministic generatedAt in tests. */
@@ -119,9 +127,16 @@ export function assembleModelUsage(input: AssembleModelUsageInput): ModelUsageDt
     ? "catalogue-fallback"
     : input.primaryOrdering;
 
+  // Map slug → rank for fast previous-rank lookup. Catalogue-fallback
+  // never gets rank-change indicators because the list isn't a
+  // popularity ranking (it's recency-sorted by `created_at`).
+  const previousRankBySlug = useFallback
+    ? new Map<string, number>()
+    : buildPreviousRankIndex(input.previousSnapshotSlugs);
+
   const rows = sourceModels
     .slice(0, limit)
-    .map((m, i) => normaliseRow(m, i + 1));
+    .map((m, i) => normaliseRow(m, i + 1, previousRankBySlug));
 
   const sanityWarnings = computeSanityWarnings(rows, sourceModels.length);
   const trendingDiffersFromTopWeekly =
@@ -173,11 +188,17 @@ function creationTimestamp(m: RawFrontendModel): number {
   return 0;
 }
 
-function normaliseRow(m: RawFrontendModel, rank: number): ModelUsageRow {
+function normaliseRow(
+  m: RawFrontendModel,
+  rank: number,
+  previousRankBySlug: Map<string, number>,
+): ModelUsageRow {
   const slug = m.slug;
   const author = m.author ?? slug.split("/")[0] ?? "unknown";
+  const previousRank = previousRankBySlug.get(slug) ?? null;
   return {
     rank,
+    previousRank,
     slug,
     permaslug: m.permaslug ?? slug,
     name: m.name ?? slug,
@@ -192,6 +213,20 @@ function normaliseRow(m: RawFrontendModel, rank: number): ModelUsageRow {
     modalitiesOut: Array.isArray(m.output_modalities) ? m.output_modalities : [],
     hubUrl: `https://openrouter.ai/${slug}`,
   };
+}
+
+function buildPreviousRankIndex(
+  previousSnapshotSlugs: string[] | undefined,
+): Map<string, number> {
+  const out = new Map<string, number>();
+  if (!previousSnapshotSlugs) return out;
+  for (let i = 0; i < previousSnapshotSlugs.length; i++) {
+    // Only the first occurrence wins — defensive against malformed
+    // upstream data that might duplicate a slug.
+    const s = previousSnapshotSlugs[i];
+    if (!out.has(s)) out.set(s, i + 1);
+  }
+  return out;
 }
 
 /**
