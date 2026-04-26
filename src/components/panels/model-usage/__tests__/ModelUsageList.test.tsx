@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   ModelUsageList,
+  computeRankBarFraction,
   formatContextLength,
   formatPricing,
+  providerDotSlug,
   sortRows,
 } from "@/components/panels/model-usage/ModelUsageList";
 import type { ModelUsageDto, ModelUsageRow } from "@/lib/data/openrouter-types";
@@ -82,7 +84,7 @@ describe("ModelUsageList — rendering", () => {
     );
   });
 
-  it("renders pricing as $X / $Y format", () => {
+  it("renders only prompt pricing in the row + completion in the title=", () => {
     const html = renderToStaticMarkup(
       <ModelUsageList
         data={mkDto([
@@ -92,8 +94,10 @@ describe("ModelUsageList — rendering", () => {
         ])}
       />,
     );
+    // Row body shows only prompt price.
     expect(html).toContain("$3.0");
-    expect(html).toContain("$15");
+    // Completion price is in the hover title=, not in the row text.
+    expect(html).toMatch(/title="[^"]*completion \$15[^"]*"/);
   });
 
   it("renders null pricing as em-dash", () => {
@@ -107,6 +111,55 @@ describe("ModelUsageList — rendering", () => {
       />,
     );
     expect(html).toContain("—");
+  });
+
+  it("tints rows with rank ≤ 3 via row-top3 class", () => {
+    const html = renderToStaticMarkup(
+      <ModelUsageList
+        data={mkDto([
+          mkRow(1, "anthropic/a"),
+          mkRow(2, "openai/b"),
+          mkRow(3, "google/c"),
+          mkRow(4, "meta/d"),
+        ])}
+      />,
+    );
+    const top3Matches = html.match(/row-top3/g);
+    expect(top3Matches).not.toBeNull();
+    expect(top3Matches!.length).toBe(3);
+  });
+
+  it("attaches a provider colour dot per row, picking the curated slug", () => {
+    const html = renderToStaticMarkup(
+      <ModelUsageList
+        data={mkDto([
+          mkRow(1, "anthropic/m"),
+          mkRow(2, "moonshotai/k"),
+          mkRow(3, "deepseek/v3"),
+          mkRow(4, "no-such-vendor/x"),
+        ])}
+      />,
+    );
+    expect(html).toContain("provider-dot-anthropic");
+    expect(html).toContain("provider-dot-moonshot");
+    expect(html).toContain("provider-dot-deepseek");
+    // Unknown vendor falls back to the neutral dot — no colour invented.
+    expect(html).toContain("provider-dot-neutral");
+  });
+
+  it("renders a rank-position bar with honest aria-label (not 'spend')", () => {
+    const html = renderToStaticMarkup(
+      <ModelUsageList
+        data={mkDto([mkRow(1, "anthropic/m")])}
+      />,
+    );
+    expect(html).toContain("model-usage-rank-bar");
+    expect(html).toMatch(/aria-label="Rank position 1[^"]*"/);
+    // Critical: neither label nor tooltip is allowed to claim the bar
+    // encodes spend. The aria-label must say "not absolute spend"; the
+    // hover tooltip must say OpenRouter doesn't publish those numbers.
+    expect(html).toMatch(/aria-label="[^"]*not absolute spend[^"]*"/);
+    expect(html).toMatch(/title="[^"]*does not publish absolute spend[^"]*"/);
   });
 });
 
@@ -170,5 +223,41 @@ describe("formatContextLength", () => {
   });
   it("renders raw count below 1K", () => {
     expect(formatContextLength(512)).toBe("512");
+  });
+});
+
+describe("providerDotSlug", () => {
+  it("maps known authors to their curated slug", () => {
+    expect(providerDotSlug("anthropic")).toBe("anthropic");
+    expect(providerDotSlug("openai")).toBe("openai");
+    expect(providerDotSlug("moonshotai")).toBe("moonshot");
+    expect(providerDotSlug("deepseek")).toBe("deepseek");
+    expect(providerDotSlug("meta-llama")).toBe("meta");
+    expect(providerDotSlug("mistralai")).toBe("mistral");
+  });
+  it("is case-insensitive", () => {
+    expect(providerDotSlug("Anthropic")).toBe("anthropic");
+    expect(providerDotSlug("OPENAI")).toBe("openai");
+  });
+  it("falls back to neutral for unknown vendors (no colour invented)", () => {
+    expect(providerDotSlug("brand-new-lab")).toBe("neutral");
+    expect(providerDotSlug("")).toBe("neutral");
+  });
+});
+
+describe("computeRankBarFraction", () => {
+  it("rank 1 fills the full bar", () => {
+    expect(computeRankBarFraction(1, 30)).toBeCloseTo(1.0, 5);
+  });
+  it("last rank fills 1/N", () => {
+    expect(computeRankBarFraction(30, 30)).toBeCloseTo(1 / 30, 5);
+  });
+  it("middle rank halfway-ish", () => {
+    expect(computeRankBarFraction(15, 30)).toBeCloseTo(16 / 30, 5);
+  });
+  it("clamps degenerate inputs", () => {
+    expect(computeRankBarFraction(1, 1)).toBe(1);
+    expect(computeRankBarFraction(0, 30)).toBe(1);
+    expect(computeRankBarFraction(99, 30)).toBeCloseTo(1 / 30, 5);
   });
 });

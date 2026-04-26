@@ -38,7 +38,7 @@ import { LeftNav, type NavItem } from "@/components/chrome/LeftNav";
 import {
   FilterPanel,
   DEFAULT_FILTERS,
-  eventTypeToFilterId,
+  filterLivePoints,
   type FilterLayerId,
   type FilterState,
 } from "@/components/chrome/FilterPanel";
@@ -227,22 +227,13 @@ export function Dashboard() {
   // Globe filters — client-side only. Filter the point list before it
   // reaches the globe; coverage/count in CoverageBadge stays honest to
   // the upstream pipeline (so the filter doesn't mask real data).
+  // Filter logic itself is in FilterPanel.tsx (`filterLivePoints`) so
+  // it's unit-testable — see __tests__/FilterPanel.test.ts.
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const toggleFilter = (id: FilterLayerId) =>
     setFilters((f) => ({ ...f, [id]: !f[id] }));
   const resetFilters = () => setFilters(DEFAULT_FILTERS);
-  const livePoints = rawPoints.filter((p) => {
-    const meta = p.meta as { type?: string; hasAiConfig?: boolean } | undefined;
-    if (filters["ai-config-only"] && !meta?.hasAiConfig) return false;
-    const fid = eventTypeToFilterId(meta?.type);
-    // An event whose GH type doesn't map to any of the 6 buckets has no
-    // checkbox to hide it → honest-filter contract leak. Drop it. The
-    // mapping covers every type we've seen in the wild; if a new type
-    // surfaces, it'll be hidden until explicitly routed.
-    if (!fid) return false;
-    if (!filters[fid]) return false;
-    return true;
-  });
+  const livePoints = filterLivePoints(rawPoints, filters);
 
   // Dedup: if a registry repo also has a live event in the current
   // window, keep only the live event — it's the stronger signal and

@@ -103,10 +103,9 @@ export function ModelUsagePanel({
         className="model-usage-fallback-banner"
         role="status"
         aria-label="Upstream ranking unavailable"
+        title="OpenRouter's undocumented frontend endpoint changed shape. The list below is the documented model catalogue ordered by release recency. The cron retries every 6h."
       >
-        Ranking unavailable — OpenRouter&apos;s frontend endpoint changed
-        shape. Showing the documented model catalogue ordered by release
-        recency until upstream is restored.
+        Fallback: showing catalogue by recency. Rankings restore automatically.
       </p>
     ) : null;
 

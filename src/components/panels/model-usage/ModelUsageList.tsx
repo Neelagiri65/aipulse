@@ -2,21 +2,29 @@
 
 /**
  * ModelUsageList — dense ranked list for the OpenRouter Model Usage
- * panel. Each row shows: rank, name + author chip, prompt+completion
- * pricing, context window. Click → emits onRowClick(slug) for the
- * RowDrawer.
+ * panel. Each row carries enough at-a-glance signal to make a decision
+ * without opening the drawer:
  *
- * Client-side sort buttons re-order the same data without re-fetch:
- *   - rank          (default — preserves the upstream ordering)
+ *   - Rank (mono, padded) + top-3 row tint to draw the eye to leaders.
+ *   - Provider colour dot (anthropic=teal, openai=green, google=blue,
+ *     deepseek=orange, moonshot=yellow, meta=purple, …) — reuses the
+ *     SDK Adoption registry-chip pattern at smaller scale.
+ *   - Model short name + tooltip with full slug.
+ *   - Author display name (compact).
+ *   - **Rank-position bar** — horizontal bar whose width encodes
+ *     (N - rank + 1) / N. The aria-label + title= explicitly say
+ *     "rank position" not "spend": OpenRouter's public endpoint does
+ *     not expose absolute usage numbers, so we never claim to.
+ *   - Prompt $/1M tokens. Completion price is on hover (title=) and
+ *     in full inside the drawer — keeps the row scannable.
+ *
+ * Click → emits onRowClick(slug) for the RowDrawer.
+ *
+ * Client-side sort buttons re-order without re-fetch:
+ *   - rank          (default — preserves the upstream OpenRouter ordering)
  *   - price-asc     (cheap models first; null pricing sinks to bottom)
  *   - price-desc    (expensive first)
  *   - context-desc  (long-context first)
- *
- * Empty state when the DTO carries no rows. Stale fallback when the
- * stored DTO ordering is "catalogue-fallback" — the panel header
- * already shows the inline banner; here we just suppress sort options
- * that don't make sense (price-asc on a recency-sorted catalogue is
- * still meaningful, so we leave them on).
  */
 
 import * as React from "react";
@@ -42,6 +50,36 @@ const SORT_ORDER: ModelUsageSortOption[] = [
   "price-desc",
   "context-desc",
 ];
+
+const TOP_HIGHLIGHT_RANKS = 3;
+
+/**
+ * Provider author → CSS-modifier slug for the colour dot. Lower-cased
+ * lookup so "Anthropic" / "anthropic" both resolve. Anything not in the
+ * map renders the neutral fallback dot (still visually present, just
+ * grey) — never invents a colour for an unknown vendor.
+ */
+const PROVIDER_DOT_SLUG: Record<string, string> = {
+  anthropic: "anthropic",
+  openai: "openai",
+  google: "google",
+  "google-ai-studio": "google",
+  deepseek: "deepseek",
+  moonshotai: "moonshot",
+  moonshot: "moonshot",
+  "meta-llama": "meta",
+  meta: "meta",
+  mistralai: "mistral",
+  mistral: "mistral",
+  qwen: "qwen",
+  alibaba: "qwen",
+  xai: "xai",
+  cohere: "cohere",
+  microsoft: "microsoft",
+  nvidia: "nvidia",
+  perplexity: "perplexity",
+  amazon: "amazon",
+};
 
 export type ModelUsageListProps = {
   data: ModelUsageDto;
@@ -71,6 +109,12 @@ export function ModelUsageList({
     [data.rows, sort],
   );
 
+  // Rank bar normalisation uses the visible range of ranks present in
+  // the trimmed DTO. With limit=30 we run from #1..#30; #1 = full bar,
+  // #30 = sliver. Stays linear: simpler to read than log, and the
+  // trimmed top-N already cuts the long tail.
+  const maxRank = Math.max(...data.rows.map((r) => r.rank));
+
   return (
     <div className="model-usage">
       <div className="model-usage-sort" role="tablist" aria-label="Sort models">
@@ -90,7 +134,18 @@ export function ModelUsageList({
       <ul className="model-usage-rows" role="list">
         {sorted.map((row) => {
           const focused = focusedSlug === row.slug;
-          const classes = ["model-usage-row", focused ? "row-focused" : ""]
+          const top3 = row.rank <= TOP_HIGHLIGHT_RANKS;
+          const providerSlug = providerDotSlug(row.author);
+          const barFraction = computeRankBarFraction(row.rank, maxRank);
+          const pricingTooltip =
+            row.pricing.completionPerMTok !== null
+              ? `Prompt ${formatPricing(row.pricing.promptPerMTok)} / 1M · completion ${formatPricing(row.pricing.completionPerMTok)} / 1M`
+              : `Prompt ${formatPricing(row.pricing.promptPerMTok)} / 1M`;
+          const classes = [
+            "model-usage-row",
+            top3 ? "row-top3" : "",
+            focused ? "row-focused" : "",
+          ]
             .filter(Boolean)
             .join(" ");
           return (
@@ -100,34 +155,38 @@ export function ModelUsageList({
               data-slug={row.slug}
               onClick={onRowClick ? () => onRowClick(row.slug) : undefined}
             >
-              <span className="model-usage-rank">
+              <span className="model-usage-rank" aria-label={`Rank ${row.rank}`}>
                 {String(row.rank).padStart(2, "0")}
               </span>
               <span className="model-usage-label">
-                <span className="model-usage-name">{row.shortName}</span>
                 <span
-                  className="model-usage-author"
-                  title={`Author: ${row.authorDisplay}`}
-                >
-                  {row.authorDisplay}
+                  className={`provider-dot provider-dot-${providerSlug}`}
+                  aria-hidden="true"
+                  title={row.authorDisplay}
+                />
+                <span className="model-usage-name" title={row.slug}>
+                  {row.shortName}
                 </span>
               </span>
-              <span className="model-usage-pricing" aria-label="Pricing per million tokens">
-                <span className="model-usage-pricing-prompt">
-                  {formatPricing(row.pricing.promptPerMTok)}
-                </span>
-                <span className="model-usage-pricing-divider" aria-hidden="true">
-                  /
-                </span>
-                <span className="model-usage-pricing-completion">
-                  {formatPricing(row.pricing.completionPerMTok)}
-                </span>
+              <span className="model-usage-author" aria-label={`Author ${row.authorDisplay}`}>
+                {row.authorDisplay}
               </span>
               <span
-                className="model-usage-context"
-                aria-label={`Context window ${row.contextLength.toLocaleString()} tokens`}
+                className="model-usage-rank-bar"
+                aria-label={`Rank position ${row.rank} of ${maxRank} — bar shows position, not absolute spend`}
+                title="Rank position — OpenRouter does not publish absolute spend numbers."
               >
-                {formatContextLength(row.contextLength)}
+                <span
+                  className="model-usage-rank-bar-fill"
+                  style={{ width: `${(barFraction * 100).toFixed(1)}%` }}
+                />
+              </span>
+              <span
+                className="model-usage-pricing"
+                aria-label={`Pricing prompt ${formatPricing(row.pricing.promptPerMTok)} per 1M tokens`}
+                title={pricingTooltip}
+              >
+                {formatPricing(row.pricing.promptPerMTok)}
               </span>
             </li>
           );
@@ -195,4 +254,26 @@ export function formatContextLength(tokens: number): string {
     return `${Math.round(tokens / 1_000)}K`;
   }
   return tokens.toString();
+}
+
+/**
+ * Map a raw author string to the provider-dot CSS modifier slug. Falls
+ * back to "neutral" for unknown vendors — never invents a colour for
+ * an author we haven't curated.
+ */
+export function providerDotSlug(author: string): string {
+  const key = author.toLowerCase();
+  return PROVIDER_DOT_SLUG[key] ?? "neutral";
+}
+
+/**
+ * Linear bar fraction from rank position. Rank 1 = full bar (1.0),
+ * rank N = sliver (1/N). Returned in [0, 1] so the consumer can
+ * percentage-format it directly.
+ */
+export function computeRankBarFraction(rank: number, maxRank: number): number {
+  if (maxRank <= 1) return 1;
+  if (rank < 1) return 1;
+  if (rank > maxRank) return 1 / maxRank;
+  return (maxRank - rank + 1) / maxRank;
 }

@@ -357,3 +357,44 @@ export function eventTypeToFilterId(type?: string): FilterLayerId | null {
       return null;
   }
 }
+
+/**
+ * Live-event filter shape. Pure: same input → same output.
+ *
+ * Lives here (not in Dashboard.tsx) so the rule set is unit-testable
+ * and so future changes to filter semantics don't drift across the
+ * map + globe + wire surfaces. The filter is *additive*:
+ *   - `ai-config-only` excludes points that don't carry hasAiConfig.
+ *   - Every event must map to one of the 6 type buckets via
+ *     `eventTypeToFilterId`. Unmapped types are dropped (honest-
+ *     filter contract — no checkbox-less event should leak through).
+ *   - The mapped type's checkbox must be on.
+ *
+ * Critical: this filter applies ONLY to live GH events. Registry,
+ * HN, labs, and RSS layers are filtered separately by their own
+ * top-level toggles in Dashboard. ai-config-only is intentionally
+ * NOT applied to the registry layer because every registry entry
+ * already has hasAiConfig=true by definition.
+ */
+export type LiveEventMeta = {
+  type?: string;
+  hasAiConfig?: boolean;
+};
+
+export type LiveEventLike<TMeta = LiveEventMeta> = {
+  meta?: TMeta;
+};
+
+export function filterLivePoints<T extends LiveEventLike>(
+  points: T[],
+  filters: FilterState,
+): T[] {
+  return points.filter((p) => {
+    const meta = p.meta as LiveEventMeta | undefined;
+    if (filters["ai-config-only"] && !meta?.hasAiConfig) return false;
+    const fid = eventTypeToFilterId(meta?.type);
+    if (!fid) return false;
+    if (!filters[fid]) return false;
+    return true;
+  });
+}

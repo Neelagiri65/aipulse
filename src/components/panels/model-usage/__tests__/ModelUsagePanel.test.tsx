@@ -106,8 +106,9 @@ describe("ModelUsagePanel", () => {
         originUrl="https://aipulse.dev"
       />,
     );
-    expect(html).toContain("Ranking unavailable");
-    expect(html).toContain("frontend endpoint changed shape");
+    expect(html).toContain("Fallback");
+    expect(html).toContain("catalogue by recency");
+    expect(html).toContain("Rankings restore automatically");
   });
 
   it("hides the trending deep-link when trendingDiffers is false", () => {
