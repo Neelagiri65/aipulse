@@ -24,25 +24,27 @@ export type LiveTickerProps = {
 
 export function LiveTicker({ rows, nowMs }: LiveTickerProps) {
   const items = rows.slice(0, TICKER_LIMIT);
-  if (items.length === 0) {
-    return (
-      <div className="ap-live-ticker ap-live-ticker--empty" role="status">
-        <span className="ap-live-ticker-empty-text">awaiting first events…</span>
-      </div>
-    );
-  }
-
   const ref = nowMs ?? Date.now();
 
   return (
     <div className="ap-live-ticker" role="status" aria-label="Live event ticker">
-      <div className="ap-live-ticker-track">
-        {/* Render the items twice so the seamless loop has nothing to
-            jump back to — the second copy slides in as the first
-            slides out. */}
-        <TickerSequence items={items} nowMs={ref} keyPrefix="a" />
-        <TickerSequence items={items} nowMs={ref} keyPrefix="b" aria-hidden />
-      </div>
+      <span className="ap-live-ticker-tag" aria-hidden>
+        <span className="ap-live-ticker-tag-dot" />
+        LIVE
+      </span>
+      {items.length === 0 ? (
+        <span className="ap-live-ticker-empty-text">
+          connecting to live feed…
+        </span>
+      ) : (
+        <div className="ap-live-ticker-track">
+          {/* Render the items twice so the seamless loop has nothing to
+              jump back to — the second copy slides in as the first
+              slides out. */}
+          <TickerSequence items={items} nowMs={ref} keyPrefix="a" />
+          <TickerSequence items={items} nowMs={ref} keyPrefix="b" aria-hidden />
+        </div>
+      )}
     </div>
   );
 }

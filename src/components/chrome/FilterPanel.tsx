@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+const STORAGE_KEY = "ap.filter-panel-open";
 
 export type FilterLayerId =
   | "push"
@@ -109,18 +111,41 @@ export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
   const cats: Layer["category"][] = ["Event types", "Signal", "Layers"];
   const [open, setOpen] = useState(true);
 
+  // Hydrate from localStorage on mount so the user's collapse preference
+  // persists across reloads. SSR-safe: useEffect only runs client-side.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = window.localStorage.getItem(STORAGE_KEY);
+      if (saved === "0") setOpen(false);
+    } catch {
+      // localStorage unavailable (private mode etc.) — keep default open.
+    }
+  }, []);
+
+  const setOpenPersist = (next: boolean) => {
+    setOpen(next);
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
+    } catch {
+      // ignore quota / disabled storage
+    }
+  };
+
   if (!open) {
     return (
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => setOpenPersist(true)}
         aria-label="Show filters"
         title="Show filters"
-        className="ap-filter-panel-trigger fixed right-3 z-40 ap-panel-surface flex h-9 items-center gap-2 px-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
+        className="ap-filter-panel-trigger fixed right-3 z-40 ap-panel-surface flex h-10 items-center gap-2 px-3 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground/90 transition-colors hover:text-[var(--ap-accent)] border border-[var(--ap-accent)]/40 shadow-[0_0_12px_-4px_rgba(45,212,191,0.4)]"
         style={{ top: 100 }}
       >
         <FunnelIcon />
-        <span>Filter</span>
+        <span>Show filters</span>
+        <span aria-hidden style={{ fontSize: "13px" }}>‹</span>
       </button>
     );
   }
@@ -146,12 +171,13 @@ export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
           </span>
           <button
             type="button"
-            onClick={() => setOpen(false)}
+            onClick={() => setOpenPersist(false)}
             aria-label="Hide filters"
             title="Hide filters"
-            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-white/5 hover:text-foreground"
+            className="flex h-6 items-center gap-1 rounded px-1.5 font-mono text-[9px] uppercase tracking-wider text-muted-foreground hover:bg-white/5 hover:text-foreground"
           >
-            <span aria-hidden>×</span>
+            <span>Hide</span>
+            <span aria-hidden style={{ fontSize: "12px" }}>›</span>
           </button>
         </header>
         <div className="space-y-4 p-3">
@@ -197,13 +223,14 @@ export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
       >
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={() => setOpenPersist(false)}
           aria-label="Hide filters"
           title="Hide filters"
-          className="flex w-full items-center justify-center border-b border-border/60 text-muted-foreground hover:bg-white/5 hover:text-foreground"
-          style={{ height: 34 }}
+          className="flex w-full flex-col items-center justify-center gap-0.5 border-b border-border/60 text-muted-foreground hover:bg-white/5 hover:text-foreground"
+          style={{ height: 40 }}
         >
           <FunnelIcon />
+          <span aria-hidden style={{ fontSize: "11px", lineHeight: 1 }}>›</span>
         </button>
         <div className="flex flex-col items-center gap-1 py-2">
           {LAYERS.map((layer) => (

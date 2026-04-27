@@ -238,7 +238,15 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
       // popups at 700, markers at 600, tiles at 200) so the card isn't
       // occluded by the map on the flat-map view. Safe on the globe too —
       // no competing positioned siblings there.
-      style={{ left, top, width: CARD_WIDTH, zIndex: 1200 }}
+      style={{
+        left,
+        top,
+        width: CARD_WIDTH,
+        zIndex: 1200,
+        maxHeight: "min(70vh, 560px)",
+        display: "flex",
+        flexDirection: "column",
+      }}
       className="absolute rounded-md border border-border/60 bg-background/95 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8),0_0_60px_-20px_rgba(45,212,191,0.25)] backdrop-blur-md"
     >
       <div className="flex h-7 items-center gap-2 border-b border-border/50 px-2.5 font-mono text-[10px] uppercase tracking-wider text-foreground/70">
@@ -321,7 +329,7 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
       </div>
       <ul
         className="divide-y divide-border/40 overflow-y-auto"
-        style={{ maxHeight: "min(60vh, 420px)" }}
+        style={{ flex: "1 1 auto", minHeight: 0 }}
       >
         {visible.map((p, i) => {
           const kind = (p.meta as EventMeta | undefined)?.kind;

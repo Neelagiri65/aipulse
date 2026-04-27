@@ -30,10 +30,13 @@ const sample: WireItem[] = [
 ];
 
 describe("LiveTicker", () => {
-  it("renders an empty state when given zero rows", () => {
+  it("renders an empty state when given zero rows, still showing the LIVE tag", () => {
     const html = renderToStaticMarkup(<LiveTicker rows={[]} nowMs={NOW} />);
-    expect(html).toContain("ap-live-ticker--empty");
-    expect(html).toContain("awaiting first events");
+    expect(html).toContain("ap-live-ticker-empty-text");
+    expect(html).toContain("connecting to live feed");
+    // LIVE pulse tag is always present so the surface is recognisable
+    // even before data arrives.
+    expect(html).toContain("ap-live-ticker-tag");
   });
 
   it("renders each row twice for the seamless scroll loop", () => {
