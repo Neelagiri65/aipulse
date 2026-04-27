@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  FEED_SEVERITIES,
-  FEED_TRIGGERS,
-  type CardType,
-} from "@/lib/feed/thresholds";
+import { FEED_SEVERITIES, FEED_TRIGGERS } from "@/lib/feed/thresholds";
+import type { CardType } from "@/lib/feed/types";
 
 describe("FEED_SEVERITIES", () => {
   it("matches the locked formula exactly", () => {

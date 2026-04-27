@@ -5,6 +5,11 @@ import { useState } from "react";
 
 import { WirePage, type WireItem } from "@/components/dashboard/WirePage";
 import { ShareButton } from "@/components/chrome/ShareButton";
+import {
+  MobileBottomBar,
+  type MobileTopLevelTab,
+} from "@/components/chrome/MobileBottomBar";
+import { FeedView } from "@/components/feed/FeedView";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
 import { ModelsPanel } from "@/components/models/ModelsPanel";
 import { ResearchPanel } from "@/components/research/ResearchPanel";
@@ -40,7 +45,11 @@ const FlatMap = dynamic(
   },
 );
 
-export type MobileTopTabId = "map" | "wire" | "health" | "models" | "more";
+/**
+ * Sub-tabs visible inside the PANELS top-level tab. Map was promoted
+ * to a peer of FEED + PANELS in S40 so it's no longer here.
+ */
+export type MobileTopTabId = "wire" | "health" | "models" | "more";
 export type MobileModelsSubId = "downloads" | "benchmarks" | "usage";
 export type MobileMoreSectionId =
   | "research"
@@ -119,7 +128,8 @@ export type MobileDashboardProps = {
  *                so the "More" tab isn't blank on first land.
  */
 export function MobileDashboard(props: MobileDashboardProps) {
-  const [active, setActive] = useState<MobileTopTabId>("map");
+  const [topTab, setTopTab] = useState<MobileTopLevelTab>("feed");
+  const [active, setActive] = useState<MobileTopTabId>("wire");
   const [modelsSub, setModelsSub] = useState<MobileModelsSubId>("downloads");
   // Default: research expanded so the More tab has visible content on
   // first open. User can collapse / expand any section freely.
@@ -128,7 +138,6 @@ export function MobileDashboard(props: MobileDashboardProps) {
   );
 
   const tabs: MobileTab[] = [
-    { id: "map", label: "Map" },
     {
       id: "wire",
       label: "Wire",
@@ -172,7 +181,11 @@ export function MobileDashboard(props: MobileDashboardProps) {
   };
 
   return (
-    <div className="ap-mobile-shell" data-active-tab={active}>
+    <div
+      className="ap-mobile-shell"
+      data-top-tab={topTab}
+      data-active-tab={active}
+    >
       <header className="ap-mobile-topbar">
         <a href="/" className="ap-mobile-brand" aria-label="AI Pulse home">
           <span className="ap-live-dot" aria-hidden />
@@ -183,30 +196,14 @@ export function MobileDashboard(props: MobileDashboardProps) {
         <ShareButton />
       </header>
 
-      <nav
-        className="ap-mobile-tabs"
-        role="tablist"
-        aria-label="Panel selector"
-      >
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={active === t.id}
-            className={`ap-mobile-tabs__item${active === t.id ? " is-active" : ""}`}
-            onClick={() => handleSelect(t.id)}
-          >
-            <span className="ap-mobile-tabs__label">{t.label}</span>
-            {t.count != null && t.count > 0 ? (
-              <span className="ap-mobile-tabs__count">{t.count}</span>
-            ) : null}
-          </button>
-        ))}
-      </nav>
-
       <main className="ap-mobile-body" role="tabpanel">
-        {active === "map" && (
+        {topTab === "feed" && (
+          <div className="ap-mobile-feed">
+            <FeedView />
+          </div>
+        )}
+
+        {topTab === "map" && (
           <div className="ap-mobile-map">
             <FlatMap
               points={props.points}
@@ -219,6 +216,75 @@ export function MobileDashboard(props: MobileDashboardProps) {
             </div>
           </div>
         )}
+
+        {topTab === "panels" && (
+          <>
+            <nav
+              className="ap-mobile-tabs"
+              role="tablist"
+              aria-label="Panel selector"
+            >
+              {tabs.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active === t.id}
+                  className={`ap-mobile-tabs__item${active === t.id ? " is-active" : ""}`}
+                  onClick={() => handleSelect(t.id)}
+                >
+                  <span className="ap-mobile-tabs__label">{t.label}</span>
+                  {t.count != null && t.count > 0 ? (
+                    <span className="ap-mobile-tabs__count">{t.count}</span>
+                  ) : null}
+                </button>
+              ))}
+            </nav>
+            {renderPanelsBody({ active, modelsSub, handleModelsSub, moreOpen, toggleMore, props })}
+          </>
+        )}
+      </main>
+
+      <MobileBottomBar active={topTab} onSelect={setTopTab} />
+
+      <footer className="ap-mobile-footer">
+        <CronHealthChip cronHealth={props.cronHealth} />
+        <a
+          href="/data-sources.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ap-mobile-footer__link"
+        >
+          Sources ↗
+        </a>
+      </footer>
+    </div>
+  );
+}
+
+/**
+ * Panels-tab body — the original 4-tab strip + per-tab content. Pulled
+ * into a helper so the top-level shell stays readable. No behaviour
+ * change vs the S39 5-tab strip aside from the Map tab being removed
+ * (it was promoted to a top-level peer in S40).
+ */
+function renderPanelsBody({
+  active,
+  modelsSub,
+  handleModelsSub,
+  moreOpen,
+  toggleMore,
+  props,
+}: {
+  active: MobileTopTabId;
+  modelsSub: MobileModelsSubId;
+  handleModelsSub: (id: MobileModelsSubId) => void;
+  moreOpen: Set<MobileMoreSectionId>;
+  toggleMore: (id: MobileMoreSectionId) => void;
+  props: MobileDashboardProps;
+}) {
+  return (
+    <>
         {active === "wire" && (
           <div className="ap-mobile-panel">
             <WirePage
@@ -262,20 +328,7 @@ export function MobileDashboard(props: MobileDashboardProps) {
             props={props}
           />
         )}
-      </main>
-
-      <footer className="ap-mobile-footer">
-        <CronHealthChip cronHealth={props.cronHealth} />
-        <a
-          href="/data-sources.md"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="ap-mobile-footer__link"
-        >
-          Sources ↗
-        </a>
-      </footer>
-    </div>
+    </>
   );
 }
 

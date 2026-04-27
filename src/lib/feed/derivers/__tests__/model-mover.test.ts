@@ -15,10 +15,9 @@ function row(
     author: partial.author ?? "anthropic",
     authorDisplay: partial.authorDisplay ?? "Anthropic",
     pricing: partial.pricing ?? {
-      promptUsdPerMTok: null,
-      completionUsdPerMTok: null,
-      imageUsdPerMTok: null,
-      requestUsdPerThousand: null,
+      promptPerMTok: null,
+      completionPerMTok: null,
+      webSearchPerCall: null,
     },
     contextLength: partial.contextLength ?? 200_000,
     knowledgeCutoff: partial.knowledgeCutoff ?? null,

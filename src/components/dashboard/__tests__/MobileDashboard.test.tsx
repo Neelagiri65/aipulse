@@ -62,11 +62,26 @@ describe("MobileDashboard — shell", () => {
     expect(html).toContain("ap-mobile-brand");
   });
 
-  it("renders the five top-level tab labels", () => {
+  it("renders the bottom-bar primary tabs (FEED, MAP, PANELS)", () => {
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
-    for (const label of ["Map", "Wire", "Health", "Models", "More"]) {
+    expect(html).toContain("ap-mobile-bottombar");
+    for (const label of ["FEED", "MAP", "PANELS"]) {
       expect(html).toContain(`>${label}<`);
     }
+  });
+
+  it("default top-level tab is FEED (per S40 PRD)", () => {
+    const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
+    expect(html).toMatch(/data-top-tab="feed"/);
+    expect(html).toMatch(
+      /class="ap-mobile-bottombar__item is-active"[^>]*data-tab="feed"/,
+    );
+  });
+
+  it("FEED tab renders the feed surface (loading skeleton on SSR)", () => {
+    const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
+    expect(html).toContain("ap-mobile-feed");
+    expect(html).toContain('data-feed-state="loading"');
   });
 
   it("does not render the pre-consolidation flat tabs (Tools/Research/Bench/Labs/Regional/SDK/Usage)", () => {
@@ -74,26 +89,16 @@ describe("MobileDashboard — shell", () => {
     // consolidation they live inside Models sub-tabs or the More
     // accordion — never as their own scroll-strip entries.
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
-    expect(html).not.toMatch(
-      /class="ap-mobile-tabs__label">Tools</,
-    );
-    expect(html).not.toMatch(
-      /class="ap-mobile-tabs__label">Research</,
-    );
+    expect(html).not.toMatch(/class="ap-mobile-tabs__label">Tools</);
+    expect(html).not.toMatch(/class="ap-mobile-tabs__label">Research</);
     expect(html).not.toMatch(/class="ap-mobile-tabs__label">SDK</);
   });
 
-  it("default tab is Map (active class on the Map tab)", () => {
+  it("does not render the panels sub-tab strip on the default FEED tab", () => {
+    // The 4 sub-tabs (Wire / Health / Models / More) only appear when
+    // the user has switched to the PANELS top-level tab.
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
-    expect(html).toMatch(
-      /class="ap-mobile-tabs__item is-active"[^>]*>[^<]*<span class="ap-mobile-tabs__label">Map</,
-    );
-  });
-
-  it("Map tab body mounts the FlatMap container + caveat strip", () => {
-    const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
-    expect(html).toContain("ap-mobile-map");
-    expect(html).toContain("ap-mobile-map__caveat");
+    expect(html).not.toContain("ap-mobile-tabs__item");
   });
 
   it("freshness chip reads 'live' when last success is fresh", () => {
