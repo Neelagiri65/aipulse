@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 export type FilterLayerId =
   | "push"
   | "pr"
@@ -105,6 +107,24 @@ export type FilterPanelProps = {
  */
 export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
   const cats: Layer["category"][] = ["Event types", "Signal", "Layers"];
+  const [open, setOpen] = useState(true);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Show filters"
+        title="Show filters"
+        className="ap-filter-panel-trigger fixed right-3 z-40 ap-panel-surface flex h-9 items-center gap-2 px-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
+        style={{ top: 100 }}
+      >
+        <FunnelIcon />
+        <span>Filter</span>
+      </button>
+    );
+  }
+
   return (
     <>
       {/* Full panel — 1440px+ only. The responsive swap uses two sibling
@@ -119,11 +139,20 @@ export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
         <header className="flex items-center gap-2 px-3 py-2 border-b border-border/60">
           <FunnelIcon />
           <span
-            className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em]"
+            className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] flex-1"
             style={{ color: "var(--ap-fg)" }}
           >
             Filter
           </span>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Hide filters"
+            title="Hide filters"
+            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-white/5 hover:text-foreground"
+          >
+            <span aria-hidden>×</span>
+          </button>
         </header>
         <div className="space-y-4 p-3">
           {cats.map((cat) => (
@@ -166,13 +195,16 @@ export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
         style={{ top: 100, width: 44 }}
         aria-label="Globe filters"
       >
-        <div
-          className="flex items-center justify-center border-b border-border/60"
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          aria-label="Hide filters"
+          title="Hide filters"
+          className="flex w-full items-center justify-center border-b border-border/60 text-muted-foreground hover:bg-white/5 hover:text-foreground"
           style={{ height: 34 }}
-          title="Filter"
         >
           <FunnelIcon />
-        </div>
+        </button>
         <div className="flex flex-col items-center gap-1 py-2">
           {LAYERS.map((layer) => (
             <FilterIconButton
