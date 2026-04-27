@@ -2,19 +2,31 @@ import { describe, expect, it } from "vitest";
 import { deriveModelMoverCards } from "@/lib/feed/derivers/model-mover";
 import type { ModelUsageDto, ModelUsageRow } from "@/lib/data/openrouter-types";
 
-function row(partial: Partial<ModelUsageRow> & Pick<ModelUsageRow, "rank" | "slug">): ModelUsageRow {
+function row(
+  partial: Partial<ModelUsageRow> & Pick<ModelUsageRow, "rank" | "slug">,
+): ModelUsageRow {
   return {
     rank: partial.rank,
     previousRank: partial.previousRank ?? null,
     slug: partial.slug,
+    permaslug: partial.permaslug ?? `${partial.slug}@1`,
     name: partial.name ?? partial.slug,
+    shortName: partial.shortName ?? partial.slug,
     author: partial.author ?? "anthropic",
+    authorDisplay: partial.authorDisplay ?? "Anthropic",
+    pricing: partial.pricing ?? {
+      promptUsdPerMTok: null,
+      completionUsdPerMTok: null,
+      imageUsdPerMTok: null,
+      requestUsdPerThousand: null,
+    },
+    contextLength: partial.contextLength ?? 200_000,
+    knowledgeCutoff: partial.knowledgeCutoff ?? null,
+    supportsReasoning: partial.supportsReasoning ?? false,
+    modalitiesIn: partial.modalitiesIn ?? ["text"],
+    modalitiesOut: partial.modalitiesOut ?? ["text"],
     hubUrl: partial.hubUrl ?? `https://openrouter.ai/${partial.slug}`,
-    modalities: partial.modalities ?? ["text"],
-    contextLength: partial.contextLength ?? null,
-    pricePromptUsdPerMTok: partial.pricePromptUsdPerMTok ?? null,
-    priceCompletionUsdPerMTok: partial.priceCompletionUsdPerMTok ?? null,
-  } as ModelUsageRow;
+  };
 }
 
 const baseDto: ModelUsageDto = {
