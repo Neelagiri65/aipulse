@@ -81,8 +81,25 @@ export function SdkAdoptionPanel({
 
   if (!data && isInitialLoading) {
     return (
-      <div className="sdk-adoption-panel sdk-adoption-loading" role="status">
-        Loading the latest snapshot — first cells light up shortly.
+      <div
+        className="sdk-adoption-panel sdk-adoption-loading"
+        role="status"
+        aria-label="Loading the latest SDK adoption snapshot"
+      >
+        <div className="space-y-3 p-3">
+          {Array.from({ length: 5 }).map((_, row) => (
+            <div key={row} className="flex items-center gap-2 animate-pulse">
+              <div className="h-4 w-24 rounded bg-muted/60" aria-hidden />
+              {Array.from({ length: 5 }).map((__, col) => (
+                <div
+                  key={col}
+                  className="h-8 flex-1 rounded bg-muted/40"
+                  aria-hidden
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

@@ -81,7 +81,14 @@ export function AuditClient() {
       </div>
 
       {cat.status === "loading" && (
-        <p className="ap-label-sm">Loading catalogue…</p>
+        <div
+          className="space-y-2"
+          role="status"
+          aria-label="Loading audit catalogue"
+        >
+          <div className="h-3 w-48 rounded bg-muted/60 animate-pulse" aria-hidden />
+          <div className="h-3 w-64 rounded bg-muted/40 animate-pulse" aria-hidden />
+        </div>
       )}
 
       {cat.status === "error" && (

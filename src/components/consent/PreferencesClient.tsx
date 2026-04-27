@@ -103,7 +103,24 @@ export function PreferencesClient() {
   }, []);
 
   if (status === "loading") {
-    return <p className="text-muted-foreground">Loading…</p>;
+    return (
+      <div
+        className="space-y-3"
+        role="status"
+        aria-label="Loading consent preferences"
+      >
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center justify-between gap-3 animate-pulse"
+            aria-hidden
+          >
+            <div className="h-4 w-40 rounded bg-muted/60" />
+            <div className="h-6 w-12 rounded-full bg-muted/40" />
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (

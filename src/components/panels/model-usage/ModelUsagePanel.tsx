@@ -62,8 +62,25 @@ export function ModelUsagePanel({
 
   if (!data && isInitialLoading) {
     return (
-      <div className="model-usage-panel model-usage-loading" role="status">
-        Loading the latest OpenRouter ranking…
+      <div
+        className="model-usage-panel model-usage-loading"
+        role="status"
+        aria-label="Loading the latest OpenRouter ranking"
+      >
+        <div className="space-y-2 p-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 animate-pulse"
+              aria-hidden
+            >
+              <div className="h-4 w-6 rounded bg-muted/60" />
+              <div className="h-4 flex-1 rounded bg-muted/60" />
+              <div className="h-4 w-16 rounded bg-muted/40" />
+              <div className="h-4 w-12 rounded bg-muted/40" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
