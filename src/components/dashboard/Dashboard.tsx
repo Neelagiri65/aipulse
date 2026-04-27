@@ -44,6 +44,7 @@ import {
   type FilterLayerId,
   type FilterState,
 } from "@/components/chrome/FilterPanel";
+import { LiveTicker } from "@/components/map/LiveTicker";
 import { MapLegend } from "@/components/chrome/MapLegend";
 import { usePolledEndpoint } from "@/lib/hooks/use-polled-endpoint";
 import { PENDING_SOURCES, VERIFIED_SOURCES } from "@/lib/data-sources";
@@ -831,19 +832,25 @@ export function Dashboard() {
         style={{ paddingTop: 76, paddingBottom: 168, zIndex: 3 }}
       >
         {activeTab === "map" && (
-          <div className="relative h-full w-full">
-            <FlatMap points={points} lastUpdatedAt={lastUpdatedAt} />
-            <CoverageBadge events={events.data} />
-            <MapLegend filters={filters} />
-            {aiConfigStranded && <AiConfigStrandedNote />}
+          <div className="relative h-full w-full flex flex-col">
+            <div className="relative flex-1 min-h-0">
+              <FlatMap points={points} lastUpdatedAt={lastUpdatedAt} />
+              <CoverageBadge events={events.data} />
+              <MapLegend filters={filters} />
+              {aiConfigStranded && <AiConfigStrandedNote />}
+            </div>
+            <LiveTicker rows={wireRows} />
           </div>
         )}
         {activeTab === "globe" && (
-          <div className="relative h-full w-full">
-            <Globe points={points} lastUpdatedAt={lastUpdatedAt} />
-            <CoverageBadge events={events.data} />
-            <MapLegend filters={filters} />
-            {aiConfigStranded && <AiConfigStrandedNote />}
+          <div className="relative h-full w-full flex flex-col">
+            <div className="relative flex-1 min-h-0">
+              <Globe points={points} lastUpdatedAt={lastUpdatedAt} />
+              <CoverageBadge events={events.data} />
+              <MapLegend filters={filters} />
+              {aiConfigStranded && <AiConfigStrandedNote />}
+            </div>
+            <LiveTicker rows={wireRows} />
           </div>
         )}
         {activeTab === "wire" && (

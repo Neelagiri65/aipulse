@@ -2041,3 +2041,94 @@
 .ap-feed-quiet-banner-row dd a:hover {
   text-decoration: underline;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Live ticker (Bloomberg-style scrolling event strip)
+   Sits below the map. CSS-only animation; pauses on hover.
+   ───────────────────────────────────────────────────────────────────── */
+
+.ap-live-ticker {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  background: rgba(8, 10, 12, 0.92);
+  border-top: 1px solid var(--ap-border);
+  overflow: hidden;
+  position: relative;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.ap-live-ticker--empty {
+  justify-content: center;
+  color: var(--ap-fg-muted);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ap-live-ticker-track {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  white-space: nowrap;
+  animation: ap-ticker-scroll 90s linear infinite;
+  will-change: transform;
+}
+
+.ap-live-ticker:hover .ap-live-ticker-track {
+  animation-play-state: paused;
+}
+
+.ap-live-ticker-sequence {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  flex: none;
+}
+
+.ap-live-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+  flex: none;
+}
+
+.ap-live-ticker-bullet {
+  color: var(--ap-accent);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.ap-live-ticker-label {
+  color: var(--ap-fg);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+}
+
+.ap-live-ticker-meta {
+  color: var(--ap-fg-muted);
+}
+
+.ap-live-ticker-link {
+  text-decoration: none;
+}
+
+.ap-live-ticker-link:hover {
+  color: var(--ap-accent);
+  text-decoration: underline;
+}
+
+.ap-live-ticker-sep {
+  margin: 0 12px;
+  color: rgba(148, 163, 184, 0.4);
+}
+
+@keyframes ap-ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}

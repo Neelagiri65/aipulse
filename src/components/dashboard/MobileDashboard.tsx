@@ -10,6 +10,7 @@ import {
   type MobileTopLevelTab,
 } from "@/components/chrome/MobileBottomBar";
 import { FeedView } from "@/components/feed/FeedView";
+import { LiveTicker } from "@/components/map/LiveTicker";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
 import { ModelsPanel } from "@/components/models/ModelsPanel";
 import { ResearchPanel } from "@/components/research/ResearchPanel";
@@ -214,6 +215,7 @@ export function MobileDashboard(props: MobileDashboardProps) {
               {props.events?.coverage.windowMinutes ?? 0}m window ·{" "}
               {props.events?.coverage.locationCoveragePct ?? 0}% placeable
             </div>
+            <LiveTicker rows={props.wireRows} />
           </div>
         )}
 
