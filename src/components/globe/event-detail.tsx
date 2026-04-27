@@ -150,7 +150,7 @@ export function hexA(hex: string, alpha: number): string {
 const CARD_WIDTH = 360;
 // Offset the card clear of a cluster badge (up to ~30px wide at high zoom).
 const CARD_MARGIN = 48;
-const MAX_VISIBLE_EVENTS = 5;
+const MAX_VISIBLE_EVENTS = 10;
 
 type EventCardProps = {
   cluster: Cluster;
@@ -319,7 +319,10 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
           <span aria-hidden>×</span>
         </button>
       </div>
-      <ul className="divide-y divide-border/40">
+      <ul
+        className="divide-y divide-border/40 overflow-y-auto"
+        style={{ maxHeight: "min(60vh, 420px)" }}
+      >
         {visible.map((p, i) => {
           const kind = (p.meta as EventMeta | undefined)?.kind;
           if (kind === "registry") {
