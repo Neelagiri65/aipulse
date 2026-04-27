@@ -598,10 +598,17 @@ function GlobeStatus({
   clusterCount: number;
   eventCount: number;
 }) {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => force((n) => n + 1), 10_000);
+    return () => clearInterval(t);
+  }, []);
+
   if (hasData && lastUpdatedAt) {
+    const ageMs = Date.now() - new Date(lastUpdatedAt).getTime();
     return (
       <div className="pointer-events-none absolute right-3 top-3 rounded-md border border-border/40 bg-background/70 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-emerald-400 backdrop-blur-sm">
-        Live · {clusterCount} cluster{clusterCount === 1 ? "" : "s"} · {eventCount} evt · {formatTimestamp(lastUpdatedAt)}
+        Live · {clusterCount} cluster{clusterCount === 1 ? "" : "s"} · {eventCount} evt · {formatAge(ageMs)}
       </div>
     );
   }
@@ -612,11 +619,12 @@ function GlobeStatus({
   );
 }
 
-function formatTimestamp(iso: string): string {
-  try {
-    const date = new Date(iso);
-    return date.toISOString().replace("T", " ").slice(0, 19) + " UTC";
-  } catch {
-    return iso;
-  }
+function formatAge(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
