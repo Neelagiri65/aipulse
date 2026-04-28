@@ -72,6 +72,7 @@ import { SdkAdoptionPanel } from "@/components/panels/sdk-adoption/SdkAdoptionPa
 import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
 import { ModelUsagePanel } from "@/components/panels/model-usage/ModelUsagePanel";
 import type { ModelUsageDto } from "@/lib/data/openrouter-types";
+import type { FeedResponse } from "@/lib/feed/types";
 import { track } from "@/lib/analytics";
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import { MobileDashboard } from "@/components/dashboard/MobileDashboard";
@@ -152,8 +153,29 @@ type PanelId =
   | "sdk-adoption"
   | "model-usage";
 
-export function Dashboard() {
-  const status = usePolledEndpoint<StatusResult>("/api/status", STATUS_POLL_MS);
+export type DashboardProps = {
+  /**
+   * SSR-hydrated /api/status payload. Seeds the StatusBar (and the
+   * mobile freshness chip) so the first paint shows real tool-health
+   * counts instead of a "connecting…" placeholder. The polling cycle
+   * still refreshes every STATUS_POLL_MS.
+   */
+  initialStatus?: StatusResult;
+  /**
+   * SSR-hydrated FeedResponse used by the mobile FeedView on first
+   * paint. Optional — desktop ignores it (LiveFeed is a different
+   * surface that reads /api/globe-events).
+   */
+  initialFeedResponse?: FeedResponse;
+};
+
+export function Dashboard({
+  initialStatus,
+  initialFeedResponse,
+}: DashboardProps = {}) {
+  const status = usePolledEndpoint<StatusResult>("/api/status", STATUS_POLL_MS, {
+    initialData: initialStatus,
+  });
   const events = usePolledEndpoint<GlobeEventsResult>(
     "/api/globe-events",
     EVENTS_POLL_MS,
@@ -775,6 +797,7 @@ export function Dashboard() {
               }
             : undefined
         }
+        initialFeedResponse={initialFeedResponse}
       />
     );
   }

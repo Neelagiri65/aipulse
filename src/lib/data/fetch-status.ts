@@ -45,6 +45,12 @@ export type StatusResult = {
   polledAt: string;
   /** Per-tool failures, for debugging. Empty on full success. */
   failures: Array<{ toolId: string; sourceId: string; message: string }>;
+  /**
+   * Set when the upstream poll failed and this payload was served from
+   * the last-known cache. The value is the ISO timestamp of the cached
+   * payload's original `polledAt`. Absent on a fresh poll.
+   */
+  staleAsOf?: string;
 };
 
 async function fetchStatuspage(

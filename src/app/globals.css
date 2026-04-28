@@ -1908,6 +1908,17 @@
   gap: 8px;
 }
 
+.ap-feed-stale-notice {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--sev-degrade, rgba(245, 158, 11, 0.95));
+  padding: 6px 10px;
+  border: 1px dashed rgba(245, 158, 11, 0.45);
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.05);
+}
+
 .ap-feed-list-item {
   margin: 0;
 }

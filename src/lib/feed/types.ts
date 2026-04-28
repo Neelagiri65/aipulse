@@ -46,6 +46,19 @@ export type CurrentState = {
   latestPaper: { title: string; sourceUrl: string };
 };
 
+/**
+ * Per-source disclosure: when a live-fetch source failed and the loader
+ * served the last successful payload from cache, the source name and
+ * the cache-write timestamp travel with the response so the UI can show
+ * "as of $time" honestly. Per the trust contract: a cited stale number
+ * is more valuable than a blank panel.
+ */
+export type StaleSource = {
+  source: string;
+  /** ISO timestamp the cached payload was last successfully fetched. */
+  staleAsOf: string;
+};
+
 export type FeedResponse = {
   cards: Card[];
   /** True when zero cards with severity ≥ 40 exist in the last 24h. */
@@ -54,4 +67,9 @@ export type FeedResponse = {
   currentState: CurrentState;
   /** ISO timestamp of this derivation run. */
   lastComputed: string;
+  /**
+   * Sources whose data was served from last-known cache because the
+   * fresh fetch failed. Omitted when every source returned fresh data.
+   */
+  staleSources?: StaleSource[];
 };

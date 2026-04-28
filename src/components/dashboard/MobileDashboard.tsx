@@ -33,6 +33,7 @@ import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
 import type { ModelUsageDto } from "@/lib/data/openrouter-types";
 import type { CronHealthSnapshot } from "@/components/dashboard/MetricTicker";
 import type { FreshnessState } from "@/components/chrome/TopBar";
+import type { FeedResponse } from "@/lib/feed/types";
 import { track } from "@/lib/analytics";
 
 const FlatMap = dynamic(
@@ -109,6 +110,11 @@ export type MobileDashboardProps = {
   modelUsageError: string | null;
   // Health
   cronHealth: CronHealthSnapshot | undefined;
+  // SSR-hydrated feed response. When provided, FeedView renders the
+  // ranked cards on first paint without waiting for the /api/feed
+  // round-trip. Optional — falls back to client polling when omitted
+  // (e.g. tests, or any consumer that doesn't pre-fetch server-side).
+  initialFeedResponse?: FeedResponse;
 };
 
 /**
@@ -202,7 +208,7 @@ export function MobileDashboard(props: MobileDashboardProps) {
       <main className="ap-mobile-body" role="tabpanel">
         {topTab === "feed" && (
           <div className="ap-mobile-feed">
-            <FeedView />
+            <FeedView initialResponse={props.initialFeedResponse} />
           </div>
         )}
 

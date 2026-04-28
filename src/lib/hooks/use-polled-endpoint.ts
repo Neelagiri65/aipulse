@@ -24,16 +24,30 @@ export type PolledState<T> = {
  * Not using SWR / React Query intentionally: the polling surface is two
  * endpoints with fixed cadences. A 40-line hook is cheaper than a dependency.
  */
+export type UsePolledEndpointOptions<T> = {
+  /**
+   * Initial value to seed the hook with. When provided, `data` is
+   * populated synchronously on mount and `isInitialLoading` starts as
+   * false — the first network refresh still runs but the UI never
+   * flashes an empty state. Used to hydrate from server-rendered
+   * payloads so the first paint shows real data.
+   */
+  initialData?: T;
+};
+
 export function usePolledEndpoint<T>(
   url: string,
   intervalMs: number,
+  options: UsePolledEndpointOptions<T> = {},
 ): PolledState<T> {
-  const [data, setData] = useState<T | undefined>(undefined);
+  const [data, setData] = useState<T | undefined>(options.initialData);
   const [error, setError] = useState<string | undefined>(undefined);
   const [lastSuccessAt, setLastSuccessAt] = useState<number | undefined>(
-    undefined,
+    options.initialData !== undefined ? Date.now() : undefined,
   );
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(
+    options.initialData === undefined,
+  );
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
