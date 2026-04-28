@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { WirePage, type WireItem } from "@/components/dashboard/WirePage";
 import { ShareButton } from "@/components/chrome/ShareButton";
+import { CommunityLink } from "@/components/chrome/CommunityLink";
 import {
   MobileBottomBar,
   type MobileTopLevelTab,
@@ -194,6 +195,7 @@ export function MobileDashboard(props: MobileDashboardProps) {
           <span className="ap-mobile-brand__beta">BETA</span>
         </a>
         <FreshnessChip freshness={props.statusFreshness} />
+        <CommunityLink />
         <ShareButton />
       </header>
 

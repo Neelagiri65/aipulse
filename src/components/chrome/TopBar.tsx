@@ -161,7 +161,7 @@ function Brand() {
   return (
     <a href="/" className="flex items-center gap-2">
       <span className="font-mono text-[11px] font-bold tracking-[0.16em] text-foreground">
-        AI PULSE
+        GAWK
       </span>
       <span className="ap-live-dot" />
       <span className="ap-label-sm hidden md:inline" style={{ color: "var(--ap-fg-dim)" }}>
