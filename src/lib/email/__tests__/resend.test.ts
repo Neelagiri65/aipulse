@@ -26,8 +26,8 @@ describe("sendConfirm", () => {
     const { sender, calls } = mockSender(() => ({ ok: true, id: "msg-1" }));
     const result = await sendConfirm({
       to: "user@example.com",
-      confirmUrl: "https://aipulse.dev/subscribe/confirm?token=t",
-      unsubUrl: "https://aipulse.dev/subscribe/unsubscribe?token=u",
+      confirmUrl: "https://gawk.dev/subscribe/confirm?token=t",
+      unsubUrl: "https://gawk.dev/subscribe/unsubscribe?token=u",
       sender,
     });
     expect(result).toEqual({ ok: true, id: "msg-1" });
@@ -94,7 +94,7 @@ describe("sendUnsubscribeReceipt", () => {
     const { sender, calls } = mockSender(() => ({ ok: true, id: "msg-2" }));
     const result = await sendUnsubscribeReceipt({
       to: "user@example.com",
-      resubscribeUrl: "https://aipulse.dev/subscribe",
+      resubscribeUrl: "https://gawk.dev/subscribe",
       sender,
     });
     expect(result.ok).toBe(true);
@@ -104,17 +104,17 @@ describe("sendUnsubscribeReceipt", () => {
 
 describe("extractSenderDomain", () => {
   it('parses "Name <user@domain>" form', () => {
-    expect(extractSenderDomain('AI Pulse <digest@aipulse.dev>')).toBe(
-      "aipulse.dev",
+    expect(extractSenderDomain('Gawk <digest@gawk.dev>')).toBe(
+      "gawk.dev",
     );
   });
 
   it("parses bare address form", () => {
-    expect(extractSenderDomain("digest@aipulse.dev")).toBe("aipulse.dev");
+    expect(extractSenderDomain("digest@gawk.dev")).toBe("gawk.dev");
   });
 
   it("lowercases the result", () => {
-    expect(extractSenderDomain("Digest@AIPulse.Dev")).toBe("aipulse.dev");
+    expect(extractSenderDomain("Digest@Gawk.Dev")).toBe("gawk.dev");
   });
 
   it("returns null on missing @", () => {

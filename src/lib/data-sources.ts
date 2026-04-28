@@ -1,5 +1,5 @@
 /**
- * AI Pulse — Data Source Registry
+ * Gawk — Data Source Registry
  *
  * Every source displayed on the dashboard appears here FIRST, with a
  * pre-committed sanity check and a manual verification date. If a source
@@ -571,7 +571,7 @@ export const LMARENA_LEADERBOARD: DataSource = {
   },
   auth: "none",
   measures:
-    "Top 20 models by Chatbot Arena Elo for the `text` subset, `overall` category of the `latest` split. Each row surfaces: rank, model_name (verbatim), organization (verbatim — may be empty when lmarena hasn't tagged a lab yet), rating (Bradley-Terry Elo), rating_lower/rating_upper (95% CI bounds from the BT fit), vote_count, category, leaderboard_publish_date. AI Pulse does NOT recompute Elo, does NOT re-rank, does NOT rename. Week-over-week rank and Elo deltas are computed against the most-recent distinct `leaderboard_publish_date` strictly less than the latest.",
+    "Top 20 models by Chatbot Arena Elo for the `text` subset, `overall` category of the `latest` split. Each row surfaces: rank, model_name (verbatim), organization (verbatim — may be empty when lmarena hasn't tagged a lab yet), rating (Bradley-Terry Elo), rating_lower/rating_upper (95% CI bounds from the BT fit), vote_count, category, leaderboard_publish_date. Gawk does NOT recompute Elo, does NOT re-rank, does NOT rename. Week-over-week rank and Elo deltas are computed against the most-recent distinct `leaderboard_publish_date` strictly less than the latest.",
   sanityCheck: {
     description:
       "Exactly 20 rows returned (rank 1–20). top1_rating ∈ [1300, 1500]; rank20_rating ∈ [1100, 1500] (widened from 1400 after 2026-04-17 verification returned 1447.7 — frontier bunching near the top); publish_age_days ∈ [0, 14]; top1_vote_count ≥ 5000. Values outside these ranges do not block writes but are logged and flagged in HANDOFF.md for investigation (Part 0 sanity-range pre-commit).",
@@ -581,7 +581,7 @@ export const LMARENA_LEADERBOARD: DataSource = {
   },
   verifiedAt: "2026-04-20",
   caveat:
-    "The HuggingFace dataset page declares NO license ('License: Not provided'). AI Pulse treats the JSON rows as publicly published numeric facts and mirrors them verbatim — no redistribution of weights or proprietary content, only (model_name, organization, rating, vote_count, category, publish_date) tuples, each row cited to the upstream dataset. Known critiques of Chatbot Arena itself: style bias (verbose answers score higher), self-selection (volunteer voters ≠ general users), category overlap — surfaced verbatim in the panel footer so users see the caveat alongside the numbers. The `text` subset is selected via the HF Datasets Server `config=` URL parameter and never appears as a row field. No map dot, no globe point — models have no location (Part 0 geotag principle: panel-only).",
+    "The HuggingFace dataset page declares NO license ('License: Not provided'). Gawk treats the JSON rows as publicly published numeric facts and mirrors them verbatim — no redistribution of weights or proprietary content, only (model_name, organization, rating, vote_count, category, publish_date) tuples, each row cited to the upstream dataset. Known critiques of Chatbot Arena itself: style bias (verbose answers score higher), self-selection (volunteer voters ≠ general users), category overlap — surfaced verbatim in the panel footer so users see the caveat alongside the numbers. The `text` subset is selected via the HF Datasets Server `config=` URL parameter and never appears as a row field. No map dot, no globe point — models have no location (Part 0 geotag principle: panel-only).",
   powersFeature: ["benchmarks-panel"],
 };
 
@@ -611,7 +611,7 @@ export const RSS_THE_REGISTER_AI: DataSource = {
   },
   auth: "none",
   measures:
-    "AI/ML-scoped headlines from The Register — title, url, guid, pubDate, source id. AI Pulse does not summarise, score, or re-title; the items are mirrored verbatim and linked back to the publisher's canonical URL. UK tech press editorial angle (enterprise IT, security); editorial tone is a provenance note, not a sentiment signal.",
+    "AI/ML-scoped headlines from The Register — title, url, guid, pubDate, source id. Gawk does not summarise, score, or re-title; the items are mirrored verbatim and linked back to the publisher's canonical URL. UK tech press editorial angle (enterprise IT, security); editorial tone is a provenance note, not a sentiment signal.",
   sanityCheck: {
     description:
       "Topic-scoped feed; expect 2–25 items per 24h. Zero across consecutive polls indicates either a CDN outage or that the publisher has moved the feed URL — investigate before attributing to a slow news day. Feed format MUST parse as Atom; a parse failure marks the source stale rather than dropping silently.",
@@ -665,7 +665,7 @@ export const RSS_SYNCED_REVIEW: DataSource = {
   },
   auth: "none",
   measures:
-    "English-language AI-research headlines covering Chinese and global labs — title, url, guid, pubDate, source id. Editor-curated; AI Pulse mirrors verbatim and links back to the publisher's article.",
+    "English-language AI-research headlines covering Chinese and global labs — title, url, guid, pubDate, source id. Editor-curated; Gawk mirrors verbatim and links back to the publisher's article.",
   sanityCheck: {
     description:
       "Topic-scoped AI publication; expect 1–15 items per 24h. A zero-day over >48h indicates the publisher may have stopped updating or moved the feed URL.",
@@ -692,7 +692,7 @@ export const RSS_AIM: DataSource = {
   },
   auth: "none",
   measures:
-    "AI-research headlines from MarkTechPost — title, url, guid, pubDate, source id. Editor-curated; AI Pulse mirrors verbatim. The India regional slot was filled with MarkTechPost after a review showed Analytics India Magazine's feed gated behind a paywall/fragile URL structure; MarkTechPost's feed is publicly accessible, AI-focused, and editorially led by an India-based team.",
+    "AI-research headlines from MarkTechPost — title, url, guid, pubDate, source id. Editor-curated; Gawk mirrors verbatim. The India regional slot was filled with MarkTechPost after a review showed Analytics India Magazine's feed gated behind a paywall/fragile URL structure; MarkTechPost's feed is publicly accessible, AI-focused, and editorially led by an India-based team.",
   sanityCheck: {
     description:
       "AI-focused feed with steady publication cadence; expect 3–30 items per 24h. High end is normal (the publisher posts news digests and research summaries frequently). Consecutive zero-days indicate the feed may have moved.",
@@ -720,7 +720,7 @@ export const RSS_MIT_TR_AI: DataSource = {
   },
   auth: "none",
   measures:
-    "AI-topic headlines from MIT Technology Review — title, url, guid, pubDate, source id. Editor-curated; AI Pulse mirrors verbatim.",
+    "AI-topic headlines from MIT Technology Review — title, url, guid, pubDate, source id. Editor-curated; Gawk mirrors verbatim.",
   sanityCheck: {
     description:
       "Topic-scoped feed; expect 0–8 items per 24h (MIT TR publishes less frequently than the WordPress peers, so zero-days are common and not a broken-source signal until >48h).",
@@ -756,7 +756,7 @@ export const PYPI_DOWNLOADS: DataSource = {
   },
   auth: "none",
   measures:
-    "Rolling download counters (last_day / last_week / last_month) for the seven packages that together cover the Anthropic, OpenAI, HuggingFace, and LangChain Python ecosystems: anthropic, openai, langchain, transformers, torch, huggingface-hub, diffusers. AI Pulse does NOT re-rank, normalise per-project, or weight by 'real user' estimates — the numbers are mirrored verbatim as pypistats publishes them. Per-package failures isolate: a 500 on `torch` marks that package stale but never tanks the whole response.",
+    "Rolling download counters (last_day / last_week / last_month) for the seven packages that together cover the Anthropic, OpenAI, HuggingFace, and LangChain Python ecosystems: anthropic, openai, langchain, transformers, torch, huggingface-hub, diffusers. Gawk does NOT re-rank, normalise per-project, or weight by 'real user' estimates — the numbers are mirrored verbatim as pypistats publishes them. Per-package failures isolate: a 500 on `torch` marks that package stale but never tanks the whole response.",
   sanityCheck: {
     description:
       "Each tracked package's `last_month` should fall in the 100k–500M range — these are established AI SDKs, not new arrivals. anthropic was 94.8M/month on the 2026-04-21 verification probe; openai was ~250M/month. A zero across a streak of polls for any single package indicates pypistats shape drift or a package rename — investigate before attributing to dead adoption.",
@@ -766,7 +766,7 @@ export const PYPI_DOWNLOADS: DataSource = {
   },
   verifiedAt: "2026-04-21",
   caveat:
-    "pypistats.org is a third-party aggregator of PyPI's BigQuery download logs, same provenance class as ecosyste.ms — NOT PyPI itself. Known caveat from PyPI's own guidance: the logs include mirror hits, CI builds, and `pip install` retries, which inflate counts vs. 'real human installs' by an unknown multiplier. AI Pulse ships the raw numbers and surfaces this caveat alongside. Switching to Google BigQuery's `bigquery-public-data.pypi.downloads` is a queued v2 follow-up for first-party provenance (requires GCP auth + a billing account).",
+    "pypistats.org is a third-party aggregator of PyPI's BigQuery download logs, same provenance class as ecosyste.ms — NOT PyPI itself. Known caveat from PyPI's own guidance: the logs include mirror hits, CI builds, and `pip install` retries, which inflate counts vs. 'real human installs' by an unknown multiplier. Gawk ships the raw numbers and surfaces this caveat alongside. Switching to Google BigQuery's `bigquery-public-data.pypi.downloads` is a queued v2 follow-up for first-party provenance (requires GCP auth + a billing account).",
   powersFeature: ["sdk-adoption-panel"],
 };
 
@@ -783,7 +783,7 @@ export const NPM_DOWNLOADS: DataSource = {
   },
   auth: "none",
   measures:
-    "Rolling download counters (last_day / last_week / last_month) for the five npm packages that together cover the Anthropic, OpenAI, LangChain, and llama index JavaScript ecosystems: @anthropic-ai/sdk, openai, @langchain/core, ai, llamaindex. Per-package failures isolate into `failures[]`; whole-package failure (any of the three windows erroring) skips the package rather than writing a half-populated row. AI Pulse mirrors the numbers verbatim — no re-ranking, no normalisation.",
+    "Rolling download counters (last_day / last_week / last_month) for the five npm packages that together cover the Anthropic, OpenAI, LangChain, and llama index JavaScript ecosystems: @anthropic-ai/sdk, openai, @langchain/core, ai, llamaindex. Per-package failures isolate into `failures[]`; whole-package failure (any of the three windows erroring) skips the package rather than writing a half-populated row. Gawk mirrors the numbers verbatim — no re-ranking, no normalisation.",
   sanityCheck: {
     description:
       "Each tracked package's `last_week` should fall in the 10k–50M range — these are established AI JS SDKs. openai was ~18M/week on the 2026-04-21 verification probe. A zero across polls for any single package indicates api.npmjs.org shape drift or a package rename — investigate before attributing to dead adoption.",
@@ -810,7 +810,7 @@ export const CRATES_DOWNLOADS: DataSource = {
   },
   auth: "none",
   measures:
-    "Two counters per tracked crate (candle-core, burn, tch, ort): `downloads` (all-time total) and `recent_downloads` (rolling last 90 days). crates.io does NOT expose last-day or last-week windows — AI Pulse only populates {last90d, allTime} and surfaces '—' for the PyPI/npm windows rather than synthesising them from the 90d bucket.",
+    "Two counters per tracked crate (candle-core, burn, tch, ort): `downloads` (all-time total) and `recent_downloads` (rolling last 90 days). crates.io does NOT expose last-day or last-week windows — Gawk only populates {last90d, allTime} and surfaces '—' for the PyPI/npm windows rather than synthesising them from the 90d bucket.",
   sanityCheck: {
     description:
       "Each tracked crate's `recent_downloads` (90d) should fall in the 50k–20M range. candle-core was 2.1M / ort was 3.5M on the 2026-04-21 verification probe. Zero indicates crates.io shape drift or the crate was yanked — investigate before attributing to 'nobody uses Rust for ML'.",
@@ -837,7 +837,7 @@ export const DOCKER_HUB_PULLS: DataSource = {
   },
   auth: "none",
   measures:
-    "Two counters per tracked image (ollama/ollama, vllm/vllm-openai): `pull_count` (all-time total across every tag) and `star_count`. Docker Hub does NOT publish per-day or per-week pull breakdowns at the repository level — AI Pulse populates {allTime, stars} and reconstructs day-over-day deltas from the daily snapshot ZSET rather than synthesising windows. vllm/vllm-openai was 18.4M / 275★ on the 2026-04-21 verification probe.",
+    "Two counters per tracked image (ollama/ollama, vllm/vllm-openai): `pull_count` (all-time total across every tag) and `star_count`. Docker Hub does NOT publish per-day or per-week pull breakdowns at the repository level — Gawk populates {allTime, stars} and reconstructs day-over-day deltas from the daily snapshot ZSET rather than synthesising windows. vllm/vllm-openai was 18.4M / 275★ on the 2026-04-21 verification probe.",
   sanityCheck: {
     description:
       "Each tracked image's `pull_count` should fall in the 1M–500M range (established AI inference images). Zero indicates Docker Hub shape drift or the image was unlisted — investigate before attributing to dead adoption.",
@@ -864,7 +864,7 @@ export const HOMEBREW_INSTALLS: DataSource = {
   },
   auth: "none",
   measures:
-    "Install counters for each tracked formula (ollama): 30-day / 90-day / 365-day buckets exposed via `analytics.install.{30d|90d|365d}`. Homebrew keys each bucket by install command form (ollama, ollama@0.1.5, ollama HEAD) — AI Pulse sums across keys so the headline number matches how Homebrew's own analytics dashboard presents the formula. ollama's 90d install count was 207,803 on the 2026-04-21 verification probe.",
+    "Install counters for each tracked formula (ollama): 30-day / 90-day / 365-day buckets exposed via `analytics.install.{30d|90d|365d}`. Homebrew keys each bucket by install command form (ollama, ollama@0.1.5, ollama HEAD) — Gawk sums across keys so the headline number matches how Homebrew's own analytics dashboard presents the formula. ollama's 90d install count was 207,803 on the 2026-04-21 verification probe.",
   sanityCheck: {
     description:
       "Each tracked formula's 90d install count should fall in the 10k–5M range (established CLI tools). Zero indicates formulae.brew.sh shape drift or the formula was renamed — investigate before attributing to dead adoption.",

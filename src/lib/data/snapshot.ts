@@ -1,5 +1,5 @@
 /**
- * Daily snapshot archival — captures the observable state of AI Pulse
+ * Daily snapshot archival — captures the observable state of Gawk
  * once per UTC day so trend charts have a past to draw from.
  *
  * Design:

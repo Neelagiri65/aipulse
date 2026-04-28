@@ -50,7 +50,7 @@ describe("ModelUsagePanel", () => {
         data={null}
         error={null}
         isInitialLoading={true}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toContain("Loading the latest OpenRouter ranking");
@@ -62,7 +62,7 @@ describe("ModelUsagePanel", () => {
         data={null}
         error="boom"
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toContain("Couldn");
@@ -76,7 +76,7 @@ describe("ModelUsagePanel", () => {
         data={null}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toContain("Collecting baseline");
@@ -88,7 +88,7 @@ describe("ModelUsagePanel", () => {
         data={mkDto([mkRow(1, "anthropic/m")])}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toContain("OpenRouter request volume");
@@ -101,7 +101,7 @@ describe("ModelUsagePanel", () => {
         data={mkDto([mkRow(1, "anthropic/m")])}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toContain("OpenRouter reflects API-first developer spend");
@@ -117,7 +117,7 @@ describe("ModelUsagePanel", () => {
         })}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toContain("Fallback");
@@ -133,7 +133,7 @@ describe("ModelUsagePanel", () => {
         })}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).not.toContain("see OpenRouter trending");
@@ -147,7 +147,7 @@ describe("ModelUsagePanel", () => {
         })}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toContain("see OpenRouter trending");
@@ -163,7 +163,7 @@ describe("ModelUsagePanel", () => {
         })}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).not.toContain("see OpenRouter trending");
@@ -178,7 +178,7 @@ describe("ModelUsagePanel", () => {
         ])}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
         initialFocusedSlug="openai/gpt-5.5"
       />,
     );
@@ -192,7 +192,7 @@ describe("ModelUsagePanel", () => {
         data={mkDto([mkRow(1, "anthropic/claude-sonnet-4.6")])}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
         initialFocusedSlug="missing/slug"
       />,
     );

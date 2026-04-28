@@ -3,7 +3,7 @@ import Link from "next/link";
 import { PrivacyFooter } from "@/components/consent/PrivacyFooter";
 
 export const metadata: Metadata = {
-  title: "Subscription confirmation — AI Pulse",
+  title: "Subscription confirmation — Gawk",
 };
 
 type ConfirmState = "ok" | "expired" | "invalid" | "not-found" | "error";

@@ -102,7 +102,7 @@ describe("deltaClass", () => {
 describe("SparklineListView render", () => {
   it("renders a registry section header per non-empty registry", () => {
     const html = renderToStaticMarkup(
-      <SparklineListView data={dto()} originUrl="https://aipulse.dev" />,
+      <SparklineListView data={dto()} originUrl="https://gawk.dev" />,
     );
     expect(html).toMatch(/PyPI/);
     expect(html).toMatch(/npm/);
@@ -111,7 +111,7 @@ describe("SparklineListView render", () => {
 
   it("renders one row per package with label, formatted latest count, sparkline svg, and coverage", () => {
     const html = renderToStaticMarkup(
-      <SparklineListView data={dto()} originUrl="https://aipulse.dev" />,
+      <SparklineListView data={dto()} originUrl="https://gawk.dev" />,
     );
     expect(html).toContain("transformers");
     expect(html).toMatch(/12\.[0-9]M/);
@@ -123,7 +123,7 @@ describe("SparklineListView render", () => {
 
   it("renders a 'Tracking since' label tied to the earliest data date in the DTO", () => {
     const html = renderToStaticMarkup(
-      <SparklineListView data={dto()} originUrl="https://aipulse.dev" />,
+      <SparklineListView data={dto()} originUrl="https://gawk.dev" />,
     );
     expect(html).toMatch(/Tracking since/i);
     expect(html).toMatch(/2026-04-23/);
@@ -150,7 +150,7 @@ describe("SparklineListView render", () => {
       ],
     };
     const html = renderToStaticMarkup(
-      <SparklineListView data={empty} originUrl="https://aipulse.dev" />,
+      <SparklineListView data={empty} originUrl="https://gawk.dev" />,
     );
     expect(html).toMatch(/baseline|collecting/i);
   });
@@ -159,7 +159,7 @@ describe("SparklineListView render", () => {
     const html = renderToStaticMarkup(
       <SparklineListView
         data={dto()}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
         focusedRowId="pypi:transformers"
       />,
     );
@@ -168,7 +168,7 @@ describe("SparklineListView render", () => {
 
   it("renders data-pkg-id on each row so a delegated click handler can route", () => {
     const html = renderToStaticMarkup(
-      <SparklineListView data={dto()} originUrl="https://aipulse.dev" />,
+      <SparklineListView data={dto()} originUrl="https://gawk.dev" />,
     );
     expect(html).toContain('data-pkg-id="pypi:transformers"');
     expect(html).toContain('data-pkg-id="npm:openai"');

@@ -40,7 +40,7 @@ export type BuildBatchPayloadOpts = {
   /** Optional operational tags Resend exposes in its webhooks/logs. */
   tags?: Array<{ name: string; value: string }>;
   /** Short campaign/date id for the List-ID header. Example:
-   *  "digest-2026-04-22.aipulse.dev". */
+   *  "digest-2026-04-22.gawk.dev". */
   listId: string;
 };
 

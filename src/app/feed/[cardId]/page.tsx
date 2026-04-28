@@ -1,5 +1,5 @@
 /**
- * AI Pulse — Single-card share page.
+ * Gawk — Single-card share page.
  *
  * Server component. Resolves a card by id from a fresh derive of the
  * feed; if the card is no longer in the live feed (its hour-bucket
@@ -50,13 +50,13 @@ export async function generateMetadata({
   const card = await findCardById(cardId);
   if (!card) {
     return {
-      title: "Card expired · AI Pulse",
+      title: "Card expired · Gawk",
       description:
-        "This card has rolled out of the live feed. See the latest cards on AI Pulse.",
+        "This card has rolled out of the live feed. See the latest cards on Gawk.",
     };
   }
   return {
-    title: `${card.headline} · AI Pulse`,
+    title: `${card.headline} · Gawk`,
     description: card.detail ?? `Source: ${card.sourceName}.`,
   };
 }
@@ -75,11 +75,11 @@ export default async function CardPage({
         <h1 className="text-xl font-semibold">Card expired</h1>
         <p className="text-sm text-muted-foreground">
           This card has rolled out of the live feed. The underlying data is
-          still in AI Pulse — see the latest cards on the home feed.
+          still in Gawk — see the latest cards on the home feed.
         </p>
         <p>
           <Link href="/" className="text-[var(--ap-accent,#2dd4bf)] underline">
-            ← back to AI Pulse
+            ← back to Gawk
           </Link>
         </p>
       </main>
@@ -122,7 +122,7 @@ export default async function CardPage({
       </article>
 
       <p className="text-xs text-muted-foreground">
-        AI Pulse · live observatory of the AI ecosystem · every number cites a
+        Gawk · live observatory of the AI ecosystem · every number cites a
         public source ·{" "}
         <Link href="/methodology" className="underline">
           how cards are ranked

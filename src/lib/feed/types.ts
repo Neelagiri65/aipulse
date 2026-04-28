@@ -1,5 +1,5 @@
 /**
- * AI Pulse — Feed types
+ * Gawk — Feed types
  *
  * Shape of a single card in the ranked feed and the API response.
  * The feed is a pure derivation over existing snapshots — every card

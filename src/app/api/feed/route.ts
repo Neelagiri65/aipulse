@@ -1,5 +1,5 @@
 /**
- * /api/feed — ranked card stream over the existing AI Pulse snapshots.
+ * /api/feed — ranked card stream over the existing Gawk snapshots.
  *
  * Pure derivation: fetches the six existing snapshots in parallel
  * via Promise.allSettled, runs the deterministic derivers, ranks,

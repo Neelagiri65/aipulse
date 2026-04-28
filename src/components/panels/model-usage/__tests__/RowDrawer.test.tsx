@@ -38,7 +38,7 @@ describe("RowDrawer", () => {
         row={mkRow()}
         open={false}
         onClose={() => {}}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toBe("");
@@ -50,7 +50,7 @@ describe("RowDrawer", () => {
         row={mkRow()}
         open={true}
         onClose={() => {}}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toContain('href="https://openrouter.ai/anthropic/claude-sonnet-4.6"');
@@ -63,7 +63,7 @@ describe("RowDrawer", () => {
         row={mkRow()}
         open={true}
         onClose={() => {}}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toContain("Prompt / 1M");
@@ -79,7 +79,7 @@ describe("RowDrawer", () => {
         })}
         open={true}
         onClose={() => {}}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).not.toContain("Web search / call");
@@ -93,7 +93,7 @@ describe("RowDrawer", () => {
         })}
         open={true}
         onClose={() => {}}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toContain("not published");
@@ -105,7 +105,7 @@ describe("RowDrawer", () => {
         row={mkRow()}
         open={true}
         onClose={() => {}}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
         rankHistory={[{ date: "2026-04-26", rank: 3 }]}
       />,
     );
@@ -122,7 +122,7 @@ describe("RowDrawer", () => {
         row={mkRow()}
         open={true}
         onClose={() => {}}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
         rankHistory={history}
       />,
     );
@@ -136,7 +136,7 @@ describe("RowDrawer", () => {
         row={mkRow()}
         open={true}
         onClose={() => {}}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toContain('role="dialog"');
@@ -149,7 +149,7 @@ describe("RowDrawer", () => {
         row={mkRow()}
         open={true}
         onClose={() => {}}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toContain("OpenRouter request volume");

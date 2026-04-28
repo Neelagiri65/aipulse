@@ -19,12 +19,12 @@
  * reason:"resend-not-configured" and 200 so the cron stays green):
  *   - RESEND_API_KEY             — batch send + domains.get().
  *   - RESEND_DOMAIN_ID           — the registered domain on Resend.
- *   - EMAIL_FROM_ADDRESS         — "AI Pulse <digest@aipulse.dev>" format.
+ *   - EMAIL_FROM_ADDRESS         — "Gawk <digest@gawk.dev>" format.
  *   - EMAIL_UNSUB_MAILTO         — mailto for the List-Unsubscribe header.
  *
  * Optional envs:
  *   - NEXT_PUBLIC_SITE_ORIGIN    — overrides the request-derived base URL
- *                                   for "View on AI Pulse" and unsub links.
+ *                                   for "View on Gawk" and unsub links.
  *
  * Route runtime is node (we need `node:crypto` for email decryption and
  * `node:dns/promises` for DMARC). maxDuration is 300s to cover large
@@ -206,7 +206,7 @@ function inferBaseUrl(request: Request): string {
     const u = new URL(request.url);
     return `${u.protocol}//${u.host}`;
   } catch {
-    return "https://aipulse.dev";
+    return "https://gawk.dev";
   }
 }
 

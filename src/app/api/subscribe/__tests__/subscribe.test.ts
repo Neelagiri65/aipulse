@@ -84,7 +84,7 @@ function makeCtx(
   body: unknown,
   headers: Record<string, string> = {},
 ): UserRouteContext {
-  const request = new Request("https://aipulse.dev/api/subscribe", {
+  const request = new Request("https://gawk.dev/api/subscribe", {
     method: "POST",
     headers: { "content-type": "application/json", ...headers },
     body: typeof body === "string" ? body : JSON.stringify(body),

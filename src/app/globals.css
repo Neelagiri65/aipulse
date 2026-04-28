@@ -117,7 +117,7 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* ---------- AI Pulse design system tokens (lifted from wmsample) ---------- */
+/* ---------- Gawk design system tokens (lifted from wmsample) ---------- */
 :root {
   --ap-bg:           #06080a;
   --ap-bg-panel:     #0b0f12;

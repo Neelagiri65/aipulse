@@ -46,7 +46,7 @@ describe("SdkAdoptionPanel", () => {
         data={dto()}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     // List view emits "Tracking since {date}" and registry section
@@ -64,7 +64,7 @@ describe("SdkAdoptionPanel", () => {
         data={dto()}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).not.toMatch(/aria-pressed[^>]*>Heatmap/);
@@ -78,7 +78,7 @@ describe("SdkAdoptionPanel", () => {
         data={dto()}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
         initialViewMode="heatmap"
       />,
     );
@@ -112,7 +112,7 @@ describe("SdkAdoptionPanel", () => {
         data={richDto}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toMatch(/aria-pressed="true"[^>]*>List/);
@@ -145,7 +145,7 @@ describe("SdkAdoptionPanel", () => {
         data={richDto}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
         initialViewMode="heatmap"
       />,
     );
@@ -158,7 +158,7 @@ describe("SdkAdoptionPanel", () => {
         data={null}
         error={null}
         isInitialLoading={true}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toMatch(/loading|baseline|—/i);
@@ -171,7 +171,7 @@ describe("SdkAdoptionPanel", () => {
         data={null}
         error={new Error("upstream 500")}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toMatch(/couldn.?t load|try again/i);
@@ -184,7 +184,7 @@ describe("SdkAdoptionPanel", () => {
         data={empty}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toMatch(/baseline|collecting|no rows/i);
@@ -196,7 +196,7 @@ describe("SdkAdoptionPanel", () => {
         data={dto()}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
         initialFocusedRowId="pypi:transformers"
       />,
     );
@@ -210,7 +210,7 @@ describe("SdkAdoptionPanel", () => {
         data={dto()}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).not.toContain('role="dialog"');
@@ -222,7 +222,7 @@ describe("SdkAdoptionPanel", () => {
         data={dto()}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
         initialFocusedRowId="pypi:nonexistent"
       />,
     );
@@ -235,7 +235,7 @@ describe("SdkAdoptionPanel", () => {
         data={null}
         error={"upstream 500"}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toContain('aria-label="Retry loading SDK adoption data"');
@@ -249,7 +249,7 @@ describe("SdkAdoptionPanel", () => {
         data={empty}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toMatch(/30 days/i);
@@ -278,7 +278,7 @@ describe("SdkAdoptionPanel", () => {
         data={stale}
         error={null}
         isInitialLoading={false}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toContain("row-stale");

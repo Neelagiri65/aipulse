@@ -1,5 +1,5 @@
 /**
- * AI Pulse — Methodology page.
+ * Gawk — Methodology page.
  *
  * Renders the locked feed-severity formula verbatim from
  * `thresholds.ts`. Per S40 PRD auditor lock: severity tiering is a
@@ -15,9 +15,9 @@ import { FEED_SEVERITIES, FEED_TRIGGERS } from "@/lib/feed/thresholds";
 import type { CardType } from "@/lib/feed/types";
 
 export const metadata = {
-  title: "Methodology · AI Pulse",
+  title: "Methodology · Gawk",
   description:
-    "How AI Pulse ranks cards on the feed. Deterministic sort key over public data, not an invented metric.",
+    "How Gawk ranks cards on the feed. Deterministic sort key over public data, not an invented metric.",
 };
 
 const CARD_TYPE_DESCRIPTION: Record<CardType, string> = {
@@ -52,7 +52,7 @@ export default function MethodologyPage() {
           How the feed is ranked
         </h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          AI Pulse aggregates publicly verifiable data — it does not invent
+          Gawk aggregates publicly verifiable data — it does not invent
           metrics. The feed&rsquo;s severity is a{" "}
           <strong>deterministic sort key</strong> over already-aggregated
           public data, not an invented score. Every card cites a primary
@@ -156,7 +156,7 @@ export default function MethodologyPage() {
 
       <p>
         <Link href="/" className="text-[var(--ap-accent,#2dd4bf)] underline">
-          ← back to AI Pulse
+          ← back to Gawk
         </Link>
       </p>
     </main>

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * AI Pulse — Mobile feed view.
+ * Gawk — Mobile feed view.
  *
  * Client component. Polls /api/feed every 60s (matching the route's
  * s-maxage), renders a vertical scroll of FeedCard, surfaces the
@@ -79,7 +79,7 @@ export function FeedView({ initialResponse }: FeedViewProps) {
         className="ap-feed-view"
         data-feed-state="loading"
         role="status"
-        aria-label="Loading the AI Pulse feed"
+        aria-label="Loading the Gawk feed"
       >
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="ap-feed-card-skeleton animate-pulse" aria-hidden>

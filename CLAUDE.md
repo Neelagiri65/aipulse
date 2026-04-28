@@ -1,4 +1,4 @@
-# AI Pulse — Project Instructions
+# Gawk — Project Instructions
 
 The real-time observatory for the global AI ecosystem. Aggregates publicly verifiable data. Editorialises nothing. Every number on the dashboard traces to a source.
 
@@ -17,7 +17,7 @@ Code is public. Editorial intelligence is private. The split matters for every f
 
 ## Non-negotiables (architectural constraint tests)
 - **Every displayed number has a verifiable public source.** If it can't be cited, it doesn't ship.
-- **AI Pulse aggregates, it does not score.** No invented rankings, no LLM-generated "trust scores". The only scoring engine is `/audit` (CLAUDE.md checker ported from CodePulse) and it is clearly labelled as deterministic pattern matching.
+- **Gawk aggregates, it does not score.** No invented rankings, no LLM-generated "trust scores". The only scoring engine is `/audit` (CLAUDE.md checker ported from CodePulse) and it is clearly labelled as deterministic pattern matching.
 - **No synthetic or simulated data on the globe.** Every dot is a real, verifiable event from a public API.
 - **Graceful degradation is mandatory.** If a source is down, show grey card + "last known value" + timestamp. Never fabricate.
 - **Deterministic AI config detection only.** File existence checks (`CLAUDE.md`, `.cursorrules`, etc.) — never an LLM inferring "looks AI-generated".

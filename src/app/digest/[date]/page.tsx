@@ -1,7 +1,7 @@
 /**
  * Public `/digest/{date}` page — read-only archive of a single daily
  * digest. Reached from:
- *   - the "View on AI Pulse" link in an email,
+ *   - the "View on Gawk" link in an email,
  *   - shared LinkedIn/X posts (share-offsite resolves og: tags here).
  *
  * Server component. Reads the `DigestBody` from Redis via
@@ -29,7 +29,7 @@ async function inferBaseUrl(): Promise<string> {
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const proto = h.get("x-forwarded-proto") ?? "https";
-  return host ? `${proto}://${host}` : "https://aipulse.dev";
+  return host ? `${proto}://${host}` : "https://gawk.dev";
 }
 
 export async function generateMetadata({
@@ -40,13 +40,13 @@ export async function generateMetadata({
   const { date } = await params;
   const digest = await loadDigest(date);
   if (!digest) {
-    return { title: "AI Pulse — archive not found", robots: { index: false } };
+    return { title: "Gawk — archive not found", robots: { index: false } };
   }
   const baseUrl = await inferBaseUrl();
   const url = `${baseUrl}/digest/${digest.date}`;
   const description =
     digest.mode === "quiet"
-      ? "A quiet day in the AI ecosystem. Baseline metrics from AI Pulse."
+      ? "A quiet day in the AI ecosystem. Baseline metrics from Gawk."
       : "Five verifiable things that moved in the AI ecosystem. Every number traces to a public source.";
   return {
     title: digest.subject,

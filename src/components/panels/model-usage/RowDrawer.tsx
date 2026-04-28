@@ -44,7 +44,7 @@ export type RowDrawerProps = {
   row: ModelUsageRow;
   open: boolean;
   onClose: () => void;
-  /** Origin used to compose the share permalink. e.g. "https://aipulse.dev". */
+  /** Origin used to compose the share permalink. e.g. "https://gawk.dev". */
   originUrl: string;
   /**
    * Optional 30d rank history. When omitted or with fewer than 2

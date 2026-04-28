@@ -16,11 +16,11 @@ function r(i: number): DigestRecipient {
 }
 
 const OPTS = {
-  from: "AI Pulse <digest@aipulse.dev>",
-  subject: "AI Pulse — 2026-04-22",
-  unsubBaseUrl: "https://aipulse.dev/api/subscribe/unsubscribe",
-  unsubMailto: "mailto:unsub@aipulse.dev",
-  listId: "digest-2026-04-22.aipulse.dev",
+  from: "Gawk <digest@gawk.dev>",
+  subject: "Gawk — 2026-04-22",
+  unsubBaseUrl: "https://gawk.dev/api/subscribe/unsubscribe",
+  unsubMailto: "mailto:unsub@gawk.dev",
+  listId: "digest-2026-04-22.gawk.dev",
   renderHtml: (rec: DigestRecipient) => `<p>Hello ${rec.email}</p>`,
 };
 
@@ -61,12 +61,12 @@ describe("buildBatchItem", () => {
   it("emits RFC-8058 List-Unsubscribe + One-Click headers", () => {
     const item = buildBatchItem(r(1), OPTS);
     expect(item.headers["List-Unsubscribe"]).toBe(
-      "<https://aipulse.dev/api/subscribe/unsubscribe?token=tok-1>, <mailto:unsub@aipulse.dev>",
+      "<https://gawk.dev/api/subscribe/unsubscribe?token=tok-1>, <mailto:unsub@gawk.dev>",
     );
     expect(item.headers["List-Unsubscribe-Post"]).toBe(
       "List-Unsubscribe=One-Click",
     );
-    expect(item.headers["List-ID"]).toBe("digest-2026-04-22.aipulse.dev");
+    expect(item.headers["List-ID"]).toBe("digest-2026-04-22.gawk.dev");
   });
 
   it("URL-encodes the unsub token", () => {

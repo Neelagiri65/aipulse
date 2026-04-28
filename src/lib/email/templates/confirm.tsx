@@ -23,15 +23,15 @@ export default function ConfirmEmail({
   return (
     <Html>
       <Head />
-      <Preview>Confirm your AI Pulse subscription</Preview>
+      <Preview>Confirm your Gawk subscription</Preview>
       <Body style={body}>
         <Container style={container}>
-          <Text style={h1}>AI Pulse</Text>
+          <Text style={h1}>Gawk</Text>
           <Text style={lead}>
             Confirm your subscription to the daily digest.
           </Text>
           <Text style={para}>
-            You (or someone using your address) asked to receive the AI Pulse
+            You (or someone using your address) asked to receive the Gawk
             daily digest — five verifiable things moving in the AI ecosystem,
             delivered every day with sources cited. Click below to confirm
             within 24 hours.
@@ -47,7 +47,7 @@ export default function ConfirmEmail({
           </Text>
           <Hr style={hr} />
           <Text style={footer}>
-            AI Pulse is built with data from public APIs. Every number on the
+            Gawk is built with data from public APIs. Every number on the
             dashboard traces to a source.{" "}
             <Link href={unsubUrl} style={link}>
               Unsubscribe

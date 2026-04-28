@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * AI Pulse — Bloomberg-style live ticker.
+ * Gawk — Bloomberg-style live ticker.
  *
  * Horizontal-scrolling strip rendered below the map. Pulls the
  * most-recent 15 entries from the existing wire-rows feed (already

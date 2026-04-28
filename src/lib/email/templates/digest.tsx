@@ -9,7 +9,7 @@
  *   - Title + headline
  *   - Item list (headline + optional detail + per-item source link)
  *   - Section-level source citation
- *   - "View on AI Pulse" deep link to /digest/{date}#{anchorSlug}
+ *   - "View on Gawk" deep link to /digest/{date}#{anchorSlug}
  *   - Two share affordances (LinkedIn, X) with pre-composed copy
  *
  * Header carries the per-recipient greeting; footer the per-recipient
@@ -43,7 +43,7 @@ import { buildShareUrl, composeShareText } from "@/lib/email/share-urls";
 export type DigestEmailProps = {
   digest: DigestBody;
   /** Origin for the public /digest/{date} permalinks and share pages.
-   *  Example: "https://aipulse.dev". No trailing slash. */
+   *  Example: "https://gawk.dev". No trailing slash. */
   baseUrl: string;
   /** Per-recipient unsubscribe URL — already composed with the recipient's
    *  token, so the template doesn't need the token directly. */
@@ -71,7 +71,7 @@ export function DigestEmail({
       <Preview>{digest.subject}</Preview>
       <Body style={styles.body}>
         <Container style={styles.container}>
-          <Text style={styles.brand}>AI PULSE</Text>
+          <Text style={styles.brand}>GAWK</Text>
           <Heading as="h1" style={styles.h1}>
             {digest.subject}
           </Heading>
@@ -159,7 +159,7 @@ function SectionBlock({
 
       <Text style={styles.actions}>
         <Link href={sectionUrl} style={styles.actionPrimary}>
-          View on AI Pulse →
+          View on Gawk →
         </Link>
         {"   "}
         <Link href={liUrl} style={styles.actionSecondary}>
@@ -199,7 +199,7 @@ function ItemRow({
           {item.sourceUrl && item.panelHref ? " · " : ""}
           {item.panelHref ? (
             <Link href={`${baseUrl}${item.panelHref}`} style={styles.link}>
-              View on AI Pulse →
+              View on Gawk →
             </Link>
           ) : null}
         </Text>

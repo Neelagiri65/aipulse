@@ -15,9 +15,9 @@ function newClient(): DigestArchiveClient {
 function mkBody(overrides: Partial<DigestBody> = {}): DigestBody {
   return {
     date: "2026-04-22",
-    subject: "AI Pulse — 2026-04-22 · all quiet in the AI ecosystem",
+    subject: "Gawk — 2026-04-22 · all quiet in the AI ecosystem",
     mode: "quiet",
-    greetingTemplate: "Good morning from AI Pulse — all quiet in {geoCountry}.",
+    greetingTemplate: "Good morning from Gawk — all quiet in {geoCountry}.",
     generatedAt: "2026-04-22T08:00:00.000Z",
     sections: [
       {

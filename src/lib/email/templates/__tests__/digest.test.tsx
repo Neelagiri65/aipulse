@@ -5,10 +5,10 @@ import type { DigestBody } from "@/lib/digest/types";
 function mkDigest(overrides: Partial<DigestBody> = {}): DigestBody {
   return {
     date: "2026-04-22",
-    subject: "AI Pulse — 2026-04-22 · 1 tool incident",
+    subject: "Gawk — 2026-04-22 · 1 tool incident",
     mode: "diff",
     greetingTemplate:
-      "Good morning from AI Pulse — here's what moved in {geoCountry} and beyond in the last 24h.",
+      "Good morning from Gawk — here's what moved in {geoCountry} and beyond in the last 24h.",
     generatedAt: "2026-04-22T08:00:00.000Z",
     sections: [
       {
@@ -43,8 +43,8 @@ function mkDigest(overrides: Partial<DigestBody> = {}): DigestBody {
 
 const BASE = {
   digest: mkDigest(),
-  baseUrl: "https://aipulse.dev",
-  unsubUrl: "https://aipulse.dev/api/subscribe/unsubscribe?token=tok-abc",
+  baseUrl: "https://gawk.dev",
+  unsubUrl: "https://gawk.dev/api/subscribe/unsubscribe?token=tok-abc",
   countryCode: "GB",
 };
 
@@ -65,7 +65,7 @@ describe("renderDigestHtml — greeting", () => {
 describe("renderDigestHtml — sections", () => {
   it("renders the subject as the H1", async () => {
     const html = await renderDigestHtml(BASE);
-    expect(html).toContain("AI Pulse — 2026-04-22");
+    expect(html).toContain("Gawk — 2026-04-22");
   });
 
   it("renders each section title and headline", async () => {
@@ -84,15 +84,15 @@ describe("renderDigestHtml — sections", () => {
 });
 
 describe("renderDigestHtml — per-section links", () => {
-  it("emits a 'View on AI Pulse' deep link with the section anchor", async () => {
+  it("emits a 'View on Gawk' deep link with the section anchor", async () => {
     const html = await renderDigestHtml(BASE);
     expect(html).toContain(
-      "https://aipulse.dev/digest/2026-04-22#tool-health",
+      "https://gawk.dev/digest/2026-04-22#tool-health",
     );
     expect(html).toContain(
-      "https://aipulse.dev/digest/2026-04-22#benchmarks",
+      "https://gawk.dev/digest/2026-04-22#benchmarks",
     );
-    expect(html).toContain("View on AI Pulse");
+    expect(html).toContain("View on Gawk");
   });
 
   it("emits LinkedIn and X share links per section", async () => {
@@ -104,7 +104,7 @@ describe("renderDigestHtml — per-section links", () => {
   it("share URLs include the section anchor in the encoded url param", async () => {
     const html = await renderDigestHtml(BASE);
     expect(html).toMatch(
-      /linkedin\.com\/sharing\/share-offsite\/\?url=https%3A%2F%2Faipulse\.dev%2Fdigest%2F2026-04-22%23tool-health/,
+      /linkedin\.com\/sharing\/share-offsite\/\?url=https%3A%2F%2Fgawk\.dev%2Fdigest%2F2026-04-22%23tool-health/,
     );
   });
 });
@@ -126,14 +126,14 @@ describe("renderDigestHtml — footer", () => {
   it("includes the per-recipient unsubscribe URL", async () => {
     const html = await renderDigestHtml(BASE);
     expect(html).toContain(
-      "https://aipulse.dev/api/subscribe/unsubscribe?token=tok-abc",
+      "https://gawk.dev/api/subscribe/unsubscribe?token=tok-abc",
     );
     expect(html).toContain("Unsubscribe");
   });
 
   it("includes the privacy link", async () => {
     const html = await renderDigestHtml(BASE);
-    expect(html).toContain("https://aipulse.dev/privacy");
+    expect(html).toContain("https://gawk.dev/privacy");
   });
 });
 
@@ -141,9 +141,9 @@ describe("renderDigestHtml — quiet mode", () => {
   it("renders a quiet-day digest without crashing on zero items", async () => {
     const quiet = mkDigest({
       mode: "quiet",
-      subject: "AI Pulse — 2026-04-22 · all quiet in the AI ecosystem",
+      subject: "Gawk — 2026-04-22 · all quiet in the AI ecosystem",
       greetingTemplate:
-        "Good morning from AI Pulse — all quiet in the AI ecosystem in {geoCountry} and beyond.",
+        "Good morning from Gawk — all quiet in the AI ecosystem in {geoCountry} and beyond.",
       sections: [
         {
           id: "tool-health",

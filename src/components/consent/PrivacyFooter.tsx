@@ -16,7 +16,7 @@ export function PrivacyFooter() {
           className="hover:text-foreground"
           data-testid="footer-home"
         >
-          AI Pulse
+          Gawk
         </Link>
         <Link
           href="/privacy"

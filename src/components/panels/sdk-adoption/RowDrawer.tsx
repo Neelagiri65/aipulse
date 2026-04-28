@@ -28,7 +28,7 @@ export type RowDrawerProps = {
   pkg: SdkAdoptionPackage;
   open: boolean;
   onClose: () => void;
-  /** Origin used to compose the share permalink. e.g. "https://aipulse.dev". */
+  /** Origin used to compose the share permalink. e.g. "https://gawk.dev". */
   originUrl: string;
 };
 

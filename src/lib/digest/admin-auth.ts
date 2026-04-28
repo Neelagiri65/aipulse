@@ -93,7 +93,7 @@ function unauthorized(reason?: string): Response {
   return new Response(reason ?? "Unauthorized", {
     status: 401,
     headers: {
-      "www-authenticate": 'Basic realm="AI Pulse admin"',
+      "www-authenticate": 'Basic realm="Gawk admin"',
       "cache-control": "no-store",
     },
   });

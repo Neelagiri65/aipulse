@@ -1,7 +1,7 @@
 import { AuditClient } from "@/components/audit/AuditClient";
 
 export const metadata = {
-  title: "Audit · AI Pulse",
+  title: "Audit · Gawk",
   description:
     "Deterministic redundancy audit for CLAUDE.md files. Pattern matching only — no LLM scoring.",
 };

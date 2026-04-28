@@ -1,12 +1,12 @@
 /**
- * AI Pulse — Per-card OG image.
+ * Gawk — Per-card OG image.
  *
  * 1200×630 dark-theme card built with next/og (no @vercel/og install
  * needed — Next 13.3+ ships ImageResponse natively). Resolves the
  * card by id from a fresh feed derive; falls back to a generic
  * "Card expired" image when the card has rolled out.
  *
- * v1 spec per S40 PRD: dark theme #06080a, teal pulse, AI Pulse
+ * v1 spec per S40 PRD: dark theme #06080a, teal pulse, Gawk
  * brand, monospace claim text. Iterate after first LinkedIn unfurl.
  */
 
@@ -32,7 +32,7 @@ import { composeFeed, type FeedSnapshots } from "@/lib/feed/compose";
 import type { Card } from "@/lib/feed/types";
 
 export const runtime = "nodejs";
-export const alt = "AI Pulse card";
+export const alt = "Gawk card";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -93,7 +93,7 @@ export default async function CardOgImage({
               fontWeight: 700,
             }}
           >
-            AI PULSE
+            GAWK
           </div>
           {card ? (
             <div

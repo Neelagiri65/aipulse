@@ -1,7 +1,7 @@
 import { ModelUsagePageClient } from "@/components/panels/model-usage/ModelUsagePageClient";
 
 export const metadata = {
-  title: "Model Usage · AI Pulse",
+  title: "Model Usage · Gawk",
   description:
     "Live ranking of LLMs by real OpenRouter request volume. Click a row for pricing, context window, OpenRouter source link, and 30-day rank history.",
 };

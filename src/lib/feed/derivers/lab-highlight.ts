@@ -1,5 +1,5 @@
 /**
- * AI Pulse — LAB_HIGHLIGHT deriver
+ * Gawk — LAB_HIGHLIGHT deriver
  *
  * Pure function over `LabsPayload`. Emits exactly one Card — the
  * lab with the highest 7-day GitHub event total. Returns [] when

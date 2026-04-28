@@ -1,7 +1,7 @@
 import { SdkAdoptionPageClient } from "@/components/panels/sdk-adoption/SdkAdoptionPageClient";
 
 export const metadata = {
-  title: "SDK Adoption · AI Pulse",
+  title: "SDK Adoption · Gawk",
   description:
     "Within-package daily delta heatmap across PyPI, npm, crates.io, Docker Hub, and Homebrew. Click a row for the 30-day sparkline, source, and aggregator caveat.",
 };

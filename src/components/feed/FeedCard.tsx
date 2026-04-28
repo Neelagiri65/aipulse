@@ -1,5 +1,5 @@
 /**
- * AI Pulse — Single feed card.
+ * Gawk — Single feed card.
  *
  * Renders one Card from the feed. Headline + optional detail +
  * source citation (clickable, new tab, rel="noreferrer") + relative

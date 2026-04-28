@@ -16,7 +16,7 @@
  *
  * Rate-limit etiquette: crates.io requires a User-Agent identifying the
  * caller + contact (see https://crates.io/data-access). Anonymous requests
- * without UA are blocked. We send `aipulse/1.0 (+https://aipulse-pi...)`.
+ * without UA are blocked. We send `aipulse/1.0 (+https://gawk.dev)`.
  *
  * Partial-failure policy mirrors PyPI + npm: ok:true iff ≥ 1 crate
  * succeeded, ok:false preserves the previous blob untouched.

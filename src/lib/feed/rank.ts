@@ -1,5 +1,5 @@
 /**
- * AI Pulse — Feed ranking
+ * Gawk — Feed ranking
  *
  * Sorts cards by severity descending, then by timestamp descending
  * within the same severity tier. Pure function; does not mutate the

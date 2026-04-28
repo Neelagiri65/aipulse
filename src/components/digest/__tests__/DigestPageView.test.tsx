@@ -11,9 +11,9 @@ vi.mock("@/lib/analytics", () => ({ track: () => {} }));
 function mkDigest(overrides: Partial<DigestBody> = {}): DigestBody {
   return {
     date: "2026-04-22",
-    subject: "AI Pulse — 2026-04-22 · 1 tool incident",
+    subject: "Gawk — 2026-04-22 · 1 tool incident",
     mode: "diff",
-    greetingTemplate: "Good morning from AI Pulse.",
+    greetingTemplate: "Good morning from Gawk.",
     generatedAt: "2026-04-22T08:00:00.000Z",
     sections: [
       {
@@ -46,7 +46,7 @@ function mkDigest(overrides: Partial<DigestBody> = {}): DigestBody {
   };
 }
 
-function render(digest: DigestBody, baseUrl = "https://aipulse.dev"): string {
+function render(digest: DigestBody, baseUrl = "https://gawk.dev"): string {
   return renderToStaticMarkup(
     <DigestPageView digest={digest} baseUrl={baseUrl} />,
   );
@@ -55,7 +55,7 @@ function render(digest: DigestBody, baseUrl = "https://aipulse.dev"): string {
 describe("DigestPageView — header", () => {
   it("renders the subject as H1", () => {
     const html = render(mkDigest());
-    expect(html).toContain("AI Pulse — 2026-04-22 · 1 tool incident");
+    expect(html).toContain("Gawk — 2026-04-22 · 1 tool incident");
   });
 
   it("shows a diff-mode description by default", () => {
@@ -121,7 +121,7 @@ describe("DigestPageView — share affordances", () => {
   it("share URLs target the section anchor, not just the page root", () => {
     const html = render(mkDigest());
     expect(html).toContain(
-      encodeURIComponent("https://aipulse.dev/digest/2026-04-22#tool-health"),
+      encodeURIComponent("https://gawk.dev/digest/2026-04-22#tool-health"),
     );
   });
 

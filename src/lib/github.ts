@@ -1,5 +1,5 @@
 /**
- * Thin typed wrappers over the GitHub REST API calls AI Pulse uses.
+ * Thin typed wrappers over the GitHub REST API calls Gawk uses.
  * All fetches go through Next.js's Data Cache via `next.revalidate`.
  */
 

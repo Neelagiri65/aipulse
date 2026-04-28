@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * AI Pulse — Mobile bottom navigation bar.
+ * Gawk — Mobile bottom navigation bar.
  *
  * Three top-level tabs: FEED (default) | MAP | PANELS. The PANELS
  * tab opens the existing 4-tab strip (Wire / Health / Models / More)

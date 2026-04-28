@@ -56,9 +56,9 @@ const baseProps = {
 };
 
 describe("MobileDashboard — shell", () => {
-  it("renders the brand row with the AI PULSE wordmark", () => {
+  it("renders the brand row with the GAWK wordmark", () => {
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
-    expect(html).toContain("AI PULSE");
+    expect(html).toContain("GAWK");
     expect(html).toContain("ap-mobile-brand");
   });
 

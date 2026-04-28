@@ -5,7 +5,7 @@
  * computes week-over-week deltas, runs sanity-range guards, builds the
  * payload the `/api/benchmarks` route serves.
  *
- * Transparency contract: AI Pulse does not recompute Elo, does not
+ * Transparency contract: Gawk does not recompute Elo, does not
  * re-rank, does not rename models. `rating_upper`/`rating_lower` arrive
  * as floats from lmarena-ai's Bradley-Terry fit and are integer-rounded
  * at display time (PRD AC 4). `rating` itself is integer-rounded for
@@ -149,7 +149,7 @@ function toStringOrEmpty(v: unknown): string {
 /**
  * Subset (`text`) is selected by the config= URL param and never appears as
  * a column in the response. Inside a `text` config fetch, the only filter
- * AI Pulse applies is category === "overall".
+ * Gawk applies is category === "overall".
  */
 export function isOverall(row: ArenaRow): boolean {
   return row.category.toLowerCase() === "overall";

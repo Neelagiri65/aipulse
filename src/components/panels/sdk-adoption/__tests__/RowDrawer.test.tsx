@@ -47,14 +47,14 @@ describe("composeShareHeadline", () => {
 describe("RowDrawer render", () => {
   it("returns null when open=false", () => {
     const html = renderToStaticMarkup(
-      <RowDrawer pkg={pkg()} open={false} onClose={() => {}} originUrl="https://aipulse.dev" />,
+      <RowDrawer pkg={pkg()} open={false} onClose={() => {}} originUrl="https://gawk.dev" />,
     );
     expect(html).toBe("");
   });
 
   it("renders the title with the registry chip and package label when open", () => {
     const html = renderToStaticMarkup(
-      <RowDrawer pkg={pkg()} open={true} onClose={() => {}} originUrl="https://aipulse.dev" />,
+      <RowDrawer pkg={pkg()} open={true} onClose={() => {}} originUrl="https://gawk.dev" />,
     );
     expect(html).toContain("transformers");
     expect(html).toContain("pypi");
@@ -64,7 +64,7 @@ describe("RowDrawer render", () => {
 
   it("renders the latest count + fetchedAt stamp", () => {
     const html = renderToStaticMarkup(
-      <RowDrawer pkg={pkg()} open={true} onClose={() => {}} originUrl="https://aipulse.dev" />,
+      <RowDrawer pkg={pkg()} open={true} onClose={() => {}} originUrl="https://gawk.dev" />,
     );
     expect(html).toContain("12,345");
     expect(html).toMatch(/2026-04-25/);
@@ -72,7 +72,7 @@ describe("RowDrawer render", () => {
 
   it("renders the third-party-aggregator caveat for pypi rows", () => {
     const html = renderToStaticMarkup(
-      <RowDrawer pkg={pkg()} open={true} onClose={() => {}} originUrl="https://aipulse.dev" />,
+      <RowDrawer pkg={pkg()} open={true} onClose={() => {}} originUrl="https://gawk.dev" />,
     );
     expect(html).toMatch(/pypistats/i);
   });
@@ -83,7 +83,7 @@ describe("RowDrawer render", () => {
         pkg={pkg({ registry: "npm", caveat: null, firstParty: true })}
         open={true}
         onClose={() => {}}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).not.toMatch(/pypistats/i);
@@ -91,7 +91,7 @@ describe("RowDrawer render", () => {
 
   it("renders the SparklineMini SVG inside the drawer", () => {
     const html = renderToStaticMarkup(
-      <RowDrawer pkg={pkg()} open={true} onClose={() => {}} originUrl="https://aipulse.dev" />,
+      <RowDrawer pkg={pkg()} open={true} onClose={() => {}} originUrl="https://gawk.dev" />,
     );
     expect(html).toContain("<svg");
     expect(html).toContain('role="img"');
@@ -99,7 +99,7 @@ describe("RowDrawer render", () => {
 
   it("renders the share button with a deep-link to ?focus={pkgId}", () => {
     const html = renderToStaticMarkup(
-      <RowDrawer pkg={pkg()} open={true} onClose={() => {}} originUrl="https://aipulse.dev" />,
+      <RowDrawer pkg={pkg()} open={true} onClose={() => {}} originUrl="https://gawk.dev" />,
     );
     // SectionShareButton emits a LinkedIn + X URL where the deep-link
     // is itself the value of a `url=` query param, so the inner
@@ -115,7 +115,7 @@ describe("RowDrawer render", () => {
       ],
     });
     const html = renderToStaticMarkup(
-      <RowDrawer pkg={empty} open={true} onClose={() => {}} originUrl="https://aipulse.dev" />,
+      <RowDrawer pkg={empty} open={true} onClose={() => {}} originUrl="https://gawk.dev" />,
     );
     expect(html).toMatch(/baseline.*today|collecting/i);
   });
@@ -126,7 +126,7 @@ describe("RowDrawer render", () => {
         pkg={pkg({ registry: "npm", firstParty: true, caveat: null })}
         open={true}
         onClose={() => {}}
-        originUrl="https://aipulse.dev"
+        originUrl="https://gawk.dev"
       />,
     );
     expect(html).toMatch(/first-?party/i);

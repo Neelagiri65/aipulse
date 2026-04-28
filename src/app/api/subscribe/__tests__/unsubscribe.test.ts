@@ -70,7 +70,7 @@ describe("handleUnsubscribe", () => {
 
   it("redirects to state=invalid when token missing", async () => {
     const resp = await handleUnsubscribe(
-      makeCtx("https://aipulse.dev/api/subscribe/unsubscribe"),
+      makeCtx("https://gawk.dev/api/subscribe/unsubscribe"),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     expect(resp.status).toBe(302);
@@ -82,7 +82,7 @@ describe("handleUnsubscribe", () => {
   it("redirects to state=invalid on bad-signature token", async () => {
     const token = mintToken({ kind: "unsub", emailHash: "x" }, "other-secret");
     const resp = await handleUnsubscribe(
-      makeCtx(`https://aipulse.dev/api/subscribe/unsubscribe?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/unsubscribe?token=${token}`),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     expect(resp.headers.get("location")).toMatch(/state=invalid/);
@@ -91,7 +91,7 @@ describe("handleUnsubscribe", () => {
   it("redirects to state=invalid when kind is confirm (wrong purpose)", async () => {
     const token = mintToken({ kind: "confirm", emailHash: "x", ttlSec: 60 }, SECRET);
     const resp = await handleUnsubscribe(
-      makeCtx(`https://aipulse.dev/api/subscribe/unsubscribe?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/unsubscribe?token=${token}`),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     expect(resp.headers.get("location")).toMatch(/state=invalid/);
@@ -100,7 +100,7 @@ describe("handleUnsubscribe", () => {
   it("redirects to state=not-found when token valid but record missing", async () => {
     const token = mintUnsub("unknown");
     const resp = await handleUnsubscribe(
-      makeCtx(`https://aipulse.dev/api/subscribe/unsubscribe?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/unsubscribe?token=${token}`),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     expect(resp.headers.get("location")).toMatch(/state=not-found/);
@@ -112,7 +112,7 @@ describe("handleUnsubscribe", () => {
     const token = mintUnsub(emailHash);
     await seedConfirmed(redis, email, token);
     const resp = await handleUnsubscribe(
-      makeCtx(`https://aipulse.dev/api/subscribe/unsubscribe?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/unsubscribe?token=${token}`),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     expect(resp.headers.get("location")).toMatch(/state=ok/);
@@ -129,7 +129,7 @@ describe("handleUnsubscribe", () => {
     await seedConfirmed(redis, email, token);
     const { sender, calls } = captureSender({ ok: true, id: "m" });
     await handleUnsubscribe(
-      makeCtx(`https://aipulse.dev/api/subscribe/unsubscribe?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/unsubscribe?token=${token}`),
       {
         subscriberClient: client,
         tokenSecret: SECRET,
@@ -138,7 +138,7 @@ describe("handleUnsubscribe", () => {
       },
     );
     const second = await handleUnsubscribe(
-      makeCtx(`https://aipulse.dev/api/subscribe/unsubscribe?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/unsubscribe?token=${token}`),
       {
         subscriberClient: client,
         tokenSecret: SECRET,
@@ -158,7 +158,7 @@ describe("handleUnsubscribe", () => {
     await seedConfirmed(redis, email, token);
     const { sender, calls } = captureSender({ ok: true, id: "m" });
     await handleUnsubscribe(
-      makeCtx(`https://aipulse.dev/api/subscribe/unsubscribe?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/unsubscribe?token=${token}`),
       {
         subscriberClient: client,
         tokenSecret: SECRET,
@@ -178,7 +178,7 @@ describe("handleUnsubscribe", () => {
     await seedConfirmed(redis, email, token);
     const { sender, calls } = captureSender({ ok: true, id: "m" });
     const resp = await handleUnsubscribe(
-      makeCtx(`https://aipulse.dev/api/subscribe/unsubscribe?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/unsubscribe?token=${token}`),
       { subscriberClient: client, tokenSecret: SECRET, sender },
     );
     expect(resp.headers.get("location")).toMatch(/state=ok/);

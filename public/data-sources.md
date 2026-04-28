@@ -1,8 +1,8 @@
-# AI Pulse — Data Sources
+# Gawk — Data Sources
 
-Every number on this dashboard traces back to a publicly verifiable source. AI Pulse aggregates — it does not invent metrics, re-score labs, or manufacture values. When a source is unavailable, the affected card falls to graceful degradation with a "last known value" and timestamp rather than blanking silently.
+Every number on this dashboard traces back to a publicly verifiable source. Gawk aggregates — it does not invent metrics, re-score labs, or manufacture values. When a source is unavailable, the affected card falls to graceful degradation with a "last known value" and timestamp rather than blanking silently.
 
-As of 2026-04-21, AI Pulse tracks **28 verified sources** across GitHub activity, status pages, published research, model distribution, package adoption, community sentiment, regional press, and model benchmarks.
+As of 2026-04-21, Gawk tracks **28 verified sources** across GitHub activity, status pages, published research, model distribution, package adoption, community sentiment, regional press, and model benchmarks.
 
 ---
 

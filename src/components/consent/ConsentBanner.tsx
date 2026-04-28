@@ -114,7 +114,7 @@ export function ConsentBanner() {
         Your privacy
       </h2>
       <p className="mb-3 text-sm text-foreground/90">
-        AI Pulse uses a single analytics cookie to measure which panels
+        Gawk uses a single analytics cookie to measure which panels
         people open — nothing else. We never sell data. You can change
         your mind any time at{" "}
         <a

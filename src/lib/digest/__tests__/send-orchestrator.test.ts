@@ -57,7 +57,7 @@ function mkVerifiedDomainClient(): DomainClient {
     get: async () => ({
       data: {
         id: "dm_123",
-        name: "aipulse.dev",
+        name: "gawk.dev",
         status: "verified",
         records: [
           { record: "SPF", status: "verified" as DomainVerifyRecordStatus },
@@ -74,7 +74,7 @@ function mkUnverifiedDomainClient(): DomainClient {
     get: async () => ({
       data: {
         id: "dm_123",
-        name: "aipulse.dev",
+        name: "gawk.dev",
         status: "pending",
         records: [
           { record: "SPF", status: "pending" as DomainVerifyRecordStatus },
@@ -131,16 +131,16 @@ function mkBaseInput(opts: {
     input: {
       date: "2026-04-22",
       now: new Date("2026-04-22T08:00:00Z"),
-      from: "AI Pulse <digest@aipulse.dev>",
-      unsubBaseUrl: "https://aipulse.dev/api/subscribe/unsubscribe",
-      unsubMailto: "mailto:unsub@aipulse.dev",
-      baseUrl: "https://aipulse.dev",
+      from: "Gawk <digest@gawk.dev>",
+      unsubBaseUrl: "https://gawk.dev/api/subscribe/unsubscribe",
+      unsubMailto: "mailto:unsub@gawk.dev",
+      baseUrl: "https://gawk.dev",
       resendDomains: opts.domain ?? mkVerifiedDomainClient(),
       resendDomainId: "dm_123",
-      resendDomainName: "aipulse.dev",
+      resendDomainName: "gawk.dev",
       dmarcResolver:
         dmarcMode === "verified"
-          ? async () => [["v=DMARC1; p=reject; rua=mailto:dmarc@aipulse.dev"]]
+          ? async () => [["v=DMARC1; p=reject; rua=mailto:dmarc@gawk.dev"]]
           : dmarcMode === "missing"
             ? async () => [] as string[][]
             : async () => {
@@ -174,8 +174,8 @@ function mkBaseInput(opts: {
 
 describe("buildListId", () => {
   it("composes date.domain shape", () => {
-    expect(buildListId("2026-04-22", "aipulse.dev")).toBe(
-      "digest-2026-04-22.aipulse.dev",
+    expect(buildListId("2026-04-22", "gawk.dev")).toBe(
+      "digest-2026-04-22.gawk.dev",
     );
   });
 });
@@ -203,14 +203,14 @@ describe("sendDigestForDate — happy path", () => {
     expect(capture.archived).toHaveLength(1);
     expect(capture.archived[0].date).toBe("2026-04-22");
     expect(capture.renderedFor).toEqual([
-      "https://aipulse.dev/api/subscribe/unsubscribe?token=tok-h1",
-      "https://aipulse.dev/api/subscribe/unsubscribe?token=tok-h2",
+      "https://gawk.dev/api/subscribe/unsubscribe?token=tok-h1",
+      "https://gawk.dev/api/subscribe/unsubscribe?token=tok-h2",
     ]);
 
     const payload = sendBatch.mock.calls[0][0];
     expect(payload).toHaveLength(2);
     expect(payload[0].to).toBe("a@example.com");
-    expect(payload[0].headers["List-ID"]).toBe("digest-2026-04-22.aipulse.dev");
+    expect(payload[0].headers["List-ID"]).toBe("digest-2026-04-22.gawk.dev");
     expect(payload[0].headers["List-Unsubscribe"]).toContain("tok-h1");
     expect(payload[0].headers["List-Unsubscribe-Post"]).toBe(
       "List-Unsubscribe=One-Click",

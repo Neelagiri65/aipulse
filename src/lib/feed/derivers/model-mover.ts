@@ -1,5 +1,5 @@
 /**
- * AI Pulse — MODEL_MOVER deriver
+ * Gawk — MODEL_MOVER deriver
  *
  * Pure function over `ModelUsageDto`. Emits one Card per OpenRouter
  * top-N model whose week-over-week rank delta exceeds the locked

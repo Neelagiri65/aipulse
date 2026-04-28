@@ -69,7 +69,7 @@ describe("handleGetSdkAdoption", () => {
         }),
       ],
     });
-    const req = new Request("https://aipulse.dev/api/panels/sdk-adoption");
+    const req = new Request("https://gawk.dev/api/panels/sdk-adoption");
     const { dto, cacheHeader } = await handleGetSdkAdoption(req, deps);
     expect(dto.packages).toHaveLength(1);
     expect(dto.packages[0].id).toBe("pypi:transformers");
@@ -78,7 +78,7 @@ describe("handleGetSdkAdoption", () => {
 
   it("returns empty DTO when no latest blobs and no snapshots exist", async () => {
     const deps = depsFromFixture({});
-    const req = new Request("https://aipulse.dev/api/panels/sdk-adoption");
+    const req = new Request("https://gawk.dev/api/panels/sdk-adoption");
     const { dto } = await handleGetSdkAdoption(req, deps);
     expect(dto.packages).toEqual([]);
     expect(dto.generatedAt).toBeTruthy();
@@ -90,7 +90,7 @@ describe("handleGetSdkAdoption", () => {
       npm: null,
       crates: makeLatest("crates", { burn: { allTime: 50 } }),
     });
-    const req = new Request("https://aipulse.dev/api/panels/sdk-adoption");
+    const req = new Request("https://gawk.dev/api/panels/sdk-adoption");
     const { dto } = await handleGetSdkAdoption(req, deps);
     const ids = dto.packages.map((p) => p.id).sort();
     expect(ids).toEqual(["crates:burn", "pypi:openai"]);
@@ -105,7 +105,7 @@ describe("handleGetSdkAdoption", () => {
       now: () => new Date("2026-04-25T12:00:00Z"),
     };
     const req = new Request(
-      "https://aipulse.dev/api/panels/sdk-adoption?window=14",
+      "https://gawk.dev/api/panels/sdk-adoption?window=14",
     );
     await handleGetSdkAdoption(req, deps);
     expect(readRecentSnapshots).toHaveBeenCalledWith(15);
@@ -114,7 +114,7 @@ describe("handleGetSdkAdoption", () => {
   it("clamps window and baseline to 1..60", async () => {
     const deps = depsFromFixture({});
     const req = new Request(
-      "https://aipulse.dev/api/panels/sdk-adoption?window=999&baseline=0",
+      "https://gawk.dev/api/panels/sdk-adoption?window=999&baseline=0",
     );
     const { dto } = await handleGetSdkAdoption(req, deps);
     // No throw, returns a DTO.
@@ -122,7 +122,7 @@ describe("handleGetSdkAdoption", () => {
   });
 
   it("GET returns JSON with Cache-Control header", async () => {
-    const req = new Request("https://aipulse.dev/api/panels/sdk-adoption");
+    const req = new Request("https://gawk.dev/api/panels/sdk-adoption");
     const res = await GET(req);
     expect(res.headers.get("Cache-Control")).toBe(
       "public, s-maxage=300, stale-while-revalidate=60",

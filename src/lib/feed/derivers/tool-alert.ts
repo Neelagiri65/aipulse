@@ -1,5 +1,5 @@
 /**
- * AI Pulse — TOOL_ALERT deriver
+ * Gawk — TOOL_ALERT deriver
  *
  * Pure function over `StatusResult`. Emits one Card per tool whose
  * upstream status is anything other than `operational` or `unknown`.

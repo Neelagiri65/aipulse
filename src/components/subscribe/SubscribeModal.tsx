@@ -128,7 +128,7 @@ export function SubscribeModal(): React.JSX.Element | null {
   return (
     <div
       role="dialog"
-      aria-label="Subscribe to the AI Pulse daily digest"
+      aria-label="Subscribe to the Gawk daily digest"
       data-testid="subscribe-modal"
       className="fixed bottom-6 right-6 z-40 w-[min(360px,calc(100%-3rem))] rounded-xl border border-border bg-background/95 p-4 shadow-2xl backdrop-blur-md"
     >

@@ -60,7 +60,7 @@ describe("handleConfirm", () => {
 
   it("redirects to state=invalid when token is missing", async () => {
     const resp = await handleConfirm(
-      makeCtx("https://aipulse.dev/api/subscribe/confirm"),
+      makeCtx("https://gawk.dev/api/subscribe/confirm"),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     expect(resp.status).toBe(302);
@@ -70,7 +70,7 @@ describe("handleConfirm", () => {
 
   it("redirects to state=invalid on malformed token", async () => {
     const resp = await handleConfirm(
-      makeCtx("https://aipulse.dev/api/subscribe/confirm?token=garbage"),
+      makeCtx("https://gawk.dev/api/subscribe/confirm?token=garbage"),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     expect(resp.headers.get("location")).toMatch(/state=invalid/);
@@ -79,7 +79,7 @@ describe("handleConfirm", () => {
   it("redirects to state=invalid on bad signature", async () => {
     const token = mintToken({ kind: "confirm", emailHash: "x", ttlSec: 60 }, "other-secret");
     const resp = await handleConfirm(
-      makeCtx(`https://aipulse.dev/api/subscribe/confirm?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/confirm?token=${token}`),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     expect(resp.headers.get("location")).toMatch(/state=invalid/);
@@ -91,7 +91,7 @@ describe("handleConfirm", () => {
       SECRET,
     );
     const resp = await handleConfirm(
-      makeCtx(`https://aipulse.dev/api/subscribe/confirm?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/confirm?token=${token}`),
       {
         subscriberClient: client,
         tokenSecret: SECRET,
@@ -104,7 +104,7 @@ describe("handleConfirm", () => {
   it("redirects to state=invalid when token kind is wrong (unsub token)", async () => {
     const token = mintToken({ kind: "unsub", emailHash: "x" }, SECRET);
     const resp = await handleConfirm(
-      makeCtx(`https://aipulse.dev/api/subscribe/confirm?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/confirm?token=${token}`),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     expect(resp.headers.get("location")).toMatch(/state=invalid/);
@@ -113,7 +113,7 @@ describe("handleConfirm", () => {
   it("redirects to state=not-found when token is valid but Redis has no record", async () => {
     const token = mintConfirm("never-seeded");
     const resp = await handleConfirm(
-      makeCtx(`https://aipulse.dev/api/subscribe/confirm?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/confirm?token=${token}`),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     expect(resp.headers.get("location")).toMatch(/state=not-found/);
@@ -125,7 +125,7 @@ describe("handleConfirm", () => {
     const token = mintConfirm(emailHash);
     seedPending(redis, email, token);
     const resp = await handleConfirm(
-      makeCtx(`https://aipulse.dev/api/subscribe/confirm?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/confirm?token=${token}`),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     expect(resp.headers.get("location")).toMatch(/state=ok/);
@@ -142,7 +142,7 @@ describe("handleConfirm", () => {
     const token = mintConfirm(emailHash);
     seedPending(redis, email, token);
     await handleConfirm(
-      makeCtx(`https://aipulse.dev/api/subscribe/confirm?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/confirm?token=${token}`),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     expect(await redis.get(confirmTokenKey(token))).toBeNull();
@@ -154,14 +154,14 @@ describe("handleConfirm", () => {
     const token = mintConfirm(emailHash);
     seedPending(redis, email, token);
     await handleConfirm(
-      makeCtx(`https://aipulse.dev/api/subscribe/confirm?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/confirm?token=${token}`),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     // The reverse-lookup is gone, so a second click will read "not-found"
     // unless we changed the contract. For idempotency we accept not-found
     // or ok — but the user-visible page should still land cleanly.
     const resp2 = await handleConfirm(
-      makeCtx(`https://aipulse.dev/api/subscribe/confirm?token=${token}`),
+      makeCtx(`https://gawk.dev/api/subscribe/confirm?token=${token}`),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     expect(resp2.status).toBe(302);

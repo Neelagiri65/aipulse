@@ -5,7 +5,7 @@
  *   digest:{YYYY-MM-DD}   SET (JSON), no TTL.
  *
  * Why no TTL? The `/digest/{date}` public page renders from this store
- * whenever a subscriber clicks "View on AI Pulse" in an email they've
+ * whenever a subscriber clicks "View on Gawk" in an email they've
  * kept for weeks or months. Email clients archive indefinitely; our
  * archive has to match. A year of digests at ~10 KB each is ~3.6 MB —
  * well under Upstash free-tier limits.

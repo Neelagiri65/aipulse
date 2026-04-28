@@ -68,7 +68,7 @@ export function composeLabsSection(input: ComposeLabsInput): DigestSection {
         detail: `${t.total} events · ${t.city}, ${t.country}${
           t.stale ? " · partial view" : ""
         }`,
-        sourceLabel: "AI Pulse · Labs",
+        sourceLabel: "Gawk · Labs",
         sourceUrl: LABS_SOURCE_URL,
       });
       continue;
@@ -81,7 +81,7 @@ export function composeLabsSection(input: ComposeLabsInput): DigestSection {
         detail: `${sign}${Math.abs(delta)} events (now ${t.total}) · ${t.city}, ${t.country}${
           t.stale ? " · partial view" : ""
         }`,
-        sourceLabel: "AI Pulse · Labs",
+        sourceLabel: "Gawk · Labs",
         sourceUrl: LABS_SOURCE_URL,
       });
     }
@@ -94,7 +94,7 @@ export function composeLabsSection(input: ComposeLabsInput): DigestSection {
       movers.push({
         headline: `Dropped off: ${y.displayName}`,
         detail: `was ${y.total} events · ${y.city}, ${y.country}`,
-        sourceLabel: "AI Pulse · Labs",
+        sourceLabel: "Gawk · Labs",
         sourceUrl: LABS_SOURCE_URL,
       });
     }
@@ -129,7 +129,7 @@ function asItem(lab: SnapshotLabEntry): DigestSectionItem {
     detail: `${lab.total} events · ${lab.city}, ${lab.country}${
       lab.stale ? " · partial view" : ""
     }`,
-    sourceLabel: "AI Pulse · Labs",
+    sourceLabel: "Gawk · Labs",
     sourceUrl: LABS_SOURCE_URL,
   };
 }

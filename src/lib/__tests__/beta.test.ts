@@ -16,16 +16,16 @@ describe("isBetaEnabled (post-Session-34: default-on)", () => {
 
   it("treats ?beta=1 as a kill-switch override (force-on)", () => {
     expect(
-      isBetaEnabled({ envFlag: "off", url: "https://aipulse.dev/?beta=1" }),
+      isBetaEnabled({ envFlag: "off", url: "https://gawk.dev/?beta=1" }),
     ).toBe(true);
   });
 
   it("stays off when ?beta=1 is absent and env is 'off'", () => {
     expect(
-      isBetaEnabled({ envFlag: "off", url: "https://aipulse.dev/?beta=0" }),
+      isBetaEnabled({ envFlag: "off", url: "https://gawk.dev/?beta=0" }),
     ).toBe(false);
     expect(
-      isBetaEnabled({ envFlag: "off", url: "https://aipulse.dev/" }),
+      isBetaEnabled({ envFlag: "off", url: "https://gawk.dev/" }),
     ).toBe(false);
   });
 

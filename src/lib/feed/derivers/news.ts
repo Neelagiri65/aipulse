@@ -1,5 +1,5 @@
 /**
- * AI Pulse — NEWS deriver
+ * Gawk — NEWS deriver
  *
  * Pure function over `HnWireResult` + a now-millisecond reference.
  * Emits one Card per HN AI-filtered story whose points exceed the
@@ -8,7 +8,7 @@
  * (`FEED_TRIGGERS.NEWS_HN_WINDOW_HOURS` = 6).
  *
  * sourceUrl points to the HN comments page for the item, not the
- * external URL — the value AI Pulse adds is surfacing where the
+ * external URL — the value Gawk adds is surfacing where the
  * conversation is happening, not relinking the same article.
  */
 

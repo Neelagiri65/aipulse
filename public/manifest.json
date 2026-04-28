@@ -1,6 +1,6 @@
 {
-  "name": "AI Pulse — live AI ecosystem observatory",
-  "short_name": "AI Pulse",
+  "name": "Gawk — live AI ecosystem observatory",
+  "short_name": "Gawk",
   "description": "Real-time aggregator for the global AI ecosystem. Every number cites its source.",
   "start_url": "/",
   "scope": "/",

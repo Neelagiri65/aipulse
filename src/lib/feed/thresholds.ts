@@ -1,12 +1,12 @@
 /**
- * AI Pulse — Feed thresholds (LOCKED)
+ * Gawk — Feed thresholds (LOCKED)
  *
  * Single source of truth for the severity formula and trigger thresholds.
  * The `/methodology` page imports from this file verbatim; any change to
  * a threshold is one git commit and is therefore auditable.
  *
  * Severity tiering is a deterministic sort key over already-aggregated
- * public data. It is NOT an invented metric. AI Pulse aggregates, it does
+ * public data. It is NOT an invented metric. Gawk aggregates, it does
  * not score — see `prd-feed.md` Part 5.
  *
  * Decisions locked S40 2026-04-27.

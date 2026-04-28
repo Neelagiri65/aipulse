@@ -174,5 +174,5 @@ function inferBaseUrl(h: Headers): string {
   if (fromEnv) return fromEnv.replace(/\/$/, "");
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const proto = h.get("x-forwarded-proto") ?? "https";
-  return host ? `${proto}://${host}` : "https://aipulse.dev";
+  return host ? `${proto}://${host}` : "https://gawk.dev";
 }

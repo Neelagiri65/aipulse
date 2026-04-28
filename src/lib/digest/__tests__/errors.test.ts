@@ -16,7 +16,7 @@ function entry(overrides: Partial<DigestErrorEntry> = {}): DigestErrorEntry {
   return {
     at: "2026-04-22T08:00:00.000Z",
     kind: "batch-4xx",
-    subject: "AI Pulse — 2026-04-22",
+    subject: "Gawk — 2026-04-22",
     message: "address rejected",
     ...overrides,
   };

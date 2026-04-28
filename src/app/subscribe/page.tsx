@@ -4,7 +4,7 @@ import { SubscribeForm } from "@/components/subscribe/SubscribeForm";
 import { PrivacyFooter } from "@/components/consent/PrivacyFooter";
 
 export const metadata: Metadata = {
-  title: "Subscribe — AI Pulse daily digest",
+  title: "Subscribe — Gawk daily digest",
   description:
     "One daily email covering what shipped, what broke, and which models moved. Unsubscribe in one click.",
 };
@@ -24,7 +24,7 @@ export default function SubscribePage() {
   return (
     <main className="mx-auto max-w-md px-6 py-16 text-foreground">
       <h1 className="mb-2 font-mono text-2xl tracking-tight">
-        Daily AI Pulse
+        Daily Gawk
       </h1>
       <p className="mb-6 text-sm text-muted-foreground">
         One email a day. Models released, benchmarks shifted, regulator

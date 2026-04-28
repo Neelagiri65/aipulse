@@ -18,14 +18,14 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Pulse — live status & activity monitor for AI coding tools",
+  title: "Gawk — live status & activity monitor for AI coding tools",
   description:
     "Real-time status pages for Anthropic, OpenAI, GitHub Copilot, plus a globe of public AI-coding events from the GitHub Events API. Every number cites its source. MVP scope: 3 tools + 1 activity feed.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "AI Pulse",
+    title: "Gawk",
   },
   icons: {
     icon: [

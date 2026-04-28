@@ -22,11 +22,11 @@ function baseInput(
 ): Parameters<typeof sendDigest>[0] {
   return {
     recipients,
-    from: "AI Pulse <digest@aipulse.dev>",
-    subject: "AI Pulse — 2026-04-22",
-    unsubBaseUrl: "https://aipulse.dev/api/subscribe/unsubscribe",
-    unsubMailto: "mailto:unsub@aipulse.dev",
-    listId: "digest-2026-04-22.aipulse.dev",
+    from: "Gawk <digest@gawk.dev>",
+    subject: "Gawk — 2026-04-22",
+    unsubBaseUrl: "https://gawk.dev/api/subscribe/unsubscribe",
+    unsubMailto: "mailto:unsub@gawk.dev",
+    listId: "digest-2026-04-22.gawk.dev",
     renderHtml: (rec) => `<p>${rec.email}</p>`,
     batchSender,
     sleepFn: async () => {},

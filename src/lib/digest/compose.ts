@@ -29,9 +29,9 @@ import { composeLabsSection } from "@/lib/digest/sections/labs";
 import { composeModelUsageSection } from "@/lib/digest/sections/model-usage";
 import { detectEmptyDay } from "@/lib/digest/empty-day";
 
-const GREETING_TEMPLATE = "Good morning from AI Pulse — here's what moved in {geoCountry} and beyond in the last 24h.";
-const GREETING_TEMPLATE_QUIET = "Good morning from AI Pulse — all quiet in the AI ecosystem in {geoCountry} and beyond.";
-const GREETING_TEMPLATE_BOOTSTRAP = "Welcome to AI Pulse. Here's where the AI ecosystem stands right now, as seen from {geoCountry}.";
+const GREETING_TEMPLATE = "Good morning from Gawk — here's what moved in {geoCountry} and beyond in the last 24h.";
+const GREETING_TEMPLATE_QUIET = "Good morning from Gawk — all quiet in the AI ecosystem in {geoCountry} and beyond.";
+const GREETING_TEMPLATE_BOOTSTRAP = "Welcome to Gawk. Here's where the AI ecosystem stands right now, as seen from {geoCountry}.";
 
 export type ComposeDigestInput = {
   today: DailySnapshot;
@@ -134,13 +134,13 @@ function buildSubject(
   incidentCount24h: number,
 ): string {
   if (mode === "bootstrap") {
-    return `AI Pulse — ${date} · where things stand`;
+    return `Gawk — ${date} · where things stand`;
   }
   if (mode === "quiet") {
-    return `AI Pulse — ${date} · all quiet in the AI ecosystem`;
+    return `Gawk — ${date} · all quiet in the AI ecosystem`;
   }
   const hook = pickLeadHook(sections, incidentCount24h);
-  return hook ? `AI Pulse — ${date} · ${hook}` : `AI Pulse — ${date}`;
+  return hook ? `Gawk — ${date} · ${hook}` : `Gawk — ${date}`;
 }
 
 /** Choose the most newsworthy hook from today's sections for the subject

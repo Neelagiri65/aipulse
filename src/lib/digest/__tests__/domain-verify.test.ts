@@ -10,7 +10,7 @@ function client(records: ResendDomainRecord[]): DomainClient {
     get: async () => ({
       data: {
         id: "did",
-        name: "aipulse.dev",
+        name: "gawk.dev",
         status: "verified",
         records,
       },
@@ -33,7 +33,7 @@ describe("checkDomainVerified — green path", () => {
         { record: "DKIM", status: "verified" },
       ]),
       "did",
-      "aipulse.dev",
+      "gawk.dev",
       { dmarcResolver: DMARC_OK },
     );
     expect(r.ok).toBe(true);
@@ -52,7 +52,7 @@ describe("checkDomainVerified — failing records", () => {
         { record: "DKIM", status: "verified" },
       ]),
       "did",
-      "aipulse.dev",
+      "gawk.dev",
       { dmarcResolver: DMARC_OK },
     );
     expect(r.ok).toBe(false);
@@ -66,7 +66,7 @@ describe("checkDomainVerified — failing records", () => {
         { record: "DKIM", status: "failed" },
       ]),
       "did",
-      "aipulse.dev",
+      "gawk.dev",
       { dmarcResolver: DMARC_OK },
     );
     expect(r.ok).toBe(false);
@@ -80,7 +80,7 @@ describe("checkDomainVerified — failing records", () => {
         { record: "DKIM", status: "verified" },
       ]),
       "did",
-      "aipulse.dev",
+      "gawk.dev",
       { dmarcResolver: DMARC_MISSING },
     );
     expect(r.ok).toBe(false);
@@ -95,7 +95,7 @@ describe("checkDomainVerified — failing records", () => {
         { record: "DKIM", status: "verified" },
       ]),
       "did",
-      "aipulse.dev",
+      "gawk.dev",
       { dmarcResolver: DMARC_UNREACHABLE },
     );
     expect(r.ok).toBe(false);
@@ -112,7 +112,7 @@ describe("checkDomainVerified — multiple DKIM records", () => {
         { record: "DKIM", status: "pending" },
       ]),
       "did",
-      "aipulse.dev",
+      "gawk.dev",
       { dmarcResolver: DMARC_OK },
     );
     expect(r.dkim).toBe("pending");
@@ -125,7 +125,7 @@ describe("checkDomainVerified — top-level errors", () => {
     const c: DomainClient = {
       get: async () => ({ data: null, error: { message: "unauthorized" } }),
     };
-    const r = await checkDomainVerified(c, "did", "aipulse.dev", {
+    const r = await checkDomainVerified(c, "did", "gawk.dev", {
       dmarcResolver: DMARC_OK,
     });
     expect(r.ok).toBe(false);
@@ -138,7 +138,7 @@ describe("checkDomainVerified — top-level errors", () => {
         throw new Error("network");
       },
     };
-    const r = await checkDomainVerified(c, "did", "aipulse.dev", {
+    const r = await checkDomainVerified(c, "did", "gawk.dev", {
       dmarcResolver: DMARC_OK,
     });
     expect(r.ok).toBe(false);

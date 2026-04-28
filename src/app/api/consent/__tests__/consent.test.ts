@@ -38,7 +38,7 @@ function ctx(
         : JSON.stringify(init.body ?? {});
   }
   return {
-    request: new Request(init.url ?? "https://aipulse.dev/api/consent", reqInit),
+    request: new Request(init.url ?? "https://gawk.dev/api/consent", reqInit),
     traceId: "trace-consent",
   };
 }

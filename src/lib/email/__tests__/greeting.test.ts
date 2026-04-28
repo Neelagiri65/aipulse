@@ -5,7 +5,7 @@ describe("renderGreeting — with country", () => {
   it("substitutes ISO code with the country's English display name", () => {
     const out = renderGreeting({
       template:
-        "Good morning from AI Pulse — here's what moved in {geoCountry} and beyond in the last 24h.",
+        "Good morning from Gawk — here's what moved in {geoCountry} and beyond in the last 24h.",
       countryCode: "GB",
     });
     expect(out).toContain("United Kingdom");
@@ -33,11 +33,11 @@ describe("renderGreeting — without country", () => {
   it("strips 'in {geoCountry} and beyond' when no country is known", () => {
     const out = renderGreeting({
       template:
-        "Good morning from AI Pulse — here's what moved in {geoCountry} and beyond in the last 24h.",
+        "Good morning from Gawk — here's what moved in {geoCountry} and beyond in the last 24h.",
       countryCode: null,
     });
     expect(out).toBe(
-      "Good morning from AI Pulse — here's what moved in the last 24h.",
+      "Good morning from Gawk — here's what moved in the last 24h.",
     );
     expect(out).not.toContain("{geoCountry}");
   });
@@ -45,22 +45,22 @@ describe("renderGreeting — without country", () => {
   it("strips the quiet-mode geo clause cleanly", () => {
     const out = renderGreeting({
       template:
-        "Good morning from AI Pulse — all quiet in the AI ecosystem in {geoCountry} and beyond.",
+        "Good morning from Gawk — all quiet in the AI ecosystem in {geoCountry} and beyond.",
       countryCode: null,
     });
     expect(out).toBe(
-      "Good morning from AI Pulse — all quiet in the AI ecosystem.",
+      "Good morning from Gawk — all quiet in the AI ecosystem.",
     );
   });
 
   it("strips the bootstrap-mode geo clause cleanly", () => {
     const out = renderGreeting({
       template:
-        "Welcome to AI Pulse. Here's where the AI ecosystem stands right now, as seen from {geoCountry}.",
+        "Welcome to Gawk. Here's where the AI ecosystem stands right now, as seen from {geoCountry}.",
       countryCode: null,
     });
     expect(out).toBe(
-      "Welcome to AI Pulse. Here's where the AI ecosystem stands right now.",
+      "Welcome to Gawk. Here's where the AI ecosystem stands right now.",
     );
   });
 

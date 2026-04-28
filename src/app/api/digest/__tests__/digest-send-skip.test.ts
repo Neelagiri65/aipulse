@@ -49,7 +49,7 @@ describe("/api/digest/send — Resend env skip", () => {
 
   it("lists only the missing envs when some Resend envs are present", async () => {
     process.env.RESEND_API_KEY = "re_test";
-    process.env.EMAIL_FROM_ADDRESS = "AI Pulse <hello@example.com>";
+    process.env.EMAIL_FROM_ADDRESS = "Gawk <hello@example.com>";
 
     const { POST } = await import("@/app/api/digest/send/route");
     const req = new Request("https://gawk.dev/api/digest/send", {
