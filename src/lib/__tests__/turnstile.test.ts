@@ -69,14 +69,30 @@ describe("verifyTurnstile", () => {
     expect(result).toEqual({ ok: false, reason: "no-token" });
   });
 
-  it("short-circuits with no-secret when secret is unset and env absent", async () => {
+  it("gracefully skips (returns ok) when secret is unset — symmetric with the client widget skipping when NEXT_PUBLIC_TURNSTILE_SITE_KEY is unset", async () => {
     const original = process.env.TURNSTILE_SECRET_KEY;
     delete process.env.TURNSTILE_SECRET_KEY;
     try {
       const result = await verifyTurnstile({ token: "tkn" });
-      expect(result).toEqual({ ok: false, reason: "no-secret" });
+      expect(result).toEqual({ ok: true });
     } finally {
       if (original !== undefined) process.env.TURNSTILE_SECRET_KEY = original;
     }
+  });
+
+  it("gracefully skips (returns ok) when secret is unset AND token is also empty", async () => {
+    const original = process.env.TURNSTILE_SECRET_KEY;
+    delete process.env.TURNSTILE_SECRET_KEY;
+    try {
+      const result = await verifyTurnstile({ token: "" });
+      expect(result).toEqual({ ok: true });
+    } finally {
+      if (original !== undefined) process.env.TURNSTILE_SECRET_KEY = original;
+    }
+  });
+
+  it("still rejects no-token when the secret IS set (configured deployments must enforce the gate)", async () => {
+    const result = await verifyTurnstile({ token: "", secret: "s" });
+    expect(result).toEqual({ ok: false, reason: "no-token" });
   });
 });

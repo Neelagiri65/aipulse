@@ -28,10 +28,14 @@ type SiteverifyBody = {
 };
 
 export async function verifyTurnstile(input: VerifyInput): Promise<VerifyOutcome> {
-  if (!input.token) return { ok: false, reason: "no-token" };
-
   const secret = input.secret ?? optionalEnv("TURNSTILE_SECRET_KEY");
-  if (!secret) return { ok: false, reason: "no-secret" };
+  // Symmetric graceful degradation: when the server-side secret is unset,
+  // the client also skips rendering the widget (NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  // is unset) and posts no token. Returning ok here keeps the gate symmetric.
+  // Honeypot + IP rate-limit remain on the subscribe path as bot defences.
+  if (!secret) return { ok: true };
+
+  if (!input.token) return { ok: false, reason: "no-token" };
 
   const form = new URLSearchParams();
   form.set("secret", secret);
