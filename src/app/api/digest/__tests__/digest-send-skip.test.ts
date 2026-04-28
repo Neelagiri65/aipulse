@@ -27,7 +27,7 @@ describe("/api/digest/send — Resend env skip", () => {
 
   it("returns 200 + reason:resend-not-configured when all four Resend envs are missing", async () => {
     const { POST } = await import("@/app/api/digest/send/route");
-    const req = new Request("https://aipulse-pi.vercel.app/api/digest/send", {
+    const req = new Request("https://gawk.dev/api/digest/send", {
       method: "POST",
       headers: { "x-ingest-secret": "test-secret-skip" },
     });
@@ -52,7 +52,7 @@ describe("/api/digest/send — Resend env skip", () => {
     process.env.EMAIL_FROM_ADDRESS = "AI Pulse <hello@example.com>";
 
     const { POST } = await import("@/app/api/digest/send/route");
-    const req = new Request("https://aipulse-pi.vercel.app/api/digest/send", {
+    const req = new Request("https://gawk.dev/api/digest/send", {
       method: "POST",
       headers: { "x-ingest-secret": "test-secret-skip" },
     });
@@ -69,7 +69,7 @@ describe("/api/digest/send — Resend env skip", () => {
 
   it("still rejects unauthenticated requests with 401", async () => {
     const { POST } = await import("@/app/api/digest/send/route");
-    const req = new Request("https://aipulse-pi.vercel.app/api/digest/send", {
+    const req = new Request("https://gawk.dev/api/digest/send", {
       method: "POST",
       headers: { "x-ingest-secret": "wrong-secret" },
     });

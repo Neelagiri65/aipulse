@@ -52,7 +52,7 @@ export type DockerIngestOptions = {
 };
 
 const DOCKER_BASE = "https://hub.docker.com/v2/repositories";
-const USER_AGENT = "aipulse/1.0 (+https://aipulse-pi.vercel.app)";
+const USER_AGENT = "aipulse/1.0 (+https://gawk.dev)";
 
 export async function runDockerIngest(
   opts: DockerIngestOptions = {},

@@ -15,7 +15,7 @@
 import type { SnapshotLabEntry } from "@/lib/data/snapshot";
 import type { DigestSection, DigestSectionItem } from "@/lib/digest/types";
 
-const LABS_SOURCE_URL = "https://aipulse-pi.vercel.app/#labs";
+const LABS_SOURCE_URL = "https://gawk.dev/#labs";
 
 /** Minimum delta in total events to count as "movement". Prevents a lab
  *  that went from 42 → 45 events from dominating the digest. */

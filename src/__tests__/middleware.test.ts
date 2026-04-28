@@ -19,7 +19,7 @@ function basicHeader(user: string, pass: string): string {
 
 describe("middleware (beta cookie stamping)", () => {
   it("sets the aip_beta cookie when ?beta=1 is present", () => {
-    const res = middleware(request("https://aipulse-pi.vercel.app/?beta=1"));
+    const res = middleware(request("https://gawk.dev/?beta=1"));
     const cookie = res.cookies.get(BETA_COOKIE_NAME);
     expect(cookie?.value).toBe("1");
     expect(cookie?.maxAge).toBe(BETA_COOKIE_MAX_AGE_SEC);
@@ -29,18 +29,18 @@ describe("middleware (beta cookie stamping)", () => {
   });
 
   it("does not stamp the cookie when ?beta is absent", () => {
-    const res = middleware(request("https://aipulse-pi.vercel.app/"));
+    const res = middleware(request("https://gawk.dev/"));
     expect(res.cookies.get(BETA_COOKIE_NAME)).toBeUndefined();
   });
 
   it("does not stamp the cookie when ?beta has the wrong value", () => {
-    const res = middleware(request("https://aipulse-pi.vercel.app/?beta=0"));
+    const res = middleware(request("https://gawk.dev/?beta=0"));
     expect(res.cookies.get(BETA_COOKIE_NAME)).toBeUndefined();
   });
 
   it("does not stamp when beta value is truthy-ish but not exactly '1'", () => {
     const res = middleware(
-      request("https://aipulse-pi.vercel.app/?beta=true"),
+      request("https://gawk.dev/?beta=true"),
     );
     expect(res.cookies.get(BETA_COOKIE_NAME)).toBeUndefined();
   });
@@ -61,14 +61,14 @@ describe("middleware (/admin basic-auth gate)", () => {
   });
 
   it("returns 401 with WWW-Authenticate when header is missing", () => {
-    const res = middleware(request("https://aipulse-pi.vercel.app/admin/digest/preview"));
+    const res = middleware(request("https://gawk.dev/admin/digest/preview"));
     expect(res.status).toBe(401);
     expect(res.headers.get("www-authenticate")).toContain("Basic realm=");
   });
 
   it("returns 401 when credentials don't match", () => {
     const res = middleware(
-      request("https://aipulse-pi.vercel.app/admin/digest/preview", {
+      request("https://gawk.dev/admin/digest/preview", {
         headers: { authorization: basicHeader("ops", "wrong") },
       }),
     );
@@ -77,7 +77,7 @@ describe("middleware (/admin basic-auth gate)", () => {
 
   it("passes through when credentials match", () => {
     const res = middleware(
-      request("https://aipulse-pi.vercel.app/admin/digest/preview", {
+      request("https://gawk.dev/admin/digest/preview", {
         headers: { authorization: basicHeader("ops", "s3cret") },
       }),
     );
@@ -90,7 +90,7 @@ describe("middleware (/admin basic-auth gate)", () => {
     delete process.env.ADMIN_PREVIEW_USER;
     delete process.env.ADMIN_PREVIEW_PASS;
     const res = middleware(
-      request("https://aipulse-pi.vercel.app/admin/digest/preview", {
+      request("https://gawk.dev/admin/digest/preview", {
         headers: { authorization: basicHeader("anyone", "anything") },
       }),
     );
@@ -100,7 +100,7 @@ describe("middleware (/admin basic-auth gate)", () => {
 
   it("does not gate non-/admin paths", () => {
     const res = middleware(
-      request("https://aipulse-pi.vercel.app/digest/2026-04-22"),
+      request("https://gawk.dev/digest/2026-04-22"),
     );
     expect(res.status).not.toBe(401);
   });

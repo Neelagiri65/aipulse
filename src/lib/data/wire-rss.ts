@@ -492,7 +492,7 @@ export async function defaultRssFetch(url: string): Promise<string> {
   const res = await fetch(url, {
     headers: {
       accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*;q=0.1",
-      "user-agent": "aipulse-wire-rss/1.0 (+https://aipulse-pi.vercel.app)",
+      "user-agent": "aipulse-wire-rss/1.0 (+https://gawk.dev)",
     },
     cache: "no-store",
   });

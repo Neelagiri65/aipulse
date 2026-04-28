@@ -62,7 +62,7 @@ export type PyPiIngestOptions = {
 };
 
 const PYPISTATS_BASE = "https://pypistats.org/api/packages";
-const USER_AGENT = "aipulse/1.0 (+https://aipulse-pi.vercel.app)";
+const USER_AGENT = "aipulse/1.0 (+https://gawk.dev)";
 
 /**
  * Fetch every tracked package's recent counters, persist the latest blob

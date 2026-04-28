@@ -134,7 +134,7 @@ export default async function CardOgImage({
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <div style={{ color: "#2dd4bf" }}>
-              {card ? `Source: ${card.sourceName}` : "Source: aipulse-pi.vercel.app"}
+              {card ? `Source: ${card.sourceName}` : "Source: gawk.dev"}
             </div>
             {card?.detail ? (
               <div style={{ fontSize: "18px", color: "#cbd5e1" }}>
@@ -142,7 +142,7 @@ export default async function CardOgImage({
               </div>
             ) : null}
           </div>
-          <div>aipulse-pi.vercel.app</div>
+          <div>gawk.dev</div>
         </div>
       </div>
     ),

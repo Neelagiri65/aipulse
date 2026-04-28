@@ -68,6 +68,6 @@ describe("composeLabsSection", () => {
 
   it("cites the /labs hash URL in sourceUrls", () => {
     const sec = composeLabsSection({ today: [lab({ total: 1 })], yesterday: null });
-    expect(sec.sourceUrls).toContain("https://aipulse-pi.vercel.app/#labs");
+    expect(sec.sourceUrls).toContain("https://gawk.dev/#labs");
   });
 });

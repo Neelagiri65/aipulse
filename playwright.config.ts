@@ -16,7 +16,7 @@ import { defineConfig, devices } from "@playwright/test";
  * `page.screenshot({ path: ... })` calls; the `screenshot: "only-on-failure"`
  * setting below is Playwright's trace screenshot (separate artefact).
  */
-const BASE_URL = process.env.LOCAL_URL ?? "https://aipulse-pi.vercel.app";
+const BASE_URL = process.env.LOCAL_URL ?? "https://gawk.dev";
 
 export default defineConfig({
   testDir: "tests/visual",

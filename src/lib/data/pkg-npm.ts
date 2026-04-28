@@ -57,7 +57,7 @@ export type NpmIngestOptions = {
 };
 
 const NPM_BASE = "https://api.npmjs.org/downloads/point";
-const USER_AGENT = "aipulse/1.0 (+https://aipulse-pi.vercel.app)";
+const USER_AGENT = "aipulse/1.0 (+https://gawk.dev)";
 
 export async function runNpmIngest(
   opts: NpmIngestOptions = {},

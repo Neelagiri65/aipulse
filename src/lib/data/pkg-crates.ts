@@ -52,7 +52,7 @@ export type CratesIngestOptions = {
 };
 
 const CRATES_BASE = "https://crates.io/api/v1/crates";
-const USER_AGENT = "aipulse/1.0 (+https://aipulse-pi.vercel.app)";
+const USER_AGENT = "aipulse/1.0 (+https://gawk.dev)";
 
 export async function runCratesIngest(
   opts: CratesIngestOptions = {},

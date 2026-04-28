@@ -323,7 +323,7 @@ async function fetchDependents(
     const res = await fetch(url, {
       headers: {
         Accept: "application/json",
-        "User-Agent": "aipulse-registry-discovery (+https://aipulse-pi.vercel.app)",
+        "User-Agent": "aipulse-registry-discovery (+https://gawk.dev)",
       },
       cache: "no-store",
     });
