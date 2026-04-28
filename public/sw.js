@@ -9,7 +9,10 @@
  * cache that doesn't match the current version.
  */
 
-const CACHE_VERSION = "v1";
+// Bumped to v2 in the gawk rebrand window so any stale "v1" shell entries
+// (cache-first HTML pointing at deployed-then-evicted hashed chunks) get
+// purged on activation. After v2, HTML is network-first — see fetch handler.
+const CACHE_VERSION = "v2";
 const SHELL_CACHE = `aipulse-shell-${CACHE_VERSION}`;
 const API_CACHE = `aipulse-api-${CACHE_VERSION}`;
 
@@ -64,11 +67,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static shell + icons: cache-first; the cache is bumped on
-  // CACHE_VERSION change so a deploy will invalidate stale entries
-  // once the new SW activates.
+  // HTML root: network-first with cache fallback. The HTML references
+  // hashed JS/CSS chunks under /_next/static; serving cached HTML after
+  // a deploy would point at chunk hashes the new deploy no longer hosts,
+  // breaking client-side hydration (the visible symptom: a working-looking
+  // page where forms / interactive components silently fail). Network-first
+  // keeps freshness; the cache is the offline-graceful fallback only.
+  if (url.pathname === "/") {
+    event.respondWith(networkFirst(req, SHELL_CACHE));
+    return;
+  }
+
+  // Immutable static assets (icons, manifest): cache-first — these don't
+  // version with deploys and never reference hashed chunks. The cache is
+  // versioned via CACHE_VERSION so a bump evicts on activation.
   if (
-    url.pathname === "/" ||
     url.pathname.startsWith("/icon") ||
     url.pathname === "/manifest.json" ||
     url.pathname === "/apple-touch-icon.png"
@@ -91,8 +104,8 @@ async function cacheFirst(request, cacheName) {
   }
 }
 
-async function networkFirst(request) {
-  const cache = await caches.open(API_CACHE);
+async function networkFirst(request, cacheName = API_CACHE) {
+  const cache = await caches.open(cacheName);
   try {
     const fresh = await fetch(request);
     if (fresh.ok) cache.put(request, fresh.clone());
