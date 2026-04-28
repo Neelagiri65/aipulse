@@ -134,14 +134,9 @@ type CronHealthResult = {
   stale: number;
   crons: Array<{
     workflow: string;
-    lastSuccessAt: string | null;
-    lastFailureAt: string | null;
-    lastError: string | null;
-    itemsProcessed: number;
-    errorCount: number;
-    expectedIntervalMinutes: number;
-    updatedAt: string;
     stale: boolean;
+    lastSuccessAt: string | null;
+    itemsProcessed: number;
   }>;
   generatedAt: string;
 };
