@@ -256,11 +256,14 @@ export function SubscribeForm({
 
       {siteKey ? (
         <div ref={widgetRef} data-testid="turnstile-mount" />
-      ) : (
-        <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+      ) : process.env.NODE_ENV !== "production" ? (
+        <p
+          data-testid="turnstile-disabled-notice"
+          className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+        >
           Captcha disabled in this environment.
         </p>
-      )}
+      ) : null}
 
       <div className={compact ? "flex items-center justify-between gap-2" : "space-y-2"}>
         <p className="text-[11px] text-muted-foreground">
