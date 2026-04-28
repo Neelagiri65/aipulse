@@ -251,16 +251,42 @@ function deliveryError(
   sent: { ok: false; queued?: true; fatal?: true; error: string },
   traceId: string,
 ): NextResponse {
-  if ("fatal" in sent && sent.fatal) {
-    return jsonError(
-      { status: 502, code: "DELIVERY_FATAL", message: sent.error },
+  // The subscriber record + token indexes are already written to Redis
+  // before sendConfirm runs (see writeSubscriber/indexConfirmToken above).
+  // A delivery failure here means the visitor IS captured but the confirm
+  // email didn't go out — Resend domain not verified, Resend outage, or
+  // an unexpected fatal. Returning 5xx surfaces as "Something went wrong"
+  // in the form, which is misleading: the visitor's address is recorded,
+  // they just haven't received the confirm link.
+  //
+  // Trade: respond 202 with delivery:"deferred" so the form succeeds; log
+  // loudly server-side so an operator sees the actionable signal in
+  // Vercel function logs and re-fires confirm-email batches once the
+  // upstream is healthy.
+  console.error(
+    JSON.stringify({
+      level: "error",
       traceId,
-    );
-  }
-  return jsonError(
-    { status: 503, code: "DELIVERY_QUEUED", message: sent.error },
-    traceId,
+      message:
+        "subscribe: confirm email delivery failed; subscriber recorded as pending",
+      delivery: {
+        fatal: "fatal" in sent && sent.fatal === true,
+        queued: "queued" in sent && sent.queued === true,
+        error: sent.error,
+      },
+    }),
   );
+  const resp = NextResponse.json(
+    {
+      ok: true,
+      status: "pending",
+      delivery: "deferred",
+      traceId,
+    },
+    { status: 202 },
+  );
+  resp.headers.set("x-aip-trace", traceId);
+  return resp;
 }
 
 type SubscribeBody = {

@@ -391,7 +391,7 @@ describe("handleSubscribe — delivery failures", () => {
     subscriberClient = redis as unknown as SubscriberClient;
   });
 
-  it("returns 503 DELIVERY_QUEUED on Resend 5xx so caller retries", async () => {
+  it("returns 202 pending+deferred on Resend 5xx — record IS written, send is queued for retry", async () => {
     const { sender } = makeSender({ ok: false, queued: true, error: "upstream 503" });
     const resp = await handleSubscribe(
       makeCtx({ email: "a@b.com", turnstileToken: "tkn" }),
@@ -403,12 +403,14 @@ describe("handleSubscribe — delivery failures", () => {
         turnstileSecret: "s",
       },
     );
-    expect(resp.status).toBe(503);
+    expect(resp.status).toBe(202);
     const body = await resp.json();
-    expect(body.code).toBe("DELIVERY_QUEUED");
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe("pending");
+    expect(body.delivery).toBe("deferred");
   });
 
-  it("returns 502 DELIVERY_FATAL on Resend 4xx so caller surfaces to ops", async () => {
+  it("returns 202 pending+deferred on Resend 4xx (e.g. domain unverified) — record IS written, operator sees the loud server log", async () => {
     const { sender } = makeSender({ ok: false, fatal: true, error: "bad from" });
     const resp = await handleSubscribe(
       makeCtx({ email: "a@b.com", turnstileToken: "tkn" }),
@@ -420,8 +422,10 @@ describe("handleSubscribe — delivery failures", () => {
         turnstileSecret: "s",
       },
     );
-    expect(resp.status).toBe(502);
+    expect(resp.status).toBe(202);
     const body = await resp.json();
-    expect(body.code).toBe("DELIVERY_FATAL");
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe("pending");
+    expect(body.delivery).toBe("deferred");
   });
 });
