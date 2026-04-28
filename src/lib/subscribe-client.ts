@@ -84,9 +84,26 @@ export type SubscribeFormState =
  * Map a POST /api/subscribe response body into a form state. Single
  * place the UI looks up copy from, so the modal and /subscribe page
  * show the exact same messaging for the same server outcome.
+ *
+ * Wire format mirrors what `jsonError` (in `app/api/_lib/userRoute.ts`)
+ * actually emits — flat envelope: ok responses carry `{ ok: true, status }`,
+ * errors carry `{ error: <message>, code, traceId }`. Earlier versions
+ * of this mapper assumed a nested `{ error: { code, message } }` shape
+ * and silently fell through to the generic "Something went wrong" copy
+ * for every error code, because `response.error` (a string) doesn't have
+ * a `.code` property. Fixed S44.
  */
+export type SubscribeApiResponse = {
+  ok?: boolean;
+  status?: string;
+  delivery?: string;
+  code?: string;
+  error?: string;
+  traceId?: string;
+};
+
 export function responseToFormState(
-  response: { ok: boolean; status?: string; error?: { code?: string; message?: string } } | null,
+  response: SubscribeApiResponse | null,
   submittedEmail: string,
 ): SubscribeFormState {
   if (!response) {
@@ -99,7 +116,7 @@ export function responseToFormState(
     if (response.status === "already_confirmed") return { kind: "already" };
     return { kind: "sent", email: submittedEmail };
   }
-  const code = response.error?.code;
+  const code = response.code;
   if (code === "INVALID_EMAIL") {
     return { kind: "error", message: "That address doesn't look right." };
   }
@@ -124,7 +141,7 @@ export function responseToFormState(
   }
   return {
     kind: "error",
-    message: response.error?.message ?? "Something went wrong. Try again.",
+    message: response.error ?? "Something went wrong. Try again.",
   };
 }
 

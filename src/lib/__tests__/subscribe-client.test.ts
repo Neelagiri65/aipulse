@@ -102,9 +102,9 @@ describe("responseToFormState", () => {
     ).toEqual({ kind: "already" });
   });
 
-  it("maps INVALID_EMAIL to a human-readable error", () => {
+  it("maps INVALID_EMAIL to a human-readable error (flat wire format: error string + code at top level)", () => {
     const state = responseToFormState(
-      { ok: false, error: { code: "INVALID_EMAIL", message: "email shape" } },
+      { error: "email shape", code: "INVALID_EMAIL" },
       "x",
     );
     expect(state.kind).toBe("error");
@@ -115,21 +115,56 @@ describe("responseToFormState", () => {
 
   it("maps RATE_LIMITED to a throttle-specific message", () => {
     const state = responseToFormState(
-      { ok: false, error: { code: "RATE_LIMITED" } },
+      { error: "too many requests", code: "RATE_LIMITED" },
       "x@y.com",
     );
     expect(state.kind).toBe("error");
     if (state.kind === "error") expect(state.message).toMatch(/too many/i);
   });
 
-  it("maps DELIVERY_QUEUED to an email-trouble message", () => {
+  it("maps TURNSTILE_FAILED to a captcha message", () => {
     const state = responseToFormState(
-      { ok: false, error: { code: "DELIVERY_QUEUED" } },
+      { error: "captcha no-token", code: "TURNSTILE_FAILED" },
+      "x@y.com",
+    );
+    expect(state.kind).toBe("error");
+    if (state.kind === "error") expect(state.message).toMatch(/captcha/i);
+  });
+
+  it("maps DELIVERY_QUEUED / DELIVERY_FATAL to an email-trouble message (legacy paths; soft-fail now returns ok=true)", () => {
+    const queued = responseToFormState(
+      { error: "upstream 503", code: "DELIVERY_QUEUED" },
+      "x@y.com",
+    );
+    expect(queued.kind).toBe("error");
+    if (queued.kind === "error")
+      expect(queued.message).toMatch(/confirmation email/i);
+
+    const fatal = responseToFormState(
+      { error: "bad from", code: "DELIVERY_FATAL" },
+      "x@y.com",
+    );
+    expect(fatal.kind).toBe("error");
+    if (fatal.kind === "error")
+      expect(fatal.message).toMatch(/confirmation email/i);
+  });
+
+  it("maps the soft-fail 202 ok=true delivery=deferred response to sent (current Resend-unverified path)", () => {
+    const state = responseToFormState(
+      { ok: true, status: "pending", delivery: "deferred" },
+      "x@y.com",
+    );
+    expect(state).toEqual({ kind: "sent", email: "x@y.com" });
+  });
+
+  it("falls back to the unknown-code error message when an error code is unrecognised — uses response.error as the human message", () => {
+    const state = responseToFormState(
+      { error: "something exotic broke", code: "EXOTIC_ERROR" },
       "x@y.com",
     );
     expect(state.kind).toBe("error");
     if (state.kind === "error")
-      expect(state.message).toMatch(/confirmation email/i);
+      expect(state.message).toBe("something exotic broke");
   });
 
   it("falls back to a generic error when the network dropped", () => {
