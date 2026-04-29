@@ -55,6 +55,10 @@ export const CRON_WORKFLOWS = {
   "pkg-brew": { expectedIntervalMinutes: 360 },
   "pkg-vscode": { expectedIntervalMinutes: 360 },
   "openrouter-rankings": { expectedIntervalMinutes: 360 },
+  // Discord webhook for TOOL_ALERT transitions. GitHub Actions tight cadences
+  // drift to 30-60 min in practice (see globe-ingest 5→30 in S35) so the
+  // declared interval matches observed reality.
+  "notify-tool-alerts": { expectedIntervalMinutes: 30 },
 } as const;
 
 export type CronWorkflowName = keyof typeof CRON_WORKFLOWS;

@@ -25,7 +25,8 @@ export type EnvVarName =
   | "NEXT_PUBLIC_SITE_ORIGIN"
   | "INGEST_SECRET"
   | "UPSTASH_REDIS_REST_URL"
-  | "UPSTASH_REDIS_REST_TOKEN";
+  | "UPSTASH_REDIS_REST_TOKEN"
+  | "DISCORD_TOOL_ALERTS_WEBHOOK_URL";
 
 export function requireEnv(name: EnvVarName): string {
   const v = process.env[name];

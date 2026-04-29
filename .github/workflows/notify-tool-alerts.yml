@@ -1,0 +1,48 @@
+name: notify-tool-alerts
+
+# Detect tool-status transitions and post one Discord embed per change.
+# Yellow for degraded, red for partial/major outage, green for recovery.
+# Dedup state lives in Upstash so two consecutive runs of the same status
+# emit only one embed.
+#
+# Cadence: every 5 minutes. GitHub Actions short schedules drift to 5-15 min
+# in practice but Discord can take it. cron-health declares 30-min interval
+# to match observed reality.
+#
+# Required repo secrets:
+#   INGEST_URL    — base; we strip /api/ingest and append /api/notify/tool-alerts
+#   INGEST_SECRET — shared secret matching the Vercel env var.
+# Optional repo secret (no-op when absent):
+#   DISCORD_TOOL_ALERTS_WEBHOOK_URL — set on Vercel, not here.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: notify-tool-alerts
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Trigger tool-alert notify on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/notify/tool-alerts"
+          echo "POST $URL"
+          RESPONSE=$(curl -sS -f --max-time 60 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"

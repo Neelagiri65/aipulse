@@ -114,6 +114,7 @@ describe("CRON_WORKFLOWS registry", () => {
       "daily-snapshot",
       "globe-ingest",
       "labs-cron",
+      "notify-tool-alerts",
       "openrouter-rankings",
       "pkg-brew",
       "pkg-crates",

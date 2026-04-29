@@ -68,10 +68,17 @@ No public status endpoint and no public issue tracker at the time of checking. T
 - **Graceful degradation.** When a source is unavailable the card stays on the dashboard in a "last known value" state with a timestamp, not blanked.
 - **Never retroactively edited.** Sources are added or removed in commit history; sanity ranges are widened in commit history. The audit trail is the history.
 
+## Outbound channels
+
+Gawk re-broadcasts a subset of its public, source-cited cards into operator-facing channels. Every embed quotes the upstream status page verbatim — no editorial layer, no inferred severity.
+
+- **Email digest** — daily summary, opt-in. Sent from `noreply@gawk.dev` (Resend, eu-west-1).
+- **Discord webhook for tool-status transitions** — fires once when a tracked tool flips to a non-operational status on its upstream status page, and once again when it recovers. Yellow embed for `degraded`, red for `partial_outage` / `major_outage`, green on recovery. Dedup state is persisted so two consecutive ticks of the same status emit one embed.
+
 ## Full registry detail
 
 The complete source registry — endpoint URLs, polling cadences, rate-limit budgets, sanity-range bounds, caveats, and per-source curation criteria — is editorial intelligence rather than shipped code. Available on request.
 
 ---
 
-_Last updated: 2026-04-21._
+_Last updated: 2026-04-29._
