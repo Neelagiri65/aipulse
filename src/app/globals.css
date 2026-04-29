@@ -905,7 +905,7 @@
    ============================================================================ */
 .ap-icon-nav {
   position: fixed;
-  top: 76px;
+  top: calc(76px + var(--ap-strip-h, 0px));
   bottom: 64px;
   left: 0;
   display: flex;
@@ -2175,4 +2175,117 @@
 @keyframes ap-ticker-scroll {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
+}
+
+/* ============================================================================
+   HIGHLIGHTS STRIP — "something changed, pay attention" surface.
+   Desktop: fixed below the StatusBar (top 76 = 48 TopBar + 28 StatusBar).
+   Mobile: inline horizontal scroller above the active body content.
+   ============================================================================ */
+.ap-highlights-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* When the highlights strip is rendered, host pages set
+   `data-highlights="1"` on the document body so the left rail, the
+   right filter panel, and any other top:76 chrome shift down by the
+   strip's height. Default is 0 so legacy pages stay put. */
+:root { --ap-strip-h: 0px; }
+body[data-highlights="1"] { --ap-strip-h: 36px; }
+
+.ap-highlights-strip--desktop {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 76px;
+  z-index: 38;
+  height: 36px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--ap-border-strong, rgba(120, 145, 165, 0.2));
+  background: rgba(8, 11, 14, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+.ap-highlights-strip--desktop::-webkit-scrollbar { display: none; }
+
+.ap-highlights-strip--mobile {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--ap-border, rgba(80, 100, 120, 0.18));
+  background: rgba(8, 11, 14, 0.66);
+}
+.ap-highlights-strip--mobile::-webkit-scrollbar { display: none; }
+
+.ap-highlights-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--chip-ring, rgba(120, 145, 165, 0.25));
+  background: rgba(13, 17, 21, 0.85);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--ap-fg, #d8e2e6);
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease, background 120ms ease;
+  flex-shrink: 0;
+  max-width: 360px;
+}
+.ap-highlights-chip:hover {
+  border-color: var(--chip-dot, currentColor);
+  background: rgba(20, 26, 32, 0.95);
+}
+.ap-highlights-chip:focus-visible {
+  outline: 2px solid var(--chip-dot, currentColor);
+  outline-offset: 2px;
+}
+.ap-highlights-chip:active {
+  transform: translateY(1px);
+}
+
+.ap-highlights-chip__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px var(--chip-dot, currentColor);
+}
+
+.ap-highlights-chip__headline {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 240px;
+}
+
+.ap-highlights-chip__detail {
+  color: var(--ap-fg-muted, #7a8a90);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+@media (max-width: 767px) {
+  .ap-highlights-chip { font-size: 10.5px; max-width: 280px; }
+  .ap-highlights-chip__headline { max-width: 200px; }
 }

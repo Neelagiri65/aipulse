@@ -76,6 +76,11 @@ import type { FeedResponse } from "@/lib/feed/types";
 import { track } from "@/lib/analytics";
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import { MobileDashboard } from "@/components/dashboard/MobileDashboard";
+import { HighlightsStrip } from "@/components/dashboard/HighlightsStrip";
+import {
+  pickTopHighlights,
+  type HighlightPanelId,
+} from "@/lib/feed/highlights";
 
 const STATUS_POLL_MS = 5 * 60 * 1000;
 const EVENTS_POLL_MS = 30 * 1000;
@@ -121,6 +126,11 @@ const SDK_ADOPTION_POLL_MS = 5 * 60 * 1000;
 // Model Usage: cron writes every 6h. Match the 5-min CDN cache TTL —
 // upstream rankings barely move minute-to-minute.
 const MODEL_USAGE_POLL_MS = 5 * 60 * 1000;
+// Feed: composer is invoked per request and downstream caches sit at
+// 60s (matches the mobile FeedView cadence). The desktop poll is here
+// only to keep the highlights strip moving with the same heartbeat as
+// the underlying snapshots — picking 60s avoids fighting the route TTL.
+const FEED_POLL_MS = 60 * 1000;
 
 type RegistryResult = {
   ok: boolean;
@@ -208,6 +218,9 @@ export function Dashboard({
     "/api/cron-health",
     CRON_HEALTH_POLL_MS,
   );
+  const feed = usePolledEndpoint<FeedResponse>("/api/feed", FEED_POLL_MS, {
+    initialData: initialFeedResponse,
+  });
 
   const rawPoints: GlobePoint[] = events.data?.points ?? [];
   const lastUpdatedAt = events.data?.polledAt;
@@ -425,24 +438,33 @@ export function Dashboard({
     const filterReserve = W >= 1440 ? 240 : 64;
     const rightAnchor = (panelW: number, floor: number) =>
       Math.max(floor, W - panelW - filterReserve);
+    // Push initial panel y down by the highlights-strip height when
+    // the strip is visible at mount, so the panel header doesn't
+    // tuck behind the strip's z-38 layer.
+    const stripOffset =
+      typeof document !== "undefined" &&
+      document.body.dataset.highlights === "1"
+        ? 36
+        : 0;
+    const dy = (y: number) => y + stripOffset;
     setInitialPos({
-      wire: { x: 64, y: 100, w: 380, h: 540 },
-      tools: { x: rightAnchor(376, 460), y: 100, w: 376, h: 540 },
+      wire: { x: 64, y: dy(100), w: 380, h: 540 },
+      tools: { x: rightAnchor(376, 460), y: dy(100), w: 376, h: 540 },
       // Models floats slightly down-left of Tools so opening it doesn't
       // stack directly on top of the default layout. Still anchored to
       // the right half; Wire owns the left.
-      models: { x: rightAnchor(376, 440), y: 160, w: 376, h: 520 },
+      models: { x: rightAnchor(376, 440), y: dy(160), w: 376, h: 520 },
       // Research opens beside Wire on the left half so paper rows (long
       // titles) get comfortable width without clashing with Models on
       // the right. Staggered so a two-panel open doesn't stack.
-      research: { x: 92, y: 188, w: 420, h: 540 },
+      research: { x: 92, y: dy(188), w: 420, h: 540 },
       // Benchmarks is a 7-column table — needs a wider default than
       // Models. Centres on the viewport so it reads as the "rank table"
       // view; staggered so opening alongside Wire/Tools doesn't stack
       // on top of either.
       benchmarks: {
         x: Math.max(120, Math.floor((W - 540) / 2)),
-        y: 228,
+        y: dy(228),
         w: 540,
         h: 560,
       },
@@ -450,18 +472,18 @@ export function Dashboard({
       // ~60px/row = ~1920px scroll height, so the panel is scrollable,
       // not full-height; 420 wide keeps long lab names + city on one
       // line at typical viewports.
-      labs: { x: 108, y: 248, w: 420, h: 560 },
+      labs: { x: 108, y: dy(248), w: 420, h: 560 },
       // Regional Wire sits slightly down-right of Labs so opening both
       // doesn't stack. 420 wide matches the Labs sibling; 5 rows are
       // short, so the panel is compact at 420h.
-      "regional-wire": { x: 136, y: 288, w: 420, h: 420 },
+      "regional-wire": { x: 136, y: dy(288), w: 420, h: 420 },
       // SDK Adoption is a wide table (matrix + sticky row labels);
       // 720 wide gives the 30-day grid breathing room above 1280px and
       // crops gracefully via the responsive helper below 1280. Centred
       // horizontally so it doesn't stack on Labs/Wire on first open.
       "sdk-adoption": {
         x: Math.max(120, Math.floor((W - 720) / 2)),
-        y: 168,
+        y: dy(168),
         w: 720,
         h: 540,
       },
@@ -471,7 +493,7 @@ export function Dashboard({
       // default Tools panel doesn't fully overlap.
       "model-usage": {
         x: rightAnchor(460, 420),
-        y: 220,
+        y: dy(220),
         w: 460,
         h: 600,
       },
@@ -747,6 +769,46 @@ export function Dashboard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topmostOpenId]);
 
+  // Top-3 highlights derived from the SSR'd / polled FeedResponse. Empty
+  // on a quiet day so the strip disappears rather than promote low-
+  // severity cards into a "pay attention" position.
+  const highlights = pickTopHighlights(feed.data, 3);
+  const hasHighlights = highlights.length > 0;
+  const stagePaddingTop = hasHighlights ? 112 : 76;
+
+  // Shift LeftNav + FilterPanel + initial panel positions down by the
+  // strip's height when it's visible. CSS variable approach so the
+  // affected components don't need to know about highlights state.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const prev = document.body.dataset.highlights;
+    if (hasHighlights) {
+      document.body.dataset.highlights = "1";
+    } else {
+      delete document.body.dataset.highlights;
+    }
+    return () => {
+      if (prev !== undefined) document.body.dataset.highlights = prev;
+      else delete document.body.dataset.highlights;
+    };
+  }, [hasHighlights]);
+
+  /**
+   * Toggle the panel that surfaces the deeper data for the clicked
+   * highlight. We delegate to the existing `toggle()` helper so the
+   * z-order, viewport-cap, and analytics tracking all stay in sync
+   * with the LeftNav handler — chip clicks behave like a nav click.
+   */
+  const openHighlightPanel = (panel: HighlightPanelId) => {
+    const isOpen = panels[panel]?.open === true && panels[panel]?.min === false;
+    if (isOpen) {
+      // Already open: bring to front instead of toggling closed.
+      focus(panel);
+      return;
+    }
+    toggle(panel);
+  };
+
   const isMobile = useIsMobile();
 
   if (isMobile) {
@@ -837,6 +899,11 @@ export function Dashboard({
         }
       />
 
+      <HighlightsStrip
+        highlights={highlights}
+        onSelect={(panel) => openHighlightPanel(panel)}
+      />
+
       {/* Grid lattice overlay — decorative, above globe but below chrome. */}
       <div className="ap-stage-grid" aria-hidden />
 
@@ -847,7 +914,7 @@ export function Dashboard({
           paddingTop = TopBar (48px) + StatusBar (28px). */}
       <div
         className="fixed inset-0"
-        style={{ paddingTop: 76, paddingBottom: 168, zIndex: 3 }}
+        style={{ paddingTop: stagePaddingTop, paddingBottom: 168, zIndex: 3 }}
       >
         {activeTab === "map" && (
           <div className="relative h-full w-full flex flex-col">

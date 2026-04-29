@@ -35,6 +35,11 @@ import type { CronHealthSnapshot } from "@/components/dashboard/MetricTicker";
 import type { FreshnessState } from "@/components/chrome/TopBar";
 import type { FeedResponse } from "@/lib/feed/types";
 import { track } from "@/lib/analytics";
+import { HighlightsStrip } from "@/components/dashboard/HighlightsStrip";
+import {
+  pickTopHighlights,
+  type HighlightPanelId,
+} from "@/lib/feed/highlights";
 
 const FlatMap = dynamic(
   () => import("@/components/map/FlatMap").then((m) => m.FlatMap),
@@ -188,6 +193,56 @@ export function MobileDashboard(props: MobileDashboardProps) {
     track("panel_open", { panel: `more:${id}`, surface: "mobile" });
   };
 
+  const highlights = pickTopHighlights(props.initialFeedResponse, 3);
+
+  /**
+   * Route a highlights chip click to the right mobile destination.
+   *
+   * The mobile shell has three top-level tabs (feed / map / panels)
+   * and the panels tab contains four sub-tabs plus an accordion. We
+   * map each chip's panel id to the (top-tab, sub-tab, more-section)
+   * triple and switch state accordingly. Tracked as a "highlight_*"
+   * panel-open so analytics can tell chip clicks from native nav.
+   */
+  const onHighlightSelect = (panel: HighlightPanelId) => {
+    track("panel_open", { panel: `highlight:${panel}`, surface: "mobile" });
+    switch (panel) {
+      case "tools":
+        setTopTab("panels");
+        setActive("health");
+        return;
+      case "wire":
+        setTopTab("panels");
+        setActive("wire");
+        return;
+      case "model-usage":
+        setTopTab("panels");
+        setActive("models");
+        setModelsSub("usage");
+        return;
+      case "benchmarks":
+        setTopTab("panels");
+        setActive("models");
+        setModelsSub("benchmarks");
+        return;
+      case "research":
+        setTopTab("panels");
+        setActive("more");
+        setMoreOpen((prev) => new Set(prev).add("research"));
+        return;
+      case "labs":
+        setTopTab("panels");
+        setActive("more");
+        setMoreOpen((prev) => new Set(prev).add("labs"));
+        return;
+      case "sdk-adoption":
+        setTopTab("panels");
+        setActive("more");
+        setMoreOpen((prev) => new Set(prev).add("sdk-adoption"));
+        return;
+    }
+  };
+
   return (
     <div
       className="ap-mobile-shell"
@@ -206,6 +261,13 @@ export function MobileDashboard(props: MobileDashboardProps) {
       </header>
 
       <main className="ap-mobile-body" role="tabpanel">
+        {topTab !== "feed" && (
+          <HighlightsStrip
+            highlights={highlights}
+            onSelect={onHighlightSelect}
+            variant="mobile"
+          />
+        )}
         {topTab === "feed" && (
           <div className="ap-mobile-feed">
             <FeedView initialResponse={props.initialFeedResponse} />
