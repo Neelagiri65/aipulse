@@ -93,11 +93,10 @@ export function StatusBar({
         )}
         <Divider />
         <a
-          href="/data-sources.md"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="/sources"
           className="text-muted-foreground hover:text-foreground"
-          title="Source registry"
+          title="Source list — what feeds the dashboard"
+          data-testid="status-bar-sources-link"
         >
           <span className="text-foreground tabular-nums">
             {verifiedSourceCount}

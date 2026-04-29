@@ -26,15 +26,13 @@ export function PrivacyFooter() {
         >
           Privacy
         </Link>
-        <a
-          href="/data-sources.md"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href="/sources"
           className="hover:text-foreground"
           data-testid="footer-sources"
         >
           Sources
-        </a>
+        </Link>
         <CommunityLink variant="footer" />
       </nav>
     </footer>
