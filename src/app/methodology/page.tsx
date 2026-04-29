@@ -22,11 +22,13 @@ export const metadata = {
 
 const CARD_TYPE_DESCRIPTION: Record<CardType, string> = {
   TOOL_ALERT:
-    "Any tracked tool (Claude Code, Claude API, OpenAI API, Codex, Copilot, Windsurf) reporting a status that is not 'operational' on its public status page.",
+    "Any tracked tool (Claude Code, Claude API, OpenAI API, Codex, Copilot, Windsurf) reporting a status that is not 'operational' on its public status page, OR an active incident on a status page that still reads green overall.",
   MODEL_MOVER:
     "An OpenRouter top-30 model whose week-over-week rank delta exceeds the threshold (strictly greater than).",
+  NEW_RELEASE:
+    "A HuggingFace text-generation model published in the last 48h by an org in the major-lab allowlist (Anthropic, OpenAI, Google, DeepSeek, Moonshot AI, Meta-Llama, Mistral AI, Qwen, xAI, Cohere, Alibaba, Microsoft, NVIDIA, Perplexity, Amazon) with at least 5 likes — likes are first-paint social proof; the rolling 30d download counter starts at 0 for brand-new repos.",
   SDK_TREND:
-    "A tracked package (PyPI / npm / crates / Docker / Brew) whose week-over-week download delta absolute value exceeds the threshold.",
+    "A tracked package (PyPI / npm / crates / Docker / Brew / VS Code Marketplace) whose week-over-week download delta absolute value exceeds the threshold.",
   NEWS:
     "A Hacker News AI-filtered story whose points exceed the threshold within the configured time window.",
   RESEARCH:
@@ -38,6 +40,7 @@ const CARD_TYPE_DESCRIPTION: Record<CardType, string> = {
 const ORDERED: CardType[] = [
   "TOOL_ALERT",
   "MODEL_MOVER",
+  "NEW_RELEASE",
   "SDK_TREND",
   "NEWS",
   "RESEARCH",
@@ -102,6 +105,14 @@ export default function MethodologyPage() {
             NEWS fires when HN points {">"}{" "}
             <strong>{FEED_TRIGGERS.NEWS_HN_POINTS}</strong> AND age ≤{" "}
             <strong>{FEED_TRIGGERS.NEWS_HN_WINDOW_HOURS}h</strong>.
+          </li>
+          <li>
+            NEW_RELEASE fires when a HuggingFace model&rsquo;s
+            <code className="font-mono"> createdAt</code> age ≤{" "}
+            <strong>{FEED_TRIGGERS.NEW_RELEASE_AGE_HOURS}h</strong> AND
+            likes ≥{" "}
+            <strong>{FEED_TRIGGERS.NEW_RELEASE_MIN_LIKES}</strong> AND
+            the publishing org is in the major-lab allowlist.
           </li>
         </ul>
       </section>

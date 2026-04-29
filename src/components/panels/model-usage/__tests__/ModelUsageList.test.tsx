@@ -361,3 +361,56 @@ describe("computeRankBarFraction", () => {
     expect(computeRankBarFraction(99, 30)).toBeCloseTo(1 / 30, 5);
   });
 });
+
+describe("ModelUsageList — OPEN badge", () => {
+  it("renders an OPEN badge next to open-weight slugs (Sabari's Kimi #1 example)", () => {
+    const html = renderToStaticMarkup(
+      <ModelUsageList
+        data={mkDto([
+          mkRow(1, "moonshotai/kimi-k2.6", { shortName: "Kimi K2.6" }),
+          mkRow(2, "anthropic/claude-sonnet-4.6", {
+            shortName: "Sonnet 4.6",
+          }),
+        ])}
+      />,
+    );
+    // Exactly one OPEN badge — only the open-weight row should carry it.
+    const matches = html.match(/data-testid="model-usage-open-badge"/g) ?? [];
+    expect(matches.length).toBe(1);
+    expect(html).toContain("Kimi K2.6");
+    // Sanity: the badge sits inside the same row as Kimi, not Sonnet.
+    const kimiIdx = html.indexOf("Kimi K2.6");
+    const badgeIdx = html.indexOf("model-usage-open-badge");
+    expect(badgeIdx).toBeGreaterThan(0);
+    expect(Math.abs(badgeIdx - kimiIdx)).toBeLessThan(400);
+  });
+
+  it("does not badge proprietary frontier models (Anthropic / OpenAI / Google Gemini)", () => {
+    const html = renderToStaticMarkup(
+      <ModelUsageList
+        data={mkDto([
+          mkRow(1, "anthropic/claude-opus-4.7"),
+          mkRow(2, "openai/gpt-5"),
+          mkRow(3, "google/gemini-2.5-pro"),
+        ])}
+      />,
+    );
+    expect(html).not.toContain("model-usage-open-badge");
+  });
+
+  it("badges the major open-weight families (Qwen / DeepSeek / Llama / Gemma / Mistral)", () => {
+    const html = renderToStaticMarkup(
+      <ModelUsageList
+        data={mkDto([
+          mkRow(1, "qwen/qwen-3-72b"),
+          mkRow(2, "deepseek/deepseek-v4"),
+          mkRow(3, "meta-llama/llama-4-maverick"),
+          mkRow(4, "google/gemma-3-27b"),
+          mkRow(5, "mistralai/mistral-large-3"),
+        ])}
+      />,
+    );
+    const matches = html.match(/data-testid="model-usage-open-badge"/g) ?? [];
+    expect(matches.length).toBe(5);
+  });
+});

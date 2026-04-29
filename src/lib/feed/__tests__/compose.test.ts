@@ -54,6 +54,7 @@ describe("composeFeed", () => {
         hn: emptyHn(),
         research: emptyResearch(),
         labs: emptyLabs(),
+        hfRecent: [],
       },
       NOW,
     );
@@ -81,6 +82,7 @@ describe("composeFeed", () => {
         hn: emptyHn(),
         research: emptyResearch(),
         labs: emptyLabs(),
+        hfRecent: [],
       },
       NOW,
     );
@@ -123,6 +125,7 @@ describe("composeFeed", () => {
           generatedAt: "2026-04-27T12:00:00.000Z",
         },
         labs: emptyLabs(),
+        hfRecent: [],
       },
       NOW,
     );
@@ -138,6 +141,7 @@ describe("composeFeed", () => {
         hn: emptyHn(),
         research: emptyResearch(),
         labs: emptyLabs(),
+        hfRecent: [],
       },
       NOW,
     );
@@ -159,6 +163,7 @@ describe("composeFeed", () => {
         hn: emptyHn(),
         research: emptyResearch(),
         labs: emptyLabs(),
+        hfRecent: [],
       },
       NOW,
     );

@@ -26,6 +26,7 @@ import {
 import { readWire } from "@/lib/data/hn-store";
 import { fetchRecentPapers } from "@/lib/data/fetch-research";
 import { fetchLabActivity } from "@/lib/data/fetch-labs";
+import { fetchRecentModels } from "@/lib/data/fetch-models";
 import { OPENROUTER_SOURCE_CAVEAT } from "@/lib/data/openrouter-types";
 
 import { composeFeed, type FeedSnapshots } from "@/lib/feed/compose";
@@ -159,7 +160,7 @@ async function findCardById(cardId: string): Promise<Card | null> {
 
 async function loadSnapshots(): Promise<FeedSnapshots> {
   const nowIso = new Date().toISOString();
-  const [status, models, sdk, hn, research, labs] = await Promise.all([
+  const [status, models, sdk, hn, research, labs, hfRecent] = await Promise.all([
     fetchAllStatus().catch(() => ({
       data: {},
       polledAt: nowIso,
@@ -210,8 +211,11 @@ async function loadSnapshots(): Promise<FeedSnapshots> {
       generatedAt: nowIso,
       failures: [],
     })),
+    fetchRecentModels()
+      .then((r) => (r.ok ? r.models : []))
+      .catch(() => []),
   ]);
-  return { status, models, sdk, hn, research, labs };
+  return { status, models, sdk, hn, research, labs, hfRecent };
 }
 
 async function loadSdk(nowIso: string) {

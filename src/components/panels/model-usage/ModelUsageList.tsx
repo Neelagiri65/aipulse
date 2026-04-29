@@ -30,6 +30,7 @@
 import * as React from "react";
 
 import type { ModelUsageDto, ModelUsageRow } from "@/lib/data/openrouter-types";
+import { isOpenWeight } from "@/lib/data/open-weight";
 
 export type ModelUsageSortOption =
   | "rank"
@@ -175,6 +176,16 @@ export function ModelUsageList({
                 <span className="model-usage-name" title={row.slug}>
                   {row.shortName}
                 </span>
+                {isOpenWeight(row.slug) && (
+                  <span
+                    className="model-usage-open-badge"
+                    aria-label="Open-weight model"
+                    title="Open-weight model — weights are publicly downloadable. Classification by slug-pattern (auditable in src/lib/data/open-weight.ts)."
+                    data-testid="model-usage-open-badge"
+                  >
+                    OPEN
+                  </span>
+                )}
               </span>
               <span className="model-usage-author" aria-label={`Author ${row.authorDisplay}`}>
                 {row.authorDisplay}

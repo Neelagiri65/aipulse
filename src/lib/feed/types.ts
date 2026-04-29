@@ -14,12 +14,13 @@
 export type CardType =
   | "TOOL_ALERT"
   | "MODEL_MOVER"
+  | "NEW_RELEASE"
   | "SDK_TREND"
   | "NEWS"
   | "RESEARCH"
   | "LAB_HIGHLIGHT";
 
-export type Severity = 100 | 80 | 60 | 40 | 20 | 10;
+export type Severity = 100 | 80 | 70 | 60 | 40 | 20 | 10;
 
 export type Card = {
   /** Stable hash of (type, primaryKey, hour-bucket). Used as the share-URL slug. */

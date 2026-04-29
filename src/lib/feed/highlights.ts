@@ -24,6 +24,7 @@ import type { Card, CardType, FeedResponse } from "@/lib/feed/types";
 export type HighlightPanelId =
   | "tools"
   | "model-usage"
+  | "models"
   | "sdk-adoption"
   | "wire"
   | "research"
@@ -41,6 +42,12 @@ export function panelForCardType(type: CardType): HighlightPanelId | null {
       return "tools";
     case "MODEL_MOVER":
       return "model-usage";
+    case "NEW_RELEASE":
+      // HF top-by-downloads listing lives in the Models panel; that's
+      // the closest panel to "what just shipped". The release won't be
+      // in the top-by-downloads list yet (brand-new repos take time to
+      // accumulate) but the panel is the discoverability surface.
+      return "models";
     case "SDK_TREND":
       return "sdk-adoption";
     case "NEWS":
@@ -61,7 +68,7 @@ export type HighlightTone = "outage" | "degrade" | "info" | "neutral";
 
 export function toneForSeverity(severity: Card["severity"]): HighlightTone {
   if (severity >= 100) return "outage"; // TOOL_ALERT — red dot
-  if (severity >= 60) return "degrade"; // MODEL_MOVER, SDK_TREND — amber
+  if (severity >= 60) return "degrade"; // MODEL_MOVER, NEW_RELEASE, SDK_TREND — amber
   if (severity >= 40) return "info"; // NEWS — sky
   return "neutral"; // RESEARCH, LAB_HIGHLIGHT — muted
 }

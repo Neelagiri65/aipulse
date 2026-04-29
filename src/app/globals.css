@@ -1759,6 +1759,28 @@
   font-weight: 500;
 }
 
+/* OPEN badge — slug-pattern allowlist hit (see src/lib/data/open-weight.ts).
+ * Subtle emerald pill; doesn't compete with the rank colour but signals at
+ * a glance that the row is an open-weight model. Same colour family as the
+ * StatusBar "operational" tone for visual consistency. */
+.model-usage-open-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.12);
+  color: rgb(110, 231, 183);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 .model-usage-author {
   font-size: 10px;
   text-transform: uppercase;

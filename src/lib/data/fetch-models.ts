@@ -34,6 +34,14 @@ export type HuggingFaceModel = {
   likes: number;
   /** ISO string of the latest commit on the model repo. */
   lastModified: string;
+  /** ISO string of when the repo was first created. Optional — not all
+   *  endpoints return it (the bare listing omits it; `?full=true` includes it). */
+  createdAt?: string;
+  /** SPDX-ish license string from `cardData.license`. Optional — older
+   *  models often have no card. We do not normalise; the UI shows what
+   *  the upstream returned, with isOpenWeight() applied as a separate
+   *  derived signal so the raw license text remains auditable. */
+  license?: string;
   /** HuggingFace `pipeline_tag` — "text-generation" for this pull. */
   pipelineTag: string | null;
   /** Derived hub URL so the UI can link out without string-building. */
@@ -52,13 +60,27 @@ export type ModelsResult = {
 const HF_MODELS_URL =
   "https://huggingface.co/api/models?sort=downloads&direction=-1&filter=text-generation&limit=20";
 
+/**
+ * Recent-by-createdAt query. `full=true` makes HF return cardData
+ * (license string lives there) — the bare listing omits it. We sort by
+ * createdAt desc and pull a wider slate (50) because most rows are
+ * fine-tunes from no-name authors; the NEW_RELEASE deriver filters
+ * down to known-lab releases inside the trigger window.
+ */
+const HF_RECENT_URL =
+  "https://huggingface.co/api/models?sort=createdAt&direction=-1&filter=text-generation&limit=50&full=true";
+
 type RawHfModel = {
   id?: string;
   author?: string;
   downloads?: number;
   likes?: number;
   lastModified?: string;
+  createdAt?: string;
   pipeline_tag?: string | null;
+  cardData?: {
+    license?: unknown;
+  } | null;
 };
 
 export async function fetchTopModels(): Promise<ModelsResult> {
@@ -109,6 +131,10 @@ function normalise(raw: RawHfModel): HuggingFaceModel {
         ? id.slice(0, slash)
         : id;
   const name = slash > 0 ? id.slice(slash + 1) : id;
+  const license =
+    raw.cardData && typeof raw.cardData.license === "string"
+      ? raw.cardData.license
+      : undefined;
   return {
     id,
     author,
@@ -116,7 +142,59 @@ function normalise(raw: RawHfModel): HuggingFaceModel {
     downloads: typeof raw.downloads === "number" ? raw.downloads : 0,
     likes: typeof raw.likes === "number" ? raw.likes : 0,
     lastModified: typeof raw.lastModified === "string" ? raw.lastModified : "",
+    createdAt:
+      typeof raw.createdAt === "string" ? raw.createdAt : undefined,
+    license,
     pipelineTag: raw.pipeline_tag ?? null,
     hubUrl: `https://huggingface.co/${id}`,
   };
+}
+
+export type RecentModelsResult = {
+  ok: boolean;
+  models: HuggingFaceModel[];
+  generatedAt: string;
+  stale?: boolean;
+  error?: string;
+};
+
+/**
+ * Recent-by-createdAt fetch. Drives the NEW_RELEASE deriver — pulls 50
+ * newest text-generation models with cardData (license) inflated.
+ * Independent of the top-by-downloads listing; both can be polled in
+ * parallel from the feed loader without blocking on each other.
+ */
+export async function fetchRecentModels(): Promise<RecentModelsResult> {
+  const generatedAt = new Date().toISOString();
+  try {
+    const res = await fetch(HF_RECENT_URL, {
+      headers: { Accept: "application/json" },
+      next: { revalidate: 60 * 15, tags: ["hf-models-recent"] },
+    });
+    if (!res.ok) {
+      return {
+        ok: false,
+        models: [],
+        generatedAt,
+        stale: true,
+        error: `hf /api/models?sort=createdAt returned ${res.status}`,
+      };
+    }
+    const body = (await res.json()) as RawHfModel[];
+    const models = body
+      .filter((m): m is Required<Pick<RawHfModel, "id">> & RawHfModel =>
+        typeof m.id === "string" && m.id.length > 0,
+      )
+      .slice(0, 50)
+      .map(normalise);
+    return { ok: true, models, generatedAt };
+  } catch (err) {
+    return {
+      ok: false,
+      models: [],
+      generatedAt,
+      stale: true,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
 }

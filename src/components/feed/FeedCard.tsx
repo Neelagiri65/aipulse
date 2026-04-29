@@ -68,6 +68,7 @@ function SeverityBadge({
 const LABEL: Record<Card["type"], string> = {
   TOOL_ALERT: "TOOL ALERT",
   MODEL_MOVER: "MODEL MOVER",
+  NEW_RELEASE: "NEW RELEASE",
   SDK_TREND: "SDK TREND",
   NEWS: "NEWS",
   RESEARCH: "RESEARCH",

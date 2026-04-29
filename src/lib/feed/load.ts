@@ -25,6 +25,10 @@ import {
 } from "@/lib/data/sdk-adoption";
 import { readWire } from "@/lib/data/hn-store";
 import { fetchRecentPapers } from "@/lib/data/fetch-research";
+import {
+  fetchRecentModels,
+  type HuggingFaceModel,
+} from "@/lib/data/fetch-models";
 import { fetchLabActivity } from "@/lib/data/fetch-labs";
 import { OPENROUTER_SOURCE_CAVEAT } from "@/lib/data/openrouter-types";
 import type { ResearchResult } from "@/lib/data/fetch-research";
@@ -57,7 +61,7 @@ export async function loadSnapshots(
 ): Promise<LoadedSnapshots> {
   const nowIso = new Date(nowMs).toISOString();
 
-  const [status, models, sdk, hn, research, labs] = await Promise.all([
+  const [status, models, sdk, hn, research, labs, hfRecent] = await Promise.all([
     withLastKnown<StatusResult>(
       "status",
       () => fetchAllStatus(),
@@ -120,6 +124,15 @@ export async function loadSnapshots(
       async () => fetchLabActivity(),
       { labs: [], generatedAt: nowIso, failures: [] },
     ),
+    withLastKnown<HuggingFaceModel[]>(
+      "hf-recent",
+      async () => {
+        const r = await fetchRecentModels();
+        if (!r.ok) throw new Error(r.error ?? "hf-recent soft-fail");
+        return r.models;
+      },
+      [] as HuggingFaceModel[],
+    ),
   ]);
 
   const snapshots: FeedSnapshots = {
@@ -129,12 +142,14 @@ export async function loadSnapshots(
     hn,
     research: research.data,
     labs: labs.data,
+    hfRecent: hfRecent.data,
   };
 
   const staleSources = collectStale(
     { source: "status", result: status },
     { source: "research", result: research },
     { source: "labs", result: labs },
+    { source: "hf-recent", result: hfRecent },
   );
 
   return { snapshots, staleSources };

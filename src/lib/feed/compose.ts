@@ -15,6 +15,7 @@
  */
 
 import type { StatusResult } from "@/lib/data/fetch-status";
+import type { HuggingFaceModel } from "@/lib/data/fetch-models";
 import type { ModelUsageDto } from "@/lib/data/openrouter-types";
 import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
 import type { HnWireResult } from "@/lib/data/wire-hn";
@@ -23,6 +24,7 @@ import type { LabsPayload } from "@/lib/data/fetch-labs";
 
 import { deriveToolAlertCards } from "@/lib/feed/derivers/tool-alert";
 import { deriveModelMoverCards } from "@/lib/feed/derivers/model-mover";
+import { deriveNewReleaseCards } from "@/lib/feed/derivers/new-release";
 import { deriveSdkTrendCards } from "@/lib/feed/derivers/sdk-trend";
 import { deriveNewsCards } from "@/lib/feed/derivers/news";
 import { deriveResearchCards } from "@/lib/feed/derivers/research";
@@ -38,6 +40,10 @@ export type FeedSnapshots = {
   hn: HnWireResult;
   research: ResearchResult;
   labs: LabsPayload;
+  /** HuggingFace `?sort=createdAt&direction=-1&full=true` listing — feeds
+   *  the NEW_RELEASE deriver. Empty array when the upstream call failed
+   *  (graceful degradation, no fabricated cards). */
+  hfRecent: HuggingFaceModel[];
 };
 
 export function composeFeed(
@@ -47,6 +53,7 @@ export function composeFeed(
   const cards = [
     ...deriveToolAlertCards(snapshots.status),
     ...deriveModelMoverCards(snapshots.models),
+    ...deriveNewReleaseCards(snapshots.hfRecent, nowMs),
     ...deriveSdkTrendCards(snapshots.sdk),
     ...deriveNewsCards(snapshots.hn, nowMs),
     ...deriveResearchCards(snapshots.research),
