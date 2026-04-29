@@ -151,6 +151,45 @@ const CARD_WIDTH = 360;
 // Offset the card clear of a cluster badge (up to ~30px wide at high zoom).
 const CARD_MARGIN = 48;
 const MAX_VISIBLE_EVENTS = 10;
+// Floor + ceiling for the card's vertical footprint. The actual height
+// is computed from the available space below the chosen `top` so a
+// card anchored near the bottom of a short viewport never extends off
+// screen — that was the "99+ clusters overflow" symptom on mobile.
+const CARD_MIN_HEIGHT = 280;
+const CARD_MAX_HEIGHT = 560;
+
+/**
+ * Pure layout helper — computes the card's `top` and `maxHeight` so it
+ * never extends off the viewport regardless of where the user clicks.
+ *
+ * Constraints:
+ *  - `top` is at least CARD_MARGIN (clears the top chrome).
+ *  - `top` is at most `containerSize.h - CARD_MIN_HEIGHT - CARD_MARGIN`
+ *    so a minimum-height card still fits with a bottom margin.
+ *  - `maxHeight` is the available vertical space below `top`, capped at
+ *    CARD_MAX_HEIGHT and floored at CARD_MIN_HEIGHT.
+ *  - When the container is shorter than CARD_MIN_HEIGHT + 2*margin, the
+ *    card pins to top=CARD_MARGIN and accepts the floor — better than
+ *    a negative-height card or a margin violation.
+ *
+ * Exported for tests.
+ */
+export function computeEventCardLayout(
+  anchorY: number,
+  containerH: number,
+): { top: number; maxHeight: number } {
+  const topCeiling = Math.max(
+    CARD_MARGIN,
+    containerH - CARD_MIN_HEIGHT - CARD_MARGIN,
+  );
+  const top = Math.min(Math.max(CARD_MARGIN, anchorY - 40), topCeiling);
+  const availableH = Math.max(
+    CARD_MIN_HEIGHT,
+    containerH - top - CARD_MARGIN,
+  );
+  const maxHeight = Math.min(CARD_MAX_HEIGHT, availableH);
+  return { top, maxHeight };
+}
 
 type EventCardProps = {
   cluster: Cluster;
@@ -221,9 +260,9 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
   const left = placeRight
     ? anchor.x + CARD_MARGIN
     : Math.max(CARD_MARGIN, anchor.x - CARD_WIDTH - CARD_MARGIN);
-  const top = Math.min(
-    Math.max(CARD_MARGIN, anchor.y - 40),
-    Math.max(CARD_MARGIN, containerSize.h - 260),
+  const { top, maxHeight: cardMaxHeight } = computeEventCardLayout(
+    anchor.y,
+    containerSize.h,
   );
 
   const visible = cluster.events.slice(0, MAX_VISIBLE_EVENTS);
@@ -243,7 +282,7 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
         top,
         width: CARD_WIDTH,
         zIndex: 1200,
-        maxHeight: "min(70vh, 560px)",
+        maxHeight: cardMaxHeight,
         display: "flex",
         flexDirection: "column",
       }}

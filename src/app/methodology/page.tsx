@@ -131,15 +131,35 @@ export default function MethodologyPage() {
           Every card cites the public source the underlying number was read
           from. The full source registry — names, governance, transparency
           notes — is published at{" "}
-          <a
-            href="/data-sources.md"
-            className="underline"
-            target="_blank"
-            rel="noreferrer"
-          >
-            /data-sources.md
-          </a>
+          <Link href="/sources" className="underline">
+            /sources
+          </Link>
           .
+        </p>
+      </section>
+
+      <section className="space-y-3" id="regional-bias">
+        <h2 className="text-lg font-semibold">Regional bias on the map</h2>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Geographic placement on the live globe and flat map relies on a
+          deterministic geocoder that resolves location strings from public
+          GitHub and Hacker News profile fields. Coverage currently sits at
+          around <strong>21%</strong> of raw events and is biased toward
+          English-speaking developer profiles. Chinese, Indian, and other
+          non-English developer activity is{" "}
+          <strong>systematically underrepresented</strong> in the geographic
+          view — the events still land in the Wire feed and panel
+          aggregates, but they don&rsquo;t become dots until the geocoder
+          can resolve their author&rsquo;s self-declared location.
+        </p>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Regional Wire publishers (MarkTechPost IN, Heise DE, Synced Review
+          CN, The Register UK, MIT Technology Review US) and the curated AI
+          Labs registry partially address this — both layers carry verifiable
+          HQ coordinates and surface non-SF activity directly without depending
+          on the geocoder. They are a counterweight, not a fix. Additional
+          non-English sources are on the roadmap; suggestions are welcome via
+          the Discord linked from the header.
         </p>
       </section>
 
