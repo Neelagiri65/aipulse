@@ -62,13 +62,18 @@ const HF_MODELS_URL =
 
 /**
  * Recent-by-createdAt query. `full=true` makes HF return cardData
- * (license string lives there) — the bare listing omits it. We sort by
- * createdAt desc and pull a wider slate (50) because most rows are
- * fine-tunes from no-name authors; the NEW_RELEASE deriver filters
- * down to known-lab releases inside the trigger window.
+ * (license string lives there) — the bare listing omits it.
+ *
+ * limit=200 because the createdAt-sorted listing is dominated by
+ * fine-tunes from no-name authors (~50 new fine-tunes per 30min on a
+ * normal day). A major-lab release still appears at its createdAt
+ * timestamp, but newer fine-tunes push it down the list quickly. 200
+ * gives ~2-3h of catch window before the deriver's allowlist gate
+ * stops finding it. AUDITOR-PENDING: a v2 should query per-org with
+ * `?author={major-lab}` for guaranteed catch across the 48h window.
  */
 const HF_RECENT_URL =
-  "https://huggingface.co/api/models?sort=createdAt&direction=-1&filter=text-generation&limit=50&full=true";
+  "https://huggingface.co/api/models?sort=createdAt&direction=-1&filter=text-generation&limit=200&full=true";
 
 type RawHfModel = {
   id?: string;
@@ -185,7 +190,7 @@ export async function fetchRecentModels(): Promise<RecentModelsResult> {
       .filter((m): m is Required<Pick<RawHfModel, "id">> & RawHfModel =>
         typeof m.id === "string" && m.id.length > 0,
       )
-      .slice(0, 50)
+      .slice(0, 200)
       .map(normalise);
     return { ok: true, models, generatedAt };
   } catch (err) {
