@@ -27,7 +27,7 @@ import { deriveSdkTrendCards } from "@/lib/feed/derivers/sdk-trend";
 import { deriveNewsCards } from "@/lib/feed/derivers/news";
 import { deriveResearchCards } from "@/lib/feed/derivers/research";
 import { deriveLabHighlightCards } from "@/lib/feed/derivers/lab-highlight";
-import { rankCards } from "@/lib/feed/rank";
+import { diversifyCards, rankCards } from "@/lib/feed/rank";
 import { isQuietDay } from "@/lib/feed/quiet-day";
 import type { CurrentState, FeedResponse } from "@/lib/feed/types";
 
@@ -53,8 +53,15 @@ export function composeFeed(
     ...deriveLabHighlightCards(snapshots.labs),
   ];
 
+  // Rank by severity, then apply a diversity pass so a long run of the
+  // same card type (e.g. 10 MODEL_MOVERs) doesn't read as "this product
+  // does one thing". `diversifyCards` is loss-free and respects severity
+  // order — see rank.ts for the rule.
+  const ranked = rankCards(cards);
+  const composed = diversifyCards(ranked, 2);
+
   return {
-    cards: rankCards(cards),
+    cards: composed,
     quietDay: isQuietDay(cards, nowMs),
     currentState: buildCurrentState(snapshots),
     lastComputed: new Date(nowMs).toISOString(),

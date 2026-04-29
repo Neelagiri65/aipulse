@@ -83,6 +83,14 @@ export type Highlight = {
  *   contract) but defensively sort again so a stray ordering bug
  *   upstream doesn't surface a low-severity card at the front.
  * - Cards whose type maps to no panel are skipped — silently for now.
+ *
+ * Distinct-type rule: the strip is a "what's happening across the
+ * dashboard" snapshot, so we prefer breadth over depth. First pass
+ * picks the highest-severity card of each unique type, second pass
+ * fills any remaining slots from the severity-sorted leftovers. With
+ * limit=3 a degraded tool, a model mover, and an SDK trend will all
+ * beat three MODEL_MOVERs, even if the three movers are technically
+ * higher-severity within MODEL_MOVER's tier.
  */
 export function pickTopHighlights(
   response: FeedResponse | undefined,
@@ -97,11 +105,31 @@ export function pickTopHighlights(
   });
 
   const out: Highlight[] = [];
+  const usedCardIds = new Set<string>();
+  const usedTypes = new Set<Card["type"]>();
+
+  // Pass 1 — one per type, severity-desc.
   for (const card of sorted) {
     if (out.length >= limit) break;
+    if (usedTypes.has(card.type)) continue;
     const panel = panelForCardType(card.type);
     if (!panel) continue;
     out.push({ card, panel, tone: toneForSeverity(card.severity) });
+    usedTypes.add(card.type);
+    usedCardIds.add(card.id);
   }
+
+  // Pass 2 — fill remaining slots from severity-desc leftovers.
+  if (out.length < limit) {
+    for (const card of sorted) {
+      if (out.length >= limit) break;
+      if (usedCardIds.has(card.id)) continue;
+      const panel = panelForCardType(card.type);
+      if (!panel) continue;
+      out.push({ card, panel, tone: toneForSeverity(card.severity) });
+      usedCardIds.add(card.id);
+    }
+  }
+
   return out;
 }

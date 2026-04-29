@@ -53,7 +53,12 @@ describe("pickTopHighlights", () => {
     expect(pickTopHighlights(feed(cards, { quietDay: true }))).toEqual([]);
   });
 
-  it("picks top-N by severity descending, then by timestamp descending", () => {
+  it("prefers distinct types before falling back to severity within a type", () => {
+    // Pass 1 picks the top card of each type (severity-desc). With
+    // 3 types available (TOOL_ALERT / MODEL_MOVER / RESEARCH) the
+    // top-3 should be one of each rather than two MODEL_MOVERs and
+    // one TOOL_ALERT — even though the second MODEL_MOVER outranks
+    // the RESEARCH card on severity.
     const cards = [
       card({
         id: "low",
@@ -87,8 +92,42 @@ describe("pickTopHighlights", () => {
     const result = pickTopHighlights(feed(cards));
     expect(result.map((h) => h.card.id)).toEqual([
       "tool",
+      "model-new", // newest MODEL_MOVER beats older one in pass 1
+      "low", // distinct RESEARCH type chosen over second MODEL_MOVER
+    ]);
+  });
+
+  it("falls back to severity order when fewer distinct types than slots", () => {
+    // Only 2 types available — pass 1 picks one of each, pass 2 fills
+    // the third slot from severity-desc leftovers.
+    const cards = [
+      card({
+        id: "tool",
+        type: "TOOL_ALERT",
+        severity: 100,
+        headline: "Copilot degraded",
+        timestamp: "2026-04-29T11:00:00.000Z",
+      }),
+      card({
+        id: "model-old",
+        type: "MODEL_MOVER",
+        severity: 80,
+        headline: "old",
+        timestamp: "2026-04-29T09:00:00.000Z",
+      }),
+      card({
+        id: "model-new",
+        type: "MODEL_MOVER",
+        severity: 80,
+        headline: "new",
+        timestamp: "2026-04-29T10:30:00.000Z",
+      }),
+    ];
+    const result = pickTopHighlights(feed(cards));
+    expect(result.map((h) => h.card.id)).toEqual([
+      "tool",
       "model-new",
-      "model-old",
+      "model-old", // pass 2 leftover
     ]);
   });
 
