@@ -10,7 +10,7 @@ test.describe("chrome", () => {
   test("TopBar brand + tabs + freshness pill are visible", async ({ page }) => {
     await openDashboard(page);
 
-    await expect(page.getByText("AI PULSE").first()).toBeVisible();
+    await expect(page.getByText("GAWK").first()).toBeVisible();
     await expect(page.getByRole("tab", { name: "The Map" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "The Wire" })).toBeVisible();
     // Session 27 hid the Globe tab from the switcher. Assert absence so
