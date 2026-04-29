@@ -353,6 +353,106 @@ export const WINDSURF_STATUS: DataSource = {
   powersFeature: ["tool-health-windsurf"],
 };
 
+// ---------------------------------------------------------------------------
+// Platform-health status pages — gawk.dev's own infrastructure
+//
+// Distinct from the AI-tool status pages above: these track the four services
+// gawk.dev itself depends on (Vercel host, Supabase data, Cloudflare DNS/proxy,
+// Upstash cache). They surface on /admin only — keeping the public Tool Health
+// signal AI-focused. All four are Atlassian Statuspage v2 shape, so a single
+// fetcher consumes them.
+// ---------------------------------------------------------------------------
+
+export const VERCEL_STATUS: DataSource = {
+  id: "vercel-status",
+  name: "Vercel Status",
+  category: "status-page",
+  url: "https://www.vercel-status.com",
+  apiUrl: "https://www.vercel-status.com/api/v2/summary.json",
+  responseFormat: "json",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "No documented limit. Poll every 5 min via edge cache.",
+  },
+  auth: "none",
+  measures:
+    "Overall Vercel platform health (Dashboard, Builds, Deployments, Edge Network, Functions). Statuspage.io v2 schema; `status.indicator` and active incidents are the surfaced signals.",
+  sanityCheck: {
+    description:
+      "Response includes `status.indicator` ∈ {none, minor, major, critical} and a non-empty components array. Verified 2026-04-29.",
+  },
+  verifiedAt: "2026-04-29",
+  powersFeature: ["platform-health-vercel"],
+};
+
+export const SUPABASE_STATUS: DataSource = {
+  id: "supabase-status",
+  name: "Supabase Status",
+  category: "status-page",
+  url: "https://status.supabase.com",
+  apiUrl: "https://status.supabase.com/api/v2/summary.json",
+  responseFormat: "json",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "No documented limit. Poll every 5 min via edge cache.",
+  },
+  auth: "none",
+  measures:
+    "Overall Supabase platform health (Compute capacity, Database, Auth, Storage, Realtime, Edge Functions). Statuspage.io v2 schema.",
+  sanityCheck: {
+    description:
+      "Response includes `status.indicator` ∈ {none, minor, major, critical} and a non-empty components array. Verified 2026-04-29.",
+  },
+  verifiedAt: "2026-04-29",
+  powersFeature: ["platform-health-supabase"],
+};
+
+export const CLOUDFLARE_STATUS: DataSource = {
+  id: "cloudflare-status",
+  name: "Cloudflare Status",
+  category: "status-page",
+  url: "https://www.cloudflarestatus.com",
+  apiUrl: "https://www.cloudflarestatus.com/api/v2/summary.json",
+  responseFormat: "json",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "No documented limit. Poll every 5 min via edge cache.",
+  },
+  auth: "none",
+  measures:
+    "Overall Cloudflare platform indicator. summary.json carries one component per datacenter (300+ entries) so per-component worst-of is too noisy; we read `status.indicator` for the top-line signal and surface incidents from the same payload.",
+  sanityCheck: {
+    description:
+      "Response includes `status.indicator` ∈ {none, minor, major, critical}. Components array is large (300+ datacenters) and is intentionally NOT consumed component-by-component — top-line indicator is the signal we trust. Verified 2026-04-29.",
+  },
+  verifiedAt: "2026-04-29",
+  caveat:
+    "Cloudflare's summary.json is heavy (~150KB on a quiet day). Edge-cache it for 5 min via Next Data Cache; do not poll on every dashboard hit.",
+  powersFeature: ["platform-health-cloudflare"],
+};
+
+export const UPSTASH_STATUS: DataSource = {
+  id: "upstash-status",
+  name: "Upstash Status",
+  category: "status-page",
+  url: "https://status.upstash.com",
+  apiUrl: "https://status.upstash.com/api/v2/summary.json",
+  responseFormat: "json",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "No documented limit. Poll every 5 min via edge cache.",
+  },
+  auth: "none",
+  measures:
+    "Overall Upstash platform health by region (EU-CENTRAL-1, US-EAST-1, US-WEST-1, etc.) and product (Redis, QStash, Vector). Statuspage.io v2 schema.",
+  sanityCheck: {
+    description:
+      "Response includes `status.indicator` ∈ {none, minor, major, critical} and a components array containing region entries. Verified 2026-04-29.",
+  },
+  verifiedAt: "2026-04-29",
+  powersFeature: ["platform-health-upstash"],
+};
+
 export const ARXIV_PAPERS: DataSource = {
   id: "arxiv-papers",
   name: "arXiv API (cs.AI + cs.LG, recent)",
@@ -923,6 +1023,10 @@ export const ALL_SOURCES: readonly DataSource[] = [
   GITHUB_ISSUES_CLAUDE_CODE,
   GITHUB_STATUS,
   WINDSURF_STATUS,
+  VERCEL_STATUS,
+  SUPABASE_STATUS,
+  CLOUDFLARE_STATUS,
+  UPSTASH_STATUS,
   HUGGINGFACE_MODELS,
   ARXIV_PAPERS,
   HN_AI_STORIES,

@@ -26,6 +26,7 @@ import type { CronWorkflowName } from "@/lib/data/cron-health";
 
 export type CategoryId =
   | "tool-status"
+  | "platform-infrastructure"
   | "code-activity"
   | "discussion"
   | "models"
@@ -47,6 +48,12 @@ export const CATEGORIES: readonly CategoryDescriptor[] = [
     label: "Tool Status",
     blurb:
       "Public status pages for the AI coding tools tracked on the dashboard. Polled every 5 minutes through `/api/status` with a last-known cache fallback.",
+  },
+  {
+    id: "platform-infrastructure",
+    label: "Platform Infrastructure",
+    blurb:
+      "Public status pages for the four services Gawk itself runs on. Surfaced operator-side at /admin only — the public Tool Health card grid stays AI-focused.",
   },
   {
     id: "code-activity",
@@ -158,6 +165,14 @@ const TRACKS: Record<string, string> = {
   "github-status":
     "GitHub platform components, filtered for the `Copilot` component used by the Copilot health card.",
   "windsurf-status": "Overall page status + incidents for Windsurf (Cascade + Tab).",
+  "vercel-status":
+    "Vercel platform health (Dashboard, Builds, Edge Network, Functions). Surfaces on /admin only.",
+  "supabase-status":
+    "Supabase platform health (Database, Auth, Storage, Realtime, Edge Functions). Surfaces on /admin only.",
+  "cloudflare-status":
+    "Cloudflare top-line indicator. Per-datacenter components are intentionally not consumed component-by-component. Surfaces on /admin only.",
+  "upstash-status":
+    "Upstash platform health by region (EU-CENTRAL-1, US-EAST-1, etc.) + product (Redis, QStash, Vector). Surfaces on /admin only.",
   "hf-models":
     "Top text-generation models on HuggingFace ranked by 30-day downloads.",
   "arxiv-papers":
@@ -206,6 +221,10 @@ const POWERED_FEATURE: Record<string, string> = {
   "gh-issues-claude-code": "Tools panel · Claude Code card",
   "github-status": "Tools panel · Copilot card",
   "windsurf-status": "Tools panel · Windsurf card",
+  "vercel-status": "/admin · Platform health",
+  "supabase-status": "/admin · Platform health",
+  "cloudflare-status": "/admin · Platform health",
+  "upstash-status": "/admin · Platform health",
   "hf-models": "Models panel",
   "arxiv-papers": "Research panel · Feed",
   "hn-ai-stories": "Wire panel · Feed",
@@ -234,6 +253,11 @@ const CATEGORY_OF: Record<string, CategoryId> = {
   "github-status": "tool-status",
   "windsurf-status": "tool-status",
   "gh-issues-claude-code": "tool-status",
+  // Platform infrastructure
+  "vercel-status": "platform-infrastructure",
+  "supabase-status": "platform-infrastructure",
+  "cloudflare-status": "platform-infrastructure",
+  "upstash-status": "platform-infrastructure",
   // Code activity
   "gh-events": "code-activity",
   gharchive: "code-activity",
@@ -283,6 +307,10 @@ const FRESHNESS_OF: Record<string, FreshnessSource> = {
   "github-status": { kind: "last-known", key: "status" },
   "windsurf-status": { kind: "last-known", key: "status" },
   "gh-issues-claude-code": { kind: "last-known", key: "status" },
+  "vercel-status": { kind: "on-demand" },
+  "supabase-status": { kind: "on-demand" },
+  "cloudflare-status": { kind: "on-demand" },
+  "upstash-status": { kind: "on-demand" },
   "hf-models": { kind: "on-demand" },
   "arxiv-papers": { kind: "last-known", key: "research" },
   "hn-ai-stories": { kind: "cron", workflow: "wire-ingest-hn" },

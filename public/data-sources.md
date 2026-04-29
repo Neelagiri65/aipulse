@@ -2,7 +2,7 @@
 
 Every number on this dashboard traces back to a publicly verifiable source. Gawk aggregates — it does not invent metrics, re-score labs, or manufacture values. When a source is unavailable, the affected card falls to graceful degradation with a "last known value" and timestamp rather than blanking silently.
 
-As of 2026-04-29, Gawk tracks **29 verified sources** across GitHub activity, status pages, published research, model distribution, package adoption, community sentiment, regional press, and model benchmarks.
+As of 2026-04-29, Gawk tracks **33 verified sources** across GitHub activity, status pages, platform-infrastructure status pages, published research, model distribution, package adoption, community sentiment, regional press, and model benchmarks.
 
 ---
 
@@ -18,12 +18,19 @@ As of 2026-04-29, Gawk tracks **29 verified sources** across GitHub activity, st
 - GitHub Repository Events API — labs activity fetcher
 - AI Labs — curated HQ registry
 
-### Status pages (5)
+### Status pages — AI tools (5)
 - Anthropic Status — Claude Code + API
 - OpenAI Status — summary
 - OpenAI Status — incidents
 - GitHub Status — covers Copilot
 - Windsurf Status
+
+### Status pages — platform infrastructure (4)
+These four track the services Gawk itself runs on. Surfaced operator-side only (`/admin`); the public Tool Health card grid stays AI-focused.
+- Vercel Status — host
+- Supabase Status — data layer
+- Cloudflare Status — DNS + proxy
+- Upstash Status — Redis cache
 
 ### Model distribution + research (3)
 - GitHub Issues — anthropics/claude-code

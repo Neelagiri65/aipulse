@@ -30,10 +30,10 @@ describe("sources inventory", () => {
     }
   });
 
-  it("assigns every entry to one of the 8 user-facing categories", () => {
+  it("assigns every entry to one of the 9 user-facing categories", () => {
     const inventory = buildInventory();
     const ids = new Set(CATEGORIES.map((c) => c.id));
-    expect(ids.size).toBe(8);
+    expect(ids.size).toBe(9);
     for (const e of inventory) {
       expect(ids.has(e.category)).toBe(true);
     }
@@ -52,6 +52,7 @@ describe("sources inventory", () => {
     expect(grouped.get("discussion")?.length).toBe(1);
     expect(grouped.get("research")?.length).toBe(1);
     expect(grouped.get("models")?.length).toBe(3);
+    expect(grouped.get("platform-infrastructure")?.length).toBe(4);
   });
 
   it("formats every UpdateFrequency variant", () => {
