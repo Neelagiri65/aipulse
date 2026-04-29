@@ -39,6 +39,7 @@ const REGISTRIES: SdkAdoptionRegistry[] = [
   "crates",
   "docker",
   "brew",
+  "vscode",
 ];
 
 export async function generateMetadata({
@@ -208,6 +209,7 @@ async function loadSdk(nowIso: string) {
       crates: latests[2] ?? null,
       docker: latests[3] ?? null,
       brew: latests[4] ?? null,
+      vscode: latests[5] ?? null,
     };
     return assembleSdkAdoption({
       pkgLatest,

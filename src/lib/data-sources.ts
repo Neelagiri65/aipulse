@@ -851,6 +851,34 @@ export const DOCKER_HUB_PULLS: DataSource = {
   powersFeature: ["sdk-adoption-panel"],
 };
 
+export const VSCODE_MARKETPLACE: DataSource = {
+  id: "vscode-marketplace",
+  name: "Visual Studio Marketplace — extension catalogue",
+  category: "package-adoption",
+  url: "https://marketplace.visualstudio.com",
+  apiUrl:
+    "https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery",
+  responseFormat: "json",
+  updateFrequency: "six-hourly",
+  rateLimit: {
+    note: "Microsoft's catalogue API. No documented per-IP limit (header inspection 2026-04-26 returned no rate-limit-* surface). Cron runs fetch the full 6-extension slate in a single POST every 6h → 4 calls/day. Trivial under any plausible budget.",
+  },
+  auth: "none",
+  measures:
+    "Cumulative `install` count for six AI coding-assistant extensions on the Microsoft Visual Studio Marketplace: GitHub.copilot, Continue.continue, sourcegraph.cody-ai, Codeium.codeium, saoudrizwan.claude-dev (Cline), TabNine.tabnine-vscode. The marketplace exposes `install`, `updateCount`, `averagerating`, `ratingcount`, and `trendingdaily/weekly/monthly` per extension; we ingest `install` only as the SDK-adoption signal. Day-over-day deltas are derived from our own daily snapshot diffs (same pattern as crates / docker / brew); the API itself does not expose rolling-window counters.",
+  sanityCheck: {
+    description:
+      "Cumulative install count is monotonically non-decreasing day-over-day. A drop without a Marketplace removal event is a data-integrity flag. Top-of-list extension (GitHub.copilot) was 73,134,892 installs on 2026-04-26 verification probe; smallest tracked (saoudrizwan.claude-dev / Cline) starts in the low millions. Slate-wide allTime sums sit in the 80M–250M range as Copilot dominates.",
+    expectedMin: 100_000,
+    expectedMax: 250_000_000,
+    unit: "cumulative installs per extension",
+  },
+  verifiedAt: "2026-04-26",
+  caveat:
+    "First-party provenance — Microsoft's own marketplace catalogue API. install ≠ active use: auto-installed bundle extensions, CI runners, and codespace pre-warms inflate the absolute number vs 'real human users'. updateCount is the closer active-use proxy but is not yet ingested (deferred follow-up). The `_apis/public/gallery/extensionquery` endpoint is empirically reachable and stable across the verification probe + S37 follow-up but is not formally documented as a public-API contract — the catalogue page itself uses the same path. AUDITOR-PENDING on whether to split installs vs updateCount into two SDK_TREND signals.",
+  powersFeature: ["sdk-adoption-panel"],
+};
+
 export const HOMEBREW_INSTALLS: DataSource = {
   id: "homebrew-installs",
   name: "Homebrew — formula install counters",
@@ -911,6 +939,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   CRATES_DOWNLOADS,
   DOCKER_HUB_PULLS,
   HOMEBREW_INSTALLS,
+  VSCODE_MARKETPLACE,
 ] as const;
 
 export const VERIFIED_SOURCES: readonly DataSource[] = ALL_SOURCES.filter(

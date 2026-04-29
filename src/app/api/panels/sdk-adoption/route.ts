@@ -38,6 +38,7 @@ const REGISTRIES: SdkAdoptionRegistry[] = [
   "crates",
   "docker",
   "brew",
+  "vscode",
 ];
 
 export type SdkAdoptionDeps = {
@@ -81,6 +82,7 @@ export async function handleGetSdkAdoption(
     crates: latests[2] ?? null,
     docker: latests[3] ?? null,
     brew: latests[4] ?? null,
+    vscode: latests[5] ?? null,
   };
   const dto = assembleSdkAdoption({
     pkgLatest,

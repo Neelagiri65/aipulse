@@ -1,7 +1,7 @@
 /**
  * SDK adoption digest section composer.
  *
- * Diffs `snapshot.packages` across days for each of the five registries
+ * Diffs `snapshot.packages` across days for each of the six registries
  * tracked in Track A (pypi, npm, crates, docker, brew). The metric is
  * registry-reported counters (downloads, pulls, installs) — we never
  * invent a unit, never divide windows, never rank across registries.
@@ -25,6 +25,7 @@ const REGISTRY_LABEL: Record<string, string> = {
   crates: "crates.io",
   docker: "Docker Hub",
   brew: "Homebrew",
+  vscode: "VS Code Marketplace",
 };
 
 const REGISTRY_SOURCE: Record<string, string> = {
@@ -33,6 +34,7 @@ const REGISTRY_SOURCE: Record<string, string> = {
   crates: "https://crates.io/",
   docker: "https://hub.docker.com/",
   brew: "https://formulae.brew.sh/",
+  vscode: "https://marketplace.visualstudio.com/",
 };
 
 const PYPI_CAVEAT =
@@ -50,6 +52,7 @@ const PREFERRED_WINDOW: Record<
   crates: ["last90d", "allTime"],
   docker: ["allTime", "stars"],
   brew: ["lastMonth", "last90d", "lastYear"],
+  vscode: ["allTime"],
 };
 
 const WINDOW_LABEL: Record<string, string> = {
@@ -62,6 +65,17 @@ const WINDOW_LABEL: Record<string, string> = {
   stars: "stars",
 };
 
+// Per-registry overrides for windows whose generic noun ("pulls") is
+// wrong in context. VS Code's allTime isn't a pull count; it's the
+// cumulative install counter the marketplace catalogue exposes.
+const WINDOW_LABEL_BY_REGISTRY: Record<string, Record<string, string>> = {
+  vscode: { allTime: "cumulative installs" },
+};
+
+function windowLabel(registry: string, window: string): string {
+  return WINDOW_LABEL_BY_REGISTRY[registry]?.[window] ?? WINDOW_LABEL[window];
+}
+
 /** Minimum absolute delta to consider "movement". Numbers are in absolute
  *  count units (downloads/pulls/installs/stars). Different magnitudes per
  *  registry so we don't drown in micro-noise from crates or Docker's big
@@ -72,6 +86,10 @@ const MOVEMENT_THRESHOLD: Record<string, number> = {
   crates: 100,
   docker: 10_000,
   brew: 50,
+  // VS Code allTime sits in the millions for the smallest tracked
+  // extension; daily install delta of >= 1000 is meaningful movement
+  // (Cline's 4-week growth rate fits this comfortably).
+  vscode: 1000,
 };
 
 export type ComposeSdkAdoptionInput = {
@@ -79,7 +97,14 @@ export type ComposeSdkAdoptionInput = {
   yesterday: SnapshotPackages | null;
 };
 
-const ALL_REGISTRIES = ["pypi", "npm", "crates", "docker", "brew"] as const;
+const ALL_REGISTRIES = [
+  "pypi",
+  "npm",
+  "crates",
+  "docker",
+  "brew",
+  "vscode",
+] as const;
 
 export function composeSdkAdoptionSection(
   input: ComposeSdkAdoptionInput,
@@ -117,7 +142,7 @@ export function composeSdkAdoptionSection(
       if (!top) continue;
       items.push({
         headline: `${REGISTRY_LABEL[reg]}: ${top.name}`,
-        detail: `${formatCount(top[window] as number)} ${WINDOW_LABEL[window]}`,
+        detail: `${formatCount(top[window] as number)} ${windowLabel(reg, window)}`,
         sourceLabel: REGISTRY_LABEL[reg],
         sourceUrl: REGISTRY_SOURCE[reg],
         panelHref: `/panels/sdk-adoption?focus=${encodeURIComponent(`${reg}:${top.name}`)}`,
@@ -129,7 +154,7 @@ export function composeSdkAdoptionSection(
       title: "SDK adoption",
       anchorSlug: "sdk-adoption",
       mode: "bootstrap",
-      headline: "Current adoption leaders across five registries",
+      headline: "Current adoption leaders across six registries",
       items,
       sourceUrls: items.length > 0 ? dedup(items.map((i) => i.sourceUrl!)) : [],
     };
@@ -165,7 +190,7 @@ export function composeSdkAdoptionSection(
       const sign = best.delta > 0 ? "+" : "−";
       movers.push({
         headline: `${REGISTRY_LABEL[reg]}: ${best.entry.name}`,
-        detail: `${sign}${formatCount(Math.abs(best.delta))} ${WINDOW_LABEL[window]} day-over-day`,
+        detail: `${sign}${formatCount(Math.abs(best.delta))} ${windowLabel(reg, window)} day-over-day`,
         sourceLabel: REGISTRY_LABEL[reg],
         sourceUrl: REGISTRY_SOURCE[reg],
         panelHref: `/panels/sdk-adoption?focus=${encodeURIComponent(`${reg}:${best.entry.name}`)}`,
@@ -191,7 +216,7 @@ export function composeSdkAdoptionSection(
     title: "SDK adoption",
     anchorSlug: "sdk-adoption",
     mode: "diff",
-    headline: `${movers.length} notable shift${movers.length === 1 ? "" : "s"} across the five registries`,
+    headline: `${movers.length} notable shift${movers.length === 1 ? "" : "s"} across the six registries`,
     items: movers,
     sourceUrls: dedup(movers.map((i) => i.sourceUrl!)),
   };

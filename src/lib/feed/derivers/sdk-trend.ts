@@ -15,6 +15,7 @@ import {
   HOMEBREW_INSTALLS,
   NPM_DOWNLOADS,
   PYPI_DOWNLOADS,
+  VSCODE_MARKETPLACE,
   type DataSource,
 } from "@/lib/data-sources";
 import type {
@@ -31,6 +32,7 @@ const REGISTRY_SOURCE: Record<SdkAdoptionRegistry, DataSource> = {
   crates: CRATES_DOWNLOADS,
   docker: DOCKER_HUB_PULLS,
   brew: HOMEBREW_INSTALLS,
+  vscode: VSCODE_MARKETPLACE,
 };
 
 const TRIGGER = FEED_TRIGGERS.SDK_TREND_WOW_PCT / 100;

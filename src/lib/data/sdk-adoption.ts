@@ -23,7 +23,13 @@ import type { DailySnapshot, SnapshotPackageEntry } from "@/lib/data/snapshot";
 import type { PackageLatest } from "@/lib/data/pkg-store";
 import { deltasFromCounts } from "@/lib/data/sdk-adoption-deltas";
 
-export type SdkAdoptionRegistry = "pypi" | "npm" | "crates" | "docker" | "brew";
+export type SdkAdoptionRegistry =
+  | "pypi"
+  | "npm"
+  | "crates"
+  | "docker"
+  | "brew"
+  | "vscode";
 
 export type SdkAdoptionDay = {
   date: string;
@@ -113,6 +119,15 @@ const REGISTRY_CONFIG: Record<SdkAdoptionRegistry, RegistryConfig> = {
     firstParty: true,
     caveat:
       "Daily values are derived as day-over-day diffs of a 30-day cumulative counter — noisier than a direct daily counter but the most honest signal Homebrew exposes.",
+  },
+  vscode: {
+    counterField: "allTime",
+    counterName: "install diff",
+    counterUnits: "installs/day",
+    derivedDaily: true,
+    firstParty: true,
+    caveat:
+      "Daily values are derived from day-over-day diffs of the cumulative install counter exposed by Microsoft's marketplace catalogue. install ≠ active use — auto-installed bundle extensions, CI runners, and codespace pre-warms inflate the absolute number, but the WoW Δ signal is consistent.",
   },
 };
 

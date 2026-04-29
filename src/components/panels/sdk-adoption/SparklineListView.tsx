@@ -42,6 +42,7 @@ const REGISTRY_LABEL: Record<SdkAdoptionRegistry, string> = {
   crates: "crates.io",
   docker: "Docker Hub",
   brew: "Homebrew",
+  vscode: "VS Code Marketplace",
 };
 
 const STALE_MS = 25 * 60 * 60 * 1000;

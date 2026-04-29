@@ -189,6 +189,8 @@ const TRACKS: Record<string, string> = {
     "All-time pull counts for two AI inference images (ollama/ollama, vllm/vllm-openai).",
   "homebrew-installs":
     "30/90/365-day install counters for the ollama Homebrew formula.",
+  "vscode-marketplace":
+    "Cumulative install counts for six AI coding-assistant VS Code extensions (Copilot, Continue, Cody, Codeium, Cline, TabNine).",
 };
 
 const POWERED_FEATURE: Record<string, string> = {
@@ -220,6 +222,7 @@ const POWERED_FEATURE: Record<string, string> = {
   "crates-downloads": "SDK Adoption panel · Feed",
   "docker-hub-pulls": "SDK Adoption panel · Feed",
   "homebrew-installs": "SDK Adoption panel · Feed",
+  "vscode-marketplace": "SDK Adoption panel · Feed",
   "openrouter-rankings": "Model Usage panel · Feed",
 };
 
@@ -250,6 +253,7 @@ const CATEGORY_OF: Record<string, CategoryId> = {
   "crates-downloads": "sdk-adoption",
   "docker-hub-pulls": "sdk-adoption",
   "homebrew-installs": "sdk-adoption",
+  "vscode-marketplace": "sdk-adoption",
   // Research
   "arxiv-papers": "research",
   // Labs
@@ -295,6 +299,7 @@ const FRESHNESS_OF: Record<string, FreshnessSource> = {
   "crates-downloads": { kind: "cron", workflow: "pkg-crates" },
   "docker-hub-pulls": { kind: "cron", workflow: "pkg-docker" },
   "homebrew-installs": { kind: "cron", workflow: "pkg-brew" },
+  "vscode-marketplace": { kind: "cron", workflow: "pkg-vscode" },
   "openrouter-rankings": { kind: "cron", workflow: "openrouter-rankings" },
 };
 

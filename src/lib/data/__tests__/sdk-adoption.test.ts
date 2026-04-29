@@ -46,7 +46,7 @@ function makeLatest(
 describe("assembleSdkAdoption", () => {
   it("returns empty packages array when no latest + no snapshots", () => {
     const dto = assembleSdkAdoption({
-      pkgLatest: { pypi: null, npm: null, crates: null, docker: null, brew: null },
+      pkgLatest: { pypi: null, npm: null, crates: null, docker: null, brew: null, vscode: null },
       snapshots: [],
       today: "2026-04-25",
     });
@@ -62,6 +62,7 @@ describe("assembleSdkAdoption", () => {
         crates: null,
         docker: null,
         brew: null,
+        vscode: null,
       },
       snapshots: [],
       today: "2026-04-25",
@@ -78,6 +79,7 @@ describe("assembleSdkAdoption", () => {
         crates: null,
         docker: null,
         brew: null,
+        vscode: null,
       },
       snapshots: [],
       today: "2026-04-25",
@@ -105,6 +107,7 @@ describe("assembleSdkAdoption", () => {
         crates: null,
         docker: null,
         brew: null,
+        vscode: null,
       },
       snapshots: [snap1, snap2, snap3],
       today: "2026-04-25",
@@ -123,6 +126,7 @@ describe("assembleSdkAdoption", () => {
         crates: null,
         docker: null,
         brew: null,
+        vscode: null,
       },
       snapshots: [
         makeSnapshot("2026-04-25", {
@@ -156,6 +160,7 @@ describe("assembleSdkAdoption", () => {
         crates: makeLatest("crates", { "candle-core": { allTime: 1250 } }),
         docker: null,
         brew: null,
+        vscode: null,
       },
       snapshots: snaps,
       today: "2026-04-25",
@@ -185,6 +190,7 @@ describe("assembleSdkAdoption", () => {
         crates: null,
         docker: makeLatest("docker", { "ollama/ollama": { allTime: 5300 } }),
         brew: null,
+        vscode: null,
       },
       snapshots: snaps,
       today: "2026-04-25",
@@ -210,6 +216,7 @@ describe("assembleSdkAdoption", () => {
         crates: null,
         docker: null,
         brew: makeLatest("brew", { ollama: { lastMonth: 50800 } }),
+        vscode: null,
       },
       snapshots: snaps,
       today: "2026-04-25",
@@ -228,6 +235,7 @@ describe("assembleSdkAdoption", () => {
         crates: null,
         docker: null,
         brew: null,
+        vscode: null,
       },
       snapshots: [
         makeSnapshot("2026-04-25", {
@@ -259,6 +267,7 @@ describe("assembleSdkAdoption", () => {
         crates: null,
         docker: null,
         brew: null,
+        vscode: null,
       },
       snapshots: [],
       today: "2026-04-25",
@@ -276,6 +285,7 @@ describe("assembleSdkAdoption", () => {
         crates: makeLatest("crates", { burn: { allTime: 1 } }),
         docker: makeLatest("docker", { "vllm/vllm-openai": { allTime: 1 } }),
         brew: makeLatest("brew", { ollama: { lastMonth: 1 } }),
+        vscode: null,
       },
       snapshots: [],
       today: "2026-04-25",
@@ -299,6 +309,7 @@ describe("assembleSdkAdoption", () => {
         crates: null,
         docker: null,
         brew: null,
+        vscode: null,
       },
       snapshots: snaps,
       today: "2026-04-25",

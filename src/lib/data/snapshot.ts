@@ -54,7 +54,14 @@ const LABS_TOP_N = 10;
  *  "npm" + "crates"; PR 3 appends "docker" + "brew". Each source
  *  populates whichever counter windows its upstream API natively exposes
  *  — the snapshot entry type is a superset, never a synthesis. */
-const PACKAGE_SOURCES = ["pypi", "npm", "crates", "docker", "brew"] as const;
+const PACKAGE_SOURCES = [
+  "pypi",
+  "npm",
+  "crates",
+  "docker",
+  "brew",
+  "vscode",
+] as const;
 
 const KEY_PREFIX = "snapshot:";
 const INDEX_KEY = "snapshot:index";

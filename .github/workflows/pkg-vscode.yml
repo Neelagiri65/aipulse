@@ -1,0 +1,54 @@
+name: pkg-vscode
+
+# VS Code Marketplace adoption ingest: POSTs to the marketplace catalogue's
+# extensionquery API for the tracked AI coding-assistant slate (GitHub.copilot,
+# Continue.continue, sourcegraph.cody-ai, Codeium.codeium, saoudrizwan.claude-dev,
+# TabNine.tabnine-vscode) and overwrites `pkg:vscode:latest` in Upstash Redis.
+#
+# Cadence: every 6 hours at :15 (00:15, 06:15, 12:15, 18:15 UTC). Matches the
+# pkg-pypi / pkg-npm / pkg-crates / pkg-docker / pkg-brew tempo so the daily
+# snapshot collector at 04:00 UTC reads a freshly-warmed blob.
+#
+# Required repo secrets (shared with other ingest workflows):
+#   INGEST_URL     — e.g. https://aipulse-pi.vercel.app/api/ingest
+#                    (we strip /api/ingest and append the VS Code path)
+#   INGEST_SECRET  — shared secret matching the Vercel env var
+
+on:
+  schedule:
+    - cron: "15 0,6,12,18 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Attribution tag (cron | manual)"
+        required: false
+        default: "manual"
+        type: string
+
+concurrency:
+  group: pkg-vscode
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Trigger VS Code Marketplace ingest on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.source || 'cron' }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/pkg/vscode?source=$SOURCE"
+          echo "POST $URL"
+          RESPONSE=$(curl -sS -f --max-time 150 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"

@@ -2,7 +2,7 @@
 
 Every number on this dashboard traces back to a publicly verifiable source. Gawk aggregates — it does not invent metrics, re-score labs, or manufacture values. When a source is unavailable, the affected card falls to graceful degradation with a "last known value" and timestamp rather than blanking silently.
 
-As of 2026-04-21, Gawk tracks **28 verified sources** across GitHub activity, status pages, published research, model distribution, package adoption, community sentiment, regional press, and model benchmarks.
+As of 2026-04-29, Gawk tracks **29 verified sources** across GitHub activity, status pages, published research, model distribution, package adoption, community sentiment, regional press, and model benchmarks.
 
 ---
 
@@ -30,12 +30,13 @@ As of 2026-04-21, Gawk tracks **28 verified sources** across GitHub activity, st
 - HuggingFace Models API — text-generation by downloads
 - arXiv API — cs.AI + cs.LG, recent
 
-### Package adoption (5)
+### Package adoption (6)
 - PyPI — recent download counters (via pypistats.org)
 - npm — download counters (api.npmjs.org)
 - crates.io — Rust crate download counters
 - Docker Hub — container pull counters
 - Homebrew — formula install counters
+- Visual Studio Marketplace — extension catalogue
 
 ### Community sentiment (1)
 - Hacker News — AI-filtered story stream
@@ -61,7 +62,7 @@ No public status endpoint and no public issue tracker at the time of checking. T
 
 ## Governance
 
-- **Every number ships with a source.** A metric on the dashboard that cannot be cited to one of the 28 sources above does not ship.
+- **Every number ships with a source.** A metric on the dashboard that cannot be cited to one of the 29 sources above does not ship.
 - **Deterministic only.** Pattern matching, keyword allowlists, file existence checks. No LLM classification anywhere in the ingest pipeline.
 - **Pre-committed sanity ranges.** Each source has an expected value range set before data lands on the dashboard. Data outside that range is investigated before the metric returns to the UI — never recalibrated to make the narrative look better.
 - **Graceful degradation.** When a source is unavailable the card stays on the dashboard in a "last known value" state with a timestamp, not blanked.

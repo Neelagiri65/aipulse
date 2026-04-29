@@ -44,9 +44,10 @@ describe("sources inventory", () => {
     for (const cat of CATEGORIES) {
       expect(grouped.has(cat.id)).toBe(true);
     }
-    // Per spec brief: 5 tool-status, 5 sdk-adoption, 5 regional-news,
+    // Per spec brief: 5 tool-status, 6 sdk-adoption (PyPI + npm + crates +
+    // Docker + Homebrew + VS Code Marketplace), 5 regional-news,
     // 1 discussion, 1 research. Models is 3 (HF + Arena + OpenRouter).
-    expect(grouped.get("sdk-adoption")?.length).toBe(5);
+    expect(grouped.get("sdk-adoption")?.length).toBe(6);
     expect(grouped.get("regional-news")?.length).toBe(5);
     expect(grouped.get("discussion")?.length).toBe(1);
     expect(grouped.get("research")?.length).toBe(1);

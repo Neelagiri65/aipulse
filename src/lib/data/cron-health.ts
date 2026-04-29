@@ -53,6 +53,7 @@ export const CRON_WORKFLOWS = {
   "pkg-crates": { expectedIntervalMinutes: 360 },
   "pkg-docker": { expectedIntervalMinutes: 360 },
   "pkg-brew": { expectedIntervalMinutes: 360 },
+  "pkg-vscode": { expectedIntervalMinutes: 360 },
   "openrouter-rankings": { expectedIntervalMinutes: 360 },
 } as const;
 
