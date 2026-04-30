@@ -2017,6 +2017,27 @@
   text-decoration: underline;
 }
 
+.ap-feed-card-footer {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ap-feed-card-share {
+  /* Subtle until hover so the share affordance reads as secondary
+     to the source citation, not a competing CTA. */
+  opacity: 0.55;
+  transition: opacity 120ms ease-out;
+}
+
+.ap-feed-card:hover .ap-feed-card-share,
+.ap-feed-card-share:focus-within {
+  opacity: 1;
+}
+
 .ap-feed-card-skeleton {
   background: rgba(10, 13, 16, 0.5);
   border: 1px solid var(--ap-border);

@@ -79,4 +79,28 @@ describe("FeedCard", () => {
     // detail wrapper should not be present
     expect(html).not.toContain('class="ap-feed-card-detail"');
   });
+
+  it("renders the share button by default (S48g)", () => {
+    const html = renderToStaticMarkup(
+      <FeedCard
+        card={card({ type: "TOOL_ALERT", severity: 100, id: "share-test" })}
+      />,
+    );
+    expect(html).toContain('data-testid="feed-share-share-test"');
+    // LinkedIn + X intents and a Copy button are all present.
+    expect(html).toMatch(/linkedin\.com\/sharing\/share-offsite/);
+    expect(html).toMatch(/x\.com\/intent\/tweet/);
+    expect(html).toContain(">Copy<");
+  });
+
+  it("hides the share button when showShare={false}", () => {
+    const html = renderToStaticMarkup(
+      <FeedCard
+        card={card({ type: "RESEARCH", severity: 20, id: "no-share" })}
+        showShare={false}
+      />,
+    );
+    expect(html).not.toContain('data-testid="feed-share-no-share"');
+    expect(html).not.toContain("linkedin.com");
+  });
 });

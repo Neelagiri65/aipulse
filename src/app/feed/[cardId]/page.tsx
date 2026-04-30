@@ -51,16 +51,53 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { cardId } = await params;
   const card = await findCardById(cardId);
+  const permalink = `/feed/${cardId}`;
+
   if (!card) {
+    const expiredTitle = "Card expired · Gawk";
+    const expiredDesc =
+      "This card has rolled out of the live feed. See the latest cards on Gawk.";
     return {
-      title: "Card expired · Gawk",
-      description:
-        "This card has rolled out of the live feed. See the latest cards on Gawk.",
+      title: expiredTitle,
+      description: expiredDesc,
+      openGraph: {
+        type: "article",
+        siteName: "Gawk",
+        title: expiredTitle,
+        description: expiredDesc,
+        url: permalink,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: expiredTitle,
+        description: expiredDesc,
+      },
     };
   }
+
+  const title = `${card.headline} · Gawk`;
+  const description = card.detail ?? `Source: ${card.sourceName}.`;
   return {
-    title: `${card.headline} · Gawk`,
-    description: card.detail ?? `Source: ${card.sourceName}.`,
+    title,
+    description,
+    openGraph: {
+      type: "article",
+      siteName: "Gawk",
+      title,
+      description,
+      url: permalink,
+      // Citing the upstream source name as a soft byline. LinkedIn
+      // surfaces it under the unfurl preview when present.
+      authors: [card.sourceName],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+    alternates: {
+      canonical: permalink,
+    },
   };
 }
 

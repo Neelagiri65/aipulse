@@ -8,15 +8,20 @@
  * No client behaviour — pure stateless component. Safe for SSR.
  */
 
+import { FeedCardShareButton } from "@/components/feed/FeedCardShareButton";
 import type { Card } from "@/lib/feed/types";
 
 export type FeedCardProps = {
   card: Card;
   /** Reference time for relative-age rendering. Defaults to Date.now() at render time. */
   nowMs?: number;
+  /** Hide the share affordance — used by surfaces where sharing isn't
+   *  meaningful (the /feed/[cardId] standalone page itself, the digest
+   *  email render). Defaults to true so the dashboard surface shows it. */
+  showShare?: boolean;
 };
 
-export function FeedCard({ card, nowMs }: FeedCardProps) {
+export function FeedCard({ card, nowMs, showShare = true }: FeedCardProps) {
   const ts = new Date(card.timestamp).getTime();
   const ref = nowMs ?? Date.now();
   const ageMs = Math.max(0, ref - ts);
@@ -35,14 +40,17 @@ export function FeedCard({ card, nowMs }: FeedCardProps) {
       {card.detail ? (
         <p className="ap-feed-card-detail">{card.detail}</p>
       ) : null}
-      <a
-        className="ap-feed-card-source"
-        href={card.sourceUrl}
-        target="_blank"
-        rel="noreferrer"
-      >
-        {card.sourceName} ↗
-      </a>
+      <div className="ap-feed-card-footer">
+        <a
+          className="ap-feed-card-source"
+          href={card.sourceUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {card.sourceName} ↗
+        </a>
+        {showShare ? <FeedCardShareButton card={card} /> : null}
+      </div>
     </article>
   );
 }
