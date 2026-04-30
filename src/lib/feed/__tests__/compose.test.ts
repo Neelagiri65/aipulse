@@ -55,6 +55,7 @@ describe("composeFeed", () => {
         research: emptyResearch(),
         labs: emptyLabs(),
         hfRecent: [],
+        reddit: [],
       },
       NOW,
     );
@@ -83,6 +84,7 @@ describe("composeFeed", () => {
         research: emptyResearch(),
         labs: emptyLabs(),
         hfRecent: [],
+        reddit: [],
       },
       NOW,
     );
@@ -126,6 +128,7 @@ describe("composeFeed", () => {
         },
         labs: emptyLabs(),
         hfRecent: [],
+        reddit: [],
       },
       NOW,
     );
@@ -142,6 +145,7 @@ describe("composeFeed", () => {
         research: emptyResearch(),
         labs: emptyLabs(),
         hfRecent: [],
+        reddit: [],
       },
       NOW,
     );
@@ -164,6 +168,7 @@ describe("composeFeed", () => {
         research: emptyResearch(),
         labs: emptyLabs(),
         hfRecent: [],
+        reddit: [],
       },
       NOW,
     );

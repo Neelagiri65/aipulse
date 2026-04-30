@@ -30,6 +30,7 @@ import {
   type HuggingFaceModel,
 } from "@/lib/data/fetch-models";
 import { fetchLabActivity } from "@/lib/data/fetch-labs";
+import { readRecentRedditItems } from "@/lib/data/reddit-feed";
 import { OPENROUTER_SOURCE_CAVEAT } from "@/lib/data/openrouter-types";
 import type { ResearchResult } from "@/lib/data/fetch-research";
 import type { LabsPayload } from "@/lib/data/fetch-labs";
@@ -61,7 +62,7 @@ export async function loadSnapshots(
 ): Promise<LoadedSnapshots> {
   const nowIso = new Date(nowMs).toISOString();
 
-  const [status, models, sdk, hn, research, labs, hfRecent] = await Promise.all([
+  const [status, models, sdk, hn, research, labs, hfRecent, reddit] = await Promise.all([
     withLastKnown<StatusResult>(
       "status",
       () => fetchAllStatus(),
@@ -133,6 +134,14 @@ export async function loadSnapshots(
       },
       [] as HuggingFaceModel[],
     ),
+    // Reddit is cron-driven into Redis (matches HN posture). No
+    // last-known wrapper because empty-list is the correct "cron
+    // hasn't run yet" signal — there's no upstream HTTP failure to
+    // mask.
+    readRecentRedditItems(50).catch((err) => {
+      console.error("[feed] readRecentRedditItems failed", err);
+      return [] as Awaited<ReturnType<typeof readRecentRedditItems>>;
+    }),
   ]);
 
   const snapshots: FeedSnapshots = {
@@ -143,6 +152,7 @@ export async function loadSnapshots(
     research: research.data,
     labs: labs.data,
     hfRecent: hfRecent.data,
+    reddit,
   };
 
   const staleSources = collectStale(

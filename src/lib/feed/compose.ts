@@ -27,8 +27,10 @@ import { deriveModelMoverCards } from "@/lib/feed/derivers/model-mover";
 import { deriveNewReleaseCards } from "@/lib/feed/derivers/new-release";
 import { deriveSdkTrendCards } from "@/lib/feed/derivers/sdk-trend";
 import { deriveNewsCards } from "@/lib/feed/derivers/news";
+import { deriveRedditCards } from "@/lib/feed/derivers/reddit";
 import { deriveResearchCards } from "@/lib/feed/derivers/research";
 import { deriveLabHighlightCards } from "@/lib/feed/derivers/lab-highlight";
+import type { RedditItem } from "@/lib/data/reddit-feed";
 import { diversifyCards, rankCards } from "@/lib/feed/rank";
 import { isQuietDay } from "@/lib/feed/quiet-day";
 import type { CurrentState, FeedResponse } from "@/lib/feed/types";
@@ -44,6 +46,10 @@ export type FeedSnapshots = {
    *  the NEW_RELEASE deriver. Empty array when the upstream call failed
    *  (graceful degradation, no fabricated cards). */
   hfRecent: HuggingFaceModel[];
+  /** Most-recent Reddit posts across the curated subreddit slate, newest
+   *  first. Empty array when the Redis store is unreachable or hasn't
+   *  been populated yet — deriver emits zero cards in that case. */
+  reddit: RedditItem[];
 };
 
 export function composeFeed(
@@ -56,6 +62,7 @@ export function composeFeed(
     ...deriveNewReleaseCards(snapshots.hfRecent, nowMs),
     ...deriveSdkTrendCards(snapshots.sdk),
     ...deriveNewsCards(snapshots.hn, nowMs),
+    ...deriveRedditCards(snapshots.reddit, nowMs),
     ...deriveResearchCards(snapshots.research),
     ...deriveLabHighlightCards(snapshots.labs),
   ];

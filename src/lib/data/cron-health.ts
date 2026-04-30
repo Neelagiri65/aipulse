@@ -59,6 +59,10 @@ export const CRON_WORKFLOWS = {
   // drift to 30-60 min in practice (see globe-ingest 5→30 in S35) so the
   // declared interval matches observed reality.
   "notify-tool-alerts": { expectedIntervalMinutes: 30 },
+  // Curated Reddit subs (r/LocalLLaMA + r/ClaudeAI) feed NEWS cards. 30-min
+  // schedule — matches HN/regional-rss; Reddit RSS is unmetered but a
+  // tighter cadence would just amplify items the dedup already handles.
+  "wire-ingest-reddit": { expectedIntervalMinutes: 30 },
 } as const;
 
 export type CronWorkflowName = keyof typeof CRON_WORKFLOWS;

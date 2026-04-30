@@ -49,7 +49,7 @@ describe("sources inventory", () => {
     // 1 discussion, 1 research. Models is 3 (HF + Arena + OpenRouter).
     expect(grouped.get("sdk-adoption")?.length).toBe(6);
     expect(grouped.get("regional-news")?.length).toBe(5);
-    expect(grouped.get("discussion")?.length).toBe(1);
+    expect(grouped.get("discussion")?.length).toBe(3);
     expect(grouped.get("research")?.length).toBe(1);
     expect(grouped.get("models")?.length).toBe(3);
     expect(grouped.get("platform-infrastructure")?.length).toBe(4);

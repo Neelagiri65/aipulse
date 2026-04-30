@@ -127,6 +127,7 @@ describe("CRON_WORKFLOWS registry", () => {
       "registry-discover-deps",
       "registry-discover-topics",
       "wire-ingest-hn",
+      "wire-ingest-reddit",
       "wire-ingest-rss",
     ]);
   });

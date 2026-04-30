@@ -509,6 +509,60 @@ export const HUGGINGFACE_MODELS: DataSource = {
   powersFeature: ["models-panel"],
 };
 
+export const REDDIT_LOCALLLAMA: DataSource = {
+  id: "reddit-localllama",
+  name: "Reddit — r/LocalLLaMA",
+  category: "community-sentiment",
+  url: "https://www.reddit.com/r/LocalLLaMA/",
+  apiUrl: "https://www.reddit.com/r/LocalLLaMA/.rss?sort=top&t=day",
+  responseFormat: "rss",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "Reddit RSS is unmetered with a non-default User-Agent. Cron polls every 30 min via Next Data Cache so user fan-out doesn't hit Reddit. We send `gawk.dev-rss-ingest/1.0` so Reddit can attribute and rate-limit cleanly.",
+  },
+  auth: "none",
+  measures:
+    "Atom feed of the subreddit's top-of-day posts. Each post becomes a candidate NEWS card via the locked window/cap thresholds. Gawk does NOT re-rank or score — the subreddit's own `?sort=top&t=day` ordering is the authority.",
+  sanityCheck: {
+    description:
+      "Atom shape with `<entry>` blocks. Top-of-day endpoint returns up to 25 entries; we expect 5–25 per poll. A streak of 0 across ≥ 4 consecutive polls (2h) indicates either source breakage or User-Agent rejection (429).",
+    expectedMin: 0,
+    expectedMax: 25,
+    unit: "top-of-day posts per poll",
+  },
+  verifiedAt: "2026-04-30",
+  caveat:
+    "Subreddit moderation policy can swing the topic mix; AI-relevance is presumed from the sub's charter, NOT enforced by Gawk's keyword filter. Trust contract: cards link to the Reddit comments page (the conversation), not the external link the post may carry.",
+  powersFeature: ["feed-news"],
+};
+
+export const REDDIT_CLAUDEAI: DataSource = {
+  id: "reddit-claudeai",
+  name: "Reddit — r/ClaudeAI",
+  category: "community-sentiment",
+  url: "https://www.reddit.com/r/ClaudeAI/",
+  apiUrl: "https://www.reddit.com/r/ClaudeAI/.rss?sort=top&t=day",
+  responseFormat: "rss",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "Reddit RSS is unmetered with a non-default User-Agent. Cron polls every 30 min via Next Data Cache so user fan-out doesn't hit Reddit. We send `gawk.dev-rss-ingest/1.0` so Reddit can attribute and rate-limit cleanly.",
+  },
+  auth: "none",
+  measures:
+    "Atom feed of the subreddit's top-of-day posts. Each post becomes a candidate NEWS card via the locked window/cap thresholds. Gawk does NOT re-rank or score — the subreddit's own `?sort=top&t=day` ordering is the authority.",
+  sanityCheck: {
+    description:
+      "Atom shape with `<entry>` blocks. Top-of-day endpoint returns up to 25 entries; we expect 5–25 per poll.",
+    expectedMin: 0,
+    expectedMax: 25,
+    unit: "top-of-day posts per poll",
+  },
+  verifiedAt: "2026-04-30",
+  caveat:
+    "Subreddit covers Claude API + Claude Code + Anthropic-adjacent topics. AI-relevance is presumed from the sub's charter. Cards link to the comments page, not the external link.",
+  powersFeature: ["feed-news"],
+};
+
 export const HN_AI_STORIES: DataSource = {
   id: "hn-ai-stories",
   name: "Hacker News — AI-filtered story stream",
@@ -1030,6 +1084,8 @@ export const ALL_SOURCES: readonly DataSource[] = [
   HUGGINGFACE_MODELS,
   ARXIV_PAPERS,
   HN_AI_STORIES,
+  REDDIT_LOCALLLAMA,
+  REDDIT_CLAUDEAI,
   LMARENA_LEADERBOARD,
   AI_LABS_REGISTRY,
   GITHUB_REPO_EVENTS_LABS,

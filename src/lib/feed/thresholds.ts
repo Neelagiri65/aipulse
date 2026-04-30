@@ -33,6 +33,12 @@ export const FEED_TRIGGERS = Object.freeze({
   /** An HN story fires NEWS when its points exceed this AND it landed within the window. */
   NEWS_HN_POINTS: 100,
   NEWS_HN_WINDOW_HOURS: 6,
+  /** Reddit posts fire NEWS when within this window AND no more than
+   *  REDDIT_MAX_PER_SUB_PER_WINDOW per sub. We trust the sub's own
+   *  curation rather than re-thresholding by score (Reddit RSS doesn't
+   *  expose a score field cleanly). */
+  NEWS_REDDIT_WINDOW_HOURS: 12,
+  NEWS_REDDIT_MAX_PER_SUB: 3,
   /** A HuggingFace model fires NEW_RELEASE when createdAt is within this window. */
   NEW_RELEASE_AGE_HOURS: 48,
   /** Likes are first-paint social proof on HF — more reliable than rolling

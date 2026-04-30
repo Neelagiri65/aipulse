@@ -1,0 +1,46 @@
+name: wire-ingest-reddit
+
+# Cron-driven Reddit RSS ingest for the NEWS card pipeline.
+# Polls each curated subreddit's Atom feed (sort=top&t=day), parses
+# entries, dedups by post id, writes to Upstash. The /api/feed deriver
+# emits NEWS cards from the stored items.
+#
+# Cadence: every 30 minutes — matches HN + regional-rss. Reddit RSS is
+# unmetered with a non-default User-Agent; tighter cadence would just
+# amplify items the per-sub cap already deduplicates.
+#
+# Required repo secrets (shared with other workflows):
+#   INGEST_URL    — base; we strip /api/ingest and append /api/wire/ingest-reddit
+#   INGEST_SECRET — shared secret matching the Vercel env var.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: wire-ingest-reddit
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Trigger Reddit ingest on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/wire/ingest-reddit"
+          echo "POST $URL"
+          RESPONSE=$(curl -sS -f --max-time 60 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"

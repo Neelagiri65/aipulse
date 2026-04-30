@@ -179,6 +179,10 @@ const TRACKS: Record<string, string> = {
     "Twenty most-recent cs.AI + cs.LG submissions on arXiv, newest first. No re-ranking.",
   "hn-ai-stories":
     "Recent HN stories that match a deterministic AI keyword + domain allowlist.",
+  "reddit-localllama":
+    "Top-of-day posts from r/LocalLLaMA via Reddit's Atom feed. AI-relevance presumed from the sub's charter (no keyword filter applied).",
+  "reddit-claudeai":
+    "Top-of-day posts from r/ClaudeAI via Reddit's Atom feed. Anthropic-adjacent discussion; AI-relevance presumed from the sub's charter.",
   "lmarena-leaderboard":
     "Top 20 models by Chatbot Arena Elo for the `text` overall split.",
   "ai-labs-registry":
@@ -228,6 +232,8 @@ const POWERED_FEATURE: Record<string, string> = {
   "hf-models": "Models panel",
   "arxiv-papers": "Research panel · Feed",
   "hn-ai-stories": "Wire panel · Feed",
+  "reddit-localllama": "Feed · NEWS cards",
+  "reddit-claudeai": "Feed · NEWS cards",
   "lmarena-leaderboard": "Benchmarks panel · Feed",
   "ai-labs-registry": "AI Labs panel + globe layer",
   "gh-repo-events-labs": "AI Labs panel · sizes lab dots",
@@ -267,6 +273,8 @@ const CATEGORY_OF: Record<string, CategoryId> = {
   "ecosystems-npm-dependents": "code-activity",
   // Discussion
   "hn-ai-stories": "discussion",
+  "reddit-localllama": "discussion",
+  "reddit-claudeai": "discussion",
   // Models
   "hf-models": "models",
   "lmarena-leaderboard": "models",
@@ -314,6 +322,8 @@ const FRESHNESS_OF: Record<string, FreshnessSource> = {
   "hf-models": { kind: "on-demand" },
   "arxiv-papers": { kind: "last-known", key: "research" },
   "hn-ai-stories": { kind: "cron", workflow: "wire-ingest-hn" },
+  "reddit-localllama": { kind: "cron", workflow: "wire-ingest-reddit" },
+  "reddit-claudeai": { kind: "cron", workflow: "wire-ingest-reddit" },
   "lmarena-leaderboard": { kind: "cron", workflow: "benchmarks-ingest" },
   "ai-labs-registry": { kind: "last-known", key: "labs" },
   "gh-repo-events-labs": { kind: "last-known", key: "labs" },
