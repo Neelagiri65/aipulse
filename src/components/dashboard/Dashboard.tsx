@@ -204,6 +204,11 @@ export function Dashboard({
     "/api/benchmarks",
     BENCHMARKS_POLL_MS,
   );
+  const benchmarksHistory = usePolledEndpoint<{
+    ok: boolean;
+    dates: string[];
+    byModel: Record<string, Array<number | null>>;
+  }>("/api/benchmarks/history", BENCHMARKS_POLL_MS);
   const labs = usePolledEndpoint<LabsPayload>("/api/labs", LABS_POLL_MS);
   const rss = usePolledEndpoint<RssWireResult>("/api/rss", RSS_POLL_MS);
   const sdkAdoption = usePolledEndpoint<SdkAdoptionDto>(
@@ -838,6 +843,7 @@ export function Dashboard({
         benchmarks={benchmarks.data}
         benchmarksLoading={benchmarks.isInitialLoading}
         benchmarksError={benchmarks.error ?? null}
+        benchmarksEloHistory={benchmarksHistory.data?.byModel}
         labs={labs.data}
         labsLoading={labs.isInitialLoading}
         labsError={labs.error ?? null}
@@ -1143,6 +1149,7 @@ export function Dashboard({
                 data={benchmarks.data}
                 error={benchmarks.error}
                 isInitialLoading={benchmarks.isInitialLoading}
+                eloHistory={benchmarksHistory.data?.byModel}
               />
             </Win>
           )}

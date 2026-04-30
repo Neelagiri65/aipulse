@@ -107,7 +107,9 @@ export async function openPanelViaNav(
     | "Research"
     | "Benchmarks"
     | "AI Labs"
-    | "Regional Wire",
+    | "Regional Wire"
+    | "SDK Adoption"
+    | "Model Usage",
 ) {
   const nav = page.getByRole("navigation", { name: "Panel navigation" });
   const btn = nav.locator(`button[title="${label}"]`);

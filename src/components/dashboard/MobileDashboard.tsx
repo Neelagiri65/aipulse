@@ -97,6 +97,7 @@ export type MobileDashboardProps = {
   benchmarks: BenchmarksPayload | undefined;
   benchmarksLoading: boolean;
   benchmarksError: string | null;
+  benchmarksEloHistory?: Record<string, Array<number | null>>;
   // Labs
   labs: LabsPayload | undefined;
   labsLoading: boolean;
@@ -492,6 +493,7 @@ function ModelsTabBody({
             data={props.benchmarks}
             error={props.benchmarksError ?? undefined}
             isInitialLoading={props.benchmarksLoading}
+            eloHistory={props.benchmarksEloHistory}
           />
         )}
         {sub === "usage" && (

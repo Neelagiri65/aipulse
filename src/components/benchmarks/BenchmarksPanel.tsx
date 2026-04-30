@@ -1,5 +1,6 @@
 "use client";
 
+import { SparklineMini } from "@/components/charts/SparklineMini";
 import type {
   ArenaRowWithDelta,
   BenchmarksMeta,
@@ -8,10 +9,19 @@ import type {
   RankDelta,
 } from "@/lib/data/benchmarks-lmarena";
 
+/** Map<modelName, ratings oldest→newest> with `null` for days the model
+ *  wasn't in the captured top-N. The dashboard fetches this from
+ *  /api/benchmarks/history and passes it through. */
+export type EloHistoryByModel = Record<string, Array<number | null>>;
+
 export type BenchmarksPanelProps = {
   data: BenchmarksPayload | undefined;
   error: string | undefined;
   isInitialLoading: boolean;
+  /** Per-row Elo history keyed by modelName. Optional — when absent or
+   *  the model has no entry, the Trend cell renders empty. Sparkline
+   *  retrofit (S48g). */
+  eloHistory?: EloHistoryByModel;
 };
 
 /**
@@ -31,6 +41,7 @@ export function BenchmarksPanel({
   data,
   error,
   isInitialLoading,
+  eloHistory,
 }: BenchmarksPanelProps) {
   if (isInitialLoading && !data) {
     return (
@@ -79,11 +90,16 @@ export function BenchmarksPanel({
               <th className="w-14 px-1 py-1 text-right">Votes</th>
               <th className="w-12 px-1 py-1 text-right">Δ Rank</th>
               <th className="w-12 px-1 py-1 text-right">Δ Elo</th>
+              <th className="w-14 px-1 py-1 text-right">Trend</th>
             </tr>
           </thead>
           <tbody>
             {data.rows.map((row) => (
-              <BenchmarkRow key={row.modelName} row={row} />
+              <BenchmarkRow
+                key={row.modelName}
+                row={row}
+                history={eloHistory?.[row.modelName]}
+              />
             ))}
           </tbody>
         </table>
@@ -93,7 +109,13 @@ export function BenchmarksPanel({
   );
 }
 
-function BenchmarkRow({ row }: { row: ArenaRowWithDelta }) {
+function BenchmarkRow({
+  row,
+  history,
+}: {
+  row: ArenaRowWithDelta;
+  history?: Array<number | null>;
+}) {
   const ciTitle = `95% CI: ${Math.round(row.ratingLower)} – ${Math.round(row.ratingUpper)}`;
   return (
     <tr
@@ -125,7 +147,56 @@ function BenchmarkRow({ row }: { row: ArenaRowWithDelta }) {
       <td className="px-1 py-1 text-right text-[10px]">
         <EloDeltaBadge delta={row.eloDelta} />
       </td>
+      <td
+        className="px-1 py-1 text-right text-emerald-300/70"
+        data-testid="benchmark-trend-cell"
+      >
+        <TrendCell history={history} modelName={row.modelName} />
+      </td>
     </tr>
+  );
+}
+
+function TrendCell({
+  history,
+  modelName,
+}: {
+  history?: Array<number | null>;
+  modelName: string;
+}) {
+  // No history fetched yet (initial paint, or /api/benchmarks/history
+  // is loading) → render an empty placeholder rather than `—`. Avoids
+  // the column flickering as data arrives.
+  if (!history || history.length === 0) {
+    return <span className="block h-[14px] w-[48px]" aria-hidden="true" />;
+  }
+  const nonNull = history.filter((v): v is number => v !== null).length;
+  // Single-day or all-null: show a dash so the row reads cleanly. Two
+  // points is the minimum a line conveys; anything less is noise.
+  if (nonNull < 2) {
+    return (
+      <span
+        className="inline-block h-[14px] w-[48px] text-center text-[10px] text-muted-foreground/60"
+        title="Insufficient history"
+      >
+        —
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-block align-middle"
+      title={`14-day Elo history for ${modelName}`}
+    >
+      <SparklineMini
+        data={history}
+        width={48}
+        height={14}
+        strokeWidth={1}
+        padding={1}
+        label={`14-day Elo history for ${modelName}`}
+      />
+    </span>
   );
 }
 

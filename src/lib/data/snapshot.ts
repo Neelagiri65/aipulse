@@ -104,6 +104,15 @@ export type SnapshotBenchmark = {
 export type SnapshotBenchmarks = {
   publishDate: string | null;
   top3: SnapshotBenchmark[];
+  /**
+   * Top 20 rows by rank. Captured for the per-row Elo sparkline added in
+   * S48g. Kept alongside `top3` rather than replacing it because the
+   * digest's benchmarks section still reads `top3` and old snapshots
+   * predating this field have only `top3`. The sparkline renders sparse
+   * for historical days (rows ranked 4-20 weren't captured) and densifies
+   * over ~2 weeks as new snapshots land.
+   */
+  rows?: SnapshotBenchmark[];
 };
 
 /**
@@ -377,17 +386,19 @@ export async function buildDailySnapshot(
   try {
     const payload = benchmarksPayload as BenchmarksPayload;
     if (payload.ok) {
+      const projected = payload.rows.slice(0, 20).map((r) => ({
+        rank: r.rank,
+        modelName: r.modelName,
+        organization: r.organization,
+        rating: Math.round(r.rating),
+      }));
       benchmarks = {
         publishDate: payload.meta.leaderboardPublishDate,
-        top3: payload.rows.slice(0, 3).map((r) => ({
-          rank: r.rank,
-          modelName: r.modelName,
-          organization: r.organization,
-          rating: Math.round(r.rating),
-        })),
+        top3: projected.slice(0, 3),
+        rows: projected,
       };
     } else {
-      benchmarks = { publishDate: null, top3: [] };
+      benchmarks = { publishDate: null, top3: [], rows: [] };
     }
   } catch (e) {
     failures.push({
