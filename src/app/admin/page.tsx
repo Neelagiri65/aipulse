@@ -299,11 +299,7 @@ function PipelineSection({
           value={discordWebhookConfigured ? "configured" : "operator-pending"}
           ok={discordWebhookConfigured}
         />
-        <ConfigCell
-          label="Subscribers"
-          value={String(subscriberCount)}
-          ok={true}
-        />
+        <SubscribersCell count={subscriberCount} />
         <ConfigCell
           label="Last digest archive"
           value={
@@ -343,6 +339,25 @@ function ConfigCell({
         className={`mt-1 ${mono ? "font-mono text-[12px]" : "text-sm"} ${ok ? "text-foreground" : "text-yellow-400"}`}
       >
         {value}
+      </dd>
+    </div>
+  );
+}
+
+function SubscribersCell({ count }: { count: number }) {
+  return (
+    <div className="rounded border border-border/60 p-3">
+      <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+        Subscribers
+      </dt>
+      <dd className="mt-1 flex items-baseline justify-between gap-3 text-sm text-foreground">
+        <span>{count}</span>
+        <Link
+          href="/admin/subscribers"
+          className="font-mono text-[11px] text-primary underline-offset-2 hover:underline"
+        >
+          view ledger →
+        </Link>
       </dd>
     </div>
   );

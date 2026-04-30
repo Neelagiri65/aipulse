@@ -241,6 +241,24 @@ export type ConfirmedSubscriberWithEmail = {
 };
 
 /**
+ * Operator-side projection of a subscriber for the /admin/subscribers
+ * dashboard. Email is plaintext when decryption succeeds; null otherwise
+ * (legacy record without encryptedEmail, key rotation, decrypt error).
+ * Status is preserved verbatim — the admin view renders pending and
+ * unsubscribed alongside confirmed so the operator can see the funnel.
+ */
+export type AdminSubscriberView = {
+  emailHash: string;
+  email: string | null;
+  status: SubscriberStatus;
+  geo: SubscriberRecord["geo"];
+  createdAt: string;
+  confirmedAt?: string;
+  unsubscribedAt?: string;
+  lastDeliveryError?: string;
+};
+
+/**
  * Iterate every confirmed subscriber and return a list with decrypted
  * plaintext emails. Skips records that are:
  *   - not `confirmed` status
@@ -290,6 +308,77 @@ export async function readConfirmedSubscribersWithEmail(
     });
   }
   return out;
+}
+
+/**
+ * Read every subscriber (any status) projected for the /admin view.
+ * Plaintext email is decrypted when ciphertext is present and the key
+ * decrypts cleanly; otherwise emits null and the row still renders so
+ * the operator sees the record exists.
+ *
+ * Soft cap: returns the most recently created `limit` records (default
+ * 500). Skips malformed or unparseable JSON silently; bumps the count
+ * without surfacing them — corruption would be an upstream bug, not a
+ * UI concern.
+ *
+ * Output is sorted by `createdAt` descending so the most recent signups
+ * appear first.
+ */
+export async function readAllSubscribers(
+  opts: Opts & {
+    decrypt?: (ciphertext: string) => string;
+    limit?: number;
+  } = {},
+): Promise<AdminSubscriberView[]> {
+  const r = opts.client ?? defaultClient();
+  if (!r) return [];
+  const limit = Math.max(1, Math.min(opts.limit ?? 500, 5000));
+  let hashes: string[] = [];
+  try {
+    hashes = await r.smembers("sub:index");
+  } catch {
+    return [];
+  }
+  if (hashes.length === 0) return [];
+
+  const decrypt =
+    opts.decrypt ??
+    ((ct: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const m = require("@/lib/mail/email-encryption") as {
+        decryptEmail: (s: string) => string;
+      };
+      return m.decryptEmail(ct);
+    });
+
+  const out: AdminSubscriberView[] = [];
+  for (const hash of hashes) {
+    const rec = await readSubscriber(hash, { client: r });
+    if (!rec) continue;
+    let email: string | null = null;
+    if (rec.encryptedEmail) {
+      try {
+        email = decrypt(rec.encryptedEmail);
+      } catch {
+        email = null;
+      }
+    }
+    const view: AdminSubscriberView = {
+      emailHash: rec.emailHash,
+      email,
+      status: rec.status,
+      geo: rec.geo,
+      createdAt: rec.createdAt,
+    };
+    if (rec.confirmedAt !== undefined) view.confirmedAt = rec.confirmedAt;
+    if (rec.unsubscribedAt !== undefined) view.unsubscribedAt = rec.unsubscribedAt;
+    if (rec.lastDeliveryError !== undefined) {
+      view.lastDeliveryError = rec.lastDeliveryError;
+    }
+    out.push(view);
+  }
+  out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return out.slice(0, limit);
 }
 
 function parseRecord(value: unknown): SubscriberRecord | null {

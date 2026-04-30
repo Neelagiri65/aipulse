@@ -284,3 +284,173 @@ describe("parse guardrails", () => {
     expect(await readSubscriber("h", { client })).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// readAllSubscribers — operator-side admin view (S48g)
+// ---------------------------------------------------------------------------
+
+describe("readAllSubscribers", () => {
+  const fakeDecrypt = (ct: string) => ct.replace(/^enc:/, "");
+
+  function recordWithStatus(
+    emailHash: string,
+    status: "pending" | "confirmed" | "unsubscribed",
+    overrides: Partial<SubscriberRecord> = {},
+  ): SubscriberRecord {
+    return {
+      ...baseRecord(emailHash),
+      status,
+      encryptedEmail: `enc:${emailHash}@example.com`,
+      ...overrides,
+    };
+  }
+
+  it("returns [] when Redis client is unavailable", async () => {
+    const { readAllSubscribers } = await import("@/lib/data/subscribers");
+    expect(await readAllSubscribers({ decrypt: fakeDecrypt })).toEqual([]);
+  });
+
+  it("returns [] when sub:index is empty", async () => {
+    const client = newClient();
+    const { readAllSubscribers } = await import("@/lib/data/subscribers");
+    expect(await readAllSubscribers({ client, decrypt: fakeDecrypt })).toEqual(
+      [],
+    );
+  });
+
+  it("includes pending, confirmed, AND unsubscribed (operator sees the funnel)", async () => {
+    const client = newClient();
+    const { readAllSubscribers } = await import("@/lib/data/subscribers");
+    await writeSubscriber(
+      recordWithStatus(hashEmail("p@x.com"), "pending", {
+        createdAt: "2026-04-29T10:00:00.000Z",
+      }),
+      { client },
+    );
+    await writeSubscriber(
+      recordWithStatus(hashEmail("c@x.com"), "confirmed", {
+        createdAt: "2026-04-30T10:00:00.000Z",
+        confirmedAt: "2026-04-30T10:01:00.000Z",
+      }),
+      { client },
+    );
+    await writeSubscriber(
+      recordWithStatus(hashEmail("u@x.com"), "unsubscribed", {
+        createdAt: "2026-04-28T10:00:00.000Z",
+        unsubscribedAt: "2026-04-29T22:00:00.000Z",
+      }),
+      { client },
+    );
+    const out = await readAllSubscribers({ client, decrypt: fakeDecrypt });
+    expect(out).toHaveLength(3);
+    expect(out.map((s) => s.status).sort()).toEqual([
+      "confirmed",
+      "pending",
+      "unsubscribed",
+    ]);
+  });
+
+  it("sorts newest createdAt first", async () => {
+    const client = newClient();
+    const { readAllSubscribers } = await import("@/lib/data/subscribers");
+    await writeSubscriber(
+      recordWithStatus(hashEmail("old@x.com"), "confirmed", {
+        createdAt: "2026-04-01T10:00:00.000Z",
+      }),
+      { client },
+    );
+    await writeSubscriber(
+      recordWithStatus(hashEmail("new@x.com"), "confirmed", {
+        createdAt: "2026-04-30T10:00:00.000Z",
+      }),
+      { client },
+    );
+    const out = await readAllSubscribers({ client, decrypt: fakeDecrypt });
+    expect(out[0].createdAt).toBe("2026-04-30T10:00:00.000Z");
+    expect(out[1].createdAt).toBe("2026-04-01T10:00:00.000Z");
+  });
+
+  it("decrypts plaintext email when ciphertext is present", async () => {
+    const client = newClient();
+    const { readAllSubscribers } = await import("@/lib/data/subscribers");
+    await writeSubscriber(
+      recordWithStatus(hashEmail("hello@gawk.dev"), "confirmed", {
+        encryptedEmail: "enc:hello@gawk.dev",
+      }),
+      { client },
+    );
+    const out = await readAllSubscribers({ client, decrypt: fakeDecrypt });
+    expect(out[0].email).toBe("hello@gawk.dev");
+  });
+
+  it("emits null email when ciphertext is absent (legacy record)", async () => {
+    const client = newClient();
+    const { readAllSubscribers } = await import("@/lib/data/subscribers");
+    await writeSubscriber(
+      {
+        ...baseRecord(hashEmail("legacy@x.com")),
+        status: "confirmed",
+        encryptedEmail: undefined,
+      },
+      { client },
+    );
+    const out = await readAllSubscribers({ client, decrypt: fakeDecrypt });
+    expect(out).toHaveLength(1);
+    expect(out[0].email).toBeNull();
+  });
+
+  it("emits null email and continues when decrypt throws", async () => {
+    const client = newClient();
+    const { readAllSubscribers } = await import("@/lib/data/subscribers");
+    await writeSubscriber(
+      recordWithStatus(hashEmail("rotated@x.com"), "confirmed"),
+      { client },
+    );
+    const out = await readAllSubscribers({
+      client,
+      decrypt: () => {
+        throw new Error("key rotated");
+      },
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0].email).toBeNull();
+    expect(out[0].emailHash).toBeTruthy();
+  });
+
+  it("respects the soft-cap limit", async () => {
+    const client = newClient();
+    const { readAllSubscribers } = await import("@/lib/data/subscribers");
+    for (let i = 0; i < 5; i++) {
+      await writeSubscriber(
+        recordWithStatus(hashEmail(`u${i}@x.com`), "confirmed", {
+          createdAt: `2026-04-${String(20 + i).padStart(2, "0")}T10:00:00.000Z`,
+        }),
+        { client },
+      );
+    }
+    const out = await readAllSubscribers({
+      client,
+      decrypt: fakeDecrypt,
+      limit: 3,
+    });
+    expect(out).toHaveLength(3);
+    // Must be the 3 newest.
+    expect(out[0].createdAt).toBe("2026-04-24T10:00:00.000Z");
+    expect(out[2].createdAt).toBe("2026-04-22T10:00:00.000Z");
+  });
+
+  it("preserves lastDeliveryError when present", async () => {
+    const client = newClient();
+    const { readAllSubscribers } = await import("@/lib/data/subscribers");
+    await writeSubscriber(
+      recordWithStatus(hashEmail("bounce@x.com"), "confirmed", {
+        lastDeliveryError: "550 5.1.1 mailbox does not exist",
+      }),
+      { client },
+    );
+    const out = await readAllSubscribers({ client, decrypt: fakeDecrypt });
+    expect(out[0].lastDeliveryError).toBe(
+      "550 5.1.1 mailbox does not exist",
+    );
+  });
+});
