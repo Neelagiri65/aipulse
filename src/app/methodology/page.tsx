@@ -170,7 +170,7 @@ export default function MethodologyPage() {
           HQ coordinates and surface non-SF activity directly without depending
           on the geocoder. They are a counterweight, not a fix. Additional
           non-English sources are on the roadmap; suggestions are welcome via
-          the Discord linked from the header.
+          the community link in the header.
         </p>
       </section>
 

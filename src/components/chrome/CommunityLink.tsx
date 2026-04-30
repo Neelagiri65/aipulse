@@ -1,10 +1,11 @@
 /**
  * CommunityLink — single-source render for the "Community" external link.
  *
- * Reads `NEXT_PUBLIC_DISCORD_INVITE_URL` at render time. When unset (the
- * default for any environment that hasn't configured the Discord invite),
- * renders nothing — graceful degradation per CLAUDE.md, never a broken
- * `href=""`.
+ * Reads `NEXT_PUBLIC_DISCORD_INVITE_URL` at render time. The env var name
+ * is historical — the URL it carries is the active community channel,
+ * which today is GitHub Discussions while the Discord server is being
+ * provisioned. When unset, renders nothing — graceful degradation per
+ * CLAUDE.md, never a broken `href=""`.
  *
  * Two variants:
  *   - "compact" (default): matches the StatusBar / mobile-topbar tone for
@@ -13,7 +14,7 @@
  *
  * No analytics tracking on the click intentionally — community-tab clicks
  * don't carry the same product-decision weight as panel opens or share
- * intent, and the Discord side measures actual joins.
+ * intent, and the destination platform measures actual visits.
  */
 
 export type CommunityLinkVariant = "compact" | "footer";
@@ -48,7 +49,7 @@ export function CommunityLink({
       target="_blank"
       rel="noopener noreferrer"
       data-testid="community-link"
-      aria-label="Join the Gawk community on Discord"
+      aria-label="Join the Gawk community discussion"
       className="inline-flex items-center rounded border border-border/60 bg-background/60 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
     >
       Community
