@@ -16,9 +16,10 @@
  *   - SubscribeModal is gated on `useBetaEnabled` here so bundle-level
  *     dead-code analysis keeps the form chunk deferred for non-beta
  *     visitors.
- *   - /subscribe and /privacy* routes suppress the overlays so the
- *     page itself owns the subscribe and consent surface and we don't
- *     render two forms or a banner-over-preferences stack.
+ *   - /subscribe, /privacy*, and /admin* routes suppress the overlays
+ *     so the page itself owns the subscribe and consent surface and we
+ *     don't render two forms, a banner-over-preferences stack, or the
+ *     public subscribe modal floating over an operator-only ledger.
  */
 
 import { usePathname } from "next/navigation";
@@ -31,7 +32,9 @@ export function GlobalOverlays(): React.JSX.Element | null {
   const pathname = usePathname();
   const beta = useBetaEnabled();
   const suppress =
-    pathname?.startsWith("/subscribe") || pathname?.startsWith("/privacy");
+    pathname?.startsWith("/subscribe") ||
+    pathname?.startsWith("/privacy") ||
+    pathname?.startsWith("/admin");
   return (
     <>
       {/* AnalyticsMount is always rendered — it self-gates on consent +

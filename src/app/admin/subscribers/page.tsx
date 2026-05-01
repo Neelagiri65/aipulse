@@ -26,6 +26,26 @@ import { readAllSubscribers, type AdminSubscriberView } from "@/lib/data/subscri
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+/**
+ * Confirmation tokens are minted with a 24h TTL (see CONFIRM_TTL_SEC in
+ * src/app/api/subscribe/route.ts). After that window the link in the
+ * confirmation email is dead — the row is structurally pending but
+ * functionally never going to confirm. Surface that state in the ledger
+ * so the operator reads the funnel honestly instead of treating expired
+ * rows as live "warm leads".
+ */
+const CONFIRM_TTL_MS = 24 * 60 * 60 * 1000;
+
+export function isPendingExpired(
+  row: AdminSubscriberView,
+  nowMs: number,
+): boolean {
+  if (row.status !== "pending") return false;
+  const createdMs = Date.parse(row.createdAt);
+  if (!Number.isFinite(createdMs)) return false;
+  return nowMs - createdMs > CONFIRM_TTL_MS;
+}
+
 export default async function AdminSubscribersPage() {
   const subscribers = await readAllSubscribers().catch(
     () => null as AdminSubscriberView[] | null,
@@ -42,7 +62,8 @@ export default async function AdminSubscribersPage() {
     );
   }
 
-  const counts = countByStatus(subscribers);
+  const nowMs = Date.now();
+  const counts = countByStatus(subscribers, nowMs);
   const countries = topCountries(subscribers);
 
   return (
@@ -50,7 +71,7 @@ export default async function AdminSubscribersPage() {
       <Header />
       <SummaryStrip counts={counts} />
       <CountrySection countries={countries} />
-      <RecentTable rows={subscribers} />
+      <RecentTable rows={subscribers} nowMs={nowMs} />
     </main>
   );
 }
@@ -78,31 +99,39 @@ function Header() {
   );
 }
 
-type StatusCounts = {
+export type StatusCounts = {
   total: number;
   confirmed: number;
   pending: number;
+  expired: number;
   unsubscribed: number;
 };
 
-function countByStatus(rows: AdminSubscriberView[]): StatusCounts {
+export function countByStatus(
+  rows: AdminSubscriberView[],
+  nowMs: number,
+): StatusCounts {
   let confirmed = 0;
   let pending = 0;
+  let expired = 0;
   let unsubscribed = 0;
   for (const r of rows) {
     if (r.status === "confirmed") confirmed += 1;
-    else if (r.status === "pending") pending += 1;
-    else if (r.status === "unsubscribed") unsubscribed += 1;
+    else if (r.status === "pending") {
+      if (isPendingExpired(r, nowMs)) expired += 1;
+      else pending += 1;
+    } else if (r.status === "unsubscribed") unsubscribed += 1;
   }
-  return { total: rows.length, confirmed, pending, unsubscribed };
+  return { total: rows.length, confirmed, pending, expired, unsubscribed };
 }
 
 function SummaryStrip({ counts }: { counts: StatusCounts }) {
   return (
-    <section className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+    <section className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-5">
       <Stat label="Total" value={counts.total} tone="default" />
       <Stat label="Confirmed" value={counts.confirmed} tone="ok" />
       <Stat label="Pending" value={counts.pending} tone="warn" />
+      <Stat label="Expired" value={counts.expired} tone="muted" />
       <Stat label="Unsubscribed" value={counts.unsubscribed} tone="muted" />
     </section>
   );
@@ -197,7 +226,13 @@ function CountrySection({
   );
 }
 
-function RecentTable({ rows }: { rows: AdminSubscriberView[] }) {
+function RecentTable({
+  rows,
+  nowMs,
+}: {
+  rows: AdminSubscriberView[];
+  nowMs: number;
+}) {
   if (rows.length === 0) {
     return (
       <section>
@@ -233,7 +268,7 @@ function RecentTable({ rows }: { rows: AdminSubscriberView[] }) {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <Row key={r.emailHash} r={r} />
+              <Row key={r.emailHash} r={r} nowMs={nowMs} />
             ))}
           </tbody>
         </table>
@@ -242,7 +277,8 @@ function RecentTable({ rows }: { rows: AdminSubscriberView[] }) {
   );
 }
 
-function Row({ r }: { r: AdminSubscriberView }) {
+function Row({ r, nowMs }: { r: AdminSubscriberView; nowMs: number }) {
+  const expired = isPendingExpired(r, nowMs);
   return (
     <tr className="border-t border-border/30 align-top hover:bg-muted/10">
       <td className="px-3 py-2 text-foreground">
@@ -258,7 +294,7 @@ function Row({ r }: { r: AdminSubscriberView }) {
         )}
       </td>
       <td className="px-3 py-2">
-        <StatusBadge status={r.status} />
+        <StatusBadge status={r.status} expired={expired} />
       </td>
       <td className="px-3 py-2 text-muted-foreground">
         {fmtIsoToShort(r.createdAt)}
@@ -283,7 +319,26 @@ function Row({ r }: { r: AdminSubscriberView }) {
   );
 }
 
-function StatusBadge({ status }: { status: AdminSubscriberView["status"] }) {
+function StatusBadge({
+  status,
+  expired,
+}: {
+  status: AdminSubscriberView["status"];
+  expired?: boolean;
+}) {
+  // Pending rows past the 24h confirm-token TTL render as "expired" so
+  // the operator scan reads honestly. Status field stays "pending" in
+  // the underlying record — this is presentation-only.
+  if (status === "pending" && expired) {
+    return (
+      <span
+        className="inline-flex items-center rounded border border-border/60 bg-muted/30 px-1.5 py-[1px] font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground"
+        title="Confirm-token TTL is 24h. This row never confirmed within the window."
+      >
+        expired
+      </span>
+    );
+  }
   const cls =
     status === "confirmed"
       ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"

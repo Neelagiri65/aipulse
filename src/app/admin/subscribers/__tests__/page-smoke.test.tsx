@@ -12,7 +12,7 @@
  *  - Redis unavailable (helper rejects) renders the explicit unavailable
  *    banner instead of crashing.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 vi.mock("@/lib/data/subscribers", async () => {
@@ -25,7 +25,17 @@ vi.mock("@/lib/data/subscribers", async () => {
   };
 });
 
+// Pin the wall-clock so the expired-pending logic is deterministic. The
+// page derives "expired" from createdAt + 24h vs Date.now(); without a
+// fake timer the existing pending-row test data (April dates) would flip
+// to "expired" once real time drifted past the 24h window.
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-04-30T10:00:00.000Z"));
+});
+
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -144,5 +154,87 @@ describe("/admin/subscribers", () => {
     const Page = Mod.default;
     const html = renderToStaticMarkup(await Page());
     expect(html).toContain("Redis unavailable");
+  });
+
+  it("flips pending rows past the 24h confirm-token TTL to an 'expired' badge and counter", async () => {
+    // Advance time so the 2026-04-29 pending row is past its 24h window.
+    vi.setSystemTime(new Date("2026-05-01T12:00:00.000Z"));
+    const subs = await import("@/lib/data/subscribers");
+    vi.mocked(subs.readAllSubscribers).mockResolvedValue([
+      {
+        emailHash: "h_old_pending",
+        email: "ghost@gawk.dev",
+        status: "pending",
+        geo: { country: "GB", region: null, covered: true },
+        // 48h before "now" → past the 24h TTL → expired.
+        createdAt: "2026-04-29T12:00:00.000Z",
+      },
+      {
+        emailHash: "h_fresh_pending",
+        email: "fresh@gawk.dev",
+        status: "pending",
+        geo: { country: "GB", region: null, covered: true },
+        // 6h before "now" → inside the 24h window → still live.
+        createdAt: "2026-05-01T06:00:00.000Z",
+      },
+    ]);
+    const Mod = await import("@/app/admin/subscribers/page");
+    const Page = Mod.default;
+    const html = renderToStaticMarkup(await Page());
+    // The old row renders as expired, the fresh one as pending.
+    expect(html).toContain(">expired<");
+    expect(html).toContain(">pending<");
+    // Counter strip splits the two: 1 expired, 1 pending.
+    expect(html).toContain('data-testid="subscriber-count-pending"');
+    expect(html).toContain('data-testid="subscriber-count-expired"');
+    const pendingMatch = html.match(
+      /data-testid="subscriber-count-pending"[^>]*>(\d+)/,
+    );
+    const expiredMatch = html.match(
+      /data-testid="subscriber-count-expired"[^>]*>(\d+)/,
+    );
+    expect(pendingMatch?.[1]).toBe("1");
+    expect(expiredMatch?.[1]).toBe("1");
+  });
+
+  it("isPendingExpired only fires for status=pending — confirmed and unsubscribed are never marked expired", async () => {
+    const { isPendingExpired } = await import("@/app/admin/subscribers/page");
+    const fixed = new Date("2026-05-01T12:00:00.000Z").getTime();
+    expect(
+      isPendingExpired(
+        {
+          emailHash: "x",
+          email: "x@gawk.dev",
+          status: "confirmed",
+          geo: { country: "GB", region: null, covered: true },
+          createdAt: "2026-04-01T00:00:00.000Z",
+        },
+        fixed,
+      ),
+    ).toBe(false);
+    expect(
+      isPendingExpired(
+        {
+          emailHash: "x",
+          email: "x@gawk.dev",
+          status: "unsubscribed",
+          geo: { country: "GB", region: null, covered: true },
+          createdAt: "2026-04-01T00:00:00.000Z",
+        },
+        fixed,
+      ),
+    ).toBe(false);
+    expect(
+      isPendingExpired(
+        {
+          emailHash: "x",
+          email: "x@gawk.dev",
+          status: "pending",
+          geo: { country: "GB", region: null, covered: true },
+          createdAt: "2026-04-01T00:00:00.000Z",
+        },
+        fixed,
+      ),
+    ).toBe(true);
   });
 });
