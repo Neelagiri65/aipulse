@@ -53,6 +53,10 @@ next-env.d.ts
 /playwright-report
 /playwright/.cache
 
+# Operator screenshots (admin/ledger views, confirmation emails, etc.)
+# can carry plaintext PII — keep them local-only on this public repo.
+/screenshots
+
 # Private docs — live in ~/Obsidian/agent-vault/projects/aipulse/.
 # Session handoffs, internal PRDs, research findings, design specs, and the
 # archived session log are intelligence, not code, and don't belong in the
