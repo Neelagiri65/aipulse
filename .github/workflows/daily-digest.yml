@@ -50,3 +50,12 @@ jobs:
             -X POST \
             "$URL")
           echo "Response: $RESPONSE"
+          # The route returns HTTP 200 even when the deliverability gate
+          # blocks the send (so cron-health can record the structured
+          # reason). curl -f therefore can't surface those failures —
+          # parse the body's ok field and fail the job ourselves.
+          OK=$(printf '%s' "$RESPONSE" | python3 -c "import json,sys; print(str(json.load(sys.stdin).get('ok',False)).lower())")
+          if [ "$OK" != "true" ]; then
+            echo "::error::digest send returned ok=false — see Response above"
+            exit 1
+          fi
