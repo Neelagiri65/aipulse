@@ -124,9 +124,9 @@ describe("composeDigest — sections", () => {
       now: NOW,
     });
     expect(body.sections.map((s) => s.id)).toEqual([
+      "benchmarks",
       "tool-health",
       "hn",
-      "benchmarks",
       "sdk-adoption",
       "labs",
     ]);

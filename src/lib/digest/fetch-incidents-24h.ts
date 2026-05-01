@@ -38,32 +38,55 @@ export async function fetchIncidents24h(
   const fetcher = opts.fetcher ?? fetchHistoricalIncidents;
   const now = opts.now ?? Date.now();
 
-  const sources: Array<Parameters<IncidentFetcher>[0]> = [
+  // Each source carries the tool id its incidents belong to so the digest
+  // can render a "View on status page" link without re-deriving the tool
+  // from the incident's name.
+  const sources: Array<{
+    toolId: string;
+    args: Parameters<IncidentFetcher>[0];
+  }> = [
     {
-      incidentsApiUrl: "https://status.claude.com/api/v2/incidents.json?limit=50",
-      cacheTag: "anthropic-status-history",
-      componentFilter: ["Claude Code"],
-      days: 1,
+      toolId: "anthropic",
+      args: {
+        incidentsApiUrl: "https://status.claude.com/api/v2/incidents.json?limit=50",
+        cacheTag: "anthropic-status-history",
+        componentFilter: ["Claude Code"],
+        days: 1,
+      },
     },
     {
-      incidentsApiUrl: "https://status.openai.com/api/v2/incidents.json?limit=50",
-      cacheTag: "openai-incidents-history",
-      days: 1,
+      toolId: "openai",
+      args: {
+        incidentsApiUrl: "https://status.openai.com/api/v2/incidents.json?limit=50",
+        cacheTag: "openai-incidents-history",
+        days: 1,
+      },
     },
     {
-      incidentsApiUrl: "https://www.githubstatus.com/api/v2/incidents.json?limit=50",
-      cacheTag: "github-status-history",
-      componentFilter: ["Copilot"],
-      days: 1,
+      toolId: "github",
+      args: {
+        incidentsApiUrl: "https://www.githubstatus.com/api/v2/incidents.json?limit=50",
+        cacheTag: "github-status-history",
+        componentFilter: ["Copilot"],
+        days: 1,
+      },
     },
     {
-      incidentsApiUrl: "https://status.windsurf.com/api/v2/incidents.json?limit=50",
-      cacheTag: "windsurf-status-history",
-      days: 1,
+      toolId: "windsurf",
+      args: {
+        incidentsApiUrl: "https://status.windsurf.com/api/v2/incidents.json?limit=50",
+        cacheTag: "windsurf-status-history",
+        days: 1,
+      },
     },
   ];
 
-  const results = await Promise.all(sources.map((s) => safeFetch(fetcher, s)));
+  const results = await Promise.all(
+    sources.map(async (s) => {
+      const list = await safeFetch(fetcher, s.args);
+      return list.map((inc) => ({ ...inc, toolId: s.toolId }));
+    }),
+  );
   const cutoff = now - ONE_DAY_MS;
   return results.flat().filter((i) => {
     const createdMs = Date.parse(i.createdAt);

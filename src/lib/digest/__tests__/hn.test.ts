@@ -62,13 +62,38 @@ describe("composeHnSection", () => {
     );
   });
 
-  it("includes the location label in detail when present", () => {
+  it("never surfaces locationLabel — it is the submitter's profile bio, not the article source, and has leaked HTML-encoded URLs in the past", () => {
     const sec = composeHnSection({
       hn: mkWire([
-        mkItem({ id: "1", title: "T", points: 1, numComments: 2, locationLabel: "London" }),
+        mkItem({
+          id: "1",
+          title: "T",
+          points: 1,
+          numComments: 2,
+          locationLabel: "Making Hacker News",
+        }),
+        mkItem({
+          id: "2",
+          title: "U",
+          points: 2,
+          numComments: 3,
+          locationLabel: "http&#x2F;&#x2F;julienchastang.com",
+        }),
       ]),
     });
-    expect(sec.items[0].detail).toContain("London");
+    for (const item of sec.items) {
+      expect(item.detail).not.toContain("Making Hacker News");
+      expect(item.detail).not.toContain("&#x2F;");
+      expect(item.detail).not.toContain("julienchastang");
+    }
+  });
+
+  it('headline says "in the last 24h" not "right now" — the digest is a snapshot, not real time', () => {
+    const sec = composeHnSection({
+      hn: mkWire([mkItem({ id: "1", title: "T", points: 1 })]),
+    });
+    expect(sec.headline).toContain("in the last 24h");
+    expect(sec.headline).not.toContain("right now");
   });
 
   it("defaults to top 5", () => {

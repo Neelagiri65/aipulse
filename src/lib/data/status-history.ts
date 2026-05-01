@@ -40,6 +40,12 @@ export type HistoricalIncident = {
   impact: IncidentImpact;
   createdAt: string;
   resolvedAt?: string;
+  /** Tool slug for downstream consumers that want to link back to the
+   *  source status page (e.g. "openai", "anthropic"). Set by aggregators
+   *  that fan out across multiple status pages — not populated by
+   *  fetchHistoricalIncidents directly, since a single fetch only knows
+   *  its own URL/tag, not a logical tool id. */
+  toolId?: string;
 };
 
 /** One day's worth of uptime data on the sparkline. */

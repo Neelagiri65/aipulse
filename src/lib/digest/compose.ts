@@ -81,10 +81,15 @@ export function composeDigest(input: ComposeDigestInput): DigestBody {
       })
     : null;
 
+  // Lead with the strongest, most-defensible content (benchmarks: real
+  // deltas with primary-source provenance), then operational signal
+  // (tool health), then community discussion (HN). Subject-line lookup
+  // (`pickLeadHook`) keys on section.id, not array index, so reordering
+  // here is safe.
   const sections: DigestSection[] = [
+    benchmarks,
     toolHealth,
     hnSection,
-    benchmarks,
     sdkAdoption,
     labs,
     ...(modelUsage ? [modelUsage] : []),

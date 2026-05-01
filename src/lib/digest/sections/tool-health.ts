@@ -43,6 +43,15 @@ function statusPageFor(toolId: string): string {
   return TOOL_STATUS_PAGES[toolId] ?? `https://status.${toolId}.com/`;
 }
 
+function formatTimeUtc(iso: string): string | null {
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return null;
+  const d = new Date(ms);
+  const h = d.getUTCHours().toString().padStart(2, "0");
+  const m = d.getUTCMinutes().toString().padStart(2, "0");
+  return `${h}:${m} UTC`;
+}
+
 function displayName(toolId: string): string {
   switch (toolId) {
     case "openai":
@@ -74,14 +83,23 @@ export function composeToolHealthSection(
 
   // 1. Incidents first — they're the authoritative record.
   for (const inc of incidents24h) {
-    const impactLabel = inc.impact === "none" ? "reported" : inc.impact;
+    const startedAt = formatTimeUtc(inc.createdAt);
+    const resolvedAt = inc.resolvedAt ? formatTimeUtc(inc.resolvedAt) : null;
+    const detailParts = [
+      startedAt ? `started ${startedAt}` : null,
+      resolvedAt ? `resolved ${resolvedAt}` : "ongoing",
+      inc.impact !== "none" ? `${inc.impact} impact` : null,
+    ].filter((p): p is string => p !== null);
+    const sourceUrl = inc.toolId ? statusPageFor(inc.toolId) : undefined;
     items.push({
       headline: inc.name,
-      detail: `${impactLabel}${
-        inc.resolvedAt ? " · resolved" : " · ongoing"
-      }`,
-      sourceLabel: "Statuspage",
+      detail: detailParts.join(" · "),
+      sourceLabel: inc.toolId
+        ? `${displayName(inc.toolId)} status page`
+        : "Statuspage",
+      sourceUrl,
     });
+    if (sourceUrl) sourceUrls.add(sourceUrl);
   }
 
   // 2. Status transitions (diff mode only).

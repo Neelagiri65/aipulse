@@ -79,3 +79,65 @@ describe("composeToolHealthSection — source citations", () => {
     expect(item.sourceUrl).toBe("https://status.openai.com/");
   });
 });
+
+describe("composeToolHealthSection — incident detail", () => {
+  it("renders started/resolved UTC timestamps so the reader can verify the window", () => {
+    const sec = composeToolHealthSection({
+      todayTools: [tool("openai", "operational")],
+      yesterdayTools: [tool("openai", "operational")],
+      incidents24h: [
+        inc({
+          name: "Elevated errors on /v1/chat",
+          createdAt: "2026-05-01T08:23:00Z",
+          resolvedAt: "2026-05-01T09:15:00Z",
+          impact: "minor",
+          toolId: "openai",
+        }),
+      ],
+    });
+    const incidentItem = sec.items.find((i) =>
+      i.headline.includes("Elevated errors"),
+    )!;
+    expect(incidentItem.detail).toContain("started 08:23 UTC");
+    expect(incidentItem.detail).toContain("resolved 09:15 UTC");
+    expect(incidentItem.detail).toContain("minor impact");
+  });
+
+  it('marks ongoing incidents as "ongoing" instead of a resolved time', () => {
+    const sec = composeToolHealthSection({
+      todayTools: [tool("openai", "operational")],
+      yesterdayTools: [tool("openai", "operational")],
+      incidents24h: [
+        inc({
+          name: "API errors",
+          createdAt: "2026-05-01T08:23:00Z",
+          resolvedAt: undefined,
+          toolId: "openai",
+        }),
+      ],
+    });
+    const incidentItem = sec.items.find((i) => i.headline === "API errors")!;
+    expect(incidentItem.detail).toContain("started 08:23 UTC");
+    expect(incidentItem.detail).toContain("ongoing");
+    expect(incidentItem.detail).not.toContain("resolved");
+  });
+
+  it("links each incident to the source tool's status page when toolId is set", () => {
+    const sec = composeToolHealthSection({
+      todayTools: [tool("openai", "operational")],
+      yesterdayTools: [tool("openai", "operational")],
+      incidents24h: [
+        inc({
+          id: "x",
+          name: "OpenAI elevated latency",
+          toolId: "openai",
+        }),
+      ],
+    });
+    const incidentItem = sec.items.find(
+      (i) => i.headline === "OpenAI elevated latency",
+    )!;
+    expect(incidentItem.sourceUrl).toBe("https://status.openai.com/");
+    expect(incidentItem.sourceLabel).toBe("OpenAI status page");
+  });
+});

@@ -32,11 +32,15 @@ export function composeHnSection(input: ComposeHnInput): DigestSection {
     .sort((a, b) => b.points - a.points)
     .slice(0, topN);
 
+  // We deliberately don't surface `locationLabel` here. It comes from the
+  // submitter's HN profile bio (rawLocation), which is unmoderated free
+  // text — past values have included the literal string "Making Hacker
+  // News" and HTML-entity-encoded URLs ("http&#x2F;&#x2F;...") that leak
+  // through React's JSX escaping. The submitter's geographical location
+  // is also low-signal for an AI-news digest.
   const items = top.map((it) => ({
     headline: it.title,
-    detail: `${it.points} points · ${it.numComments} comments${
-      it.locationLabel ? ` · ${it.locationLabel}` : ""
-    }`,
+    detail: `${it.points} points · ${it.numComments} comments`,
     sourceLabel: "news.ycombinator.com",
     sourceUrl: `https://news.ycombinator.com/item?id=${it.id}`,
   }));
@@ -47,7 +51,7 @@ export function composeHnSection(input: ComposeHnInput): DigestSection {
     headline:
       items.length === 0
         ? "HN wire is empty right now (nothing fetched)"
-        : `Top ${items.length} on HN right now`,
+        : `Top ${items.length} on HN in the last 24h`,
     items,
     sourceUrls: [HN_SOURCE_URL],
   };
