@@ -148,7 +148,13 @@ describe("handleConfirm", () => {
     expect(await redis.get(confirmTokenKey(token))).toBeNull();
   });
 
-  it("is idempotent — re-clicking the link after flip redirects to state=ok without error", async () => {
+  it("is idempotent — re-clicking the link after flip redirects to state=ok via emailHash fallback", async () => {
+    // Real-world scenario: iOS Mail / Gmail / Outlook prefetch the
+    // confirmation URL to scan for malware. That first GET deletes the
+    // token reverse-index. When the human taps the button afterwards,
+    // findByConfirmToken misses — but the HMAC-signed emailHash in the
+    // token payload still resolves to a confirmed subscriber, so we
+    // land cleanly on state=ok rather than the misleading not-found.
     const email = "already@b.com";
     const emailHash = hashEmail(email);
     const token = mintConfirm(emailHash);
@@ -157,14 +163,24 @@ describe("handleConfirm", () => {
       makeCtx(`https://gawk.dev/api/subscribe/confirm?token=${token}`),
       { subscriberClient: client, tokenSecret: SECRET },
     );
-    // The reverse-lookup is gone, so a second click will read "not-found"
-    // unless we changed the contract. For idempotency we accept not-found
-    // or ok — but the user-visible page should still land cleanly.
     const resp2 = await handleConfirm(
       makeCtx(`https://gawk.dev/api/subscribe/confirm?token=${token}`),
       { subscriberClient: client, tokenSecret: SECRET },
     );
     expect(resp2.status).toBe(302);
-    expect(resp2.headers.get("location")).toMatch(/state=(ok|not-found)/);
+    expect(resp2.headers.get("location")).toMatch(/state=ok/);
+  });
+
+  it("returns not-found only when the emailHash has no subscriber at all", async () => {
+    // Token signature valid, but Redis has no record for that emailHash.
+    // This is the genuine not-found case — distinct from the prefetch
+    // scenario above where the subscriber exists but the token-index
+    // was already consumed.
+    const token = mintConfirm("ghost-email-hash");
+    const resp = await handleConfirm(
+      makeCtx(`https://gawk.dev/api/subscribe/confirm?token=${token}`),
+      { subscriberClient: client, tokenSecret: SECRET },
+    );
+    expect(resp.headers.get("location")).toMatch(/state=not-found/);
   });
 });

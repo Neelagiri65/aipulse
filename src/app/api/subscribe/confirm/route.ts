@@ -24,6 +24,7 @@ import { verifyToken } from "@/lib/email/hash";
 import {
   deleteConfirmToken,
   findByConfirmToken,
+  readSubscriber,
   updateSubscriberStatus,
   type SubscriberClient,
 } from "@/lib/data/subscribers";
@@ -71,7 +72,24 @@ export async function handleConfirm(
   const record = await findByConfirmToken(token, {
     client: deps.subscriberClient,
   });
-  if (!record) return redirect(request, "not-found", traceId);
+  if (!record) {
+    // Token reverse-index miss. Two real-world causes:
+    //   (a) email-client link prefetch — iOS Mail / Gmail / Outlook hit
+    //       confirmation URLs to scan for malware, which consumes the
+    //       index before the human ever taps the button;
+    //   (b) the user double-clicked the link.
+    // The token signature itself is HMAC-verified above, so we trust the
+    // emailHash baked into the payload and look up the subscriber that
+    // way. If they're already confirmed, the click is a successful
+    // idempotent re-confirmation, not a "not-found".
+    const fallback = await readSubscriber(verification.payload.emailHash, {
+      client: deps.subscriberClient,
+    });
+    if (fallback?.status === "confirmed") {
+      return redirect(request, "ok", traceId);
+    }
+    return redirect(request, "not-found", traceId);
+  }
 
   if (record.status === "confirmed") {
     return redirect(request, "ok", traceId);
