@@ -917,31 +917,26 @@ export function Dashboard({
           canvas behind floating chrome; WIRE swaps in a full-screen
           chronological feed. CoverageBadge hovers over both map + globe
           so the transparency contract stays visible regardless of view.
-          paddingTop = TopBar (48px) + StatusBar (28px). */}
+          paddingTop = TopBar (48px) + StatusBar (28px). paddingBottom
+          reserves space for MetricsRow + LiveTicker + MetricTicker stack. */}
       <div
         className="fixed inset-0"
-        style={{ paddingTop: stagePaddingTop, paddingBottom: 168, zIndex: 3 }}
+        style={{ paddingTop: stagePaddingTop, paddingBottom: 196, zIndex: 3 }}
       >
         {activeTab === "map" && (
-          <div className="relative h-full w-full flex flex-col">
-            <div className="relative flex-1 min-h-0">
-              <FlatMap points={points} lastUpdatedAt={lastUpdatedAt} />
-              <CoverageBadge events={events.data} />
-              <MapLegend filters={filters} />
-              {aiConfigStranded && <AiConfigStrandedNote />}
-            </div>
-            <LiveTicker rows={wireRows} />
+          <div className="relative h-full w-full">
+            <FlatMap points={points} lastUpdatedAt={lastUpdatedAt} />
+            <CoverageBadge events={events.data} />
+            <MapLegend filters={filters} />
+            {aiConfigStranded && <AiConfigStrandedNote />}
           </div>
         )}
         {activeTab === "globe" && (
-          <div className="relative h-full w-full flex flex-col">
-            <div className="relative flex-1 min-h-0">
-              <Globe points={points} lastUpdatedAt={lastUpdatedAt} />
-              <CoverageBadge events={events.data} />
-              <MapLegend filters={filters} />
-              {aiConfigStranded && <AiConfigStrandedNote />}
-            </div>
-            <LiveTicker rows={wireRows} />
+          <div className="relative h-full w-full">
+            <Globe points={points} lastUpdatedAt={lastUpdatedAt} />
+            <CoverageBadge events={events.data} />
+            <MapLegend filters={filters} />
+            {aiConfigStranded && <AiConfigStrandedNote />}
           </div>
         )}
         {activeTab === "wire" && (
@@ -1310,7 +1305,7 @@ export function Dashboard({
         </>
       )}
 
-      {/* Four-card glance row above the scrolling ticker. */}
+      {/* Four-card glance row, sitting above the live ticker strip. */}
       <MetricsRow
         status={status.data}
         events={events.data}
@@ -1318,8 +1313,14 @@ export function Dashboard({
         eventsLoading={events.isInitialLoading}
       />
 
-      {/* Bottom metric ticker — pinned below the stage. */}
-      <div className="fixed bottom-0 left-0 right-0 z-40">
+      {/* Bottom-pinned stack: live event ticker on top of the metric
+          ticker. The live ticker is its own dedicated 28px strip so it
+          doesn't visually compete with MetricsRow above. Map+globe views
+          only — the wire view is its own full-screen feed. */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 flex flex-col">
+        {(activeTab === "map" || activeTab === "globe") && (
+          <LiveTicker rows={wireRows} />
+        )}
         <MetricTicker
           status={status.data}
           events={events.data}

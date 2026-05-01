@@ -2132,6 +2132,25 @@
   border-right: 1px solid rgba(45, 212, 191, 0.3);
 }
 
+/* Desktop refinement: compact 28px strip with a clean separator border
+   and no teal glow, so the ticker reads as a dedicated bar below the
+   metric cards rather than visually competing with them. Mobile keeps
+   the original 40px treatment because there are no overlapping cards
+   on that breakpoint. */
+@media (min-width: 768px) {
+  .ap-live-ticker {
+    height: 28px;
+    font-size: 11px;
+    border-top: 1px solid rgba(148, 163, 184, 0.22);
+    box-shadow: none;
+  }
+  .ap-live-ticker-tag {
+    padding: 0 10px;
+    font-size: 9px;
+    border-right: 1px solid rgba(45, 212, 191, 0.25);
+  }
+}
+
 .ap-live-ticker-tag-dot {
   width: 6px;
   height: 6px;
