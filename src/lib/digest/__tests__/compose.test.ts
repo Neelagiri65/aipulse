@@ -170,6 +170,100 @@ describe("composeDigest — greeting template", () => {
     });
     expect(body.greetingTemplate).toMatch(/all quiet/);
   });
+
+  it('drops "and beyond" from greeting templates — geo phrasing only mentions the country', () => {
+    const bootstrap = composeDigest({
+      today: mkSnapshot(),
+      yesterday: null,
+      hn: mkHn(),
+      incidents24h: [],
+      now: NOW,
+    });
+    const quiet = composeDigest({
+      today: mkSnapshot(),
+      yesterday: mkSnapshot(),
+      hn: mkHn(),
+      incidents24h: [],
+      now: NOW,
+    });
+    expect(bootstrap.greetingTemplate).not.toContain("and beyond");
+    expect(quiet.greetingTemplate).not.toContain("and beyond");
+  });
+});
+
+describe("composeDigest — TL;DR", () => {
+  it("emits a TL;DR for diff mode summarising what moved", () => {
+    const today = mkSnapshot();
+    const yesterday = mkSnapshot({
+      benchmarks: {
+        publishDate: "2026-04-20",
+        top3: [
+          { rank: 1, modelName: "GPT-6", organization: "OpenAI", rating: 1490 },
+          { rank: 2, modelName: "Claude Opus 4.7", organization: "Anthropic", rating: 1500 },
+          { rank: 3, modelName: "Gemini 3", organization: "Google", rating: 1480 },
+        ],
+      },
+    });
+    const incident: HistoricalIncident = {
+      id: "i1",
+      name: "OpenAI latency spike",
+      status: "resolved",
+      impact: "minor",
+      createdAt: "2026-04-22T01:00:00Z",
+      resolvedAt: "2026-04-22T02:00:00Z",
+    };
+    const body = composeDigest({
+      today,
+      yesterday,
+      hn: mkHn(),
+      incidents24h: [incident],
+      now: NOW,
+    });
+    expect(body.mode).toBe("diff");
+    expect(body.tldr).toBeTruthy();
+    expect(body.tldr!).toContain("1 tool incident");
+    expect(body.tldr!).toContain("benchmark mover");
+  });
+
+  it("does not emit a TL;DR in bootstrap or quiet modes", () => {
+    const bootstrap = composeDigest({
+      today: mkSnapshot(),
+      yesterday: null,
+      hn: mkHn(),
+      incidents24h: [],
+      now: NOW,
+    });
+    const quiet = composeDigest({
+      today: mkSnapshot(),
+      yesterday: mkSnapshot(),
+      hn: mkHn(),
+      incidents24h: [],
+      now: NOW,
+    });
+    expect(bootstrap.tldr).toBeUndefined();
+    expect(quiet.tldr).toBeUndefined();
+  });
+
+  it("threads priorIncidentCount into the tool-health headline as a baseline", () => {
+    const incident: HistoricalIncident = {
+      id: "i1",
+      name: "OpenAI latency spike",
+      status: "resolved",
+      impact: "minor",
+      createdAt: "2026-04-22T01:00:00Z",
+      resolvedAt: "2026-04-22T02:00:00Z",
+    };
+    const body = composeDigest({
+      today: mkSnapshot(),
+      yesterday: mkSnapshot(),
+      hn: mkHn(),
+      incidents24h: [incident],
+      priorIncidentCount: 3,
+      now: NOW,
+    });
+    const toolHealth = body.sections.find((s) => s.id === "tool-health")!;
+    expect(toolHealth.headline).toContain("vs 3 yesterday");
+  });
 });
 
 describe("composeDigest — determinism", () => {

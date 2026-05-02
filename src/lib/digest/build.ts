@@ -13,7 +13,7 @@
 
 import type { DailySnapshot } from "@/lib/data/snapshot";
 import type { HnWireResult } from "@/lib/data/wire-hn";
-import type { HistoricalIncident } from "@/lib/data/status-history";
+import type { Incidents48hSplit } from "@/lib/digest/fetch-incidents-24h";
 import type { ModelUsageSnapshotRow } from "@/lib/data/openrouter-types";
 import { composeDigest } from "@/lib/digest/compose";
 import type { DigestBody } from "@/lib/digest/types";
@@ -31,7 +31,7 @@ export type BuildDigestOpts = {
   now: Date;
   loadSnapshot: (date: string) => Promise<DailySnapshot | null>;
   loadHn: () => Promise<HnWireResult>;
-  loadIncidents24h: () => Promise<HistoricalIncident[]>;
+  loadIncidents24h: () => Promise<Incidents48hSplit>;
   /**
    * Optional: load the OpenRouter snapshot history (date → top-N
    * slugs). When omitted or returning fewer than 7 days, the
@@ -53,7 +53,7 @@ export async function buildDigestForDate(
   }
   const yesterday = await opts.loadSnapshot(opts.previousDate);
   const hn = await opts.loadHn();
-  const incidents24h = await opts.loadIncidents24h();
+  const incidents = await opts.loadIncidents24h();
   const modelUsageSnapshots = opts.loadModelUsageSnapshots
     ? await opts.loadModelUsageSnapshots()
     : undefined;
@@ -62,7 +62,8 @@ export async function buildDigestForDate(
       today,
       yesterday,
       hn,
-      incidents24h,
+      incidents24h: incidents.current24h,
+      priorIncidentCount: incidents.priorCount,
       now: opts.now,
       modelUsageSnapshots,
     });

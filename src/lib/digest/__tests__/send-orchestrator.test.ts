@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { sendDigestForDate, buildListId } from "@/lib/digest/send-orchestrator";
 import type { DailySnapshot } from "@/lib/data/snapshot";
 import type { HnWireResult } from "@/lib/data/wire-hn";
-import type { HistoricalIncident } from "@/lib/data/status-history";
 import type { ConfirmedSubscriberWithEmail } from "@/lib/data/subscribers";
 import type {
   DomainClient,
@@ -150,7 +149,7 @@ function mkBaseInput(opts: {
         opts.loadSnapshot ??
         (async (d: string) => (d === "2026-04-22" ? mkSnapshot(d) : null)),
       loadHn: async () => mkHn(),
-      loadIncidents24h: async () => [] as HistoricalIncident[],
+      loadIncidents24h: async () => ({ current24h: [], priorCount: 0 }),
       loadSubscribers: async () => opts.subscribers,
       batchSender: opts.batchSender,
       renderHtml: async (args) => {

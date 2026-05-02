@@ -71,12 +71,17 @@ export type ComposeToolHealthInput = {
   todayTools: SnapshotTool[];
   yesterdayTools: SnapshotTool[] | null;
   incidents24h: HistoricalIncident[];
+  /** Number of incidents in the prior 24h window (24-48h ago). When set,
+   *  the headline gains a "(vs N yesterday)" baseline so the reader can
+   *  judge whether today is normal. Omitted when the upstream fetcher
+   *  couldn't compute it — graceful degradation, no fabricated baseline. */
+  priorIncidentCount?: number;
 };
 
 export function composeToolHealthSection(
   input: ComposeToolHealthInput,
 ): DigestSection {
-  const { todayTools, yesterdayTools, incidents24h } = input;
+  const { todayTools, yesterdayTools, incidents24h, priorIncidentCount } = input;
 
   const items: DigestSectionItem[] = [];
   const sourceUrls = new Set<string>();
@@ -146,14 +151,18 @@ export function composeToolHealthSection(
 
   const mode = !isDiff ? "bootstrap" : hasMovement ? "diff" : "quiet";
 
+  const baseline =
+    priorIncidentCount !== undefined
+      ? ` (vs ${priorIncidentCount} yesterday)`
+      : "";
   const headline =
     mode === "bootstrap"
       ? `Current status of ${todayTools.length} tracked tools`
       : mode === "quiet"
-        ? "All tools operational, no incidents in the last 24h"
+        ? `All tools operational, no incidents in the last 24h${baseline}`
         : incidents24h.length > 0
-          ? `${incidents24h.length} incident${incidents24h.length === 1 ? "" : "s"} in the last 24h`
-          : "Status changes in the last 24h";
+          ? `${incidents24h.length} incident${incidents24h.length === 1 ? "" : "s"} in the last 24h${baseline}`
+          : `Status changes in the last 24h${baseline}`;
 
   return {
     id: "tool-health",

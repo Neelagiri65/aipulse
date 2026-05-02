@@ -80,6 +80,40 @@ describe("composeToolHealthSection — source citations", () => {
   });
 });
 
+describe("composeToolHealthSection — yesterday baseline", () => {
+  it('appends "(vs N yesterday)" to the headline when priorIncidentCount is provided', () => {
+    const sec = composeToolHealthSection({
+      todayTools: [tool("openai", "operational")],
+      yesterdayTools: [tool("openai", "operational")],
+      incidents24h: [inc({ name: "Today's incident", toolId: "openai" })],
+      priorIncidentCount: 3,
+    });
+    expect(sec.headline).toContain("1 incident in the last 24h");
+    expect(sec.headline).toContain("(vs 3 yesterday)");
+  });
+
+  it("omits the baseline when priorIncidentCount is undefined — graceful degradation", () => {
+    const sec = composeToolHealthSection({
+      todayTools: [tool("openai", "operational")],
+      yesterdayTools: [tool("openai", "operational")],
+      incidents24h: [inc({ name: "Today's incident", toolId: "openai" })],
+    });
+    expect(sec.headline).toContain("1 incident in the last 24h");
+    expect(sec.headline).not.toContain("vs");
+  });
+
+  it("baseline carries through to the quiet headline so 0-vs-0 reads honestly", () => {
+    const sec = composeToolHealthSection({
+      todayTools: [tool("openai", "operational")],
+      yesterdayTools: [tool("openai", "operational")],
+      incidents24h: [],
+      priorIncidentCount: 0,
+    });
+    expect(sec.mode).toBe("quiet");
+    expect(sec.headline).toContain("(vs 0 yesterday)");
+  });
+});
+
 describe("composeToolHealthSection — incident detail", () => {
   it("renders started/resolved UTC timestamps so the reader can verify the window", () => {
     const sec = composeToolHealthSection({

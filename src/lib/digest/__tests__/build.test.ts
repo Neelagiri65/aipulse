@@ -70,7 +70,7 @@ describe("buildDigestForDate — happy path", () => {
       now: new Date("2026-04-22T08:00:00Z"),
       loadSnapshot,
       loadHn: async () => mkHn(),
-      loadIncidents24h: async () => [],
+      loadIncidents24h: async () => ({ current24h: [], priorCount: 0 }),
     });
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -89,7 +89,7 @@ describe("buildDigestForDate — happy path", () => {
       now: new Date("2026-04-22T08:00:00Z"),
       loadSnapshot: async (d: string) => (d === "2026-04-22" ? today : null),
       loadHn: async () => mkHn(),
-      loadIncidents24h: async () => [],
+      loadIncidents24h: async () => ({ current24h: [], priorCount: 0 }),
     });
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.body.mode).toBe("bootstrap");
@@ -104,7 +104,7 @@ describe("buildDigestForDate — failure modes", () => {
       now: new Date("2026-04-22T08:00:00Z"),
       loadSnapshot: async () => null,
       loadHn: async () => mkHn(),
-      loadIncidents24h: async () => [],
+      loadIncidents24h: async () => ({ current24h: [], priorCount: 0 }),
     });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toBe("no-snapshot");

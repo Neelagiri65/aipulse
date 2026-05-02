@@ -29,7 +29,7 @@ import type { DigestRecipient } from "@/lib/digest/batch";
 import type { DigestBody } from "@/lib/digest/types";
 import type { DailySnapshot } from "@/lib/data/snapshot";
 import type { HnWireResult } from "@/lib/data/wire-hn";
-import type { HistoricalIncident } from "@/lib/data/status-history";
+import type { Incidents48hSplit } from "@/lib/digest/fetch-incidents-24h";
 import type { ModelUsageSnapshotRow } from "@/lib/data/openrouter-types";
 import type { ConfirmedSubscriberWithEmail } from "@/lib/data/subscribers";
 
@@ -48,7 +48,7 @@ export type SendDigestForDateInput = {
   dmarcResolver?: DmarcResolver;
   loadSnapshot: (date: string) => Promise<DailySnapshot | null>;
   loadHn: () => Promise<HnWireResult>;
-  loadIncidents24h: () => Promise<HistoricalIncident[]>;
+  loadIncidents24h: () => Promise<Incidents48hSplit>;
   /** Optional — see BuildDigestOpts.loadModelUsageSnapshots. */
   loadModelUsageSnapshots?: () => Promise<
     Record<string, ModelUsageSnapshotRow>

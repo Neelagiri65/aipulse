@@ -70,8 +70,17 @@ export type DigestBody = {
   /** Template string for the per-subscriber geo greeting. Contains the
    *  literal placeholder `{geoCountry}` when it should be replaced with
    *  the subscriber's country at render time. When no geo is known the
-   *  renderer drops the "in {geoCountry}" clause. */
+   *  renderer drops the "in {geoCountry}" clause.
+   *
+   *  In diff mode this is unused — the template renders `tldr` instead.
+   *  Kept populated so bootstrap/quiet modes still have a greeting and
+   *  archived bodies can be re-rendered identically. */
   greetingTemplate: string;
+  /** Diff-mode summary line: "1 tool incident · 5 HN stories · 4
+   *  benchmark movers". Replaces the greeting when set. Optional so
+   *  archived bodies (pre-this-field) and bootstrap/quiet modes
+   *  (where the metric counts wouldn't make sense) still render. */
+  tldr?: string;
   sections: DigestSection[];
   /** ISO of composition (not send). Useful for admin-preview timestamps
    *  and for the public `/digest/{date}` page. */

@@ -29,8 +29,11 @@ import { composeLabsSection } from "@/lib/digest/sections/labs";
 import { composeModelUsageSection } from "@/lib/digest/sections/model-usage";
 import { detectEmptyDay } from "@/lib/digest/empty-day";
 
-const GREETING_TEMPLATE = "Good morning from Gawk — here's what moved in {geoCountry} and beyond in the last 24h.";
-const GREETING_TEMPLATE_QUIET = "Good morning from Gawk — all quiet in the AI ecosystem in {geoCountry} and beyond.";
+// Diff-mode greeting is unused at render time — the template prints
+// `tldr` instead — but kept populated for archive re-rendering and as a
+// fallback when no diff content surfaces.
+const GREETING_TEMPLATE = "Good morning from Gawk — here's what moved in {geoCountry} in the last 24h.";
+const GREETING_TEMPLATE_QUIET = "Good morning from Gawk — all quiet in the AI ecosystem in {geoCountry}.";
 const GREETING_TEMPLATE_BOOTSTRAP = "Welcome to Gawk. Here's where the AI ecosystem stands right now, as seen from {geoCountry}.";
 
 export type ComposeDigestInput = {
@@ -38,6 +41,10 @@ export type ComposeDigestInput = {
   yesterday: DailySnapshot | null;
   hn: HnWireResult;
   incidents24h: HistoricalIncident[];
+  /** Count of incidents in the prior 24h window (24-48h ago). When
+   *  omitted, tool-health renders without the "(vs N yesterday)"
+   *  baseline. */
+  priorIncidentCount?: number;
   now: Date;
   /**
    * OpenRouter snapshot history (date → top-N slugs). Optional —
@@ -49,12 +56,13 @@ export type ComposeDigestInput = {
 };
 
 export function composeDigest(input: ComposeDigestInput): DigestBody {
-  const { today, yesterday, hn, incidents24h, now } = input;
+  const { today, yesterday, hn, incidents24h, priorIncidentCount, now } = input;
 
   const toolHealth = composeToolHealthSection({
     todayTools: today.tools,
     yesterdayTools: yesterday?.tools ?? null,
     incidents24h,
+    priorIncidentCount,
   });
 
   const hnSection = composeHnSection({ hn });
@@ -108,15 +116,60 @@ export function composeDigest(input: ComposeDigestInput): DigestBody {
       : mode === "quiet"
         ? GREETING_TEMPLATE_QUIET
         : GREETING_TEMPLATE;
+  const tldr =
+    mode === "diff" ? buildTldr(sections, incidents24h.length) : undefined;
 
   return {
     date: today.date,
     subject,
     mode,
     greetingTemplate,
+    tldr,
     sections,
     generatedAt: now.toISOString(),
   };
+}
+
+/** Diff-mode TL;DR: "1 tool incident · 5 HN stories · 4 benchmark movers".
+ *  Includes any populated section that would be visually obvious to the
+ *  reader as "movement". Only sections with items are listed; tool
+ *  incidents come from the raw count (not section.items length, which
+ *  also includes status transitions and current-state tiles). */
+function buildTldr(
+  sections: DigestSection[],
+  incidentCount24h: number,
+): string | undefined {
+  const parts: string[] = [];
+  if (incidentCount24h > 0) {
+    parts.push(
+      `${incidentCount24h} tool incident${incidentCount24h === 1 ? "" : "s"}`,
+    );
+  }
+  const benchmarks = sections.find((s) => s.id === "benchmarks");
+  if (benchmarks && benchmarks.mode === "diff" && benchmarks.items.length > 0) {
+    parts.push(
+      `${benchmarks.items.length} benchmark mover${benchmarks.items.length === 1 ? "" : "s"}`,
+    );
+  }
+  const sdk = sections.find((s) => s.id === "sdk-adoption");
+  if (sdk && sdk.mode === "diff" && sdk.items.length > 0) {
+    parts.push(
+      `${sdk.items.length} SDK shift${sdk.items.length === 1 ? "" : "s"}`,
+    );
+  }
+  const labs = sections.find((s) => s.id === "labs");
+  if (labs && labs.mode === "diff" && labs.items.length > 0) {
+    parts.push(
+      `${labs.items.length} lab update${labs.items.length === 1 ? "" : "s"}`,
+    );
+  }
+  const hn = sections.find((s) => s.id === "hn");
+  if (hn && hn.items.length > 0) {
+    parts.push(
+      `${hn.items.length} HN ${hn.items.length === 1 ? "story" : "stories"}`,
+    );
+  }
+  return parts.length > 0 ? parts.join(" · ") : undefined;
 }
 
 function selectBodyMode(input: {

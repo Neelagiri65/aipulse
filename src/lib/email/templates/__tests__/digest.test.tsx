@@ -122,6 +122,44 @@ describe("renderDigestHtml — sources", () => {
   });
 });
 
+describe("renderDigestHtml — TL;DR + chrome", () => {
+  it('drops the legacy "GAWK" eyebrow above the H1 — title is enough', async () => {
+    const html = await renderDigestHtml(BASE);
+    // The eyebrow was a standalone uppercase "GAWK" text node above the
+    // H1. Subject and H1 already say "Gawk —" so a third repetition was
+    // pure noise.
+    expect(html).not.toMatch(/>GAWK</);
+  });
+
+  it("renders digest.tldr in place of the greeting when set", async () => {
+    const withTldr = mkDigest({
+      tldr: "1 tool incident · 5 HN stories · 4 benchmark movers",
+    });
+    const html = await renderDigestHtml({ ...BASE, digest: withTldr });
+    expect(html).toContain("1 tool incident · 5 HN stories · 4 benchmark movers");
+    expect(html).not.toContain("Good morning from Gawk");
+  });
+
+  it("falls back to the greeting when tldr is undefined (bootstrap/quiet modes)", async () => {
+    const html = await renderDigestHtml(BASE);
+    expect(html).toContain("Good morning from Gawk");
+  });
+
+  it("renders the View on Gawk CTA in its own paragraph, separated from the share row", async () => {
+    const html = await renderDigestHtml(BASE);
+    expect(html).toContain("View on Gawk →");
+    expect(html).toContain("Share:");
+    // Structural separation: there must be a closing `</p>` between the
+    // primary CTA and the share row so they render as two stacked rows
+    // rather than the previous inline run-on.
+    const viewIdx = html.indexOf("View on Gawk →");
+    const shareIdx = html.indexOf("Share:");
+    expect(viewIdx).toBeGreaterThanOrEqual(0);
+    expect(shareIdx).toBeGreaterThan(viewIdx);
+    expect(html.slice(viewIdx, shareIdx)).toContain("</p>");
+  });
+});
+
 describe("renderDigestHtml — footer", () => {
   it("includes the per-recipient unsubscribe URL", async () => {
     const html = await renderDigestHtml(BASE);

@@ -71,11 +71,14 @@ export function DigestEmail({
       <Preview>{digest.subject}</Preview>
       <Body style={styles.body}>
         <Container style={styles.container}>
-          <Text style={styles.brand}>GAWK</Text>
           <Heading as="h1" style={styles.h1}>
             {digest.subject}
           </Heading>
-          <Text style={styles.greeting}>{greeting}</Text>
+          {digest.tldr ? (
+            <Text style={styles.tldr}>{digest.tldr}</Text>
+          ) : (
+            <Text style={styles.greeting}>{greeting}</Text>
+          )}
 
           {digest.sections.map((section) => (
             <SectionBlock
@@ -157,17 +160,19 @@ function SectionBlock({
         </Text>
       ) : null}
 
-      <Text style={styles.actions}>
-        <Link href={sectionUrl} style={styles.actionPrimary}>
+      <Text style={styles.primaryActionRow}>
+        <Link href={sectionUrl} style={styles.primaryButton}>
           View on Gawk →
         </Link>
-        {"   "}
-        <Link href={liUrl} style={styles.actionSecondary}>
-          Share on LinkedIn
+      </Text>
+      <Text style={styles.shareRow}>
+        Share:{" "}
+        <Link href={liUrl} style={styles.shareLink}>
+          LinkedIn
         </Link>
-        {"   "}
-        <Link href={xUrl} style={styles.actionSecondary}>
-          Share on X
+        {" · "}
+        <Link href={xUrl} style={styles.shareLink}>
+          X
         </Link>
       </Text>
     </Section>
@@ -234,18 +239,18 @@ const styles = {
     backgroundColor: "#111827",
     borderRadius: "12px",
   },
-  brand: {
-    fontSize: "11px",
-    fontWeight: 700,
-    letterSpacing: "0.18em",
-    color: "#2dd4bf",
-    margin: 0,
-  },
   h1: {
     fontSize: "22px",
     fontWeight: 700,
-    margin: "8px 0 16px 0",
+    margin: "0 0 12px 0",
     color: "#e6e7eb",
+  },
+  tldr: {
+    fontSize: "13px",
+    fontWeight: 600,
+    letterSpacing: "0.02em",
+    color: "#2dd4bf",
+    margin: "0 0 8px 0",
   },
   greeting: {
     fontSize: "14px",
@@ -302,12 +307,23 @@ const styles = {
     color: "#8a8f9c",
     margin: "8px 0 0 0",
   },
-  actions: {
-    fontSize: "12px",
-    margin: "14px 0 0 0",
+  primaryActionRow: { margin: "16px 0 0 0" },
+  primaryButton: {
+    display: "inline-block",
+    padding: "8px 14px",
+    fontSize: "13px",
+    fontWeight: 600,
+    color: "#0b0f17",
+    backgroundColor: "#2dd4bf",
+    borderRadius: "6px",
+    textDecoration: "none",
   },
-  actionPrimary: { color: "#2dd4bf", fontWeight: 600 },
-  actionSecondary: { color: "#93c5fd" },
+  shareRow: {
+    fontSize: "11px",
+    color: "#8a8f9c",
+    margin: "8px 0 0 0",
+  },
+  shareLink: { color: "#93c5fd" },
   hr: { borderColor: "#1f2937", margin: "28px 0 16px 0" },
   footer: { fontSize: "11px", color: "#6b7280", lineHeight: "18px" },
   link: { color: "#93c5fd" },

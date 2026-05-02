@@ -58,10 +58,10 @@ export default async function AdminDigestPreviewPage({
     loadSnapshot: (d) => readSnapshot(d),
     loadHn: () => readWire(),
     // Incidents-24h wiring lands with Issue 9's send pipeline; for the
-    // preview we pass an empty list so the operator can at least see
+    // preview we pass an empty split so the operator can at least see
     // the snapshot-driven sections. Tool Health still renders from
     // the snapshot's `tools[]` state.
-    loadIncidents24h: async () => [],
+    loadIncidents24h: async () => ({ current24h: [], priorCount: 0 }),
     loadModelUsageSnapshots: () => redisOpenRouterStore.readSnapshots(),
   });
 
