@@ -40,7 +40,7 @@ describe("isCronStale", () => {
   it("treats a success within 2× interval as fresh (tolerates one missed tick)", () => {
     const now = Date.parse("2026-04-21T12:00:00Z");
     const record = mkRecord("wire-ingest-hn", {
-      lastSuccessAt: "2026-04-21T10:01:00Z", // 119 min ago, 2× interval = 120 min
+      lastSuccessAt: "2026-04-21T08:01:00Z", // 239 min ago, 2× interval = 240 min
     });
     expect(isCronStale(record, now)).toBe(false);
   });
@@ -48,7 +48,7 @@ describe("isCronStale", () => {
   it("flags a success older than 2× interval as stale", () => {
     const now = Date.parse("2026-04-21T12:00:00Z");
     const record = mkRecord("wire-ingest-hn", {
-      lastSuccessAt: "2026-04-21T09:59:00Z", // 121 min ago, 2× interval = 120 min
+      lastSuccessAt: "2026-04-21T07:59:00Z", // 241 min ago, 2× interval = 240 min
     });
     expect(isCronStale(record, now)).toBe(true);
   });
@@ -77,7 +77,7 @@ describe("isCronStale", () => {
 describe("CRON_WORKFLOWS registry", () => {
   it("matches the expected cadences of the monitored workflows", () => {
     expect(CRON_WORKFLOWS["globe-ingest"].expectedIntervalMinutes).toBe(30);
-    expect(CRON_WORKFLOWS["wire-ingest-hn"].expectedIntervalMinutes).toBe(60);
+    expect(CRON_WORKFLOWS["wire-ingest-hn"].expectedIntervalMinutes).toBe(120);
     expect(CRON_WORKFLOWS["wire-ingest-rss"].expectedIntervalMinutes).toBe(30);
     expect(
       CRON_WORKFLOWS["registry-backfill-events"].expectedIntervalMinutes,

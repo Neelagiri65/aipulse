@@ -1,11 +1,16 @@
 /**
  * CommunityLink — single-source render for the "Community" external link.
  *
- * Reads `NEXT_PUBLIC_DISCORD_INVITE_URL` at render time. The env var name
- * is historical — the URL it carries is the active community channel,
- * which today is GitHub Discussions while the Discord server is being
- * provisioned. When unset, renders nothing — graceful degradation per
- * CLAUDE.md, never a broken `href=""`.
+ * Reads `NEXT_PUBLIC_COMMUNITY_URL` at render time, with a fallback to
+ * the legacy `NEXT_PUBLIC_DISCORD_INVITE_URL` so existing Vercel envs
+ * keep working until they're renamed at next redeploy. The URL carries
+ * the active community channel, which today is GitHub Discussions while
+ * the Discord server is being provisioned (the original name predates
+ * that pivot). When neither is set, renders nothing — graceful
+ * degradation per CLAUDE.md, never a broken `href=""`.
+ *
+ * Both env vars are statically referenced so Next's build-time inlining
+ * resolves the fallback chain correctly in client bundles.
  *
  * Two variants:
  *   - "compact" (default): matches the StatusBar / mobile-topbar tone for
@@ -26,7 +31,9 @@ export type CommunityLinkProps = {
 export function CommunityLink({
   variant = "compact",
 }: CommunityLinkProps = {}): React.JSX.Element | null {
-  const url = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
+  const url =
+    process.env.NEXT_PUBLIC_COMMUNITY_URL ??
+    process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
   if (!url) return null;
 
   if (variant === "footer") {
