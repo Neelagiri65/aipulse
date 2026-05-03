@@ -45,7 +45,10 @@ import {
   type FilterState,
 } from "@/components/chrome/FilterPanel";
 import { LiveTicker } from "@/components/map/LiveTicker";
-import { TopMoversLine } from "@/components/map/TopMoversLine";
+import {
+  TopMoversLine,
+  type RegionalDeltasDto,
+} from "@/components/map/TopMoversLine";
 import { MapLegend } from "@/components/chrome/MapLegend";
 import { usePolledEndpoint } from "@/lib/hooks/use-polled-endpoint";
 import { PENDING_SOURCES, VERIFIED_SOURCES } from "@/lib/data-sources";
@@ -133,6 +136,11 @@ const MODEL_USAGE_POLL_MS = 5 * 60 * 1000;
 // cache TTL of /api/panels/agents — sub-minute polling would just
 // thrash the edge layer with no fresher data.
 const AGENTS_POLL_MS = 5 * 60 * 1000;
+// Regional deltas: route reads the live LRANGE + yesterday's snapshot
+// blob; the snapshot only updates once daily but the live current-24h
+// component shifts every few minutes as new events land. 5-min poll
+// matches the edge cache TTL of the route (s-maxage=300).
+const REGIONAL_DELTAS_POLL_MS = 5 * 60 * 1000;
 // Feed: composer is invoked per request and downstream caches sit at
 // 60s (matches the mobile FeedView cadence). The desktop poll is here
 // only to keep the highlights strip moving with the same heartbeat as
@@ -230,6 +238,10 @@ export function Dashboard({
   const agents = usePolledEndpoint<AgentsViewDto>(
     "/api/panels/agents",
     AGENTS_POLL_MS,
+  );
+  const regionalDeltas = usePolledEndpoint<RegionalDeltasDto>(
+    "/api/globe-events/regional-deltas",
+    REGIONAL_DELTAS_POLL_MS,
   );
   const cronHealth = usePolledEndpoint<CronHealthResult>(
     "/api/cron-health",
@@ -1389,7 +1401,10 @@ export function Dashboard({
       <div className="fixed bottom-0 left-0 right-0 z-40 flex flex-col">
         {(activeTab === "map" || activeTab === "globe") && (
           <>
-            <TopMoversLine points={livePoints} />
+            <TopMoversLine
+              points={livePoints}
+              regionalDeltas={regionalDeltas.data ?? null}
+            />
             <LiveTicker rows={wireRows} />
           </>
         )}
