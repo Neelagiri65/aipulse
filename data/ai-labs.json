@@ -556,5 +556,37 @@
       { "owner": "ByteDance-Seed", "repo": "Seed-OSS", "sourceUrl": "https://github.com/ByteDance-Seed/Seed-OSS" },
       { "owner": "ByteDance-Seed", "repo": "BAGEL", "sourceUrl": "https://github.com/ByteDance-Seed/BAGEL" }
     ]
+  },
+  {
+    "id": "sarvam-bengaluru",
+    "displayName": "Sarvam AI",
+    "kind": "industry",
+    "city": "Bengaluru",
+    "country": "IN",
+    "lat": 12.9789,
+    "lng": 77.5917,
+    "url": "https://sarvam.ai",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Sarvam_AI",
+    "orgs": ["sarvamai"],
+    "repos": [
+      { "owner": "sarvamai", "repo": "sarvam-ai-cookbook", "sourceUrl": "https://github.com/sarvamai/sarvam-ai-cookbook" },
+      { "owner": "sarvamai", "repo": "skills", "sourceUrl": "https://github.com/sarvamai/skills" }
+    ]
+  },
+  {
+    "id": "krutrim-bengaluru",
+    "displayName": "Krutrim AI Labs",
+    "kind": "industry",
+    "city": "Bengaluru",
+    "country": "IN",
+    "lat": 12.9789,
+    "lng": 77.5917,
+    "url": "https://ai-labs.olakrutrim.com",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Bhavish_Aggarwal",
+    "orgs": ["ola-krutrim"],
+    "repos": [
+      { "owner": "ola-krutrim", "repo": "Dhwani", "sourceUrl": "https://github.com/ola-krutrim/Dhwani" },
+      { "owner": "ola-krutrim", "repo": "Vyakyarth", "sourceUrl": "https://github.com/ola-krutrim/Vyakyarth" }
+    ]
   }
 ]
