@@ -127,9 +127,17 @@ describe("handleSubscribe — happy path", () => {
     expect(allHrefs.some((h) => h.includes("/api/subscribe/confirm?token="))).toBe(
       true,
     );
+    // S48h decision (commit c3a0428, "feat(email): rewrite confirmation
+    // template for clarity + recovery"): the pre-confirmation email
+    // DELIBERATELY does not render an unsubscribe link — the recipient
+    // hasn't agreed to anything yet, and "ignore this email and no
+    // address will be added" is the correct opt-out before consent.
+    // The unsub token IS still generated and stored (used by the
+    // post-confirmation daily digest), it just isn't surfaced in the
+    // confirmation email body. Assert both halves of that contract.
     expect(
       allHrefs.some((h) => h.includes("/api/subscribe/unsubscribe?token=")),
-    ).toBe(true);
+    ).toBe(false);
 
     const stored = await redis.get(subscriberKey(hashEmail("user@example.com")));
     expect(stored).toBeTruthy();
