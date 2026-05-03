@@ -96,6 +96,8 @@ function AgentRow({ row, rank }: { row: AgentRowView; rank: number }) {
   const stars = formatCount(row.stars);
   const pushed = formatRelative(row.pushedAt);
   const deltaText = formatDelta(row.weeklyDeltaPct, row.deltaState);
+  const downloadsStaleAge = formatStaleAge(row.weeklyDownloadsStaleSince);
+  const githubStaleAge = formatStaleAge(row.githubStaleSince);
   return (
     <li
       className="rounded-md border border-border/40 bg-card/30 p-2 text-[11px] leading-snug"
@@ -122,6 +124,7 @@ function AgentRow({ row, rank }: { row: AgentRowView; rank: number }) {
           {downloads}{" "}
           <span className="text-muted-foreground/60">{language}/wk</span>
         </span>
+        {downloadsStaleAge ? <StalePill age={downloadsStaleAge} source="downloads" /> : null}
         <DeltaCell text={deltaText} state={row.deltaState} pct={row.weeklyDeltaPct} />
         <span title={`${row.stars?.toLocaleString() ?? "—"} stars`}>
           {stars} <span className="text-muted-foreground/60">★</span>
@@ -132,6 +135,7 @@ function AgentRow({ row, rank }: { row: AgentRowView; rank: number }) {
         >
           pushed {pushed}
         </span>
+        {githubStaleAge ? <StalePill age={githubStaleAge} source="github" /> : null}
       </div>
       {row.caveat ? (
         <p className="mt-1 pl-7 text-[9px] leading-snug text-muted-foreground/70">
@@ -139,6 +143,31 @@ function AgentRow({ row, rank }: { row: AgentRowView; rank: number }) {
         </p>
       ) : null}
     </li>
+  );
+}
+
+/** Amber pill rendered when a value was carried forward from a prior
+ *  ingest because today's source fetch failed. Same visual language as
+ *  LabsPanel's existing stale pill. The pill's presence is the trust
+ *  signal: "this number is real, but it's not from today's run." */
+function StalePill({
+  age,
+  source,
+}: {
+  age: string;
+  source: "downloads" | "github";
+}): React.ReactElement {
+  const title =
+    source === "downloads"
+      ? `Last fresh download fetch ${age} — value carried forward from the previous successful run.`
+      : `Last fresh GitHub fetch ${age} — value carried forward from the previous successful run.`;
+  return (
+    <span
+      className="shrink-0 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-[1px] text-[8px] tracking-wider text-amber-300"
+      title={title}
+    >
+      stale {age}
+    </span>
   );
 }
 
@@ -293,4 +322,18 @@ function formatRelative(iso: string | null): string {
   if (hrs >= 1) return `${hrs}h ago`;
   if (mins >= 1) return `${mins}m ago`;
   return "just now";
+}
+
+/** Compact age string for the stale pill: "3h" / "2d" — never "minutes",
+ *  since a sub-hour stale isn't worth flagging (next run is imminent). */
+function formatStaleAge(iso: string | null): string | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return null;
+  const ageMs = Date.now() - t;
+  const hrs = Math.floor(ageMs / (60 * 60 * 1000));
+  if (hrs < 1) return null;
+  const days = Math.floor(ageMs / (24 * 60 * 60 * 1000));
+  if (days >= 1) return `${days}d`;
+  return `${hrs}h`;
 }

@@ -44,6 +44,19 @@ export type AgentFrameworkSnapshot = {
   pushedAt: string | null;
   /** GH `archived` flag — true means the owner explicitly archived the repo. */
   archived: boolean | null;
+  /**
+   * Per-source last-known-good staleness. ISO of the run when the source's
+   * data was LAST freshly fetched. `null` here means "fresh THIS run".
+   * Populated only by the ingest merge — `fetchAgentSnapshots` itself
+   * always sets these to null since it's looking only at the raw fetch.
+   *
+   * Trust contract: a panel showing "9.6M · stale 4h" is honest; a panel
+   * showing "—" when the framework actually has 9.6M weekly downloads
+   * is biased toward "this is dead" (S53 inference fix).
+   */
+  pypiStaleSince: string | null;
+  npmStaleSince: string | null;
+  githubStaleSince: string | null;
   fetchErrors: Array<{ source: AgentFetchSource; message: string }>;
 };
 
@@ -140,6 +153,12 @@ async function fetchOneFramework(
     openIssues,
     pushedAt,
     archived,
+    // Fresh-fetch is always staleSince=null; the ingest merge stamps
+    // staleSince to the run's ISO when a source fails AND a prior
+    // value exists to carry forward.
+    pypiStaleSince: null,
+    npmStaleSince: null,
+    githubStaleSince: null,
     fetchErrors: errors,
   };
 }

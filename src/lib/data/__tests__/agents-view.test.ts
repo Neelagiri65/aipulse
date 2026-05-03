@@ -71,6 +71,9 @@ function snap(
     openIssues: 10,
     pushedAt: ghOverrides.pushedAt ?? "2026-05-03T01:00:00Z",
     archived: ghOverrides.archived ?? false,
+    pypiStaleSince: null,
+    npmStaleSince: null,
+    githubStaleSince: null,
     fetchErrors: [],
   };
 }
@@ -221,6 +224,108 @@ describe("assembleAgentsView", () => {
     // bottom (legacy + dormant) regardless of their numbers.
     expect(ids.slice(0, 2)).toEqual(["crewai", "langgraph"]);
     expect(ids.slice(2)).toEqual(expect.arrayContaining(["autogpt", "sweep"]));
+  });
+
+  it("propagates pypiStaleSince onto weeklyDownloadsStaleSince when within the 7d cutoff", () => {
+    const result = assembleAgentsView({
+      registry: [REG_ALIVE_PYPI],
+      current: {
+        fetchedAt: "2026-05-03",
+        frameworks: [
+          {
+            ...snap("crewai", 1_700_000),
+            pypiStaleSince: "2026-05-01T06:30:00Z", // 2 days stale, within cutoff
+          },
+        ],
+      },
+      sevenDaysAgo: null,
+      now: () => NOW,
+    });
+    const row = result.rows[0];
+    expect(row.weeklyDownloads).toBe(1_700_000);
+    expect(row.weeklyDownloadsStaleSince).toBe("2026-05-01T06:30:00Z");
+  });
+
+  it("hard cutoff: weeklyDownloads drops to null when staleSince > 7 days old", () => {
+    const result = assembleAgentsView({
+      registry: [REG_ALIVE_PYPI],
+      current: {
+        fetchedAt: "2026-05-03",
+        frameworks: [
+          {
+            ...snap("crewai", 1_700_000),
+            pypiStaleSince: "2026-04-25T06:30:00Z", // 8 days old, beyond 7d cutoff
+          },
+        ],
+      },
+      sevenDaysAgo: null,
+      now: () => NOW,
+    });
+    const row = result.rows[0];
+    expect(row.weeklyDownloads).toBeNull();
+    expect(row.weeklyDownloadsStaleSince).toBeNull();
+  });
+
+  it("worst-of: when both pypi and npm are stale, the older staleSince wins", () => {
+    const result = assembleAgentsView({
+      registry: [REG_ALIVE_FULL],
+      current: {
+        fetchedAt: "2026-05-03",
+        frameworks: [
+          {
+            ...snap("langgraph", 13_000_000),
+            pypiStaleSince: "2026-05-02T06:30:00Z", // 1d
+            npmStaleSince: "2026-04-30T06:30:00Z", // 3d (worst)
+          },
+        ],
+      },
+      sevenDaysAgo: null,
+      now: () => NOW,
+    });
+    expect(result.rows[0].weeklyDownloadsStaleSince).toBe(
+      "2026-04-30T06:30:00Z",
+    );
+  });
+
+  it("github stale within cutoff: stars + pushedAt + archived all propagate", () => {
+    const result = assembleAgentsView({
+      registry: [REG_ALIVE_FULL],
+      current: {
+        fetchedAt: "2026-05-03",
+        frameworks: [
+          {
+            ...snap("langgraph", 13_000_000, { stars: 31_111 }),
+            githubStaleSince: "2026-05-02T06:30:00Z", // 1d, within cutoff
+          },
+        ],
+      },
+      sevenDaysAgo: null,
+      now: () => NOW,
+    });
+    const row = result.rows[0];
+    expect(row.stars).toBe(31_111);
+    expect(row.githubStaleSince).toBe("2026-05-02T06:30:00Z");
+  });
+
+  it("github stale beyond cutoff: stars / pushedAt / archived all drop to null", () => {
+    const result = assembleAgentsView({
+      registry: [REG_ALIVE_FULL],
+      current: {
+        fetchedAt: "2026-05-03",
+        frameworks: [
+          {
+            ...snap("langgraph", 13_000_000, { stars: 31_111 }),
+            githubStaleSince: "2026-04-25T06:30:00Z", // 8d, beyond cutoff
+          },
+        ],
+      },
+      sevenDaysAgo: null,
+      now: () => NOW,
+    });
+    const row = result.rows[0];
+    expect(row.stars).toBeNull();
+    expect(row.pushedAt).toBeNull();
+    expect(row.githubStaleSince).toBeNull();
   });
 
   it("preserves caveats from the registry verbatim onto each row", () => {

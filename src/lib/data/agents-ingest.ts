@@ -24,11 +24,74 @@ import {
 import {
   fetchAgentSnapshots,
   type AgentFetchResult,
+  type AgentFrameworkSnapshot,
 } from "@/lib/data/agents-fetch";
 import {
+  readAgentsLatest,
   writeAgentsLatest,
   writeAgentsSnapshot,
 } from "@/lib/data/agents-store";
+
+/**
+ * Per-source merge: when a fresh fetch returned null AND we have a prior
+ * value to carry forward, swap in the prior value and stamp staleSince.
+ * Pure — takes (current snapshot, prior snapshot, run ISO), returns the
+ * merged snapshot with carry-forward applied.
+ *
+ * Three cases per source (pypi / npm / github):
+ *   1. Fresh fetch succeeded → keep current value, staleSince=null.
+ *   2. Fresh fetch failed, no prior → keep null, staleSince=null
+ *      (true cold-start gap; the panel renders "—").
+ *   3. Fresh fetch failed, prior exists → carry prior value, stamp
+ *      staleSince. If prior was already stale, keep its older
+ *      staleSince so the age compounds honestly.
+ *
+ * Counterintuitive case: fresh GH fetch may succeed for stars but the
+ * fetcher treats GH as a single atomic source (one HTTP call returns
+ * all four GH fields). So `githubStaleSince` covers stars + openIssues
+ * + pushedAt + archived as a unit.
+ */
+export function mergeWithPriorSnapshot(
+  current: AgentFrameworkSnapshot,
+  prior: AgentFrameworkSnapshot | null,
+  runIso: string,
+): AgentFrameworkSnapshot {
+  const merged: AgentFrameworkSnapshot = { ...current };
+
+  // PyPI
+  const pypiFresh = !current.fetchErrors.some((e) => e.source === "pypi");
+  if (!pypiFresh && current.pypiWeeklyDownloads === null && prior?.pypiWeeklyDownloads !== null && prior?.pypiWeeklyDownloads !== undefined) {
+    merged.pypiWeeklyDownloads = prior.pypiWeeklyDownloads;
+    merged.pypiStaleSince = prior.pypiStaleSince ?? runIso;
+  }
+
+  // npm
+  const npmFresh = !current.fetchErrors.some((e) => e.source === "npm");
+  if (!npmFresh && current.npmWeeklyDownloads === null && prior?.npmWeeklyDownloads !== null && prior?.npmWeeklyDownloads !== undefined) {
+    merged.npmWeeklyDownloads = prior.npmWeeklyDownloads;
+    merged.npmStaleSince = prior.npmStaleSince ?? runIso;
+  }
+
+  // GitHub (atomic — all four fields share one fetch)
+  const ghFresh = !current.fetchErrors.some((e) => e.source === "github");
+  if (!ghFresh && prior) {
+    if (current.stars === null && prior.stars !== null) merged.stars = prior.stars;
+    if (current.openIssues === null && prior.openIssues !== null) merged.openIssues = prior.openIssues;
+    if (current.pushedAt === null && prior.pushedAt !== null) merged.pushedAt = prior.pushedAt;
+    if (current.archived === null && prior.archived !== null) merged.archived = prior.archived;
+    if (merged.stars !== null || merged.pushedAt !== null) {
+      merged.githubStaleSince = prior.githubStaleSince ?? runIso;
+    }
+  }
+
+  // Recompute weeklyDownloads from the (possibly merged) per-source values.
+  merged.weeklyDownloads =
+    merged.pypiWeeklyDownloads === null && merged.npmWeeklyDownloads === null
+      ? null
+      : (merged.pypiWeeklyDownloads ?? 0) + (merged.npmWeeklyDownloads ?? 0);
+
+  return merged;
+}
 
 export type AgentsIngestResult = {
   ok: boolean;
@@ -50,6 +113,8 @@ export type AgentsIngestOptions = {
   ghToken?: string;
   /** Override the registry slate — tests inject a smaller list. */
   registry?: readonly AgentFramework[];
+  /** Override read of the prior `agents:latest` blob (for merge). */
+  readPriorLatest?: () => Promise<AgentFetchResult | null>;
   /** Override write functions — tests pass in spies. */
   writeLatest?: (blob: AgentFetchResult) => Promise<void>;
   writeSnapshot?: (date: string, blob: AgentFetchResult) => Promise<void>;
@@ -61,6 +126,7 @@ export async function runAgentsIngest(
   const registry = opts.registry ?? AGENT_FRAMEWORKS;
   const now = opts.now ?? (() => new Date());
   const ghToken = opts.ghToken ?? process.env.GH_TOKEN;
+  const readPriorLatest = opts.readPriorLatest ?? readAgentsLatest;
   const writeLatest = opts.writeLatest ?? writeAgentsLatest;
   const writeSnapshot = opts.writeSnapshot ?? writeAgentsSnapshot;
 
@@ -70,7 +136,29 @@ export async function runAgentsIngest(
     ghToken,
   });
 
-  const succeeded = fetchResult.frameworks.filter(
+  // Merge per-source last-known-good from the prior `agents:latest` blob.
+  // Tombstone trust contract: a panel cell that says "9.6M · stale 4h" is
+  // honest; a blank "—" next to "Sweep · dormant" reads as "this is also
+  // dead" even when the framework actually has 9.6M weekly downloads
+  // (S53 inference fix).
+  const prior = await readPriorLatest();
+  const priorById = new Map<string, AgentFrameworkSnapshot>();
+  if (prior) {
+    for (const f of prior.frameworks) priorById.set(f.id, f);
+  }
+  const mergedFrameworks = fetchResult.frameworks.map((cur) =>
+    mergeWithPriorSnapshot(cur, priorById.get(cur.id) ?? null, fetchResult.fetchedAt),
+  );
+  const mergedResult: AgentFetchResult = {
+    fetchedAt: fetchResult.fetchedAt,
+    frameworks: mergedFrameworks,
+  };
+
+  // Success gate considers MERGED state — if the merge restored a value,
+  // that framework is "succeeded" for the purposes of ok:true. A whole-
+  // slate failure (zero usable fields across all 8 frameworks) still
+  // returns ok:false and leaves the previous blob untouched.
+  const succeeded = mergedResult.frameworks.filter(
     (f) =>
       f.weeklyDownloads !== null ||
       f.stars !== null ||
@@ -79,13 +167,16 @@ export async function runAgentsIngest(
   ).length;
 
   const ok = succeeded > 0;
-  const snapshotDate = fetchResult.fetchedAt.slice(0, 10);
+  const snapshotDate = mergedResult.fetchedAt.slice(0, 10);
 
   if (ok) {
-    await writeLatest(fetchResult);
-    await writeSnapshot(snapshotDate, fetchResult);
+    await writeLatest(mergedResult);
+    await writeSnapshot(snapshotDate, mergedResult);
   }
 
+  // Failures list comes from the RAW fetch, not the merged result —
+  // it's the diagnostic trail of "what couldn't we refresh this run",
+  // independent of whether the merge papered over the gap.
   const failures = fetchResult.frameworks
     .filter((f) => f.fetchErrors.length > 0)
     .map((f) => ({
@@ -95,7 +186,7 @@ export async function runAgentsIngest(
 
   return {
     ok,
-    fetchedAt: fetchResult.fetchedAt,
+    fetchedAt: mergedResult.fetchedAt,
     snapshotDate,
     attempted: registry.length,
     succeeded,
