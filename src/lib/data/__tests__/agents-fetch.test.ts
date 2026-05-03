@@ -73,6 +73,10 @@ const baseOpts = (fetchImpl: typeof fetch): AgentFetchOptions => ({
   fetchImpl,
   now: () => NOW,
   ghToken: "test-token",
+  // Skip the inter-framework throttle in unit tests so the suite
+  // doesn't pay 250ms per fixture × 8 frameworks. Production keeps
+  // the default 250ms to stay under pypistats' 429 threshold.
+  perFrameworkDelayMs: 0,
 });
 
 describe("fetchAgentSnapshots", () => {
@@ -266,6 +270,52 @@ describe("fetchAgentSnapshots", () => {
     const init = call[1] as RequestInit | undefined;
     const headers = init?.headers as Record<string, string> | undefined;
     expect(headers?.Authorization).toBe("Bearer test-token");
+  });
+
+  it("throttles between frameworks via the injected sleep — N-1 calls for N frameworks", async () => {
+    const fetchImpl = buildHandler({
+      "pypistats.org": () =>
+        jsonResponse({ data: { last_day: 1, last_week: 100, last_month: 1000 } }),
+      "api.github.com": () =>
+        jsonResponse({
+          stargazers_count: 10,
+          open_issues_count: 1,
+          pushed_at: "2026-05-01T00:00:00Z",
+          archived: false,
+        }),
+    });
+    const sleep = vi.fn(async () => {});
+    await fetchAgentSnapshots([FW_PYPI_ONLY, FW_PYPI_ONLY, FW_PYPI_ONLY], {
+      fetchImpl,
+      now: () => NOW,
+      perFrameworkDelayMs: 250,
+      sleep,
+    });
+    // 3 frameworks → 2 inter-framework sleeps.
+    expect(sleep).toHaveBeenCalledTimes(2);
+    expect(sleep).toHaveBeenCalledWith(250);
+  });
+
+  it("does not sleep when perFrameworkDelayMs is 0", async () => {
+    const fetchImpl = buildHandler({
+      "pypistats.org": () =>
+        jsonResponse({ data: { last_day: 1, last_week: 100, last_month: 1000 } }),
+      "api.github.com": () =>
+        jsonResponse({
+          stargazers_count: 10,
+          open_issues_count: 1,
+          pushed_at: "2026-05-01T00:00:00Z",
+          archived: false,
+        }),
+    });
+    const sleep = vi.fn(async () => {});
+    await fetchAgentSnapshots([FW_PYPI_ONLY, FW_PYPI_ONLY], {
+      fetchImpl,
+      now: () => NOW,
+      perFrameworkDelayMs: 0,
+      sleep,
+    });
+    expect(sleep).not.toHaveBeenCalled();
   });
 
   it("preserves framework order from input", async () => {

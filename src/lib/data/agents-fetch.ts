@@ -57,7 +57,16 @@ export type AgentFetchOptions = {
   now?: () => Date;
   /** GitHub PAT for the `Authorization: Bearer ...` header. */
   ghToken?: string;
+  /** Inter-framework throttle in ms. pypistats returns 429 on tight
+   *  back-to-back fan-out (observed session 52: 3 of 7 PyPI calls
+   *  rate-limited within ~1s). 250ms spaces 8 frameworks across ~2s
+   *  which pypistats handles cleanly. Tests pass 0 to skip the wait. */
+  perFrameworkDelayMs?: number;
+  /** Sleep impl — tests pass a no-op or a vi.fn to verify call count. */
+  sleep?: (ms: number) => Promise<void>;
 };
+
+const DEFAULT_DELAY_MS = 250;
 
 export async function fetchAgentSnapshots(
   frameworks: readonly AgentFramework[],
@@ -65,10 +74,14 @@ export async function fetchAgentSnapshots(
 ): Promise<AgentFetchResult> {
   const fetchImpl = opts.fetchImpl ?? fetch;
   const now = opts.now ?? (() => new Date());
+  const delayMs = opts.perFrameworkDelayMs ?? DEFAULT_DELAY_MS;
+  const sleep =
+    opts.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
 
   const snapshots: AgentFrameworkSnapshot[] = [];
-  for (const fw of frameworks) {
-    snapshots.push(await fetchOneFramework(fw, fetchImpl, opts.ghToken));
+  for (let i = 0; i < frameworks.length; i++) {
+    if (i > 0 && delayMs > 0) await sleep(delayMs);
+    snapshots.push(await fetchOneFramework(frameworks[i], fetchImpl, opts.ghToken));
   }
 
   return { frameworks: snapshots, fetchedAt: now().toISOString() };
