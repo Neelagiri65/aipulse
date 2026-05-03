@@ -15,6 +15,7 @@ import type { DailySnapshot } from "@/lib/data/snapshot";
 import type { HnWireResult } from "@/lib/data/wire-hn";
 import type { Incidents48hSplit } from "@/lib/digest/fetch-incidents-24h";
 import type { ModelUsageSnapshotRow } from "@/lib/data/openrouter-types";
+import type { AgentsViewDto } from "@/lib/data/agents-view";
 import { composeDigest } from "@/lib/digest/compose";
 import type { DigestBody } from "@/lib/digest/types";
 
@@ -38,6 +39,13 @@ export type BuildDigestOpts = {
    * Model Usage section silently self-gates and is not emitted.
    */
   loadModelUsageSnapshots?: () => Promise<Record<string, ModelUsageSnapshotRow>>;
+  /**
+   * Optional: load the assembled Agents view (today + 7d-old delta).
+   * When omitted or returning null, the Agents section is silently
+   * dropped. Section composer is movement-gated so a populated DTO
+   * with no rows above the threshold also drops the section.
+   */
+  loadAgentsView?: () => Promise<AgentsViewDto | null>;
 };
 
 export async function buildDigestForDate(
@@ -57,6 +65,7 @@ export async function buildDigestForDate(
   const modelUsageSnapshots = opts.loadModelUsageSnapshots
     ? await opts.loadModelUsageSnapshots()
     : undefined;
+  const agents = opts.loadAgentsView ? await opts.loadAgentsView() : null;
   try {
     const body = composeDigest({
       today,
@@ -66,6 +75,7 @@ export async function buildDigestForDate(
       priorIncidentCount: incidents.priorCount,
       now: opts.now,
       modelUsageSnapshots,
+      agents,
     });
     return { ok: true, body };
   } catch (e) {

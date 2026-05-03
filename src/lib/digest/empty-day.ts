@@ -3,8 +3,13 @@
  *
  * A day is "quiet" iff:
  *   - no tool-health incidents were observed in the last 24h, AND
- *   - every diff-bearing section (benchmarks, sdk-adoption, labs,
- *     tool-health) is in `mode: "quiet"`.
+ *   - every diff-bearing section (benchmarks, sdk-adoption, agents,
+ *     labs, tool-health) is in `mode: "quiet"`.
+ *
+ * Agents are movement-gated upstream — the section only appears in
+ * `sections` when at least one framework's |delta| exceeded the
+ * threshold. So if an agents section is present here at all, it is by
+ * definition `mode: "diff"` and the day is not quiet.
  *
  * HN is deliberately excluded from the quiet-detection logic: the HN
  * wire always has content, and its presence should never block the
@@ -19,6 +24,7 @@ const DIFF_BEARING_SECTIONS = new Set<DigestSection["id"]>([
   "tool-health",
   "benchmarks",
   "sdk-adoption",
+  "agents",
   "labs",
 ]);
 

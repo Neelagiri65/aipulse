@@ -39,6 +39,12 @@ import { readWire } from "@/lib/data/hn-store";
 import { fetchIncidents24h } from "@/lib/digest/fetch-incidents-24h";
 import { redisOpenRouterStore } from "@/lib/data/openrouter-store";
 import {
+  readAgentsLatest,
+  readAgentsSnapshot,
+} from "@/lib/data/agents-store";
+import { assembleAgentsView } from "@/lib/data/agents-view";
+import { AGENT_FRAMEWORKS } from "@/lib/data/agents-registry";
+import {
   readConfirmedSubscribersWithEmail,
   updateSubscriberStatus,
 } from "@/lib/data/subscribers";
@@ -119,6 +125,22 @@ export const POST = withIngest<RouteResult>({
       loadHn: () => readWire(),
       loadIncidents24h: () => fetchIncidents24h({ now: now.getTime() }),
       loadModelUsageSnapshots: () => redisOpenRouterStore.readSnapshots(),
+      loadAgentsView: async () => {
+        const current = await readAgentsLatest();
+        if (!current) return null;
+        // Pull the snapshot from 7 days before the digest's UTC date so
+        // the w/w delta is honest. Missing prior → bootstrap mode in the
+        // assembler → section composer self-gates and drops the section.
+        const sevenDaysAgo = await readAgentsSnapshot(
+          previousNDaysUtc(now, 7),
+        );
+        return assembleAgentsView({
+          registry: AGENT_FRAMEWORKS,
+          current,
+          sevenDaysAgo,
+          now: () => now,
+        });
+      },
       loadSubscribers: () =>
         readConfirmedSubscribersWithEmail({ decrypt: decryptEmail }),
       batchSender,
@@ -198,6 +220,11 @@ export const POST = withIngest<RouteResult>({
 });
 
 export const GET = POST;
+
+function previousNDaysUtc(now: Date, n: number): string {
+  const ts = now.getTime() - n * 24 * 60 * 60 * 1000;
+  return ymdUtc(new Date(ts));
+}
 
 function inferBaseUrl(request: Request): string {
   const fromEnv = process.env.NEXT_PUBLIC_SITE_ORIGIN;
