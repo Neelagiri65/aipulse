@@ -109,6 +109,7 @@ describe("CRON_WORKFLOWS registry", () => {
   it("has all documented workflows — nothing silently dropped", () => {
     const keys = Object.keys(CRON_WORKFLOWS).sort();
     expect(keys).toEqual([
+      "agents-ingest",
       "benchmarks-ingest",
       "daily-digest",
       "daily-snapshot",

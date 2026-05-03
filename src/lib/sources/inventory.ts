@@ -210,6 +210,8 @@ const TRACKS: Record<string, string> = {
     "30/90/365-day install counters for the ollama Homebrew formula.",
   "vscode-marketplace":
     "Cumulative install counts for six AI coding-assistant VS Code extensions (Copilot, Continue, Cody, Codeium, Cline, TabNine).",
+  "github-repo-meta":
+    "Per-repository scalar metadata (stars, open issues, last-pushed timestamp, archived flag) for the eight tracked agent frameworks. Powers the dormant/archived badges on the Agents panel.",
 };
 
 const POWERED_FEATURE: Record<string, string> = {
@@ -249,6 +251,7 @@ const POWERED_FEATURE: Record<string, string> = {
   "homebrew-installs": "SDK Adoption panel · Feed",
   "vscode-marketplace": "SDK Adoption panel · Feed",
   "openrouter-rankings": "Model Usage panel · Feed",
+  "github-repo-meta": "Agents panel · Feed",
 };
 
 const CATEGORY_OF: Record<string, CategoryId> = {
@@ -271,6 +274,7 @@ const CATEGORY_OF: Record<string, CategoryId> = {
   "gh-code-search": "code-activity",
   "gh-repo-search-topics": "code-activity",
   "ecosystems-npm-dependents": "code-activity",
+  "github-repo-meta": "code-activity",
   // Discussion
   "hn-ai-stories": "discussion",
   "reddit-localllama": "discussion",
@@ -339,6 +343,7 @@ const FRESHNESS_OF: Record<string, FreshnessSource> = {
   "homebrew-installs": { kind: "cron", workflow: "pkg-brew" },
   "vscode-marketplace": { kind: "cron", workflow: "pkg-vscode" },
   "openrouter-rankings": { kind: "cron", workflow: "openrouter-rankings" },
+  "github-repo-meta": { kind: "cron", workflow: "agents-ingest" },
 };
 
 /**
