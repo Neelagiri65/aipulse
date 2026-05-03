@@ -39,6 +39,7 @@ import type {
 } from "@/lib/digest/types";
 import { renderGreeting } from "@/lib/email/greeting";
 import { buildShareUrl, composeShareText } from "@/lib/email/share-urls";
+import { deriveTranslateUrl, TRANSLATE_LABEL } from "@/lib/i18n/translate-link";
 
 export type DigestEmailProps = {
   digest: DigestBody;
@@ -79,6 +80,17 @@ export function DigestEmail({
           ) : (
             <Text style={styles.greeting}>{greeting}</Text>
           )}
+
+          {digest.inferences && digest.inferences.length > 0 ? (
+            <Section style={styles.inferences} data-testid="digest-inferences">
+              <Text style={styles.inferencesLabel}>What moved</Text>
+              {digest.inferences.map((line, i) => (
+                <Text key={i} style={styles.inferenceLine}>
+                  · {line}
+                </Text>
+              ))}
+            </Section>
+          ) : null}
 
           {digest.sections.map((section) => (
             <SectionBlock
@@ -201,6 +213,20 @@ function ItemRow({
               {item.sourceLabel ?? displaySource(item.sourceUrl)}
             </Link>
           ) : null}
+          {(() => {
+            const tx = item.sourceUrl
+              ? deriveTranslateUrl(item.sourceUrl, item.sourceLang)
+              : null;
+            if (!tx) return null;
+            return (
+              <>
+                {" · "}
+                <Link href={tx} style={styles.link}>
+                  {TRANSLATE_LABEL}
+                </Link>
+              </>
+            );
+          })()}
           {item.sourceUrl && item.panelHref ? " · " : ""}
           {item.panelHref ? (
             <Link href={`${baseUrl}${item.panelHref}`} style={styles.link}>
@@ -257,6 +283,27 @@ const styles = {
     lineHeight: "22px",
     color: "#c9cbd4",
     margin: "0 0 8px 0",
+  },
+  inferences: {
+    margin: "8px 0 16px 0",
+    padding: "12px 14px",
+    backgroundColor: "#0f1722",
+    border: "1px solid #1f2937",
+    borderRadius: "8px",
+  },
+  inferencesLabel: {
+    fontSize: "10px",
+    fontWeight: 700,
+    letterSpacing: "0.16em",
+    textTransform: "uppercase" as const,
+    color: "#2dd4bf",
+    margin: "0 0 6px 0",
+  },
+  inferenceLine: {
+    fontSize: "13px",
+    lineHeight: "19px",
+    color: "#e6e7eb",
+    margin: "3px 0",
   },
   section: {
     margin: "28px 0",

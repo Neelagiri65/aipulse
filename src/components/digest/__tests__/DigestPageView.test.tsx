@@ -142,3 +142,58 @@ describe("DigestPageView — footer", () => {
     expect(html).toMatch(/Wed, 22 Apr 2026/);
   });
 });
+
+describe("DigestPageView — translate pill (S60 Build 4)", () => {
+  it("renders a Translate link for non-English source items", () => {
+    const html = render(
+      mkDigest({
+        sections: [
+          {
+            id: "tool-health",
+            title: "AI Publishers",
+            anchorSlug: "ai-publishers",
+            mode: "diff",
+            headline: "Heise digest",
+            items: [
+              {
+                headline: "KI policy news",
+                sourceLabel: "heise.de",
+                sourceUrl: "https://www.heise.de/news/test",
+                sourceLang: "de",
+              },
+            ],
+            sourceUrls: ["https://www.heise.de/"],
+          },
+        ],
+      }),
+    );
+    expect(html).toContain("Translate");
+    expect(html).toContain("translate.google.com/translate");
+  });
+
+  it("does NOT render Translate for English source items", () => {
+    const html = render(mkDigest());
+    expect(html).not.toContain("translate.google.com");
+  });
+});
+
+describe("DigestPageView — inferences (S60 Build 1)", () => {
+  it("renders the 'What moved' block when inferences are populated", () => {
+    const html = render(
+      mkDigest({
+        inferences: [
+          "New #1 on LMArena: GPT-7 overtook Claude Opus 4.7.",
+          "torch downloads declined for the 3rd consecutive snapshot.",
+        ],
+      }),
+    );
+    expect(html).toContain("What moved");
+    expect(html).toContain("New #1 on LMArena: GPT-7 overtook Claude Opus 4.7.");
+    expect(html).toContain("torch downloads declined for the 3rd consecutive snapshot.");
+  });
+
+  it("omits the block when inferences is undefined", () => {
+    const html = render(mkDigest());
+    expect(html).not.toContain("What moved");
+  });
+});

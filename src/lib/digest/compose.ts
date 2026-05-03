@@ -21,6 +21,7 @@ import type { HnWireResult } from "@/lib/data/wire-hn";
 import type { HistoricalIncident } from "@/lib/data/status-history";
 import type { ModelUsageSnapshotRow } from "@/lib/data/openrouter-types";
 import type { DigestBody, DigestMode, DigestSection } from "@/lib/digest/types";
+import { deriveInferences } from "@/lib/digest/inference";
 import { composeHnSection } from "@/lib/digest/sections/hn";
 import { composeToolHealthSection } from "@/lib/digest/sections/tool-health";
 import { composeBenchmarksSection } from "@/lib/digest/sections/benchmarks";
@@ -62,6 +63,15 @@ export type ComposeDigestInput = {
    * with no rows above the threshold also drops the section.
    */
   agents?: AgentsViewDto | null;
+  /**
+   * Snapshot history NEWEST FIRST including today (i.e. history[0]
+   * MUST equal `today` when supplied). Used by the inference engine
+   * (S60 Build 1) to derive 0–3 "what moved" lines for the digest
+   * TLDR. Optional — when omitted or shorter than 3 entries, the
+   * inference engine returns an empty array and the renderer skips
+   * the block. Existing call sites that don't pass it stay clean.
+   */
+  history?: readonly DailySnapshot[];
 };
 
 export function composeDigest(input: ComposeDigestInput): DigestBody {
@@ -133,12 +143,25 @@ export function composeDigest(input: ComposeDigestInput): DigestBody {
   const tldr =
     mode === "diff" ? buildTldr(sections, incidents24h.length) : undefined;
 
+  // S60 Build 1: derive inference lines only in diff mode. Bootstrap
+  // and quiet bodies render their own headlines and would clash with a
+  // "what moved" block; diff is the mode where movement claims fit.
+  const inferences =
+    mode === "diff" && input.history && input.history.length >= 3
+      ? deriveInferences({
+          history: input.history,
+          openrouterSnapshots: input.modelUsageSnapshots,
+          incidentCount24h: incidents24h.length,
+        })
+      : [];
+
   return {
     date: today.date,
     subject,
     mode,
     greetingTemplate,
     tldr,
+    inferences: inferences.length > 0 ? inferences : undefined,
     sections,
     generatedAt: now.toISOString(),
   };

@@ -2,6 +2,7 @@
 
 import type { RssSourcePanel, RssWireItem, RssWireResult } from "@/lib/data/wire-rss";
 import { CountryPill, LangTag } from "@/components/wire/country-pill";
+import { deriveTranslateUrl, TRANSLATE_LABEL } from "@/lib/i18n/translate-link";
 
 /**
  * Regional Wire panel — lists the 5 curated publisher feeds sorted by
@@ -184,6 +185,11 @@ function SourceRow({
         >
           rss ↗
         </a>
+        <TranslateLink
+          sourceUrl={src.publisherUrl}
+          lang={src.lang}
+          title={`Open ${src.displayName} via Google Translate`}
+        />
         <span className="ml-auto shrink-0 normal-case tracking-normal text-muted-foreground/60">
           {src.feedFormat}
         </span>
@@ -192,9 +198,38 @@ function SourceRow({
   );
 }
 
+function TranslateLink({
+  sourceUrl,
+  lang,
+  title,
+}: {
+  sourceUrl: string;
+  lang: string;
+  title: string;
+}) {
+  const url = deriveTranslateUrl(sourceUrl, lang);
+  if (!url) return null;
+  return (
+    <>
+      <span className="text-foreground/30">·</span>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="hover:text-foreground hover:underline"
+        title={title}
+        data-testid="translate-link"
+      >
+        {TRANSLATE_LABEL}
+      </a>
+    </>
+  );
+}
+
 function InlineArticleRow({ item }: { item: RssWireItem }) {
   const ts = item.publishedTs * 1000;
   const rel = formatRelativeShort(ts);
+  const translateUrl = deriveTranslateUrl(item.url, item.lang);
   return (
     <li className="flex items-baseline gap-1.5 text-[10px]">
       <span className="shrink-0 text-foreground/30" aria-hidden>
@@ -209,6 +244,18 @@ function InlineArticleRow({ item }: { item: RssWireItem }) {
       >
         {item.title}
       </a>
+      {translateUrl ? (
+        <a
+          href={translateUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70 hover:text-[#f97316] hover:underline"
+          title={`Open ${item.title} via Google Translate`}
+          data-testid="translate-link"
+        >
+          {TRANSLATE_LABEL}
+        </a>
+      ) : null}
       <span
         className="shrink-0 tabular-nums text-muted-foreground/70"
         title={new Date(ts).toISOString()}

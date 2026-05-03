@@ -56,6 +56,8 @@ export type SendDigestForDateInput = {
   >;
   /** Optional — see BuildDigestOpts.loadAgentsView. */
   loadAgentsView?: () => Promise<AgentsViewDto | null>;
+  /** Optional — see BuildDigestOpts.loadHistory. NEWEST FIRST. */
+  loadHistory?: () => Promise<DailySnapshot[]>;
   loadSubscribers: () => Promise<ConfirmedSubscriberWithEmail[]>;
   batchSender: BatchSender;
   renderHtml: (args: {
@@ -105,6 +107,7 @@ export async function sendDigestForDate(
     loadIncidents24h: input.loadIncidents24h,
     loadModelUsageSnapshots: input.loadModelUsageSnapshots,
     loadAgentsView: input.loadAgentsView,
+    loadHistory: input.loadHistory,
   });
   if (!build.ok) {
     return { ok: false, reason: build.reason, message: build.message };

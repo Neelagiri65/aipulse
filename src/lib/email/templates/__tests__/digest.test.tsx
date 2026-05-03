@@ -175,6 +175,69 @@ describe("renderDigestHtml — footer", () => {
   });
 });
 
+describe("renderDigestHtml — inferences (S60 Build 1)", () => {
+  it("renders the 'What moved' block with each inference line when populated", async () => {
+    const withInferences = mkDigest({
+      inferences: [
+        "New #1 on LMArena: GPT-7 overtook Claude Opus 4.7.",
+        "torch downloads declined for the 3rd consecutive snapshot.",
+        "All AI coding tools operational across the past 7 days.",
+      ],
+    });
+    const html = await renderDigestHtml({ ...BASE, digest: withInferences });
+    expect(html).toContain("What moved");
+    expect(html).toContain("New #1 on LMArena: GPT-7 overtook Claude Opus 4.7.");
+    expect(html).toContain("torch downloads declined for the 3rd consecutive snapshot.");
+    expect(html).toContain("All AI coding tools operational across the past 7 days.");
+  });
+
+  it("omits the 'What moved' block entirely when inferences is undefined", async () => {
+    const html = await renderDigestHtml(BASE);
+    expect(html).not.toContain("What moved");
+  });
+
+  it("omits the block when inferences is an empty array", async () => {
+    const empty = mkDigest({ inferences: [] });
+    const html = await renderDigestHtml({ ...BASE, digest: empty });
+    expect(html).not.toContain("What moved");
+  });
+});
+
+describe("renderDigestHtml — translate pill (S60 Build 4)", () => {
+  it("renders a translate link next to a non-English source item", async () => {
+    const withGerman = mkDigest({
+      sections: [
+        {
+          id: "tool-health",
+          title: "AI Publishers",
+          anchorSlug: "ai-publishers",
+          mode: "diff",
+          headline: "From Heise (Hannover)",
+          items: [
+            {
+              headline: "KI-Modell mit Rekord-Trainingseffizienz",
+              sourceLabel: "heise.de",
+              sourceUrl: "https://www.heise.de/news/test",
+              sourceLang: "de",
+            },
+          ],
+          sourceUrls: ["https://www.heise.de/"],
+        },
+      ],
+    });
+    const html = await renderDigestHtml({ ...BASE, digest: withGerman });
+    expect(html).toContain("Translate");
+    expect(html).toContain("translate.google.com/translate");
+    expect(html).toContain(encodeURIComponent("https://www.heise.de/news/test"));
+  });
+
+  it("does NOT render a translate link for English sources", async () => {
+    const html = await renderDigestHtml(BASE);
+    // BASE digest has English sources only.
+    expect(html).not.toContain("translate.google.com");
+  });
+});
+
 describe("renderDigestHtml — quiet mode", () => {
   it("renders a quiet-day digest without crashing on zero items", async () => {
     const quiet = mkDigest({

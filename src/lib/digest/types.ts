@@ -39,6 +39,15 @@ export type DigestSectionItem = {
   /** Verbatim caveat text (e.g. pypistats aggregator caveat). Renders
    *  in small text under the item. */
   caveat?: string;
+  /**
+   * BCP-47 short language tag of the source content (lowercase, e.g.
+   * "en", "de", "zh"). Optional: only populated when the source is
+   * known non-English so the renderer can show a Translate affordance.
+   * Today populated only for items derived from RSS publishers whose
+   * registry entry carries a `lang !== "en"` (Heise; Gitee/ModelScope
+   * when they land). Items omit the field when the source is English
+   * or unknown — the renderer treats unknown as English (no pill). */
+  sourceLang?: string;
 };
 
 export type DigestSection = {
@@ -82,6 +91,20 @@ export type DigestBody = {
    *  archived bodies (pre-this-field) and bootstrap/quiet modes
    *  (where the metric counts wouldn't make sense) still render. */
   tldr?: string;
+  /**
+   * "What moved" inference lines — 0–3 deterministic factual statements
+   * derived from cross-section snapshot history (S60 Build 1). Examples:
+   *   "Open-weight models hold 3 of the OpenRouter top 5 (vs 2 yesterday)."
+   *   "torch downloads declined for the 4th consecutive snapshot."
+   *   "All AI coding tools operational across the past 7 days."
+   *
+   * Strict trust contract: each line is a fact derivable from snapshot
+   * comparison, never editorial causation ("may be consolidating") or
+   * fabricated quantities. Empty array on bootstrap (history < 3 days)
+   * and on quiet days where no rule fired. Optional so archived bodies
+   * pre-S60 still parse cleanly.
+   */
+  inferences?: string[];
   sections: DigestSection[];
   /** ISO of composition (not send). Useful for admin-preview timestamps
    *  and for the public `/digest/{date}` page. */

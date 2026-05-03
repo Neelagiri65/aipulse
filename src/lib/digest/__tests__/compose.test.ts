@@ -147,6 +147,79 @@ describe("composeDigest — sections", () => {
   });
 });
 
+describe("composeDigest — inferences (S60 Build 1)", () => {
+  it("emits inferences only in diff mode", () => {
+    // Bootstrap: no yesterday → mode bootstrap → no inferences even
+    // when history is supplied.
+    const history = Array.from({ length: 7 }, (_, i) =>
+      mkSnapshot({ date: `2026-04-${String(22 - i).padStart(2, "0")}` }),
+    );
+    const body = composeDigest({
+      today: mkSnapshot(),
+      yesterday: null,
+      hn: mkHn(),
+      incidents24h: [],
+      now: NOW,
+      history,
+    });
+    expect(body.mode).toBe("bootstrap");
+    expect(body.inferences).toBeUndefined();
+  });
+
+  it("populates inferences when diff mode + ≥3 days of history fire a rule", () => {
+    // Set up a benchmark-leader change today vs yesterday so diff mode
+    // is selected AND deriveInferences fires the leader-change rule.
+    const today = mkSnapshot({
+      benchmarks: {
+        publishDate: "2026-04-22",
+        top3: [
+          { rank: 1, modelName: "GPT-7", organization: "OpenAI", rating: 1510 },
+          { rank: 2, modelName: "Claude Opus 4.7", organization: "Anthropic", rating: 1500 },
+          { rank: 3, modelName: "Gemini 3", organization: "Google", rating: 1480 },
+        ],
+      },
+    });
+    const yesterday = mkSnapshot({ date: "2026-04-21" });
+    const history = [today, yesterday, mkSnapshot({ date: "2026-04-20" })];
+    const body = composeDigest({
+      today,
+      yesterday,
+      hn: mkHn(),
+      incidents24h: [],
+      now: NOW,
+      history,
+    });
+    expect(body.mode).toBe("diff");
+    expect(body.inferences).toBeDefined();
+    expect(body.inferences?.[0]).toMatch(/New #1 on LMArena/);
+  });
+
+  it("leaves inferences undefined when no rule fires (avoids empty array in archive blob)", () => {
+    // Diff mode (incident triggers it) but identical snapshots → no
+    // streaks, no leader change.
+    const incident = {
+      id: "i1",
+      name: "x",
+      status: "resolved" as const,
+      impact: "minor" as const,
+      createdAt: "2026-04-22T01:00:00Z",
+      resolvedAt: "2026-04-22T02:00:00Z",
+    };
+    const today = mkSnapshot();
+    const history = [today, mkSnapshot({ date: "2026-04-21" }), mkSnapshot({ date: "2026-04-20" })];
+    const body = composeDigest({
+      today,
+      yesterday: mkSnapshot({ date: "2026-04-21" }),
+      hn: mkHn(),
+      incidents24h: [incident],
+      now: NOW,
+      history,
+    });
+    expect(body.mode).toBe("diff");
+    expect(body.inferences).toBeUndefined();
+  });
+});
+
 describe("composeDigest — greeting template", () => {
   it("uses the bootstrap greeting when mode is bootstrap", () => {
     const body = composeDigest({

@@ -46,6 +46,15 @@ export type BuildDigestOpts = {
    * with no rows above the threshold also drops the section.
    */
   loadAgentsView?: () => Promise<AgentsViewDto | null>;
+  /**
+   * Optional: load the recent snapshot history NEWEST FIRST. When
+   * supplied, the array's first element MUST be `today` so the
+   * inference engine reads "today" as history[0]. Returning fewer
+   * than 3 entries causes the inference engine to skip silently.
+   * Existing call sites that don't pass this stay clean — the digest
+   * renders without inferences but is otherwise identical.
+   */
+  loadHistory?: () => Promise<DailySnapshot[]>;
 };
 
 export async function buildDigestForDate(
@@ -66,6 +75,7 @@ export async function buildDigestForDate(
     ? await opts.loadModelUsageSnapshots()
     : undefined;
   const agents = opts.loadAgentsView ? await opts.loadAgentsView() : null;
+  const history = opts.loadHistory ? await opts.loadHistory() : undefined;
   try {
     const body = composeDigest({
       today,
@@ -76,6 +86,7 @@ export async function buildDigestForDate(
       now: opts.now,
       modelUsageSnapshots,
       agents,
+      history,
     });
     return { ok: true, body };
   } catch (e) {

@@ -13,6 +13,7 @@ import type {
   DigestSection,
   DigestSectionItem,
 } from "@/lib/digest/types";
+import { deriveTranslateUrl, TRANSLATE_LABEL } from "@/lib/i18n/translate-link";
 
 export type DigestPageViewProps = {
   digest: DigestBody;
@@ -42,6 +43,24 @@ export function DigestPageView({
               : "Five verifiable things that moved in the AI ecosystem in the last 24h. Every number traces to a public source."}
         </p>
       </header>
+
+      {digest.inferences && digest.inferences.length > 0 ? (
+        <section
+          data-testid="digest-inferences"
+          className="mb-8 rounded-lg border border-border/60 bg-card/40 px-5 py-4"
+        >
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-primary">
+            What moved
+          </p>
+          <ul className="space-y-1.5">
+            {digest.inferences.map((line, i) => (
+              <li key={i} className="text-sm text-foreground/95">
+                · {line}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {digest.sections.map((section) => (
         <DigestSectionView
@@ -166,6 +185,24 @@ function DigestItemView({
           >
             {item.sourceLabel ?? displaySource(item.sourceUrl)}
           </a>
+          {(() => {
+            const tx = deriveTranslateUrl(item.sourceUrl, item.sourceLang);
+            if (!tx) return null;
+            return (
+              <>
+                {" · "}
+                <a
+                  href={tx}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="underline underline-offset-2 text-primary/80 hover:text-primary"
+                  data-testid="translate-link"
+                >
+                  {TRANSLATE_LABEL}
+                </a>
+              </>
+            );
+          })()}
           {item.panelHref ? (
             <>
               {" · "}

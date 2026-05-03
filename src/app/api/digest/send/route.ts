@@ -34,7 +34,7 @@
 import { NextResponse } from "next/server";
 import { withIngest } from "@/app/api/_lib/withIngest";
 import { ymdUtc } from "@/lib/data/snapshot";
-import { readSnapshot } from "@/lib/data/snapshot";
+import { readSnapshot, readRecentSnapshots } from "@/lib/data/snapshot";
 import { readWire } from "@/lib/data/hn-store";
 import { fetchIncidents24h } from "@/lib/digest/fetch-incidents-24h";
 import { redisOpenRouterStore } from "@/lib/data/openrouter-store";
@@ -125,6 +125,10 @@ export const POST = withIngest<RouteResult>({
       loadHn: () => readWire(),
       loadIncidents24h: () => fetchIncidents24h({ now: now.getTime() }),
       loadModelUsageSnapshots: () => redisOpenRouterStore.readSnapshots(),
+      // S60 Build 1: 30-day history feeds the inference layer. The
+      // pure deriveInferences runs only when ≥3 days exist; bootstrap
+      // weeks return [] and the digest renders without the TLDR block.
+      loadHistory: () => readRecentSnapshots(30),
       loadAgentsView: async () => {
         const current = await readAgentsLatest();
         if (!current) return null;

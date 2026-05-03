@@ -23,7 +23,7 @@
 import { headers } from "next/headers";
 import { requireAdminBasicAuth } from "@/lib/digest/admin-auth";
 import { buildDigestForDate, previousUtcDate } from "@/lib/digest/build";
-import { readSnapshot, ymdUtc } from "@/lib/data/snapshot";
+import { readRecentSnapshots, readSnapshot, ymdUtc } from "@/lib/data/snapshot";
 import { readWire } from "@/lib/data/hn-store";
 import { redisOpenRouterStore } from "@/lib/data/openrouter-store";
 import { DigestPageView } from "@/components/digest/DigestPageView";
@@ -63,6 +63,10 @@ export default async function AdminDigestPreviewPage({
     // the snapshot's `tools[]` state.
     loadIncidents24h: async () => ({ current24h: [], priorCount: 0 }),
     loadModelUsageSnapshots: () => redisOpenRouterStore.readSnapshots(),
+    // S60 Build 1: history feeds the inference TLDR. Same wiring as
+    // production send — the preview reflects exactly what subscribers
+    // will see.
+    loadHistory: () => readRecentSnapshots(30),
   });
 
   if (!build.ok) {
