@@ -647,3 +647,50 @@ export function geocode(locationString: string | null | undefined): Coords | nul
 }
 
 export const DICTIONARY_SIZE = CITY_COORDS.length;
+
+/**
+ * Reverse map: lat,lng pair → canonical city name. Built once at module
+ * load. When multiple dictionary entries share the same coords (e.g.
+ * "san francisco" + "sf bay area" + "bay area" all → [37.7749, -122.4194]),
+ * the FIRST occurrence in CITY_COORDS wins — that's the canonical name
+ * by dictionary ordering.
+ *
+ * Used by the dashboard's "Most active" line to label live event clusters
+ * with the city the geocoder rounded them into. No new geocoding, no
+ * external lookup — the city was already known at ingest, this just
+ * recovers the label that was dropped in `geocode()`'s Coords-only return.
+ */
+const COORDS_TO_CITY: Map<string, string> = (() => {
+  const m = new Map<string, string>();
+  for (const [needle, coords] of CITY_COORDS) {
+    const key = `${coords[0]},${coords[1]}`;
+    if (!m.has(key)) m.set(key, titleCase(needle));
+  }
+  return m;
+})();
+
+/**
+ * Recover the canonical city name for a lat/lng that came out of
+ * `geocode()`. Exact-match only — events go through the same dictionary
+ * on ingest, so their coords land on a known entry by construction.
+ * Returns null on miss (e.g. a lat/lng from outside the geocoder, or
+ * after a dictionary edit removed the entry).
+ */
+export function cityFromCoords(lat: number, lng: number): string | null {
+  return COORDS_TO_CITY.get(`${lat},${lng}`) ?? null;
+}
+
+function titleCase(s: string): string {
+  return s
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .map((part) => {
+      // Keep two-letter US state codes uppercase; otherwise capitalise
+      // first letter only.
+      if (part.length === 2 && part === part.toLowerCase()) {
+        return part.toUpperCase();
+      }
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join(" ");
+}

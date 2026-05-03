@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { geocode } from "@/lib/geocoding";
+import { geocode, cityFromCoords } from "@/lib/geocoding";
 
 describe("geocode — happy paths", () => {
   it("resolves a plain city", () => {
@@ -79,5 +79,31 @@ describe("geocode — state-suffix substring false-positive guard", () => {
 
   it("still matches ', ca' when followed by a ZIP", () => {
     expect(geocode("Palo Alto, CA 94301")).toEqual([37.4419, -122.143]);
+  });
+});
+
+describe("cityFromCoords — reverse lookup for live event labels", () => {
+  it("recovers the canonical city name for a known dictionary lat/lng", () => {
+    expect(cityFromCoords(37.7749, -122.4194)).toBe("San Francisco");
+  });
+
+  it("preserves US state codes in uppercase", () => {
+    expect(cityFromCoords(42.3736, -71.1097)).toBe("Cambridge MA");
+  });
+
+  it("returns null for a lat/lng outside the dictionary", () => {
+    expect(cityFromCoords(0, 0)).toBeNull();
+  });
+
+  it("first-occurrence wins when multiple needles share coords (san francisco wins over sf bay area)", () => {
+    // Both "san francisco" and "sf bay area" map to [37.7749, -122.4194].
+    // The reverse map keeps the first (= "san francisco" by dictionary order).
+    expect(cityFromCoords(37.7749, -122.4194)).toBe("San Francisco");
+  });
+
+  it("round-trip: geocode then cityFromCoords returns a non-null label", () => {
+    const coords = geocode("London");
+    expect(coords).not.toBeNull();
+    if (coords) expect(cityFromCoords(coords[0], coords[1])).not.toBeNull();
   });
 });

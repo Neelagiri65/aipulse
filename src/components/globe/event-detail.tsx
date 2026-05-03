@@ -8,6 +8,10 @@ import { LabCard } from "@/components/labs/LabCard";
 import { SourceCard } from "@/components/wire/SourceCard";
 import { CountryPill, LangTag } from "@/components/wire/country-pill";
 import type { RssSourcePanel, RssWireItem } from "@/lib/data/wire-rss";
+import {
+  summariseClusterTypes,
+  formatBreakdownLine,
+} from "@/lib/map/insights";
 
 /**
  * Point meta payload shared across live events (kind="event") and
@@ -366,6 +370,7 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
           <span aria-hidden>×</span>
         </button>
       </div>
+      <ClusterTypeStrip events={cluster.events} />
       <ul
         className="divide-y divide-border/40 overflow-y-auto"
         style={{ flex: "1 1 auto", minHeight: 0 }}
@@ -395,6 +400,26 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
     </div>
   );
 });
+
+/**
+ * Per-type breakdown strip rendered under the cluster header. Aggregates
+ * live events in the cluster by their GH event type and shows a single
+ * line: "52 pushes · 23 PRs · 12 issues · 8 releases · 4 stars".
+ *
+ * Renders nothing for clusters with zero live events (pure registry /
+ * lab / hn / rss popups don't have a type to break down — the header
+ * strip already shows their kind counts).
+ */
+function ClusterTypeStrip({ events }: { events: GlobePoint[] }) {
+  const rows = summariseClusterTypes(events);
+  if (rows.length === 0) return null;
+  const line = formatBreakdownLine(rows);
+  return (
+    <div className="border-b border-border/40 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80 tabular-nums">
+      {line}
+    </div>
+  );
+}
 
 function eventKey(p: GlobePoint, fallback: number): string {
   const m = p.meta as EventMeta | undefined;

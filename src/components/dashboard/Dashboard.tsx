@@ -45,6 +45,7 @@ import {
   type FilterState,
 } from "@/components/chrome/FilterPanel";
 import { LiveTicker } from "@/components/map/LiveTicker";
+import { TopMoversLine } from "@/components/map/TopMoversLine";
 import { MapLegend } from "@/components/chrome/MapLegend";
 import { usePolledEndpoint } from "@/lib/hooks/use-polled-endpoint";
 import { PENDING_SOURCES, VERIFIED_SOURCES } from "@/lib/data-sources";
@@ -1387,7 +1388,10 @@ export function Dashboard({
           only — the wire view is its own full-screen feed. */}
       <div className="fixed bottom-0 left-0 right-0 z-40 flex flex-col">
         {(activeTab === "map" || activeTab === "globe") && (
-          <LiveTicker rows={wireRows} />
+          <>
+            <TopMoversLine points={livePoints} />
+            <LiveTicker rows={wireRows} />
+          </>
         )}
         <MetricTicker
           status={status.data}
