@@ -20,6 +20,7 @@ import { LabsPanel } from "@/components/labs/LabsPanel";
 import { RegionalWirePanel } from "@/components/wire/RegionalWirePanel";
 import { SdkAdoptionPanel } from "@/components/panels/sdk-adoption/SdkAdoptionPanel";
 import { ModelUsagePanel } from "@/components/panels/model-usage/ModelUsagePanel";
+import { AgentsPanel } from "@/components/panels/agents/AgentsPanel";
 import type { GlobePoint } from "@/components/globe/Globe";
 import type { GlobeEventsResult } from "@/lib/data/fetch-events";
 import type { StatusResult } from "@/lib/data/fetch-status";
@@ -30,6 +31,7 @@ import type { BenchmarksPayload } from "@/lib/data/benchmarks-lmarena";
 import type { LabsPayload } from "@/lib/data/fetch-labs";
 import type { RssWireResult } from "@/lib/data/wire-rss";
 import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
+import type { AgentsViewDto } from "@/lib/data/agents-view";
 import type { ModelUsageDto } from "@/lib/data/openrouter-types";
 import type { CronHealthSnapshot } from "@/components/dashboard/MetricTicker";
 import type { FreshnessState } from "@/components/chrome/TopBar";
@@ -63,7 +65,8 @@ export type MobileMoreSectionId =
   | "research"
   | "labs"
   | "regional-wire"
-  | "sdk-adoption";
+  | "sdk-adoption"
+  | "agents";
 
 type MobileTab = {
   id: MobileTopTabId;
@@ -114,6 +117,10 @@ export type MobileDashboardProps = {
   modelUsage: ModelUsageDto | null | undefined;
   modelUsageLoading: boolean;
   modelUsageError: string | null;
+  // Agents
+  agents: AgentsViewDto | null | undefined;
+  agentsLoading: boolean;
+  agentsError: string | null;
   // Health
   cronHealth: CronHealthSnapshot | undefined;
   // SSR-hydrated feed response. When provided, FeedView renders the
@@ -583,6 +590,18 @@ function MoreTabBody({
         />
       ),
     },
+    {
+      id: "agents",
+      label: "Agents",
+      count: props.agents?.rows.length ?? null,
+      body: (
+        <AgentsPanel
+          data={props.agents ?? undefined}
+          error={props.agentsError ?? undefined}
+          isInitialLoading={props.agentsLoading}
+        />
+      ),
+    },
   ];
   return (
     <div className="ap-mobile-panel ap-mobile-more">
@@ -634,6 +653,7 @@ function countForMoreTab(props: MobileDashboardProps): number | null {
   const b = props.labs?.labs.length ?? 0;
   const c = props.rss?.sources.length ?? 0;
   const d = props.sdkAdoption?.packages.length ?? 0;
-  const sum = a + b + c + d;
+  const e = props.agents?.rows.length ?? 0;
+  const sum = a + b + c + d + e;
   return sum > 0 ? sum : null;
 }

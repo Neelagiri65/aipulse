@@ -72,6 +72,8 @@ import { SdkAdoptionPanel } from "@/components/panels/sdk-adoption/SdkAdoptionPa
 import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
 import { ModelUsagePanel } from "@/components/panels/model-usage/ModelUsagePanel";
 import type { ModelUsageDto } from "@/lib/data/openrouter-types";
+import { AgentsPanel } from "@/components/panels/agents/AgentsPanel";
+import type { AgentsViewDto } from "@/lib/data/agents-view";
 import type { FeedResponse } from "@/lib/feed/types";
 import { track } from "@/lib/analytics";
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
@@ -126,6 +128,10 @@ const SDK_ADOPTION_POLL_MS = 5 * 60 * 1000;
 // Model Usage: cron writes every 6h. Match the 5-min CDN cache TTL —
 // upstream rankings barely move minute-to-minute.
 const MODEL_USAGE_POLL_MS = 5 * 60 * 1000;
+// Agents: cron writes once daily at 06:30 UTC. Match the 5-min CDN
+// cache TTL of /api/panels/agents — sub-minute polling would just
+// thrash the edge layer with no fresher data.
+const AGENTS_POLL_MS = 5 * 60 * 1000;
 // Feed: composer is invoked per request and downstream caches sit at
 // 60s (matches the mobile FeedView cadence). The desktop poll is here
 // only to keep the highlights strip moving with the same heartbeat as
@@ -161,7 +167,8 @@ type PanelId =
   | "labs"
   | "regional-wire"
   | "sdk-adoption"
-  | "model-usage";
+  | "model-usage"
+  | "agents";
 
 export type DashboardProps = {
   /**
@@ -218,6 +225,10 @@ export function Dashboard({
   const modelUsage = usePolledEndpoint<ModelUsageDto>(
     "/api/panels/model-usage",
     MODEL_USAGE_POLL_MS,
+  );
+  const agents = usePolledEndpoint<AgentsViewDto>(
+    "/api/panels/agents",
+    AGENTS_POLL_MS,
   );
   const cronHealth = usePolledEndpoint<CronHealthResult>(
     "/api/cron-health",
@@ -405,6 +416,7 @@ export function Dashboard({
       "regional-wire": { open: false, min: false },
       "sdk-adoption": { open: false, min: false },
       "model-usage": { open: false, min: false },
+      agents: { open: false, min: false },
     },
   );
   const [zorder, setZorder] = useState<PanelId[]>([
@@ -417,6 +429,7 @@ export function Dashboard({
     "regional-wire",
     "sdk-adoption",
     "model-usage",
+    "agents",
   ]);
   const [maxId, setMaxId] = useState<PanelId | null>(null);
 
@@ -432,6 +445,7 @@ export function Dashboard({
     "regional-wire": { x: number; y: number; w: number; h: number };
     "sdk-adoption": { x: number; y: number; w: number; h: number };
     "model-usage": { x: number; y: number; w: number; h: number };
+    agents: { x: number; y: number; w: number; h: number };
   } | null>(null);
   useEffect(() => {
     const W = typeof window !== "undefined" ? window.innerWidth : 1440;
@@ -502,6 +516,16 @@ export function Dashboard({
         w: 460,
         h: 600,
       },
+      // Agents is an 8-row table; 480 wide gives the framework name +
+      // language chip + status badge headroom on one line at every
+      // viewport. Centred so it doesn't stack on Wire (left) or Tools
+      // (right) on first open.
+      agents: {
+        x: Math.max(120, Math.floor((W - 480) / 2)),
+        y: dy(204),
+        w: 480,
+        h: 540,
+      },
     });
   }, []);
 
@@ -525,7 +549,12 @@ export function Dashboard({
       icon: "models",
       count: models.data?.models.length ?? null,
     },
-    { id: "agents", label: "Agents", icon: "agents", soon: true },
+    {
+      id: "agents",
+      label: "Agents",
+      icon: "agents",
+      count: agents.data?.rows.length ?? null,
+    },
     {
       id: "research",
       label: "Research",
@@ -581,7 +610,8 @@ export function Dashboard({
       id !== "labs" &&
       id !== "regional-wire" &&
       id !== "sdk-adoption" &&
-      id !== "model-usage"
+      id !== "model-usage" &&
+      id !== "agents"
     )
       return;
     const pid = id as PanelId;
@@ -856,6 +886,9 @@ export function Dashboard({
         modelUsage={modelUsage.data}
         modelUsageLoading={modelUsage.isInitialLoading}
         modelUsageError={modelUsage.error ?? null}
+        agents={agents.data}
+        agentsLoading={agents.isInitialLoading}
+        agentsError={agents.error ?? null}
         cronHealth={
           cronHealth.data
             ? {
@@ -1299,6 +1332,41 @@ export function Dashboard({
                 originUrl={
                   typeof window !== "undefined" ? window.location.origin : ""
                 }
+              />
+            </Win>
+          )}
+
+          {initialPos && panels.agents.open && (
+            <Win
+              id="agents"
+              title="Agents · weekly downloads + maintenance state, 8 frameworks"
+              accent="teal"
+              initial={initialPos.agents}
+              zIndex={z("agents")}
+              minimized={panels.agents.min}
+              maximized={maxId === "agents"}
+              topmost={topmostOpenId === "agents"}
+              onFocus={() => focus("agents")}
+              onClose={() =>
+                setPanels((p) => ({
+                  ...p,
+                  agents: { open: false, min: false },
+                }))
+              }
+              onMinimize={() =>
+                setPanels((p) => ({
+                  ...p,
+                  agents: { ...p.agents, min: !p.agents.min },
+                }))
+              }
+              onMaximize={() =>
+                setMaxId((m) => (m === "agents" ? null : "agents"))
+              }
+            >
+              <AgentsPanel
+                data={agents.data ?? undefined}
+                error={agents.error ?? undefined}
+                isInitialLoading={agents.isInitialLoading}
               />
             </Win>
           )}

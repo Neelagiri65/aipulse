@@ -31,6 +31,7 @@ export type CategoryId =
   | "discussion"
   | "models"
   | "sdk-adoption"
+  | "agents"
   | "research"
   | "labs"
   | "regional-news";
@@ -78,6 +79,12 @@ export const CATEGORIES: readonly CategoryDescriptor[] = [
     label: "SDK Adoption",
     blurb:
       "Package-registry download counters for the AI SDK slate. Daily snapshots feed within-package week-over-week deltas.",
+  },
+  {
+    id: "agents",
+    label: "Agents",
+    blurb:
+      "Eight agent frameworks (LangGraph, CrewAI, smolagents, AutoGen, OpenAI Agents, Pydantic AI) plus two tombstones (AutoGPT legacy, Sweep dormant). Per-repo metadata feeds the Agents panel; PyPI + npm download counters listed under SDK Adoption are the same numbers, attributed twice because both panels consume them.",
   },
   {
     id: "research",
@@ -274,7 +281,8 @@ const CATEGORY_OF: Record<string, CategoryId> = {
   "gh-code-search": "code-activity",
   "gh-repo-search-topics": "code-activity",
   "ecosystems-npm-dependents": "code-activity",
-  "github-repo-meta": "code-activity",
+  // Agents
+  "github-repo-meta": "agents",
   // Discussion
   "hn-ai-stories": "discussion",
   "reddit-localllama": "discussion",
