@@ -28,6 +28,7 @@ import {
   type GitHubEvent,
 } from "@/lib/github";
 import { geocode } from "@/lib/geocoding";
+import { placeFromCoords } from "@/lib/geocoding-places";
 import type { GlobePoint } from "@/components/globe/Globe";
 import {
   fetchArchiveHour,
@@ -389,10 +390,15 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
     }
   });
 
-  // 7) Build processed points.
+  // 7) Build processed points. Country/region derived from the coord
+  //    bbox lookup — same coords are deterministic so no Redis cache
+  //    schema change needed; the country attribution is recomputed from
+  //    the coords each ingest run. Null country is honest (coord falls
+  //    outside every tracked bbox); never substitute a placeholder.
   const points: StoredGlobePoint[] = placeable.map((r) => {
     const coords = locationByLogin.get(r.event.actor.login)!;
     const hasConfig = aiConfigCache.get(r.event.repo.name) === true;
+    const place = placeFromCoords(coords[0], coords[1]);
     return {
       lat: coords[0],
       lng: coords[1],
@@ -409,6 +415,8 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
         createdAt: r.event.created_at,
         hasAiConfig: hasConfig,
         sourceKind: r.source,
+        country: place?.country ?? null,
+        region: place?.region ?? null,
       },
     };
   });

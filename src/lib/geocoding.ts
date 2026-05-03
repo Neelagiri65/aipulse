@@ -648,6 +648,45 @@ export function geocode(locationString: string | null | undefined): Coords | nul
 
 export const DICTIONARY_SIZE = CITY_COORDS.length;
 
+// Re-export so consumers have one import for the full place chain.
+export { placeFromCoords, type Place } from "@/lib/geocoding-places";
+
+import { placeFromCoords as _placeFromCoords } from "@/lib/geocoding-places";
+
+/**
+ * Rich geocode: returns lat/lng + country/region in one call.
+ * Used by the ingest pipeline to attach `country` to each event so the
+ * regional-deltas API and TopMoversLine "fastest growing" can aggregate
+ * by country without re-running bbox lookups at read time.
+ *
+ * `null` when the location string didn't match the city dictionary,
+ * OR when the city's coords fall outside every tracked country bbox.
+ * The latter is rare (the dictionary is grouped by region so any
+ * dictionary entry should be inside some country) but kept honest as
+ * a fallback rather than fabricating an "Unknown" country bucket.
+ */
+export type RichGeocode = {
+  lat: number;
+  lng: number;
+  country: string;
+  region?: string;
+};
+
+export function geocodeRich(
+  locationString: string | null | undefined,
+): RichGeocode | null {
+  const coords = geocode(locationString);
+  if (!coords) return null;
+  const place = _placeFromCoords(coords[0], coords[1]);
+  if (!place) return null;
+  return {
+    lat: coords[0],
+    lng: coords[1],
+    country: place.country,
+    region: place.region,
+  };
+}
+
 /**
  * Reverse map: lat,lng pair → canonical city name. Built once at module
  * load. When multiple dictionary entries share the same coords (e.g.

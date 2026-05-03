@@ -29,6 +29,12 @@ export type EventMeta = {
   createdAt?: string;
   hasAiConfig?: boolean;
   sourceKind?: "events-api" | "gharchive";
+  /** Country / region resolved from the actor's coords at ingest time
+   *  via `placeFromCoords`. Drives regional aggregation in the
+   *  TopMoversLine and the regional-deltas API. `null` when the coord
+   *  fell outside every tracked country bbox (rare). */
+  country?: string | null;
+  region?: string | null;
   /** Registry fields (kind === "registry"). */
   fullName?: string;
   stars?: number;
