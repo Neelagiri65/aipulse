@@ -8,6 +8,11 @@ import {
   type ToolHealthData,
   type ToolHealthStatus,
 } from "./tools";
+import {
+  pickLastIncident,
+  formatIncidentDuration,
+  formatIncidentImpact,
+} from "@/lib/data/last-incident";
 
 export type ToolHealthCardProps = {
   config: ToolConfig;
@@ -56,10 +61,13 @@ export function ToolHealthCard({ config, data }: ToolHealthCardProps) {
           <IncidentsApiUnavailable sourceUrl={sourceUrl} />
         )}
         {mode === "live" && data?.history && data.history.length > 0 && (
-          <UptimeSparkline
-            days={data.history}
-            hasSamples={data.historyHasSamples ?? false}
-          />
+          <>
+            <LastIncidentLine history={data.history} sourceUrl={sourceUrl} />
+            <UptimeSparkline
+              days={data.history}
+              hasSamples={data.historyHasSamples ?? false}
+            />
+          </>
         )}
         {mode !== "no-data" && (
           <SourceFooter
@@ -302,6 +310,61 @@ function SourceFooter({
         </Badge>
       )}
     </div>
+  );
+}
+
+/**
+ * Single-line "Last incident" recap rendered between the metrics body
+ * and the uptime sparkline. Uses the same DayBucket history the
+ * sparkline already consumes — no new data fetch.
+ *
+ * Two states:
+ *   - kind: "none"     → "No incidents in 7d" (quiet trust signal)
+ *   - kind: "incident" → "Last incident: 2h ago · 12 min · partial outage · source"
+ */
+function LastIncidentLine({
+  history,
+  sourceUrl,
+}: {
+  history: NonNullable<ToolHealthData["history"]>;
+  sourceUrl?: string;
+}) {
+  const recap = pickLastIncident(history);
+  if (recap.kind === "none") {
+    return (
+      <p className="font-mono text-[10px] uppercase tracking-wider text-emerald-400/70">
+        no incidents in 7d
+      </p>
+    );
+  }
+  const ago = formatRelative(recap.createdAt);
+  const duration = formatIncidentDuration(recap.durationMinutes);
+  const impact = formatIncidentImpact(recap.impact);
+  const isOngoing = recap.durationMinutes === null;
+  const tone = isOngoing
+    ? "text-amber-400/90"
+    : "text-muted-foreground/90";
+  return (
+    <p
+      className={`font-mono text-[10px] uppercase tracking-wider ${tone}`}
+      title={recap.name}
+    >
+      <span className="text-muted-foreground/60">last incident:</span>{" "}
+      {ago} · {duration} · {impact}
+      {sourceUrl ? (
+        <>
+          {" · "}
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+          >
+            source
+          </a>
+        </>
+      ) : null}
+    </p>
   );
 }
 
