@@ -3,6 +3,7 @@
 import type { RssSourcePanel, RssWireItem, RssWireResult } from "@/lib/data/wire-rss";
 import { CountryPill, LangTag } from "@/components/wire/country-pill";
 import { deriveTranslateUrl, TRANSLATE_LABEL } from "@/lib/i18n/translate-link";
+import { TranslatableText } from "@/components/wire/TranslatableText";
 
 /**
  * Regional Wire panel — lists the 5 curated publisher feeds sorted by
@@ -229,33 +230,18 @@ function TranslateLink({
 function InlineArticleRow({ item }: { item: RssWireItem }) {
   const ts = item.publishedTs * 1000;
   const rel = formatRelativeShort(ts);
-  const translateUrl = deriveTranslateUrl(item.url, item.lang);
   return (
     <li className="flex items-baseline gap-1.5 text-[10px]">
       <span className="shrink-0 text-foreground/30" aria-hidden>
         ▸
       </span>
-      <a
-        href={item.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="min-w-0 flex-1 truncate text-foreground/80 hover:text-[#f97316] hover:underline"
-        title={item.title}
-      >
-        {item.title}
-      </a>
-      {translateUrl ? (
-        <a
-          href={translateUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70 hover:text-[#f97316] hover:underline"
-          title={`Open ${item.title} via Google Translate`}
-          data-testid="translate-link"
-        >
-          {TRANSLATE_LABEL}
-        </a>
-      ) : null}
+      <TranslatableText
+        text={item.title}
+        lang={item.lang}
+        linkUrl={item.url}
+        textClassName="min-w-0 flex-1 truncate text-foreground/80 hover:text-[#f97316] hover:underline"
+        controlClassName="shrink-0 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70 hover:text-[#f97316] hover:underline"
+      />
       <span
         className="shrink-0 tabular-nums text-muted-foreground/70"
         title={new Date(ts).toISOString()}

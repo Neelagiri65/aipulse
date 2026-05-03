@@ -155,7 +155,10 @@ describe("SourceCard — translate pill (S60 Build 4)", () => {
     );
   });
 
-  it("renders per-item translate pills on non-English recent items", () => {
+  it("renders an inline Translate toggle on each non-English recent-item row", () => {
+    // S61: per-item rows now use TranslatableText (inline toggle), no
+    // longer the legacy translate.google.com redirect pill. The toggle
+    // button carries data-testid="translate-toggle" + the label.
     const html = renderToStaticMarkup(
       <SourceCard
         source={mkSource()}
@@ -164,12 +167,15 @@ describe("SourceCard — translate pill (S60 Build 4)", () => {
         onClose={vi.fn()}
       />,
     );
-    expect(html).toContain(
-      encodeURIComponent("https://www.heise.de/news/ki-trends-2026"),
-    );
+    expect(html).toContain('data-testid="translate-toggle"');
+    expect(html).toContain('data-testid="translatable-text"');
+    expect(html).toContain("Translate");
+    // The article URL still appears as the title link's href (raw,
+    // not wrapped through translate.google.com).
+    expect(html).toContain("https://www.heise.de/news/ki-trends-2026");
   });
 
-  it("renders no pill for an English-only source", () => {
+  it("renders no inline toggle on English-only recent items, only the publisher-level affordance", () => {
     const englishSource = mkSource({
       id: "the-register-ai",
       displayName: "The Register",
@@ -193,5 +199,6 @@ describe("SourceCard — translate pill (S60 Build 4)", () => {
       />,
     );
     expect(html).not.toContain("translate.google.com");
+    expect(html).not.toContain('data-testid="translate-toggle"');
   });
 });

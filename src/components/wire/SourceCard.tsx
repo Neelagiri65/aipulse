@@ -4,6 +4,7 @@ import { forwardRef } from "react";
 import type { RssSourcePanel, RssWireItem } from "@/lib/data/wire-rss";
 import { CountryPill, LangTag } from "@/components/wire/country-pill";
 import { deriveTranslateUrl, TRANSLATE_LABEL } from "@/lib/i18n/translate-link";
+import { TranslatableText } from "@/components/wire/TranslatableText";
 
 /**
  * Full detail card for a single publisher dot on the map. Opens when
@@ -207,30 +208,15 @@ function SourceBody({ source }: { source: RssSourcePanel }) {
 function RecentItemRow({ item }: { item: RssWireItem }) {
   const publishedIso = new Date(item.publishedTs * 1000).toISOString();
   const rel = relativeTime(item.publishedTs * 1000);
-  const translateUrl = deriveTranslateUrl(item.url, item.lang);
   return (
     <li className="flex items-baseline justify-between gap-2 font-mono text-[10px]">
-      <a
-        href={item.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="min-w-0 flex-1 truncate text-foreground/85 hover:text-[#f97316] hover:underline"
-        title={item.title}
-      >
-        {item.title}
-      </a>
-      {translateUrl ? (
-        <a
-          href={translateUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 text-[9px] uppercase tracking-wider text-muted-foreground hover:text-[#f97316] hover:underline"
-          title={`Open ${item.title} via Google Translate`}
-          data-testid="translate-link"
-        >
-          {TRANSLATE_LABEL}
-        </a>
-      ) : null}
+      <TranslatableText
+        text={item.title}
+        lang={item.lang}
+        linkUrl={item.url}
+        textClassName="min-w-0 flex-1 truncate text-foreground/85 hover:text-[#f97316] hover:underline"
+        controlClassName="shrink-0 text-[9px] uppercase tracking-wider text-muted-foreground hover:text-[#f97316] hover:underline"
+      />
       <span
         className="shrink-0 tabular-nums text-muted-foreground"
         title={publishedIso}
