@@ -15,6 +15,7 @@ export type DigestSectionId =
   | "hn"
   | "benchmarks"
   | "sdk-adoption"
+  | "agents"
   | "labs"
   | "model-usage";
 

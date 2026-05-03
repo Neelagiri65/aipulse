@@ -921,7 +921,7 @@ export const PYPI_DOWNLOADS: DataSource = {
   verifiedAt: "2026-04-21",
   caveat:
     "pypistats.org is a third-party aggregator of PyPI's BigQuery download logs, same provenance class as ecosyste.ms — NOT PyPI itself. Known caveat from PyPI's own guidance: the logs include mirror hits, CI builds, and `pip install` retries, which inflate counts vs. 'real human installs' by an unknown multiplier. Gawk ships the raw numbers and surfaces this caveat alongside. Switching to Google BigQuery's `bigquery-public-data.pypi.downloads` is a queued v2 follow-up for first-party provenance (requires GCP auth + a billing account).",
-  powersFeature: ["sdk-adoption-panel"],
+  powersFeature: ["sdk-adoption-panel", "agents-panel"],
 };
 
 export const NPM_DOWNLOADS: DataSource = {
@@ -948,7 +948,7 @@ export const NPM_DOWNLOADS: DataSource = {
   verifiedAt: "2026-04-21",
   caveat:
     "api.npmjs.org IS npm's own analytics endpoint (first-party), not a third-party mirror — unlike pypistats for PyPI. Known caveat per npm's own docs: downloads count every `npm install` request, including CI caches, mirror fetches, and yarn/pnpm hits that proxy through npm. Not a unique-user measure. Switching to npm's weekly-downloads API for more stable numbers is a queued follow-up once the panel design nails down the aggregation.",
-  powersFeature: ["sdk-adoption-panel"],
+  powersFeature: ["sdk-adoption-panel", "agents-panel"],
 };
 
 export const CRATES_DOWNLOADS: DataSource = {
@@ -1060,6 +1060,35 @@ export const HOMEBREW_INSTALLS: DataSource = {
   powersFeature: ["sdk-adoption-panel"],
 };
 
+export const GITHUB_REPO_META: DataSource = {
+  id: "github-repo-meta",
+  name: "GitHub — repository metadata (api.github.com/repos/{owner}/{repo})",
+  category: "github-activity",
+  url: "https://github.com",
+  apiUrl: "https://api.github.com/repos/{owner}/{repo}",
+  responseFormat: "json",
+  updateFrequency: "daily",
+  rateLimit: {
+    authenticated: 5000,
+    unauthenticated: 60,
+    note: "Authenticated via GH_TOKEN. Agents-ingest fetches 8 repos × 1 call once daily → 8 calls/day. Trivial under the 5000/hr authenticated cap; same token already powers GITHUB_EVENTS / GHARCHIVE.",
+  },
+  auth: "github-token",
+  measures:
+    "Per-repository scalar metadata: stargazers_count, open_issues_count, pushed_at (ISO of the last commit on the default branch), archived (boolean — repo explicitly archived by owner). Powers the agents-panel for liveness signal — `pushed_at` plus the `archived` flag drive the dormant/archived badges. We do not derive activity scores; the four scalars are surfaced verbatim. Per-repo failures isolate so one 404 doesn't tank the whole framework slate.",
+  sanityCheck: {
+    description:
+      "Tracked agent-framework repos should have stars in the 1k–500k range — below 1k is suspicious for a framework that's already been editorially included; above 500k indicates an upstream count bug. AutoGPT was 184k on the 2026-05-03 verification probe (highest); Sweep was 7.7k (lowest, dormant). Zero stars across polls indicates GH API shape drift or a repo rename — investigate before attributing to anything else.",
+    expectedMin: 1_000,
+    expectedMax: 500_000,
+    unit: "stargazers per repo",
+  },
+  verifiedAt: "2026-05-03",
+  caveat:
+    "First-party provenance (api.github.com is GitHub's own REST API). `pushed_at` advances on any commit to any branch, so a recently-pushed dependabot branch can mask a long-quiet default branch — the dormant heuristic accepts this false-negative as the cost of using a single field. `archived: true` is the authoritative dormancy signal; `pushed_at > 90d` is the heuristic that catches projects that went quiet without explicit archival.",
+  powersFeature: ["agents-panel"],
+};
+
 // ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
@@ -1100,6 +1129,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   DOCKER_HUB_PULLS,
   HOMEBREW_INSTALLS,
   VSCODE_MARKETPLACE,
+  GITHUB_REPO_META,
 ] as const;
 
 export const VERIFIED_SOURCES: readonly DataSource[] = ALL_SOURCES.filter(

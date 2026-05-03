@@ -25,9 +25,11 @@ import { composeHnSection } from "@/lib/digest/sections/hn";
 import { composeToolHealthSection } from "@/lib/digest/sections/tool-health";
 import { composeBenchmarksSection } from "@/lib/digest/sections/benchmarks";
 import { composeSdkAdoptionSection } from "@/lib/digest/sections/sdk-adoption";
+import { composeAgentsSection } from "@/lib/digest/sections/agents";
 import { composeLabsSection } from "@/lib/digest/sections/labs";
 import { composeModelUsageSection } from "@/lib/digest/sections/model-usage";
 import { detectEmptyDay } from "@/lib/digest/empty-day";
+import type { AgentsViewDto } from "@/lib/data/agents-view";
 
 // Diff-mode greeting is unused at render time — the template prints
 // `tldr` instead — but kept populated for archive re-rendering and as a
@@ -53,6 +55,13 @@ export type ComposeDigestInput = {
    * silently drops the section.
    */
   modelUsageSnapshots?: Record<string, ModelUsageSnapshotRow>;
+  /**
+   * Agents-frameworks pre-assembled view (today + 7d-old delta).
+   * Optional — when omitted or null, the agents section is silently
+   * dropped. Section composer is movement-gated so a populated DTO
+   * with no rows above the threshold also drops the section.
+   */
+  agents?: AgentsViewDto | null;
 };
 
 export function composeDigest(input: ComposeDigestInput): DigestBody {
@@ -89,9 +98,13 @@ export function composeDigest(input: ComposeDigestInput): DigestBody {
       })
     : null;
 
+  const agents = composeAgentsSection({ agents: input.agents ?? null });
+
   // Lead with the strongest, most-defensible content (benchmarks: real
   // deltas with primary-source provenance), then operational signal
-  // (tool health), then community discussion (HN). Subject-line lookup
+  // (tool health), then community discussion (HN). Agents sit between
+  // SDK and Labs — same "package adoption" lineage as SDK but a step
+  // further from infrastructure tooling. Subject-line lookup
   // (`pickLeadHook`) keys on section.id, not array index, so reordering
   // here is safe.
   const sections: DigestSection[] = [
@@ -99,6 +112,7 @@ export function composeDigest(input: ComposeDigestInput): DigestBody {
     toolHealth,
     hnSection,
     sdkAdoption,
+    ...(agents ? [agents] : []),
     labs,
     ...(modelUsage ? [modelUsage] : []),
   ];
@@ -155,6 +169,12 @@ function buildTldr(
   if (sdk && sdk.mode === "diff" && sdk.items.length > 0) {
     parts.push(
       `${sdk.items.length} SDK shift${sdk.items.length === 1 ? "" : "s"}`,
+    );
+  }
+  const agents = sections.find((s) => s.id === "agents");
+  if (agents && agents.items.length > 0) {
+    parts.push(
+      `${agents.items.length} agent mover${agents.items.length === 1 ? "" : "s"}`,
     );
   }
   const labs = sections.find((s) => s.id === "labs");
@@ -218,6 +238,8 @@ function pickLeadHook(
   if (labs && labs.mode === "diff") return labs.headline;
   const sdk = sections.find((s) => s.id === "sdk-adoption");
   if (sdk && sdk.mode === "diff") return sdk.headline;
+  const agents = sections.find((s) => s.id === "agents");
+  if (agents && agents.mode === "diff") return agents.headline;
   const modelUsage = sections.find((s) => s.id === "model-usage");
   if (modelUsage && modelUsage.mode === "diff") return modelUsage.headline;
   return null;

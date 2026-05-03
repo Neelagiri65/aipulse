@@ -31,6 +31,7 @@ import type { DailySnapshot } from "@/lib/data/snapshot";
 import type { HnWireResult } from "@/lib/data/wire-hn";
 import type { Incidents48hSplit } from "@/lib/digest/fetch-incidents-24h";
 import type { ModelUsageSnapshotRow } from "@/lib/data/openrouter-types";
+import type { AgentsViewDto } from "@/lib/data/agents-view";
 import type { ConfirmedSubscriberWithEmail } from "@/lib/data/subscribers";
 
 export type SendDigestForDateInput = {
@@ -53,6 +54,8 @@ export type SendDigestForDateInput = {
   loadModelUsageSnapshots?: () => Promise<
     Record<string, ModelUsageSnapshotRow>
   >;
+  /** Optional — see BuildDigestOpts.loadAgentsView. */
+  loadAgentsView?: () => Promise<AgentsViewDto | null>;
   loadSubscribers: () => Promise<ConfirmedSubscriberWithEmail[]>;
   batchSender: BatchSender;
   renderHtml: (args: {
@@ -101,6 +104,7 @@ export async function sendDigestForDate(
     loadHn: input.loadHn,
     loadIncidents24h: input.loadIncidents24h,
     loadModelUsageSnapshots: input.loadModelUsageSnapshots,
+    loadAgentsView: input.loadAgentsView,
   });
   if (!build.ok) {
     return { ok: false, reason: build.reason, message: build.message };

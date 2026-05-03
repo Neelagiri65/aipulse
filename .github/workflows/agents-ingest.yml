@@ -1,0 +1,76 @@
+name: agents-ingest
+
+# Agent-frameworks adoption ingest: fetch /recent download counters
+# (pypistats.org), last-week downloads (api.npmjs.org), and per-repo
+# metadata (api.github.com) for the eight tracked frameworks
+# (LangGraph, CrewAI, smolagents, AutoGen, OpenAI Agents, Pydantic AI,
+# AutoGPT-legacy, Sweep-dormant). Writes `agents:latest` plus a
+# 14-day-TTL daily snapshot to Upstash so the view assembler can
+# compute w/w deltas.
+#
+# Cadence: once daily at 06:30 UTC. PyPI's pypistats rolls `last_week`
+# once per day so sub-daily polling is wasted work. cron-health
+# declares 1440-min interval to allow ~1h GitHub Actions drift on
+# long schedules without flapping stale.
+#
+# Required repo secrets (shared with other ingest workflows):
+#   INGEST_URL     — e.g. https://aipulse-pi.vercel.app/api/ingest
+#                    (we strip /api/ingest and append the agents path)
+#   INGEST_SECRET  — shared secret matching the Vercel env var
+#
+# The route reads GH_TOKEN from the Vercel env directly — the workflow
+# does not need to forward it. Same pattern as every other ingest cron
+# that hits the GitHub API server-side.
+#
+# Fails loudly (exit 1) when the response body has ok:false. curl -f
+# only catches HTTP 4xx/5xx; the route returns HTTP 200 with ok:false
+# when every framework's fetch failed (whole-slate outage). Mirrors the
+# fail-loud wrapper added to daily-digest.yml in session 49.
+
+on:
+  schedule:
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Attribution tag (cron | manual)"
+        required: false
+        default: "manual"
+        type: string
+
+concurrency:
+  group: agents-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Trigger agents ingest on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.source || 'cron' }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/ingest/agents?source=$SOURCE"
+          echo "POST $URL"
+          RESPONSE=$(curl -sS --max-time 90 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"
+          # Fail loudly when the route reports ok:false in the body —
+          # curl -f only fires on 4xx/5xx, but a whole-slate outage is
+          # HTTP 200 with ok:false in JSON. Without this, three days of
+          # blocked sends went green on the Actions page (S49 lesson).
+          OK=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print('true' if d.get('ok') else 'false')" 2>/dev/null || echo "parse-failed")
+          if [ "$OK" != "true" ]; then
+            echo "::error::agents ingest reported ok:$OK in response body"
+            exit 1
+          fi

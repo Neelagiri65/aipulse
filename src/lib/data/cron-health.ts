@@ -65,6 +65,10 @@ export const CRON_WORKFLOWS = {
   // schedule — matches HN/regional-rss; Reddit RSS is unmetered but a
   // tighter cadence would just amplify items the dedup already handles.
   "wire-ingest-reddit": { expectedIntervalMinutes: 30 },
+  // Agents-panel ingest: per-framework PyPI + npm + GH meta. Daily at
+  // 06:30 UTC; 1440-min declared interval allows for ~1h GitHub Actions
+  // drift on long schedules without flapping stale.
+  "agents-ingest": { expectedIntervalMinutes: 1440 },
 } as const;
 
 export type CronWorkflowName = keyof typeof CRON_WORKFLOWS;

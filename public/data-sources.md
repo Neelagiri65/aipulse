@@ -2,18 +2,19 @@
 
 Every number on this dashboard traces back to a publicly verifiable source. Gawk aggregates — it does not invent metrics, re-score labs, or manufacture values. When a source is unavailable, the affected card falls to graceful degradation with a "last known value" and timestamp rather than blanking silently.
 
-As of 2026-04-30, Gawk tracks **35 verified sources** across GitHub activity, status pages, platform-infrastructure status pages, published research, model distribution, package adoption, community sentiment, regional press, and model benchmarks.
+As of 2026-05-03, Gawk tracks **36 verified sources** across GitHub activity, status pages, platform-infrastructure status pages, published research, model distribution, package adoption, community sentiment, regional press, and model benchmarks.
 
 ---
 
 ## Verified sources
 
-### GitHub activity (8)
+### GitHub activity (9)
 - GitHub Events API
 - GH Archive — hourly public-event dumps
 - GitHub Contents API
 - GitHub Code Search — filename discovery
 - GitHub Repository Search — topic discovery
+- GitHub Repository Metadata — stars, open issues, last-pushed, archived flag
 - ecosyste.ms — npm reverse-dependencies
 - GitHub Repository Events API — labs activity fetcher
 - AI Labs — curated HQ registry
@@ -44,6 +45,8 @@ These four track the services Gawk itself runs on. Surfaced operator-side only (
 - Docker Hub — container pull counters
 - Homebrew — formula install counters
 - Visual Studio Marketplace — extension catalogue
+
+The PyPI, npm, and GitHub Repository Metadata sources also power the Agents panel — an 8-row view of agent-framework adoption (LangGraph, CrewAI, smolagents, AutoGen, OpenAI Agents, Pydantic AI) plus two tombstones (AutoGPT as legacy reference, Sweep as dormant).
 
 ### Community sentiment (3)
 - Hacker News — AI-filtered story stream
@@ -90,4 +93,4 @@ The complete source registry — endpoint URLs, polling cadences, rate-limit bud
 
 ---
 
-_Last updated: 2026-04-30._
+_Last updated: 2026-05-03._
