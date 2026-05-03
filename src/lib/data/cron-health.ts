@@ -31,19 +31,19 @@ const KEY_PREFIX = "cron:health:";
  * Intervals are the `schedule: - cron:` cadence of that workflow.
  */
 export const CRON_WORKFLOWS = {
-  // GitHub Actions scheduled crons drift under load — actual cadence
-  // for fast schedules is closer to 30-120 min in practice. Declared
-  // interval drives the cron-health "stale" check, so labelling these
-  // to observed reality stops the StatusBar from flagging stale on
-  // every missed tick. wire-ingest-hn bumped 15→60 in S39, then 60→120
-  // in S49 after sustained drift kept the workflow on the stale list
-  // even when individual runs were succeeding. globe-ingest got the
-  // same treatment 5→30 in S35.
-  "globe-ingest": { expectedIntervalMinutes: 30 },
+  // GitHub Actions scheduled crons drift heavily on free tier — short
+  // schedules (15-60 min cron) routinely run at 2-7× their declared
+  // interval. Declared interval here drives the cron-health "stale"
+  // check (stale = no success in 2× expected); when the declared value
+  // is too aggressive the workflow flaps healthy/stale all day even
+  // though it's not failing. Five-workflow re-label below (S53) was
+  // sized from observed p95 over the last 30 runs, same surgical move
+  // S35 (globe-ingest 5→30), S39+S49 (wire-ingest-hn 15→60→120) used.
+  "globe-ingest": { expectedIntervalMinutes: 90 },
   "wire-ingest-hn": { expectedIntervalMinutes: 120 },
   "wire-ingest-rss": { expectedIntervalMinutes: 30 },
-  "registry-backfill-events": { expectedIntervalMinutes: 60 },
-  "registry-discover-topics": { expectedIntervalMinutes: 120 },
+  "registry-backfill-events": { expectedIntervalMinutes: 150 },
+  "registry-discover-topics": { expectedIntervalMinutes: 240 },
   "registry-discover": { expectedIntervalMinutes: 360 },
   "registry-discover-deps": { expectedIntervalMinutes: 360 },
   "labs-cron": { expectedIntervalMinutes: 360 },
@@ -57,14 +57,13 @@ export const CRON_WORKFLOWS = {
   "pkg-brew": { expectedIntervalMinutes: 360 },
   "pkg-vscode": { expectedIntervalMinutes: 360 },
   "openrouter-rankings": { expectedIntervalMinutes: 360 },
-  // Discord webhook for TOOL_ALERT transitions. GitHub Actions tight cadences
-  // drift to 30-60 min in practice (see globe-ingest 5→30 in S35) so the
-  // declared interval matches observed reality.
-  "notify-tool-alerts": { expectedIntervalMinutes: 30 },
-  // Curated Reddit subs (r/LocalLLaMA + r/ClaudeAI) feed NEWS cards. 30-min
-  // schedule — matches HN/regional-rss; Reddit RSS is unmetered but a
-  // tighter cadence would just amplify items the dedup already handles.
-  "wire-ingest-reddit": { expectedIntervalMinutes: 30 },
+  // Discord webhook for TOOL_ALERT transitions. Drift bumped 30→90 in
+  // S53 (observed p95 = 140m on the */5 cron schedule).
+  "notify-tool-alerts": { expectedIntervalMinutes: 90 },
+  // Curated Reddit subs (r/LocalLLaMA + r/ClaudeAI) feed NEWS cards.
+  // Drift bumped 30→120 in S53 (observed p95 = 208m, the worst of the
+  // short-cadence workflows).
+  "wire-ingest-reddit": { expectedIntervalMinutes: 120 },
   // Agents-panel ingest: per-framework PyPI + npm + GH meta. Daily at
   // 06:30 UTC; 1440-min declared interval allows for ~1h GitHub Actions
   // drift on long schedules without flapping stale.

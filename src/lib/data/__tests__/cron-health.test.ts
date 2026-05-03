@@ -76,15 +76,15 @@ describe("isCronStale", () => {
 
 describe("CRON_WORKFLOWS registry", () => {
   it("matches the expected cadences of the monitored workflows", () => {
-    expect(CRON_WORKFLOWS["globe-ingest"].expectedIntervalMinutes).toBe(30);
+    expect(CRON_WORKFLOWS["globe-ingest"].expectedIntervalMinutes).toBe(90);
     expect(CRON_WORKFLOWS["wire-ingest-hn"].expectedIntervalMinutes).toBe(120);
     expect(CRON_WORKFLOWS["wire-ingest-rss"].expectedIntervalMinutes).toBe(30);
     expect(
       CRON_WORKFLOWS["registry-backfill-events"].expectedIntervalMinutes,
-    ).toBe(60);
+    ).toBe(150);
     expect(
       CRON_WORKFLOWS["registry-discover-topics"].expectedIntervalMinutes,
-    ).toBe(120);
+    ).toBe(240);
     expect(CRON_WORKFLOWS["registry-discover"].expectedIntervalMinutes).toBe(
       360,
     );
