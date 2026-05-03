@@ -72,14 +72,20 @@ export type AgentFetchOptions = {
   ghToken?: string;
   /** Inter-framework throttle in ms. pypistats returns 429 on tight
    *  back-to-back fan-out (observed session 52: 3 of 7 PyPI calls
-   *  rate-limited within ~1s). 250ms spaces 8 frameworks across ~2s
-   *  which pypistats handles cleanly. Tests pass 0 to skip the wait. */
+   *  rate-limited within ~1s; S52's 250ms still produced 3-of-7
+   *  partials on Vercel's outbound IPs). S58 bumps default to 1500ms
+   *  — spaces 8 frameworks across ~10.5s which is well clear of any
+   *  per-IP-per-package cooldown observed empirically. Tests pass 0
+   *  to skip the wait. */
   perFrameworkDelayMs?: number;
   /** Sleep impl — tests pass a no-op or a vi.fn to verify call count. */
   sleep?: (ms: number) => Promise<void>;
+  /** Override the 429-retry backoff. Default 2000ms; tests pass 0. */
+  retry429BackoffMs?: number;
 };
 
-const DEFAULT_DELAY_MS = 250;
+const DEFAULT_DELAY_MS = 1500;
+const DEFAULT_RETRY_429_BACKOFF_MS = 2000;
 
 export async function fetchAgentSnapshots(
   frameworks: readonly AgentFramework[],
@@ -90,27 +96,40 @@ export async function fetchAgentSnapshots(
   const delayMs = opts.perFrameworkDelayMs ?? DEFAULT_DELAY_MS;
   const sleep =
     opts.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
+  const retry429BackoffMs =
+    opts.retry429BackoffMs ?? DEFAULT_RETRY_429_BACKOFF_MS;
 
   const snapshots: AgentFrameworkSnapshot[] = [];
   for (let i = 0; i < frameworks.length; i++) {
     if (i > 0 && delayMs > 0) await sleep(delayMs);
-    snapshots.push(await fetchOneFramework(frameworks[i], fetchImpl, opts.ghToken));
+    snapshots.push(
+      await fetchOneFramework(frameworks[i], fetchImpl, opts.ghToken, {
+        sleep,
+        retry429BackoffMs,
+      }),
+    );
   }
 
   return { frameworks: snapshots, fetchedAt: now().toISOString() };
 }
 
+type FetchOneOptions = {
+  sleep: (ms: number) => Promise<void>;
+  retry429BackoffMs: number;
+};
+
 async function fetchOneFramework(
   fw: AgentFramework,
   fetchImpl: typeof fetch,
   ghToken: string | undefined,
+  inner: FetchOneOptions,
 ): Promise<AgentFrameworkSnapshot> {
   const errors: AgentFrameworkSnapshot["fetchErrors"] = [];
 
   let pypiWeekly: number | null = null;
   if (fw.pypiPackage) {
     try {
-      pypiWeekly = await fetchPyPiWeekly(fw.pypiPackage, fetchImpl);
+      pypiWeekly = await fetchPyPiWeekly(fw.pypiPackage, fetchImpl, inner);
     } catch (e) {
       errors.push({ source: "pypi", message: errMessage(e) });
     }
@@ -119,7 +138,7 @@ async function fetchOneFramework(
   let npmWeekly: number | null = null;
   if (fw.npmPackage) {
     try {
-      npmWeekly = await fetchNpmWeekly(fw.npmPackage, fetchImpl);
+      npmWeekly = await fetchNpmWeekly(fw.npmPackage, fetchImpl, inner);
     } catch (e) {
       errors.push({ source: "npm", message: errMessage(e) });
     }
@@ -166,13 +185,22 @@ async function fetchOneFramework(
 async function fetchPyPiWeekly(
   pkg: string,
   fetchImpl: typeof fetch,
+  inner: FetchOneOptions,
 ): Promise<number> {
   const url = `${PYPISTATS_BASE}/${encodeURIComponent(pkg)}/recent`;
-  const res = await fetchImpl(url, {
-    headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
-  });
+  const res = await fetchWithRetryOn429(
+    url,
+    {
+      headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+    },
+    fetchImpl,
+    inner,
+  );
   if (!res.ok) {
-    throw new Error(`pypistats ${pkg} HTTP ${res.status}`);
+    const bodyText = await safeReadText(res);
+    throw new Error(
+      `pypistats ${pkg} HTTP ${res.status}${bodyText ? ` · upstream: ${truncate(bodyText, 120)}` : ""}`,
+    );
   }
   const body = (await res.json()) as unknown;
   if (!body || typeof body !== "object") {
@@ -188,21 +216,64 @@ async function fetchPyPiWeekly(
 async function fetchNpmWeekly(
   pkg: string,
   fetchImpl: typeof fetch,
+  inner: FetchOneOptions,
 ): Promise<number> {
   // npm's downloads endpoint expects scoped names verbatim ("@scope/name"),
   // NOT url-encoded — encoding the slash returns 404.
   const url = `${NPM_DOWNLOADS_BASE}/${pkg}`;
-  const res = await fetchImpl(url, {
-    headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
-  });
+  const res = await fetchWithRetryOn429(
+    url,
+    {
+      headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+    },
+    fetchImpl,
+    inner,
+  );
   if (!res.ok) {
-    throw new Error(`npm ${pkg} HTTP ${res.status}`);
+    const bodyText = await safeReadText(res);
+    throw new Error(
+      `npm ${pkg} HTTP ${res.status}${bodyText ? ` · upstream: ${truncate(bodyText, 120)}` : ""}`,
+    );
   }
   const body = (await res.json()) as unknown;
   if (!body || typeof body !== "object") {
     throw new Error(`npm ${pkg}: non-object body`);
   }
   return toCount((body as Record<string, unknown>).downloads, "downloads");
+}
+
+/**
+ * One-shot 429 retry. Pypistats returns HTTP 429 RATE LIMIT EXCEEDED
+ * sporadically on tight back-to-back fan-out (S52). The S58 throttle
+ * bump (250→1500ms) reduces the rate, but a single retry after the
+ * cooldown window (default 2s) absorbs the residual cases without
+ * sustained polling. Only retries on 429; other 4xx/5xx surface
+ * immediately so transient upstream errors don't multiply.
+ */
+async function fetchWithRetryOn429(
+  url: string,
+  init: RequestInit,
+  fetchImpl: typeof fetch,
+  inner: FetchOneOptions,
+): Promise<Response> {
+  const first = await fetchImpl(url, init);
+  if (first.status !== 429) return first;
+  if (inner.retry429BackoffMs > 0) await inner.sleep(inner.retry429BackoffMs);
+  return fetchImpl(url, init);
+}
+
+/** Read response body without throwing — useful for surfacing the
+ *  upstream error message in the snapshot's fetchErrors. */
+async function safeReadText(res: Response): Promise<string> {
+  try {
+    return await res.text();
+  } catch {
+    return "";
+  }
+}
+
+function truncate(s: string, n: number): string {
+  return s.length > n ? `${s.slice(0, n)}…` : s;
 }
 
 async function fetchGithubRepoMeta(

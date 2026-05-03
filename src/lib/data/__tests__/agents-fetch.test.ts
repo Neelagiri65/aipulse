@@ -73,10 +73,12 @@ const baseOpts = (fetchImpl: typeof fetch): AgentFetchOptions => ({
   fetchImpl,
   now: () => NOW,
   ghToken: "test-token",
-  // Skip the inter-framework throttle in unit tests so the suite
-  // doesn't pay 250ms per fixture × 8 frameworks. Production keeps
-  // the default 250ms to stay under pypistats' 429 threshold.
+  // Skip the inter-framework throttle and the 429-retry backoff in
+  // unit tests so the suite doesn't pay 1500ms × frameworks +
+  // 2000ms per 429 retry. Production keeps the defaults
+  // (1500ms throttle, 2000ms 429 backoff) for upstream civility.
   perFrameworkDelayMs: 0,
+  retry429BackoffMs: 0,
 });
 
 describe("fetchAgentSnapshots", () => {
@@ -340,5 +342,89 @@ describe("fetchAgentSnapshots", () => {
       "langgraph",
       "sweep",
     ]);
+  });
+
+  it("retries once on HTTP 429 — succeeds on second attempt", async () => {
+    let pypiCalls = 0;
+    const fetchImpl = vi.fn(
+      async (input: RequestInfo | URL): Promise<Response> => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.includes("pypistats.org/api/packages/crewai/recent")) {
+          pypiCalls++;
+          if (pypiCalls === 1) {
+            return new Response("rate limit", { status: 429 });
+          }
+          return jsonResponse({
+            data: { last_day: 1, last_week: 1_762_851, last_month: 7_000_000 },
+          });
+        }
+        if (url.includes("api.github.com/repos/crewAIInc/crewAI")) {
+          return jsonResponse({
+            stargazers_count: 50_534,
+            open_issues_count: 367,
+            pushed_at: "2026-05-03T16:10:59Z",
+            archived: false,
+          });
+        }
+        throw new Error(`Unmocked: ${url}`);
+      },
+    );
+    const result = await fetchAgentSnapshots([FW_PYPI_ONLY], baseOpts(fetchImpl));
+    expect(pypiCalls).toBe(2);
+    expect(result.frameworks[0].pypiWeeklyDownloads).toBe(1_762_851);
+    expect(result.frameworks[0].fetchErrors).toEqual([]);
+  });
+
+  it("does NOT retry on non-429 errors (single attempt only)", async () => {
+    let pypiCalls = 0;
+    const fetchImpl = vi.fn(
+      async (input: RequestInfo | URL): Promise<Response> => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.includes("pypistats.org")) {
+          pypiCalls++;
+          return new Response("upstream broken", { status: 500 });
+        }
+        if (url.includes("api.github.com")) {
+          return jsonResponse({
+            stargazers_count: 50_534,
+            open_issues_count: 367,
+            pushed_at: "2026-05-03T16:10:59Z",
+            archived: false,
+          });
+        }
+        throw new Error(`Unmocked: ${url}`);
+      },
+    );
+    await fetchAgentSnapshots([FW_PYPI_ONLY], baseOpts(fetchImpl));
+    expect(pypiCalls).toBe(1);
+  });
+
+  it("surfaces the upstream HTTP status + body excerpt in fetchErrors[].message", async () => {
+    const fetchImpl = vi.fn(
+      async (input: RequestInfo | URL): Promise<Response> => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.includes("pypistats.org")) {
+          return new Response("429 RATE LIMIT EXCEEDED — see /api/#etiquette", {
+            status: 429,
+          });
+        }
+        if (url.includes("api.github.com")) {
+          return jsonResponse({
+            stargazers_count: 50_534,
+            open_issues_count: 367,
+            pushed_at: "2026-05-03T16:10:59Z",
+            archived: false,
+          });
+        }
+        throw new Error(`Unmocked: ${url}`);
+      },
+    );
+    // Both attempts return 429 → final failure preserves the
+    // upstream body excerpt so the operator can see WHY without
+    // crawling Vercel function logs.
+    const result = await fetchAgentSnapshots([FW_PYPI_ONLY], baseOpts(fetchImpl));
+    const err = result.frameworks[0].fetchErrors.find((e) => e.source === "pypi");
+    expect(err?.message).toContain("HTTP 429");
+    expect(err?.message).toContain("RATE LIMIT");
   });
 });

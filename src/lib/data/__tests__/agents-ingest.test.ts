@@ -105,6 +105,12 @@ describe("runAgentsIngest", () => {
     expect(result.failures[0].sources).toEqual(
       expect.arrayContaining(["pypi", "github"]),
     );
+    // S58: errors[] preserves the actual HTTP status / body excerpt so
+    // the cron-health Actions log distinguishes pypistats-429 from
+    // pypistats-500 from schema-drift errors.
+    expect(result.failures[0].errors).toHaveLength(2);
+    const pypiErr = result.failures[0].errors.find((e) => e.source === "pypi");
+    expect(pypiErr?.message).toContain("HTTP 500");
     expect(writeLatest).not.toHaveBeenCalled();
     expect(writeSnapshot).not.toHaveBeenCalled();
   });

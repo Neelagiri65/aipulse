@@ -113,7 +113,17 @@ export type AgentsIngestResult = {
   /** Number of frameworks where any usable field landed. */
   succeeded: number;
   /** Per-framework error count for cron-health diagnostics. */
-  failures: Array<{ id: string; sources: string[] }>;
+  failures: Array<{
+    id: string;
+    /** Backwards-compatible source list — preserved so existing log
+     *  parsers and cron-health observability don't break. */
+    sources: string[];
+    /** S58: per-source error messages, including the upstream HTTP
+     *  status + first 120 chars of the response body. Lets the
+     *  Actions log distinguish pypistats-429 from pypistats-500 from
+     *  schema-drift errors. */
+    errors: Array<{ source: string; message: string }>;
+  }>;
 };
 
 export type AgentsIngestOptions = {
@@ -127,6 +137,14 @@ export type AgentsIngestOptions = {
   /** Override write functions — tests pass in spies. */
   writeLatest?: (blob: AgentFetchResult) => Promise<void>;
   writeSnapshot?: (date: string, blob: AgentFetchResult) => Promise<void>;
+  /** Forwarded to fetchAgentSnapshots — tests pass 0 to skip the
+   *  1500ms inter-framework throttle. */
+  perFrameworkDelayMs?: number;
+  /** Forwarded to fetchAgentSnapshots — tests pass 0 to skip the
+   *  2000ms 429 retry backoff. */
+  retry429BackoffMs?: number;
+  /** Forwarded to fetchAgentSnapshots — tests pass a vi.fn. */
+  sleep?: (ms: number) => Promise<void>;
 };
 
 export async function runAgentsIngest(
@@ -143,6 +161,9 @@ export async function runAgentsIngest(
     fetchImpl: opts.fetchImpl,
     now,
     ghToken,
+    perFrameworkDelayMs: opts.perFrameworkDelayMs,
+    retry429BackoffMs: opts.retry429BackoffMs,
+    sleep: opts.sleep,
   });
 
   // Merge per-source last-known-good from the prior `agents:latest` blob.
@@ -191,12 +212,20 @@ export async function runAgentsIngest(
 
   // Failures list comes from the RAW fetch, not the merged result —
   // it's the diagnostic trail of "what couldn't we refresh this run",
-  // independent of whether the merge papered over the gap.
+  // independent of whether the merge papered over the gap. Per-error
+  // messages are preserved (S58) so the cron-health Actions log shows
+  // the actual upstream HTTP code + body excerpt — was previously
+  // dropped, leaving "pypi" as the only signal which made
+  // pypistats-429 vs pypistats-500 indistinguishable.
   const failures = fetchResult.frameworks
     .filter((f) => f.fetchErrors.length > 0)
     .map((f) => ({
       id: f.id,
       sources: f.fetchErrors.map((e) => e.source),
+      errors: f.fetchErrors.map((e) => ({
+        source: e.source,
+        message: e.message,
+      })),
     }));
 
   return {
