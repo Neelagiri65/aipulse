@@ -19,10 +19,16 @@
  *   - packages=<csv>        Comma-separated subset of target packages.
  *                           Unspecified → full TARGET_PACKAGES list.
  *
- * maxDuration=120 matches /topics + /backfill-events: the ecosyste.ms
- * sweep itself is fast (sub-second per page) but the verifier loop
- * needs 6 Contents probes + ≤2 verifier calls + 1 repo-meta per
- * verified candidate. A cap=60 pass routinely needs 90s.
+ * maxDuration=300 matches sibling /discover and /topics routes. Original
+ * 120 was under-spec'd: the route comment correctly noted "cap=60
+ * routinely needs 90s" but the 30s headroom evaporated under any
+ * upstream slowness, producing 17 of the last 30 cron runs as 504
+ * timeouts at exactly the 120s ceiling (see session 51 ops sweep). The
+ * ecosyste.ms sweep is fast (sub-second per page) but the verifier
+ * loop needs 6 Contents probes + ≤2 verifier calls + 1 repo-meta per
+ * verified candidate; tail latencies stack on a 60-repo run. The
+ * workflow's `timeout-minutes: 5` already allowed for the larger
+ * function budget, so this only relaxes the Vercel side.
  */
 
 import { NextResponse } from "next/server";
@@ -31,7 +37,7 @@ import { writeCronHealth } from "@/lib/data/cron-health";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   const requiredSecret = process.env.INGEST_SECRET;
