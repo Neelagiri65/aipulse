@@ -153,6 +153,25 @@ describe("resolveFreshness", () => {
     expect(result.lastSeenAt).toBeNull();
     expect(result.note).toMatch(/per request/i);
   });
+
+  it("returns static tone with the published date for annual reference sources", () => {
+    const result = resolveFreshness(
+      {
+        ...baseEntry,
+        id: "stanford-ai-index",
+        category: "research",
+        freshness: { kind: "static", publishedAt: "2026-04-21" },
+      },
+      {
+        cronByWorkflow: new Map(),
+        lastKnown: () => null,
+        nowMs: NOW,
+      },
+    );
+    expect(result.tone).toBe("static");
+    expect(result.lastSeenAt).toBe("2026-04-21");
+    expect(result.note).toMatch(/static reference/i);
+  });
 });
 
 describe("formatRelative", () => {

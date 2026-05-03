@@ -14,7 +14,12 @@
 import type { CronHealthRecord } from "@/lib/data/cron-health";
 import type { FreshnessSource, InventoryEntry } from "./inventory";
 
-export type FreshnessTone = "live" | "stale" | "on-demand" | "unknown";
+export type FreshnessTone =
+  | "live"
+  | "stale"
+  | "on-demand"
+  | "static"
+  | "unknown";
 
 export type ResolvedFreshness = {
   tone: FreshnessTone;
@@ -74,6 +79,13 @@ function resolveFromSource(
       tone: "on-demand",
       lastSeenAt: null,
       note: "Fetched per request — no scheduled poll",
+    };
+  }
+  if (src.kind === "static") {
+    return {
+      tone: "static",
+      lastSeenAt: src.publishedAt,
+      note: "Static reference — not polled",
     };
   }
   if (src.kind === "cron") {

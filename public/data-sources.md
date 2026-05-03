@@ -2,7 +2,7 @@
 
 Every number on this dashboard traces back to a publicly verifiable source. Gawk aggregates — it does not invent metrics, re-score labs, or manufacture values. When a source is unavailable, the affected card falls to graceful degradation with a "last known value" and timestamp rather than blanking silently.
 
-As of 2026-05-03, Gawk tracks **36 verified sources** across GitHub activity, status pages, platform-infrastructure status pages, published research, model distribution, package adoption, community sentiment, regional press, and model benchmarks.
+As of 2026-05-03, Gawk tracks **38 verified sources** across GitHub activity, status pages, platform-infrastructure status pages, published research, model distribution, package adoption, community sentiment, AI publishers, and model benchmarks.
 
 ---
 
@@ -56,12 +56,14 @@ The PyPI, npm, and GitHub Repository Metadata sources also power the Agents pane
 ### Model benchmarks (1)
 - Chatbot Arena — `lmarena-ai/leaderboard-dataset` (HuggingFace)
 
-### Press / regional (5)
+### AI publishers (7)
 - The Register — AI/ML section feed
 - Heise Online — global Atom, AI-filtered
 - Synced Review — AI research, China/global
 - MarkTechPost — AI research, India-based team
+- Analytics Vidhya — Indian AI / data-science publisher
 - MIT Technology Review — AI topic feed
+- latent.space — AI engineering newsletter
 
 ---
 

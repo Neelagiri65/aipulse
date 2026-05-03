@@ -164,13 +164,15 @@ export default function MethodologyPage() {
           can resolve their author&rsquo;s self-declared location.
         </p>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Regional Wire publishers (MarkTechPost IN, Heise DE, Synced Review
-          CN, The Register UK, MIT Technology Review US) and the curated AI
-          Labs registry partially address this — both layers carry verifiable
-          HQ coordinates and surface non-SF activity directly without depending
-          on the geocoder. They are a counterweight, not a fix. Additional
-          non-English sources are on the roadmap; suggestions are welcome via
-          the community link in the header.
+          The AI Publishers wire (MarkTechPost IN, Analytics Vidhya IN, Heise
+          DE, Synced Review CN, The Register UK, MIT Technology Review US) and
+          the curated AI Labs registry partially address this — both layers
+          carry verifiable HQ coordinates and surface non-SF activity directly
+          without depending on the geocoder. The seventh AI Publisher slot
+          (latent.space) sits in San Francisco and adds practitioner-grade
+          signal rather than regional counterweight. They are a counterweight,
+          not a fix. Additional non-English sources are on the roadmap;
+          suggestions are welcome via the community link in the header.
         </p>
       </section>
 

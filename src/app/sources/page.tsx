@@ -262,6 +262,11 @@ function FreshnessBadge({ tone }: { tone: FreshnessTone }) {
       label: "On demand",
       className: "border-sky-400/30 bg-sky-400/10 text-sky-300",
     },
+    static: {
+      label: "Static",
+      className:
+        "border-violet-400/30 bg-violet-400/10 text-violet-300",
+    },
     unknown: {
       label: "Unknown",
       className:

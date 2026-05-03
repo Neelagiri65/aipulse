@@ -888,6 +888,60 @@ export const RSS_MIT_TR_AI: DataSource = {
   powersFeature: ["regional-wire", "map", "wire-panel"],
 };
 
+export const RSS_LATENT_SPACE: DataSource = {
+  id: "rss-latent-space",
+  name: "latent.space — AI engineering newsletter",
+  category: "press-rss",
+  url: "https://www.latent.space",
+  apiUrl: "https://www.latent.space/feed",
+  responseFormat: "rss",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "Substack-hosted RSS; no documented per-IP limit (Cloudflare-fronted). Polled at :25,:55 (48/day). Substack feeds carry itunes:* / googleplay:* podcast namespaces alongside standard RSS 2.0 — the wire-rss parser ignores extra tags so the feed reads as plain RSS for our purposes.",
+  },
+  auth: "none",
+  measures:
+    "Practitioner-focused AI engineering essays + podcast notes by swyx and Alessio Fanelli — title, url, guid, pubDate, source id. Editorial scope is wholly AI / AI-engineering; no keyword filter applied. Gawk mirrors items verbatim and links back to the publisher's article.",
+  sanityCheck: {
+    description:
+      "Newsletter cadence (Substack); expect 1–10 items per 24h on a publish day, zero on quiet days. Newsletter publishes intermittently rather than daily, so multi-day zero-windows are normal — only escalate to stale when lastFetchOkTs exceeds RSS_STALE_HOURS_THRESHOLD.",
+    expectedMin: 0,
+    expectedMax: 12,
+    unit: "items per 24h",
+  },
+  verifiedAt: "2026-05-03",
+  caveat:
+    "Practitioner newsletter and podcast — editorial tone is technical / practitioner-led, not journalism. Suggested by user feedback (Sabari, S58). HQ pin is San Francisco (swyx is the named publisher; swyx.io is the citation-grade hqSourceUrl). This source does NOT counterweight regional bias — it sits in SF — but adds practitioner-grade signal complementary to the press feeds.",
+  powersFeature: ["regional-wire", "map", "wire-panel"],
+};
+
+export const RSS_ANALYTICS_VIDHYA: DataSource = {
+  id: "rss-analytics-vidhya",
+  name: "Analytics Vidhya — Indian AI / data-science publisher",
+  category: "press-rss",
+  url: "https://www.analyticsvidhya.com",
+  apiUrl: "https://www.analyticsvidhya.com/blog/feed/",
+  responseFormat: "rss",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "WordPress-backed RSS; no documented limit. Polled at :25,:55 (48/day).",
+  },
+  auth: "none",
+  measures:
+    "AI / data-science headlines from Analytics Vidhya — title, url, guid, pubDate, source id. Editor-curated; Gawk mirrors verbatim. Selected as the Indian-publisher addition after Analytics India Magazine was verified to no longer expose RSS (their site moved to a custom Supabase-backed CMS in 2026 — confirmed empirically on 2026-05-03 by 404 / SPA-shell responses on /feed/, /rss, /rss.xml, /feeds/posts/default).",
+  sanityCheck: {
+    description:
+      "AI / data-science focused publication with steady cadence; expect 2–25 items per 24h. Zero across consecutive polls indicates feed URL drift — investigate before attributing to a slow news day.",
+    expectedMin: 1,
+    expectedMax: 30,
+    unit: "items per 24h",
+  },
+  verifiedAt: "2026-05-03",
+  caveat:
+    "Indian data-science / AI publisher (Analytics Vidhya Educon Pvt. Ltd, Gurgaon, NCR). Editorial scope is data-science + AI / ML — no keyword filter applied. Pin is the Gurgaon registered office. AUDITOR-PENDING: HQ citation is the publisher's own About page (analyticsvidhya.com/about-me) rather than a third-party verifiable source like Wikipedia or a registry filing.",
+  powersFeature: ["regional-wire", "map", "wire-panel"],
+};
+
 // ---------------------------------------------------------------------------
 // PACKAGE-ADOPTION — registry download counters for the AI SDK slate
 // Track A of the multi-platform expansion (session 32). PyPI ships first;
@@ -1123,6 +1177,8 @@ export const ALL_SOURCES: readonly DataSource[] = [
   RSS_SYNCED_REVIEW,
   RSS_AIM,
   RSS_MIT_TR_AI,
+  RSS_LATENT_SPACE,
+  RSS_ANALYTICS_VIDHYA,
   PYPI_DOWNLOADS,
   NPM_DOWNLOADS,
   CRATES_DOWNLOADS,

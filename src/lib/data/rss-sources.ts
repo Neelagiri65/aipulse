@@ -1,10 +1,12 @@
 /**
- * Regional RSS sources — typed registry + schema validator.
+ * AI publisher RSS sources — typed registry + schema validator.
  *
- * Companion to `docs/prd-regional-rss.md` (session 21). Each source is a
- * non-HN, non-SV publisher whose HQ coordinates are verifiable from a
- * public source. The registry intentionally keeps five slots; scope
- * expansion (6+) is a session-22+ decision.
+ * Each source is an AI/tech publisher whose HQ coordinates are
+ * verifiable from a public source. Originally framed as "regional"
+ * (non-SV counterweight) in session 21; reframed in session 59 as
+ * "AI publishers" once the slate grew beyond regional-bias mitigation
+ * to include practitioner newsletters (latent.space, SF) alongside
+ * regional press (Heise DE, Synced CN, Analytics Vidhya IN, etc.).
  *
  * Discipline mirrors `labs-registry.ts`:
  *   - hqSourceUrl must be https and citation-grade.
@@ -13,7 +15,7 @@
  *   - keywordFilterScope declares whether the ingest pipeline should
  *     apply the AI-keyword filter (for publication-wide feeds like
  *     Heise) or trust the publisher's own AI-topic scope (Register AI,
- *     MIT TR AI, MarkTechPost, Synced Review).
+ *     MIT TR AI, MarkTechPost, Synced Review, latent.space, AV).
  *
  * Every change to this file is a CHECKPOINT under the dual-model build
  * protocol. AUDITOR-REVIEW: PENDING until the feature branch merges to
@@ -263,5 +265,37 @@ export const RSS_SOURCES: readonly RssSource[] = [
     keywordFilterScope: "all",
     caveat:
       "Topic-scoped AI feed from MIT's publication; US-based but an editorial counterweight to the SF/HN axis within the US.",
+  },
+  {
+    id: "latent-space",
+    displayName: "latent.space",
+    city: "San Francisco",
+    country: "US",
+    lat: 37.7749,
+    lng: -122.4194,
+    lang: "en",
+    rssUrl: "https://www.latent.space/feed",
+    hqSourceUrl: "https://www.swyx.io/about",
+    publisherUrl: "https://www.latent.space/",
+    feedFormat: "rss",
+    keywordFilterScope: "all",
+    caveat:
+      "Practitioner AI engineering newsletter and podcast (Substack-hosted) by swyx + Alessio Fanelli. Editorial scope is wholly AI/AI-engineering — no keyword filter applied. Suggested by user feedback (Sabari).",
+  },
+  {
+    id: "analytics-vidhya",
+    displayName: "Analytics Vidhya",
+    city: "Gurgaon",
+    country: "IN",
+    lat: 28.4595,
+    lng: 77.0266,
+    lang: "en",
+    rssUrl: "https://www.analyticsvidhya.com/blog/feed/",
+    hqSourceUrl: "https://www.analyticsvidhya.com/about-me/",
+    publisherUrl: "https://www.analyticsvidhya.com/",
+    feedFormat: "rss",
+    keywordFilterScope: "all",
+    caveat:
+      "Indian data-science / AI publisher (Analytics Vidhya Educon Pvt. Ltd, Gurgaon). Topic scope is data-science + AI / ML throughout the publication; trust the publisher's own scope rather than re-filtering. Pin is the Gurgaon, Haryana NCR registered office. AUDITOR-PENDING (HQ citation is the publisher's own About page).",
   },
 ] as const;

@@ -34,7 +34,7 @@ export type CategoryId =
   | "agents"
   | "research"
   | "labs"
-  | "regional-news";
+  | "ai-publishers";
 
 export type CategoryDescriptor = {
   id: CategoryId;
@@ -99,10 +99,10 @@ export const CATEGORIES: readonly CategoryDescriptor[] = [
       "36 curated AI labs with verifiable HQ coordinates, sized on the globe by 7-day GitHub event activity across their flagship repos.",
   },
   {
-    id: "regional-news",
-    label: "Regional News",
+    id: "ai-publishers",
+    label: "AI Publishers",
     blurb:
-      "Editor-curated AI news feeds that geographically counterweight the SF/HN axis. Five publishers across UK, Germany, China, India, US (Boston).",
+      "Editor-curated AI publishers with verifiable HQ coordinates. Mix of regional press (Heise DE, Synced CN, MarkTechPost IN, Analytics Vidhya IN, The Register UK, MIT TR US) and practitioner newsletters (latent.space SF). Each feed is parsed by the deterministic ingest pipeline; no LLM relevance scoring.",
   },
 ] as const;
 
@@ -117,11 +117,16 @@ export const CATEGORIES: readonly CategoryDescriptor[] = [
  * `on-demand` — fetched per-request through a Next route with no
  *              backing cron; the route is "live" by definition while
  *              served, but there's no scheduled poll to time-stamp.
+ * `static`   — annual / static external reference (e.g. Stanford AI
+ *              Index). Not polled; freshness is the `publishedAt` ISO
+ *              date the reader can verify against the upstream
+ *              publication. Renders as a "Static reference" badge.
  */
 export type FreshnessSource =
   | { kind: "cron"; workflow: CronWorkflowName }
   | { kind: "last-known"; key: string }
-  | { kind: "on-demand" };
+  | { kind: "on-demand" }
+  | { kind: "static"; publishedAt: string };
 
 export type InventoryEntry = {
   /** Stable id. Matches `DataSource.id` for typed-registry sources, or a
@@ -205,6 +210,10 @@ const TRACKS: Record<string, string> = {
     "AI research news from MarkTechPost (India-based editorial team).",
   "rss-mit-tech-review-ai":
     "MIT Technology Review's AI topic feed (Cambridge MA, US editorial counterweight).",
+  "rss-latent-space":
+    "AI engineering newsletter + podcast by swyx and Alessio Fanelli (San Francisco). Practitioner-focused: model releases, agent architecture, eval methodology.",
+  "rss-analytics-vidhya":
+    "Indian data-science / AI publisher (Gurgaon). Tutorial and news coverage of the AI / ML stack, complementary to MarkTechPost.",
   "pypi-downloads":
     "Rolling download counters for seven AI Python SDKs (anthropic, openai, langchain, transformers, torch, huggingface-hub, diffusers).",
   "npm-downloads":
@@ -246,11 +255,13 @@ const POWERED_FEATURE: Record<string, string> = {
   "lmarena-leaderboard": "Benchmarks panel · Feed",
   "ai-labs-registry": "AI Labs panel + globe layer",
   "gh-repo-events-labs": "AI Labs panel · sizes lab dots",
-  "rss-the-register-ai": "Regional Wire panel + map",
-  "rss-heise-ai": "Regional Wire panel + map",
-  "rss-synced-review": "Regional Wire panel + map",
-  "rss-marktechpost": "Regional Wire panel + map",
-  "rss-mit-tech-review-ai": "Regional Wire panel + map",
+  "rss-the-register-ai": "Wire panel + map",
+  "rss-heise-ai": "Wire panel + map",
+  "rss-synced-review": "Wire panel + map",
+  "rss-marktechpost": "Wire panel + map",
+  "rss-mit-tech-review-ai": "Wire panel + map",
+  "rss-latent-space": "Wire panel + map",
+  "rss-analytics-vidhya": "Wire panel + map",
   "pypi-downloads": "SDK Adoption panel · Feed",
   "npm-downloads": "SDK Adoption panel · Feed",
   "crates-downloads": "SDK Adoption panel · Feed",
@@ -303,12 +314,14 @@ const CATEGORY_OF: Record<string, CategoryId> = {
   // Labs
   "ai-labs-registry": "labs",
   "gh-repo-events-labs": "labs",
-  // Regional news
-  "rss-the-register-ai": "regional-news",
-  "rss-heise-ai": "regional-news",
-  "rss-synced-review": "regional-news",
-  "rss-marktechpost": "regional-news",
-  "rss-mit-tech-review-ai": "regional-news",
+  // AI publishers
+  "rss-the-register-ai": "ai-publishers",
+  "rss-heise-ai": "ai-publishers",
+  "rss-synced-review": "ai-publishers",
+  "rss-marktechpost": "ai-publishers",
+  "rss-mit-tech-review-ai": "ai-publishers",
+  "rss-latent-space": "ai-publishers",
+  "rss-analytics-vidhya": "ai-publishers",
 };
 
 const FRESHNESS_OF: Record<string, FreshnessSource> = {
@@ -344,6 +357,8 @@ const FRESHNESS_OF: Record<string, FreshnessSource> = {
   "rss-synced-review": { kind: "cron", workflow: "wire-ingest-rss" },
   "rss-marktechpost": { kind: "cron", workflow: "wire-ingest-rss" },
   "rss-mit-tech-review-ai": { kind: "cron", workflow: "wire-ingest-rss" },
+  "rss-latent-space": { kind: "cron", workflow: "wire-ingest-rss" },
+  "rss-analytics-vidhya": { kind: "cron", workflow: "wire-ingest-rss" },
   "pypi-downloads": { kind: "cron", workflow: "pkg-pypi" },
   "npm-downloads": { kind: "cron", workflow: "pkg-npm" },
   "crates-downloads": { kind: "cron", workflow: "pkg-crates" },
@@ -374,6 +389,17 @@ const VIRTUAL_ENTRIES: InventoryEntry[] = [
     freshness: { kind: "cron", workflow: "openrouter-rankings" },
     auditorPending: true,
     poweredFeature: POWERED_FEATURE["openrouter-rankings"],
+  },
+  {
+    id: "stanford-ai-index",
+    category: "research",
+    name: "Stanford AI Index — annual report",
+    tracks:
+      "Annual reference report on global AI investment, research output, adoption, and safety, published by the Stanford Institute for Human-Centered AI (HAI). Static reference data — not polled. Per-edition data + scripts mirrored to the public github.com/ai-index-hai-stanford repository.",
+    url: "https://hai.stanford.edu/ai-index",
+    updateFrequency: "weekly",
+    freshness: { kind: "static", publishedAt: "2026-04-21" },
+    poweredFeature: "External reference — cited where AI Index figures appear",
   },
 ];
 

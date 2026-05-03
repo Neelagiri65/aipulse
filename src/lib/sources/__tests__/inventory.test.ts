@@ -9,13 +9,14 @@ import {
 } from "@/lib/sources/inventory";
 
 describe("sources inventory", () => {
-  it("covers every typed-registry source plus the OpenRouter virtual entry", () => {
+  it("covers every typed-registry source plus the virtual entries (OpenRouter + Stanford AI Index)", () => {
     const inventory = buildInventory();
     const inventoryIds = new Set(inventory.map((e) => e.id));
     for (const src of ALL_SOURCES) {
       expect(inventoryIds.has(src.id)).toBe(true);
     }
     expect(inventoryIds.has("openrouter-rankings")).toBe(true);
+    expect(inventoryIds.has("stanford-ai-index")).toBe(true);
   });
 
   it("flags OpenRouter as auditor-pending until promoted to the typed registry", () => {
@@ -28,6 +29,15 @@ describe("sources inventory", () => {
       // flag is reserved for entries living outside ALL_SOURCES.
       expect(e.auditorPending ?? false).toBe(false);
     }
+  });
+
+  it("Stanford AI Index is a static reference — not polled, not auditor-pending", () => {
+    const inventory = buildInventory();
+    const aiIndex = inventory.find((e) => e.id === "stanford-ai-index");
+    expect(aiIndex).toBeDefined();
+    expect(aiIndex?.auditorPending ?? false).toBe(false);
+    expect(aiIndex?.freshness.kind).toBe("static");
+    expect(aiIndex?.category).toBe("research");
   });
 
   it("assigns every entry to one of the 10 user-facing categories", () => {
@@ -45,15 +55,16 @@ describe("sources inventory", () => {
       expect(grouped.has(cat.id)).toBe(true);
     }
     // Per spec brief: 5 tool-status, 6 sdk-adoption (PyPI + npm + crates +
-    // Docker + Homebrew + VS Code Marketplace), 5 regional-news,
+    // Docker + Homebrew + VS Code Marketplace), 7 ai-publishers (5 regional
+    // press + Analytics Vidhya + latent.space, S59 expansion),
     // 1 discussion, 1 research. Models is 3 (HF + Arena + OpenRouter).
     // Agents is 1 (github-repo-meta — PyPI + npm appear under
     // SDK Adoption since they primarily power that panel).
     expect(grouped.get("sdk-adoption")?.length).toBe(6);
     expect(grouped.get("agents")?.length).toBe(1);
-    expect(grouped.get("regional-news")?.length).toBe(5);
+    expect(grouped.get("ai-publishers")?.length).toBe(7);
     expect(grouped.get("discussion")?.length).toBe(3);
-    expect(grouped.get("research")?.length).toBe(1);
+    expect(grouped.get("research")?.length).toBe(2);
     expect(grouped.get("models")?.length).toBe(3);
     expect(grouped.get("platform-infrastructure")?.length).toBe(4);
   });

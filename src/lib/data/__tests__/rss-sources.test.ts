@@ -24,22 +24,26 @@ function makeValid(overrides: Partial<RssSource> = {}): RssSource {
 }
 
 describe("RSS_SOURCES constant", () => {
-  it("contains exactly 5 entries", () => {
-    expect(RSS_SOURCES).toHaveLength(5);
+  it("contains exactly 7 entries", () => {
+    expect(RSS_SOURCES).toHaveLength(7);
   });
 
   it("passes its own validator", () => {
     const res = validateRssSources(RSS_SOURCES);
     expect(res.ok).toBe(true);
-    if (res.ok) expect(res.entries).toHaveLength(5);
+    if (res.ok) expect(res.entries).toHaveLength(7);
   });
 
-  it("covers five distinct countries", () => {
+  it("covers at least 5 distinct countries (regional spread retained after expansion)", () => {
+    // Original five sources were one-per-country (UK, DE, CN, IN, US).
+    // The S59 additions intentionally double up on existing countries
+    // (latent.space → US, Analytics Vidhya → IN) since the registry
+    // contract dropped the strict regional-counterweight framing.
     const countries = new Set(RSS_SOURCES.map((s) => s.country));
-    expect(countries.size).toBe(5);
+    expect(countries.size).toBeGreaterThanOrEqual(5);
   });
 
-  it("includes the five confirmed sources by id", () => {
+  it("includes the seven confirmed sources by id", () => {
     const ids = RSS_SOURCES.map((s) => s.id).sort();
     expect(ids).toEqual(
       [
@@ -48,6 +52,8 @@ describe("RSS_SOURCES constant", () => {
         "synced-review",
         "marktechpost",
         "mit-tech-review-ai",
+        "latent-space",
+        "analytics-vidhya",
       ].sort(),
     );
   });
