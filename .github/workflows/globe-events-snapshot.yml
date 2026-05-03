@@ -1,0 +1,68 @@
+name: globe-events-snapshot
+
+# Daily 00:05 UTC snapshot of the previous-day globe-events activity by
+# region. Reads the trailing 48h from globe-store, filters to the
+# previous UTC day, aggregates by country + city via `aggregateByRegion`,
+# writes `aipulse:globe-events:snapshot:{YYYY-MM-DD}` with 30-day TTL.
+#
+# Powers the regional-deltas read path: today's rolling 24h vs the
+# snapshot from N days ago.
+#
+# Cadence: 00:05 UTC daily — 5-minute buffer past midnight ensures
+# events stamped through 23:59:59 UTC of the previous day are included
+# before the snapshot freezes. cron-health declares 1440-min interval
+# matching the daily cadence.
+#
+# Required repo secrets (shared with other ingest workflows):
+#   INGEST_URL     — e.g. https://aipulse-pi.vercel.app/api/ingest
+#                    (we strip /api/ingest and append the snapshot path)
+#   INGEST_SECRET  — shared secret matching the Vercel env var
+#
+# Fails loudly (exit 1) when the response body has ok:false. ok:false
+# fires only on whole-day-zero (no events the entire previous day) —
+# that's a real anomaly worth surfacing as a red Actions run rather
+# than silently writing an empty snapshot.
+
+on:
+  schedule:
+    - cron: "5 0 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Attribution tag (cron | manual)"
+        required: false
+        default: "manual"
+        type: string
+
+concurrency:
+  group: globe-events-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Trigger globe-events snapshot on Vercel
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.source || 'cron' }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          URL="$BASE/api/ingest/globe-events-snapshot?source=$SOURCE"
+          echo "POST $URL"
+          RESPONSE=$(curl -sS --max-time 60 \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            -X POST \
+            "$URL")
+          echo "Response: $RESPONSE"
+          OK=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print('true' if d.get('ok') else 'false')" 2>/dev/null || echo "parse-failed")
+          if [ "$OK" != "true" ]; then
+            echo "::error::globe-events-snapshot reported ok:$OK in response body"
+            exit 1
+          fi

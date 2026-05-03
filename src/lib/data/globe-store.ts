@@ -153,6 +153,84 @@ export async function readMeta(): Promise<IngestMeta | null> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Regional snapshot store (S56)
+// ---------------------------------------------------------------------------
+
+const SNAPSHOT_PREFIX = "aipulse:globe-events:snapshot:";
+const SNAPSHOT_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
+
+/**
+ * Daily aggregation of events written by the globe-events-snapshot cron
+ * at 00:05 UTC. Keyed by the date that just ended (YYYY-MM-DD) so the
+ * regional-deltas read path can compare current rolling-24h to the
+ * snapshot from `today - 1d`.
+ *
+ * Why a dedicated snapshot key instead of recomputing on-demand from
+ * the 48h list: 30-day retention. The list TTL is 48h; if we want to
+ * compare to "this time last week" later, only the snapshot survives.
+ * Storage cost is negligible (one tiny JSON blob per day, 30-day TTL).
+ */
+export type RegionalSnapshot = {
+  /** YYYY-MM-DD (UTC) — the date this snapshot represents. */
+  date: string;
+  /** ISO of when the snapshot was written. */
+  generatedAt: string;
+  /** Total events that contributed to the aggregate. */
+  totalEvents: number;
+  /** Events with no resolvable country (coord outside every tracked
+   *  bbox). Surfaced honestly so consumers can see how much of the
+   *  total is uncountable rather than hiding it. */
+  unattributedEvents: number;
+  /** Per-country counts. Keys are full country display names
+   *  ("India", "United States"). */
+  byCountry: Record<string, number>;
+  /** Per-city counts. Keys are canonical city names from
+   *  `cityFromCoords` reverse lookup. */
+  byCity: Record<string, number>;
+};
+
+export function regionalSnapshotKey(date: string): string {
+  return `${SNAPSHOT_PREFIX}${date}`;
+}
+
+export async function writeRegionalSnapshot(
+  snap: RegionalSnapshot,
+): Promise<void> {
+  const r = redis();
+  if (!r) return;
+  try {
+    await r.set(regionalSnapshotKey(snap.date), JSON.stringify(snap), {
+      ex: SNAPSHOT_TTL_SECONDS,
+    });
+  } catch {
+    // observability must not break the pipeline it observes
+  }
+}
+
+export async function readRegionalSnapshot(
+  date: string,
+): Promise<RegionalSnapshot | null> {
+  const r = redis();
+  if (!r) return null;
+  try {
+    const v = await r.get(regionalSnapshotKey(date));
+    if (!v) return null;
+    const obj = typeof v === "string" ? JSON.parse(v) : v;
+    if (
+      !obj ||
+      typeof obj !== "object" ||
+      typeof (obj as { date?: unknown }).date !== "string" ||
+      typeof (obj as { byCountry?: unknown }).byCountry !== "object"
+    ) {
+      return null;
+    }
+    return obj as RegionalSnapshot;
+  } catch {
+    return null;
+  }
+}
+
 function parseEntry(entry: unknown): StoredGlobePoint | null {
   try {
     const obj = typeof entry === "string" ? JSON.parse(entry) : entry;

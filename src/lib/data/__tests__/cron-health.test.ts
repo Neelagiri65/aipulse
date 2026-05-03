@@ -113,6 +113,7 @@ describe("CRON_WORKFLOWS registry", () => {
       "benchmarks-ingest",
       "daily-digest",
       "daily-snapshot",
+      "globe-events-snapshot",
       "globe-ingest",
       "labs-cron",
       "notify-tool-alerts",

@@ -68,6 +68,11 @@ export const CRON_WORKFLOWS = {
   // 06:30 UTC; 1440-min declared interval allows for ~1h GitHub Actions
   // drift on long schedules without flapping stale.
   "agents-ingest": { expectedIntervalMinutes: 1440 },
+  // Globe-events daily snapshot: aggregates the trailing 24h into a
+  // RegionalSnapshot blob (30d TTL) so the regional-deltas API can
+  // compare current rolling-24h vs N-days-ago. Fires at 00:05 UTC
+  // (5 min past midnight to capture all events stamped through 00:00).
+  "globe-events-snapshot": { expectedIntervalMinutes: 1440 },
 } as const;
 
 export type CronWorkflowName = keyof typeof CRON_WORKFLOWS;
