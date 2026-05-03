@@ -9,6 +9,8 @@ import {
   pickTopActiveCity,
   summariseClusterTypes,
   formatBreakdownLine,
+  pickClusterDelta,
+  formatClusterDelta,
 } from "@/lib/map/insights";
 import type { GlobePoint } from "@/components/globe/Globe";
 
@@ -156,5 +158,123 @@ describe("formatBreakdownLine", () => {
     expect(formatBreakdownLine([{ label: "push", count: 2 }])).toBe(
       "2 pushes",
     );
+  });
+});
+
+function evWithCountry(
+  country: string | null,
+  type = "PushEvent",
+): GlobePoint {
+  return {
+    lat: 0,
+    lng: 0,
+    color: "#fff",
+    size: 0.5,
+    meta: { type, country },
+  } as GlobePoint;
+}
+
+describe("pickClusterDelta", () => {
+  it("returns null when byCountry is null/undefined (no prior data)", () => {
+    const events = Array.from({ length: 20 }, () => evWithCountry("India"));
+    expect(pickClusterDelta(events, null)).toBeNull();
+    expect(pickClusterDelta(events, undefined)).toBeNull();
+  });
+
+  it("returns null when cluster has fewer than minEvents labelled events (default 10)", () => {
+    const events = Array.from({ length: 9 }, () => evWithCountry("India"));
+    const byCountry = { India: { deltaPct: 30 } };
+    expect(pickClusterDelta(events, byCountry)).toBeNull();
+  });
+
+  it("returns null when dominant country's deltaPct is null (bootstrap, no prior data)", () => {
+    const events = Array.from({ length: 20 }, () => evWithCountry("India"));
+    const byCountry = { India: { deltaPct: null } };
+    expect(pickClusterDelta(events, byCountry)).toBeNull();
+  });
+
+  it("returns null when |deltaPct| is below noise floor (default 5%)", () => {
+    const events = Array.from({ length: 20 }, () => evWithCountry("India"));
+    expect(pickClusterDelta(events, { India: { deltaPct: 4.9 } })).toBeNull();
+    expect(pickClusterDelta(events, { India: { deltaPct: -4.9 } })).toBeNull();
+  });
+
+  it("returns dominant-country delta when all guards pass", () => {
+    const events = Array.from({ length: 20 }, () => evWithCountry("India"));
+    const result = pickClusterDelta(events, { India: { deltaPct: 30 } });
+    expect(result).toEqual({ country: "India", deltaPct: 30 });
+  });
+
+  it("dominant country = highest count among labelled live events; ignores other layers", () => {
+    const events: GlobePoint[] = [
+      ...Array.from({ length: 7 }, () => evWithCountry("India")),
+      ...Array.from({ length: 12 }, () => evWithCountry("United States")),
+      ...Array.from({ length: 5 }, () => evWithCountry(null)), // unattributed
+    ];
+    const byCountry = {
+      India: { deltaPct: 50 },
+      "United States": { deltaPct: 10 },
+    };
+    const result = pickClusterDelta(events, byCountry);
+    expect(result?.country).toBe("United States");
+  });
+
+  it("ignores non-live overlays (registry / lab / hn / rss) when counting", () => {
+    const events: GlobePoint[] = [
+      ...Array.from({ length: 12 }, () => evWithCountry("India")),
+      // 50 lab/registry/hn events shouldn't pull dominant country to United Kingdom
+      ...Array.from({ length: 50 }, () => ({
+        lat: 0,
+        lng: 0,
+        color: "#fff",
+        size: 0.5,
+        meta: { kind: "lab", country: "United Kingdom" },
+      } as GlobePoint)),
+    ];
+    const byCountry = {
+      India: { deltaPct: 30 },
+      "United Kingdom": { deltaPct: 200 },
+    };
+    expect(pickClusterDelta(events, byCountry)?.country).toBe("India");
+  });
+
+  it("ties broken alphabetically — deterministic", () => {
+    const events: GlobePoint[] = [
+      ...Array.from({ length: 10 }, () => evWithCountry("India")),
+      ...Array.from({ length: 10 }, () => evWithCountry("Brazil")),
+    ];
+    const byCountry = {
+      India: { deltaPct: 50 },
+      Brazil: { deltaPct: 80 },
+    };
+    expect(pickClusterDelta(events, byCountry)?.country).toBe("Brazil");
+  });
+
+  it("respects custom minEvents + minPct overrides", () => {
+    const events = Array.from({ length: 5 }, () => evWithCountry("India"));
+    expect(pickClusterDelta(events, { India: { deltaPct: 6 } })).toBeNull();
+    expect(
+      pickClusterDelta(events, { India: { deltaPct: 6 } }, { minEvents: 5 }),
+    ).toEqual({ country: "India", deltaPct: 6 });
+    expect(
+      pickClusterDelta(events, { India: { deltaPct: 6 } }, { minEvents: 5, minPct: 10 }),
+    ).toBeNull();
+  });
+});
+
+describe("formatClusterDelta", () => {
+  it("up arrow for positive deltas", () => {
+    expect(formatClusterDelta({ country: "X", deltaPct: 12 })).toBe("↑12%");
+    expect(formatClusterDelta({ country: "X", deltaPct: 0.4 })).toBe("↑0%");
+  });
+
+  it("down arrow for negative deltas, magnitude shown", () => {
+    expect(formatClusterDelta({ country: "X", deltaPct: -8 })).toBe("↓8%");
+    expect(formatClusterDelta({ country: "X", deltaPct: -100 })).toBe("↓100%");
+  });
+
+  it("rounds to nearest integer", () => {
+    expect(formatClusterDelta({ country: "X", deltaPct: 12.6 })).toBe("↑13%");
+    expect(formatClusterDelta({ country: "X", deltaPct: -7.4 })).toBe("↓7%");
   });
 });

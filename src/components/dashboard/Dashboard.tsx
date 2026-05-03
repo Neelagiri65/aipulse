@@ -902,6 +902,7 @@ export function Dashboard({
         agents={agents.data}
         agentsLoading={agents.isInitialLoading}
         agentsError={agents.error ?? null}
+        regionalDeltas={regionalDeltas.data ?? null}
         cronHealth={
           cronHealth.data
             ? {
@@ -971,7 +972,11 @@ export function Dashboard({
       >
         {activeTab === "map" && (
           <div className="relative h-full w-full">
-            <FlatMap points={points} lastUpdatedAt={lastUpdatedAt} />
+            <FlatMap
+              points={points}
+              lastUpdatedAt={lastUpdatedAt}
+              regionalDeltas={regionalDeltas.data ?? null}
+            />
             <CoverageBadge events={events.data} />
             <MapLegend filters={filters} />
             {aiConfigStranded && <AiConfigStrandedNote />}

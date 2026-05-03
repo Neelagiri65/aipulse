@@ -20,6 +20,8 @@ import {
   RSS_AMBER,
   RSS_INACTIVE_OPACITY,
 } from "@/components/wire/rss-to-points";
+import { pickClusterDelta, formatClusterDelta } from "@/lib/map/insights";
+import type { RegionalDeltasDto } from "@/components/map/TopMoversLine";
 
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -29,6 +31,14 @@ export type FlatMapProps = {
   points?: GlobePoint[];
   /** ISO timestamp of the most recent data update. If undefined, we show "awaiting data". */
   lastUpdatedAt?: string;
+  /**
+   * Regional 24h-vs-prior-24h aggregates from /api/globe-events/regional-deltas.
+   * When present, drives per-cluster "↑12%" delta indicators on the cluster
+   * bubbles (S57). Null on bootstrap (no snapshot exists yet) or when the
+   * polled endpoint hasn't returned. The bubble indicator is suppressed
+   * cleanly in either case — the count label still renders.
+   */
+  regionalDeltas?: RegionalDeltasDto | null;
 };
 
 type Selection = {
@@ -48,12 +58,23 @@ type Selection = {
  * synthesis, no aggregation tricks. A marker on the map IS a real
  * event the pipeline saw.
  */
-export function FlatMap({ points = [], lastUpdatedAt }: FlatMapProps) {
+export function FlatMap({
+  points = [],
+  lastUpdatedAt,
+  regionalDeltas,
+}: FlatMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const clusterRef = useRef<MarkerClusterGroup | null>(null);
   const leafletRef = useRef<typeof L | null>(null);
+  // Latest regional-deltas blob, kept on a ref so the iconCreateFunction
+  // closure (set up once at mount with empty deps) can read freshest
+  // data without React triggering a full effect re-run. Pair with the
+  // refresh-on-deltas effect below — that's what tells leaflet to
+  // re-render the existing cluster icons when this ref changes.
+  const deltasRef = useRef<RegionalDeltasDto | null>(regionalDeltas ?? null);
+  deltasRef.current = regionalDeltas ?? null;
 
   const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -116,7 +137,11 @@ export function FlatMap({ points = [], lastUpdatedAt }: FlatMapProps) {
         // top events in the region, not a forced zoom).
         zoomToBoundsOnClick: false,
         iconCreateFunction: (c: unknown) =>
-          clusterIcon(L, c as MarkerClusterGroup),
+          clusterIcon(
+            L,
+            c as MarkerClusterGroup,
+            deltasRef.current?.byCountry ?? null,
+          ),
       });
       cluster.addTo(map);
 
@@ -261,6 +286,21 @@ export function FlatMap({ points = [], lastUpdatedAt }: FlatMapProps) {
     }
   }, [points, ready]);
 
+  // Cluster icons need a manual refresh when regionalDeltas change —
+  // the iconCreateFunction closure reads `deltasRef.current` at call
+  // time, but leaflet caches icon HTML and won't re-run the function
+  // unless the cluster's children change OR `refreshClusters()` is
+  // called explicitly. Without this, "↑12%" indicators only appear
+  // after the next points-rebuild (could be minutes). Cheap operation
+  // — re-runs iconCreateFunction on existing clusters, no marker churn.
+  useEffect(() => {
+    const cluster = clusterRef.current;
+    if (!cluster || !ready) return;
+    (
+      cluster as unknown as { refreshClusters: () => void }
+    ).refreshClusters();
+  }, [regionalDeltas, ready]);
+
   // Dismiss card on Escape or outside click. Same pattern as Globe.
   useEffect(() => {
     if (!selection) return;
@@ -392,8 +432,17 @@ function registryMarkerHtml(decay: number): string {
   return `<span style="display:block;width:6px;height:6px;border-radius:9999px;background:${bg};box-shadow:0 0 3px ${glow};margin:1px"></span>`;
 }
 
-/** Dominant-colour + numeric-count icon for a Leaflet marker cluster. */
-function clusterIcon(L: typeof import("leaflet"), cluster: MarkerClusterGroup): L.DivIcon {
+/** Dominant-colour + numeric-count icon for a Leaflet marker cluster.
+ *  Optionally appends a "↑12%" delta indicator when the cluster's
+ *  dominant country has movement worth surfacing (S57). The
+ *  `byCountry` arg comes from /api/globe-events/regional-deltas via
+ *  `deltasRef.current` — null when no snapshot exists yet (bootstrap
+ *  window) or when the polled endpoint hasn't returned. */
+function clusterIcon(
+  L: typeof import("leaflet"),
+  cluster: MarkerClusterGroup,
+  byCountry: Record<string, { deltaPct: number | null }> | null,
+): L.DivIcon {
   const kids = (cluster as unknown as { getAllChildMarkers: () => L.Marker[] })
     .getAllChildMarkers();
   const count = kids.length;
@@ -532,15 +581,49 @@ function clusterIcon(L: typeof import("leaflet"), cluster: MarkerClusterGroup): 
             : "#e2e8f0";
   const label = count > 99 ? "99+" : String(count);
 
+  // Per-cluster regional delta indicator (S57). Suppress on registry-/
+  // lab-/hn-/rss-only clusters — they aren't real-time activity, so a
+  // "↑12%" badge would mislead. Only attempt resolution on clusters
+  // with at least one live event.
+  const liveEvents: GlobePoint[] =
+    live > 0
+      ? kids
+          .map(
+            (m) =>
+              (m.options as unknown as { eventPoint?: GlobePoint }).eventPoint,
+          )
+          .filter((p): p is GlobePoint => Boolean(p))
+      : [];
+  const delta =
+    liveEvents.length > 0 ? pickClusterDelta(liveEvents, byCountry) : null;
+  const deltaText = delta ? formatClusterDelta(delta) : null;
+  // Up green / down red, tuned to read against the cluster's dark
+  // background regardless of the dominant-type colour.
+  const deltaColour = delta && delta.deltaPct >= 0 ? "#34d399" : "#fca5a5";
+
+  // When a delta is present, switch from a fixed-width circle to an
+  // auto-width pill with horizontal padding. min-width preserves the
+  // baseline diameter for clusters whose count alone is short
+  // ("3 ↑12%" still feels balanced). border-radius:9999px makes the
+  // pill capsule-shaped at any width.
+  const widthRule = deltaText ? `min-width:${size}px` : `width:${size}px`;
+  const paddingRule = deltaText ? `padding:0 8px` : `padding:0`;
+
+  const labelHtml = deltaText
+    ? `<span>${label}</span><span style="margin-left:6px;color:${deltaColour};">${deltaText}</span>`
+    : label;
+
   const html = `
     <div style="
       position:relative;
-      width:${size}px;
+      ${widthRule};
       height:${size}px;
+      ${paddingRule};
       border-radius:9999px;
       display:flex;
       align-items:center;
       justify-content:center;
+      gap:0;
       background:rgba(8,14,20,0.88);
       border:${isAi ? "1.5px" : "1px"} solid ${border};
       box-shadow:0 0 ${Math.round(12 * scale)}px ${glow};
@@ -551,14 +634,23 @@ function clusterIcon(L: typeof import("leaflet"), cluster: MarkerClusterGroup): 
       line-height:1;
       font-variant-numeric:tabular-nums;
       backdrop-filter:blur(2px);
-    ">${label}</div>
+      white-space:nowrap;
+    ">${labelHtml}</div>
   `.trim();
+
+  // For pill clusters, estimate width to keep the geographic anchor
+  // centred under the visual midpoint. Conservative: count chars × the
+  // mono font width (~0.6em) + horizontal padding. Errs slightly wide
+  // so the anchor never lands outside the pill.
+  const estimatedWidth = deltaText
+    ? Math.max(size, Math.round((label.length + 1 + deltaText.length) * fontSize * 0.6) + 16)
+    : size;
 
   return L.divIcon({
     html,
     className: "ap-fm-cluster",
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
+    iconSize: [estimatedWidth, size],
+    iconAnchor: [estimatedWidth / 2, size / 2],
   });
 }
 

@@ -32,6 +32,7 @@ import type { LabsPayload } from "@/lib/data/fetch-labs";
 import type { RssWireResult } from "@/lib/data/wire-rss";
 import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
 import type { AgentsViewDto } from "@/lib/data/agents-view";
+import type { RegionalDeltasDto } from "@/components/map/TopMoversLine";
 import type { ModelUsageDto } from "@/lib/data/openrouter-types";
 import type { CronHealthSnapshot } from "@/components/dashboard/MetricTicker";
 import type { FreshnessState } from "@/components/chrome/TopBar";
@@ -121,6 +122,8 @@ export type MobileDashboardProps = {
   agents: AgentsViewDto | null | undefined;
   agentsLoading: boolean;
   agentsError: string | null;
+  // Regional deltas (drives per-cluster bubble indicators on the map)
+  regionalDeltas: RegionalDeltasDto | null | undefined;
   // Health
   cronHealth: CronHealthSnapshot | undefined;
   // SSR-hydrated feed response. When provided, FeedView renders the
@@ -287,6 +290,7 @@ export function MobileDashboard(props: MobileDashboardProps) {
             <FlatMap
               points={props.points}
               lastUpdatedAt={props.events?.polledAt}
+              regionalDeltas={props.regionalDeltas ?? null}
             />
             <div className="ap-mobile-map__caveat">
               {props.events?.coverage.windowSize ?? 0} events ·{" "}
