@@ -35,8 +35,9 @@ import {
 /**
  * Per-source merge: when a fresh fetch returned null AND we have a prior
  * value to carry forward, swap in the prior value and stamp staleSince.
- * Pure — takes (current snapshot, prior snapshot, run ISO), returns the
- * merged snapshot with carry-forward applied.
+ * Pure — takes (current snapshot, prior snapshot, prior run's fetchedAt,
+ * current run's fetchedAt), returns the merged snapshot with
+ * carry-forward applied.
  *
  * Three cases per source (pypi / npm / github):
  *   1. Fresh fetch succeeded → keep current value, staleSince=null.
@@ -44,7 +45,9 @@ import {
  *      (true cold-start gap; the panel renders "—").
  *   3. Fresh fetch failed, prior exists → carry prior value, stamp
  *      staleSince. If prior was already stale, keep its older
- *      staleSince so the age compounds honestly.
+ *      staleSince so the age compounds honestly. If prior was FRESH
+ *      (staleSince=null), stamp `priorFetchedAt` — that's the actual
+ *      time the value was last freshly fetched, not "now".
  *
  * Counterintuitive case: fresh GH fetch may succeed for stars but the
  * fetcher treats GH as a single atomic source (one HTTP call returns
@@ -54,22 +57,28 @@ import {
 export function mergeWithPriorSnapshot(
   current: AgentFrameworkSnapshot,
   prior: AgentFrameworkSnapshot | null,
-  runIso: string,
+  priorFetchedAt: string | null,
+  // currentRunIso retained as the fourth arg for symmetry / future use,
+  // even though staleSince should never be stamped to it (the value was
+  // demonstrably NOT fresh in this run by definition).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _currentRunIso: string,
 ): AgentFrameworkSnapshot {
   const merged: AgentFrameworkSnapshot = { ...current };
+  const priorStamp = priorFetchedAt ?? "1970-01-01T00:00:00Z";
 
   // PyPI
   const pypiFresh = !current.fetchErrors.some((e) => e.source === "pypi");
   if (!pypiFresh && current.pypiWeeklyDownloads === null && prior?.pypiWeeklyDownloads !== null && prior?.pypiWeeklyDownloads !== undefined) {
     merged.pypiWeeklyDownloads = prior.pypiWeeklyDownloads;
-    merged.pypiStaleSince = prior.pypiStaleSince ?? runIso;
+    merged.pypiStaleSince = prior.pypiStaleSince ?? priorStamp;
   }
 
   // npm
   const npmFresh = !current.fetchErrors.some((e) => e.source === "npm");
   if (!npmFresh && current.npmWeeklyDownloads === null && prior?.npmWeeklyDownloads !== null && prior?.npmWeeklyDownloads !== undefined) {
     merged.npmWeeklyDownloads = prior.npmWeeklyDownloads;
-    merged.npmStaleSince = prior.npmStaleSince ?? runIso;
+    merged.npmStaleSince = prior.npmStaleSince ?? priorStamp;
   }
 
   // GitHub (atomic — all four fields share one fetch)
@@ -80,7 +89,7 @@ export function mergeWithPriorSnapshot(
     if (current.pushedAt === null && prior.pushedAt !== null) merged.pushedAt = prior.pushedAt;
     if (current.archived === null && prior.archived !== null) merged.archived = prior.archived;
     if (merged.stars !== null || merged.pushedAt !== null) {
-      merged.githubStaleSince = prior.githubStaleSince ?? runIso;
+      merged.githubStaleSince = prior.githubStaleSince ?? priorStamp;
     }
   }
 
@@ -146,8 +155,14 @@ export async function runAgentsIngest(
   if (prior) {
     for (const f of prior.frameworks) priorById.set(f.id, f);
   }
+  const priorFetchedAt = prior?.fetchedAt ?? null;
   const mergedFrameworks = fetchResult.frameworks.map((cur) =>
-    mergeWithPriorSnapshot(cur, priorById.get(cur.id) ?? null, fetchResult.fetchedAt),
+    mergeWithPriorSnapshot(
+      cur,
+      priorById.get(cur.id) ?? null,
+      priorFetchedAt,
+      fetchResult.fetchedAt,
+    ),
   );
   const mergedResult: AgentFetchResult = {
     fetchedAt: fetchResult.fetchedAt,
