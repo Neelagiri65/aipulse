@@ -144,7 +144,7 @@ describe("/admin/reports/[slug]/launch-check", () => {
     expect(html).not.toContain("NOT READY");
   });
 
-  it("surfaces ops sanity warnings + flags NOT READY when present (warnings hidden from public, visible here)", async () => {
+  it("surfaces ops sanity warnings as INFORMATIONAL (does NOT block READY) — S62g.1", async () => {
     const auth = await import("@/lib/digest/admin-auth");
     vi.mocked(auth.requireAdminBasicAuth).mockReturnValue(null);
     const reg = await import("@/lib/reports/registry");
@@ -168,13 +168,20 @@ describe("/admin/reports/[slug]/launch-check", () => {
     const html = renderToStaticMarkup(
       await Page({ params: Promise.resolve({ slug: "test-report" }) }),
     );
-    expect(html).toContain("NOT READY");
-    expect(html).toContain("Not launch-ready");
     // The ops sanity warning IS surfaced here (unlike the public page
     // which hides them). This is the operator-facing surface.
     expect(html).toContain(
       "ollama: -106.4% growth below the -90% sanity floor",
     );
+    // BUT — the warning is informational, NOT a launch-blocker. The
+    // system already excluded the offending row; the operator sees it
+    // here for awareness. Editorial-filled + every-section-has-rows
+    // is enough for READY.
+    expect(html).toContain("Launch-ready");
+    expect(html).toContain("READY · safe to launch");
+    expect(html).not.toContain("NOT READY");
+    // The summary explicitly labels the warning as informational.
+    expect(html).toMatch(/informational/i);
   });
 
   it("flags every editorial placeholder field individually + flags NOT READY", async () => {

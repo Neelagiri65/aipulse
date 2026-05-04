@@ -88,8 +88,14 @@ export default async function ReportLaunchCheckPage({
     (n, b) => n + b.result.sanityWarnings.length,
     0,
   );
-  const launchReady =
-    editorialOk && blocksWithRows === blocks.length && totalSanity === 0;
+  // Readiness rule (S62g.1): ops sanity warnings are INFORMATIONAL
+  // by design (the system already excluded the offending rows; the
+  // public page hides the warnings; the operator sees them here for
+  // awareness). They should NOT block READY. Real launch-blockers
+  // are: missing editorial copy + sections with zero rows. The
+  // warnings are surfaced visibly below the readiness badge so the
+  // operator can still eyeball them — but they don't fail the gate.
+  const launchReady = editorialOk && blocksWithRows === blocks.length;
 
   return (
     <main className="mx-auto max-w-4xl px-5 py-10 text-foreground">
@@ -239,22 +245,21 @@ export default async function ReportLaunchCheckPage({
           <CheckRow
             label="Editorial copy non-placeholder"
             pass={editorialOk}
-            detail={editorialOk ? "OK" : "BLOCK"}
+            detail={editorialOk ? "OK" : "BLOCK · fill missing fields"}
           />
           <CheckRow
             label="Every section has rows"
             pass={blocksWithRows === blocks.length}
             detail={`${blocksWithRows}/${blocks.length}`}
           />
-          <CheckRow
-            label="Zero ops sanity warnings"
-            pass={totalSanity === 0}
-            detail={
-              totalSanity === 0
-                ? "OK"
-                : `${totalSanity} warning${totalSanity === 1 ? "" : "s"} — review section 2`
-            }
-          />
+          <li className="flex items-baseline justify-between gap-3 font-mono text-[12px]">
+            <span className="text-foreground">Ops sanity warnings (info)</span>
+            <span className="text-muted-foreground">
+              {totalSanity === 0
+                ? "0 — clean"
+                : `${totalSanity} warning${totalSanity === 1 ? "" : "s"} — see section 2 (informational, does not block launch)`}
+            </span>
+          </li>
         </ul>
         <p className="mt-3 font-mono text-[12px]">
           {launchReady ? (
@@ -265,6 +270,12 @@ export default async function ReportLaunchCheckPage({
               posting.
             </span>
           )}
+        </p>
+        <p className="mt-2 font-mono text-[10px] text-muted-foreground/80">
+          Note: ops sanity warnings are informational by design — the
+          system already excluded the offending rows from the public
+          page. The operator sees them here for awareness; they do not
+          block READY.
         </p>
       </Section>
     </main>
