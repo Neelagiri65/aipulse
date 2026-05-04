@@ -59,6 +59,7 @@ import {
   sendDigestForDate,
   type SendDigestForDateResult,
 } from "@/lib/digest/send-orchestrator";
+import { readSentMarker, writeSentMarker } from "@/lib/digest/sent-marker";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -111,6 +112,8 @@ export const POST = withIngest<RouteResult>({
     const resendDomains = await buildResendDomainsClient(apiKey);
     const batchSender = await buildResendBatchSender(apiKey);
 
+    const force = parseForceFlag(request);
+
     return sendDigestForDate({
       date,
       now,
@@ -121,6 +124,9 @@ export const POST = withIngest<RouteResult>({
       resendDomains,
       resendDomainId: domainId,
       resendDomainName: domainName,
+      getSentMarker: (d) => readSentMarker(d),
+      markSent: (d, marker) => writeSentMarker(d, marker),
+      force,
       loadSnapshot: (d) => readSnapshot(d),
       loadHn: () => readWire(),
       loadIncidents24h: () => fetchIncidents24h({ now: now.getTime() }),
@@ -177,6 +183,13 @@ export const POST = withIngest<RouteResult>({
       }
       return { ok: false, error: `${result.reason}: ${result.message}` };
     }
+    // Idempotency short-circuit: a duplicate-day invocation is the
+    // happy path of the dedupe contract, not a failure. Cron-health
+    // counts it as a green run with 0 items processed (nothing was
+    // re-sent — that's the point).
+    if (result.skipped) {
+      return { ok: true, itemsProcessed: 0 };
+    }
     if (result.send.failedChunks > 0 && result.send.sent === 0) {
       return {
         ok: false,
@@ -208,6 +221,15 @@ export const POST = withIngest<RouteResult>({
         { status: 200 },
       );
     }
+    if (result.skipped) {
+      return NextResponse.json({
+        ok: true,
+        skipped: true,
+        reason: result.reason,
+        date: result.date,
+        marker: result.marker,
+      });
+    }
     return NextResponse.json({
       ok: true,
       date: result.date,
@@ -228,6 +250,27 @@ export const GET = POST;
 function previousNDaysUtc(now: Date, n: number): string {
   const ts = now.getTime() - n * 24 * 60 * 60 * 1000;
   return ymdUtc(new Date(ts));
+}
+
+/**
+ * Parse the `?force=...` query param. Treats `1`, `true`, `yes` (case-
+ * insensitive) as truthy. Anything else — including the param being
+ * absent — returns false. Operator opt-in for re-sending the day's
+ * digest after a partial failure; the GH Actions workflow surfaces
+ * this as a `workflow_dispatch` input.
+ *
+ * Exported for direct unit testing — keeps the parser behaviour pinned
+ * without spinning up the whole route + send pipeline in tests.
+ */
+export function parseForceFlag(request: Request): boolean {
+  try {
+    const u = new URL(request.url);
+    const v = u.searchParams.get("force");
+    if (!v) return false;
+    return /^(1|true|yes)$/i.test(v.trim());
+  } catch {
+    return false;
+  }
 }
 
 function inferBaseUrl(request: Request): string {

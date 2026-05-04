@@ -23,6 +23,17 @@ on:
   schedule:
     - cron: "0 8 * * *"
   workflow_dispatch:
+    inputs:
+      force:
+        description: |
+          Bypass the server-side once-per-day idempotency guard.
+          Default false — the route will short-circuit if today's
+          digest already delivered ≥1 recipient. Set to "true" only
+          when you genuinely need to re-send today (e.g. the prior
+          fire delivered to some recipients but failed mid-batch).
+        required: false
+        default: "false"
+        type: string
 
 concurrency:
   group: daily-digest
@@ -37,6 +48,7 @@ jobs:
         env:
           INGEST_URL: ${{ secrets.INGEST_URL }}
           INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
         run: |
           if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
             echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
@@ -44,6 +56,10 @@ jobs:
           fi
           BASE="${INGEST_URL%/api/ingest}"
           URL="$BASE/api/digest/send"
+          if [ "$FORCE" = "true" ]; then
+            URL="$URL?force=1"
+            echo "::warning::FORCE=true — bypassing the once-per-day idempotency guard"
+          fi
           echo "POST $URL"
           RESPONSE=$(curl -sS -f --max-time 540 \
             -H "x-ingest-secret: $INGEST_SECRET" \

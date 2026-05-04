@@ -318,6 +318,167 @@ describe("sendDigestForDate — per-recipient bounce handling", () => {
   });
 });
 
+describe("sendDigestForDate — idempotency (S62 bug fix: duplicate digest fires)", () => {
+  it("short-circuits when a sent-marker exists for the date — no build, no send, no archive", async () => {
+    const sendBatch = vi.fn(
+      async () => ({ ok: true, ids: ["e1"] }) as BatchSendResult,
+    );
+    const { input, capture } = mkBaseInput({
+      batchSender: { sendBatch },
+      subscribers: [mkSubscriber("h1", "a@example.com")],
+    });
+    const getSentMarker = vi.fn(async (d: string) => ({
+      sentAt: "2026-04-22T08:00:00.000Z",
+      recipientCount: 1,
+      deliveredCount: 1,
+      subject: `prior subject for ${d}`,
+    }));
+    const markSent = vi.fn(async () => {});
+
+    const result = await sendDigestForDate({
+      ...input,
+      getSentMarker,
+      markSent,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    if (!("skipped" in result) || !result.skipped) {
+      throw new Error("expected skipped: true");
+    }
+    expect(result.reason).toBe("already-sent-today");
+    expect(result.date).toBe("2026-04-22");
+    expect(result.marker.deliveredCount).toBe(1);
+    expect(getSentMarker).toHaveBeenCalledWith("2026-04-22");
+    expect(sendBatch).not.toHaveBeenCalled();
+    expect(markSent).not.toHaveBeenCalled();
+    expect(capture.archived).toHaveLength(0);
+    expect(capture.renderedFor).toEqual([]);
+  });
+
+  it("force=true bypasses the marker check and proceeds with the send", async () => {
+    const sendBatch = vi.fn(
+      async () => ({ ok: true, ids: ["e1"] }) as BatchSendResult,
+    );
+    const { input } = mkBaseInput({
+      batchSender: { sendBatch },
+      subscribers: [mkSubscriber("h1", "a@example.com")],
+    });
+    const getSentMarker = vi.fn(async () => ({
+      sentAt: "2026-04-22T08:00:00.000Z",
+      recipientCount: 1,
+      deliveredCount: 1,
+      subject: "prior",
+    }));
+    const markSent = vi.fn(async () => {});
+
+    const result = await sendDigestForDate({
+      ...input,
+      getSentMarker,
+      markSent,
+      force: true,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect("skipped" in result && result.skipped).not.toBe(true);
+    // The marker reader should be skipped entirely under force=true so a
+    // failed Redis lookup can never block an operator-initiated retry.
+    expect(getSentMarker).not.toHaveBeenCalled();
+    expect(sendBatch).toHaveBeenCalledTimes(1);
+    expect(markSent).toHaveBeenCalledTimes(1);
+  });
+
+  it("writes the sent-marker after a successful send (≥1 delivered)", async () => {
+    const sendBatch = vi.fn(
+      async () => ({ ok: true, ids: ["e1", "e2"] }) as BatchSendResult,
+    );
+    const { input } = mkBaseInput({
+      batchSender: { sendBatch },
+      subscribers: [
+        mkSubscriber("h1", "a@example.com"),
+        mkSubscriber("h2", "b@example.com"),
+      ],
+    });
+    const markSent = vi.fn(async () => {});
+
+    const result = await sendDigestForDate({
+      ...input,
+      // Marker reader returns null → normal send.
+      getSentMarker: async () => null,
+      markSent,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(markSent).toHaveBeenCalledTimes(1);
+    const [date, marker] = markSent.mock.calls[0];
+    expect(date).toBe("2026-04-22");
+    expect(marker.recipientCount).toBe(2);
+    expect(marker.deliveredCount).toBe(2);
+    expect(marker.subject).toMatch(/Gawk/);
+    expect(typeof marker.sentAt).toBe("string");
+  });
+
+  it("does NOT write the sent-marker when nothing delivered (subscribers=0)", async () => {
+    const sendBatch = vi.fn(
+      async () => ({ ok: true, ids: [] }) as BatchSendResult,
+    );
+    const { input } = mkBaseInput({
+      batchSender: { sendBatch },
+      subscribers: [],
+    });
+    const markSent = vi.fn(async () => {});
+
+    const result = await sendDigestForDate({
+      ...input,
+      getSentMarker: async () => null,
+      markSent,
+    });
+
+    expect(result.ok).toBe(true);
+    // No subscribers means the route still completes happily — but we
+    // must NOT write a marker that would block tomorrow's first real
+    // attempt to deliver to a freshly-confirmed subscriber.
+    expect(markSent).not.toHaveBeenCalled();
+  });
+
+  it("does NOT write the sent-marker when every batch chunk failed (5xx)", async () => {
+    const sendBatch = vi.fn(
+      async () =>
+        ({ ok: false, statusCode: 503, message: "resend down" }) as BatchSendResult,
+    );
+    const { input } = mkBaseInput({
+      batchSender: { sendBatch },
+      subscribers: [mkSubscriber("h1", "a@example.com")],
+    });
+    const markSent = vi.fn(async () => {});
+
+    const result = await sendDigestForDate({
+      ...input,
+      getSentMarker: async () => null,
+      markSent,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(markSent).not.toHaveBeenCalled();
+  });
+
+  it("falls through to a normal send when getSentMarker is omitted (back-compat)", async () => {
+    const sendBatch = vi.fn(
+      async () => ({ ok: true, ids: ["e1"] }) as BatchSendResult,
+    );
+    const { input } = mkBaseInput({
+      batchSender: { sendBatch },
+      subscribers: [mkSubscriber("h1", "a@example.com")],
+    });
+    // No getSentMarker / markSent — exercises the path many existing
+    // tests use. Must continue to send normally.
+    const result = await sendDigestForDate(input);
+    expect(result.ok).toBe(true);
+    expect(sendBatch).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("sendDigestForDate — chunk 5xx without retry (maxRetries=0)", () => {
   it("records a batch-5xx error and skips archive when nothing delivered", async () => {
     const sendBatch = vi.fn(

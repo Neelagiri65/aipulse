@@ -34,6 +34,29 @@ import type { ModelUsageSnapshotRow } from "@/lib/data/openrouter-types";
 import type { AgentsViewDto } from "@/lib/data/agents-view";
 import type { ConfirmedSubscriberWithEmail } from "@/lib/data/subscribers";
 
+/**
+ * Persisted marker recording that today's digest was successfully
+ * delivered to ≥1 recipient. The orchestrator writes this AFTER
+ * `send.sent > 0` and READS it at the start of the next invocation
+ * to short-circuit duplicate sends — root cause of the 2026-05-01 +
+ * 2026-05-02 double-fires (manual `workflow_dispatch` re-running on
+ * top of the scheduled 08:00 UTC run with no server-side guard).
+ *
+ * Idempotency is per-UTC-date. The marker SHOULD survive at least
+ * 7 days (TTL is the storage layer's job, not this module's).
+ */
+export type SentMarker = {
+  /** ISO timestamp of the moment the marker was written. */
+  sentAt: string;
+  /** Number of recipients the orchestrator handed to sendDigest. */
+  recipientCount: number;
+  /** Number that actually delivered (send.sent — may be < recipientCount
+   *  if some bounced or chunks failed). */
+  deliveredCount: number;
+  /** Subject line of the send the marker corresponds to. */
+  subject: string;
+};
+
 export type SendDigestForDateInput = {
   date: string;
   now: Date;
@@ -72,6 +95,28 @@ export type SendDigestForDateInput = {
     entry: { kind: string; subject: string; message: string; hash?: string },
   ) => Promise<void>;
   markBounced: (hash: string) => Promise<void>;
+  /**
+   * Idempotency-marker reader. When provided AND the marker for this
+   * date is non-null AND `force !== true`, the orchestrator short-
+   * circuits BEFORE doing any expensive work (no domain verify, no
+   * subscriber decrypt, no batch send). Omit in tests that don't care
+   * about the dedupe contract — the orchestrator falls through to a
+   * normal send.
+   */
+  getSentMarker?: (date: string) => Promise<SentMarker | null>;
+  /**
+   * Idempotency-marker writer. When provided AND the run delivered to
+   * ≥1 recipient, the orchestrator writes the marker so the NEXT
+   * invocation short-circuits. Omit in tests that don't care.
+   */
+  markSent?: (date: string, marker: SentMarker) => Promise<void>;
+  /**
+   * Bypass the idempotency check. Set true for manual operator reruns
+   * (e.g. retry after a partial-batch failure). Surfaced to the cron
+   * route via `?force=1` and to the GH Actions workflow as a
+   * `workflow_dispatch` input. Default false.
+   */
+  force?: boolean;
   /** Seam for tests to avoid wall-clock delays. */
   sleepFn?: (ms: number) => Promise<void>;
   maxRetries?: number;
@@ -88,6 +133,16 @@ export type SendDigestForDateResult =
     }
   | {
       ok: true;
+      skipped: true;
+      reason: "already-sent-today";
+      date: string;
+      /** The marker read from the idempotency store — surfaces what the
+       *  prior successful send delivered, for observability. */
+      marker: SentMarker;
+    }
+  | {
+      ok: true;
+      skipped?: false;
       date: string;
       subject: string;
       mode: DigestBody["mode"];
@@ -98,6 +153,24 @@ export type SendDigestForDateResult =
 export async function sendDigestForDate(
   input: SendDigestForDateInput,
 ): Promise<SendDigestForDateResult> {
+  // Idempotency short-circuit. Checked BEFORE the build to skip all
+  // expensive work (snapshot reads, domain verify, subscriber decrypt,
+  // batch send) on duplicate invocations. The marker is per-UTC-date;
+  // a manual `?force=1` rerun bypasses the check (operator opt-in for
+  // partial-failure retries).
+  if (!input.force && input.getSentMarker) {
+    const marker = await input.getSentMarker(input.date);
+    if (marker) {
+      return {
+        ok: true,
+        skipped: true,
+        reason: "already-sent-today",
+        date: input.date,
+        marker,
+      };
+    }
+  }
+
   const build = await buildDigestForDate({
     date: input.date,
     previousDate: previousUtcDate(input.date),
@@ -204,15 +277,26 @@ export async function sendDigestForDate(
     },
   });
 
-  // Archive only when we actually delivered something. A 0-recipient run
-  // (no confirmed subscribers yet) still builds a body but shouldn't earn
-  // a public /digest/{date} entry — that'd imply a send that never happened.
+  // Archive + idempotency marker on real delivery. A 0-recipient run
+  // (no confirmed subscribers yet, or every chunk failed) still builds
+  // a body but shouldn't earn a public /digest/{date} entry — and
+  // shouldn't write the marker either, so a real subsequent run can
+  // still try to deliver the day's digest.
   if (send.sent > 0) {
     await input.writeArchive(input.date, build.body);
+    if (input.markSent) {
+      await input.markSent(input.date, {
+        sentAt: new Date(input.now).toISOString(),
+        recipientCount: recipients.length,
+        deliveredCount: send.sent,
+        subject: build.body.subject,
+      });
+    }
   }
 
   return {
     ok: true,
+    skipped: false,
     date: build.body.date,
     subject: build.body.subject,
     mode: build.body.mode,
