@@ -27,15 +27,16 @@ test.describe("chrome", () => {
     await shot(page, "chrome-topbar", { fullPage: false });
   });
 
-  test("LeftNav exposes all eleven panel buttons", async ({ page }) => {
+  test("LeftNav exposes all live panel buttons + Audit (soon)", async ({ page }) => {
     await openDashboard(page);
     const nav = page.getByRole("navigation", { name: "Panel navigation" });
     // LeftNav buttons use `title` attribute as the stable identifier —
     // the accessible name includes the count/soon badge text so
     // role+name matching doesn't work for exact labels. Session 27
     // parked Audit alongside Agents as soon-disabled. Session 35 added
-    // "SDK Adoption"; session 38 added "Model Usage" — eleventh live
-    // panel, ranks LLMs by real OpenRouter request volume.
+    // "SDK Adoption"; session 38 added "Model Usage". Agents was
+    // promoted out of "soon" once the agents-ingest pipeline shipped
+    // (S52 → S58); only Audit remains soon-disabled.
     for (const label of [
       "Wire",
       "Tools",
@@ -43,19 +44,18 @@ test.describe("chrome", () => {
       "Research",
       "Benchmarks",
       "AI Labs",
+      "Agents",
       "Regional Wire",
       "SDK Adoption",
       "Model Usage",
     ]) {
       await expect(nav.locator(`button[title="${label}"]`)).toBeVisible();
     }
-    // Agents + Audit are soon-flagged → titles include " · coming soon",
-    // rendered disabled.
-    for (const label of ["Agents", "Audit"]) {
-      const btn = nav.locator(`button[title="${label} · coming soon"]`);
-      await expect(btn).toBeVisible();
-      await expect(btn).toBeDisabled();
-    }
+    // Audit is the only nav item still soon-flagged → title includes
+    // " · coming soon", rendered disabled.
+    const auditBtn = nav.locator(`button[title="Audit · coming soon"]`);
+    await expect(auditBtn).toBeVisible();
+    await expect(auditBtn).toBeDisabled();
     await shot(page, "chrome-leftnav");
   });
 
