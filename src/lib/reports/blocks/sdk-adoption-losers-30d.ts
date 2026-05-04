@@ -64,6 +64,7 @@ export function loadSdkAdoptionLosers30dBlock(
     pkg: SdkAdoptionPackage;
     pctGrowth: number;
     latestCount: number;
+    effectiveDays: number;
   }> = [];
   for (const pkg of input.dto.packages) {
     const reading = computeWindowGrowth(pkg, windowDays);
@@ -75,6 +76,7 @@ export function loadSdkAdoptionLosers30dBlock(
       pkg,
       pctGrowth: reading.pctGrowth,
       latestCount: reading.latestCount,
+      effectiveDays: reading.effectiveDays,
     });
   }
   // Sort ascending so the steepest decline is row 0.
@@ -82,12 +84,12 @@ export function loadSdkAdoptionLosers30dBlock(
   const bottom = candidates.slice(0, topN);
 
   const rows: GenesisBlockRow[] = bottom.map(
-    ({ pkg, pctGrowth, latestCount }) => {
+    ({ pkg, pctGrowth, latestCount, effectiveDays }) => {
       const source = REGISTRY_SOURCE[pkg.registry];
       return {
         label: pkg.label,
         value: `${formatCount(latestCount)} ${pkg.counterUnits}`,
-        delta: `${formatPct(pctGrowth)} ${windowDays}d`,
+        delta: `${formatPct(pctGrowth)} over ${effectiveDays}d`,
         sourceUrl: source.url,
         sourceLabel: source.label,
         caveat: pkg.caveat ?? undefined,

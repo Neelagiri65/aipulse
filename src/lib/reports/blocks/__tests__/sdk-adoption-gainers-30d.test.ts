@@ -58,43 +58,73 @@ function mkDto(packages: SdkAdoptionPackage[]): SdkAdoptionDto {
 
 const FIXED_NOW = () => new Date("2026-05-04T00:00:00.000Z");
 
-describe("computeWindowGrowth", () => {
-  it("returns null when the package has fewer than windowDays+1 entries", () => {
-    const pkg = mkPackage("npm", "x", mkDays(Array(5).fill(100)));
-    expect(computeWindowGrowth(pkg, 30)).toBeNull();
+describe("computeWindowGrowth — sparse-tolerant", () => {
+  it("returns null for a fully-empty days array", () => {
+    expect(computeWindowGrowth(mkPackage("npm", "x", []), 30)).toBeNull();
   });
 
-  it("returns null when the latest entry is null", () => {
-    const days = mkDays(Array(31).fill(100));
-    days[days.length - 1].count = null;
+  it("returns null when only one non-null entry exists (no baseline)", () => {
+    const days = mkDays(Array(30).fill(null));
+    days[28].count = 100;
     expect(computeWindowGrowth(mkPackage("npm", "x", days), 30)).toBeNull();
   });
 
-  it("returns null when the N-days-ago entry is null", () => {
-    const days = mkDays(Array(31).fill(100));
-    days[0].count = null;
+  it("returns null when the chosen baseline count is 0 (divide-by-zero)", () => {
+    const days = mkDays(Array(30).fill(null));
+    days[5].count = 0;
+    days[28].count = 100;
     expect(computeWindowGrowth(mkPackage("npm", "x", days), 30)).toBeNull();
   });
 
-  it("returns null when the baseline count is 0 (would divide by zero)", () => {
-    const days = mkDays(Array(31).fill(100));
-    days[0].count = 0;
-    expect(computeWindowGrowth(mkPackage("npm", "x", days), 30)).toBeNull();
-  });
-
-  it("computes % growth correctly for a simple 2x case", () => {
-    const days = mkDays([100, ...Array(29).fill(150), 200]);
+  it("computes % growth correctly for a simple 2x case (newest + oldest both at the ends)", () => {
+    const days = mkDays([100, ...Array(29).fill(null)]);
+    days[29].count = 200;
     const got = computeWindowGrowth(mkPackage("npm", "x", days), 30);
-    expect(got).not.toBeNull();
     expect(got!.pctGrowth).toBeCloseTo(100, 5);
     expect(got!.latestCount).toBe(200);
     expect(got!.baseCount).toBe(100);
+    expect(got!.effectiveDays).toBe(29);
   });
 
   it("returns negative growth for declines", () => {
-    const days = mkDays([1000, ...Array(29).fill(800), 750]);
+    const days = mkDays(Array(30).fill(null));
+    days[0].count = 1000;
+    days[29].count = 750;
     const got = computeWindowGrowth(mkPackage("npm", "x", days), 30);
     expect(got!.pctGrowth).toBeCloseTo(-25, 5);
+  });
+
+  it("tolerates a null tail — uses newest non-null instead (real prod shape)", () => {
+    // Real shape from prod: index 17..28 have data, 29 is null, 0..16 are null.
+    const days = mkDays(Array(30).fill(null));
+    days[17].count = 100;
+    days[28].count = 200;
+    const got = computeWindowGrowth(mkPackage("npm", "x", days), 30);
+    expect(got).not.toBeNull();
+    expect(got!.latestCount).toBe(200);
+    expect(got!.baseCount).toBe(100);
+    expect(got!.effectiveDays).toBe(28 - 17);
+    expect(got!.pctGrowth).toBeCloseTo(100, 5);
+  });
+
+  it("tolerates a null head — uses oldest non-null within window from newest", () => {
+    const days = mkDays(Array(30).fill(null));
+    days[20].count = 50; // baseline
+    days[29].count = 100; // latest
+    const got = computeWindowGrowth(mkPackage("npm", "x", days), 30);
+    expect(got!.effectiveDays).toBe(9);
+    expect(got!.pctGrowth).toBeCloseTo(100, 5);
+  });
+
+  it("does NOT reach for ancient data outside the windowDays from newest", () => {
+    // Newest non-null at index 28; baseline anchor = 28 - 7 = 21.
+    // The non-null at index 5 is OUTSIDE the window — must NOT be used.
+    const days = mkDays(Array(30).fill(null));
+    days[5].count = 999_999; // ancient — must be ignored
+    days[28].count = 100;
+    const got = computeWindowGrowth(mkPackage("npm", "x", days), 7);
+    // No non-null entry within indices 21..27 → no baseline → null.
+    expect(got).toBeNull();
   });
 });
 
@@ -173,7 +203,7 @@ describe("loadSdkAdoptionGainers30dBlock — happy path", () => {
     ]);
     const result = loadSdkAdoptionGainers30dBlock({ dto, now: FIXED_NOW });
     expect(result.rows[0].value).toContain("2.5M");
-    expect(result.rows[0].delta).toMatch(/^\+\d+\.\d% 30d$/);
+    expect(result.rows[0].delta).toMatch(/^\+\d+\.\d% over \d+d$/);
   });
 });
 
@@ -213,10 +243,13 @@ describe("loadSdkAdoptionGainers30dBlock — sanity gates", () => {
 });
 
 describe("loadSdkAdoptionGainers30dBlock — edge cases", () => {
-  it("returns rows: [] when no package has enough history (honest empty)", () => {
-    const dto = mkDto([
-      mkPackage("npm", "new-pkg", mkDays(Array(5).fill(100))),
-    ]);
+  it("returns rows: [] when no package has at least 2 non-null entries (honest empty)", () => {
+    // The new sparse-tolerant rule: a package qualifies as long as it
+    // has a newest non-null AND an oldest non-null within window. A
+    // single-non-null package can't be ranked.
+    const single = mkDays(Array(30).fill(null));
+    single[10].count = 100;
+    const dto = mkDto([mkPackage("npm", "new-pkg", single)]);
     const result = loadSdkAdoptionGainers30dBlock({ dto, now: FIXED_NOW });
     expect(result.rows).toEqual([]);
     expect(result.sanityWarnings).toEqual([]);

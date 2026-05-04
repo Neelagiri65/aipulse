@@ -85,6 +85,7 @@ export function loadSdkAdoptionGainers30dBlock(
     pctGrowth: number;
     latestCount: number;
     baseCount: number;
+    effectiveDays: number;
   }> = [];
 
   for (const pkg of input.dto.packages) {
@@ -95,23 +96,26 @@ export function loadSdkAdoptionGainers30dBlock(
       pctGrowth: reading.pctGrowth,
       latestCount: reading.latestCount,
       baseCount: reading.baseCount,
+      effectiveDays: reading.effectiveDays,
     });
   }
 
   candidates.sort((a, b) => b.pctGrowth - a.pctGrowth);
   const top = candidates.slice(0, topN);
 
-  const rows: GenesisBlockRow[] = top.map(({ pkg, pctGrowth, latestCount }) => {
-    const source = REGISTRY_SOURCE[pkg.registry];
-    return {
-      label: pkg.label,
-      value: `${formatCount(latestCount)} ${pkg.counterUnits}`,
-      delta: `${formatPct(pctGrowth)} ${windowDays}d`,
-      sourceUrl: source.url,
-      sourceLabel: source.label,
-      caveat: pkg.caveat ?? undefined,
-    };
-  });
+  const rows: GenesisBlockRow[] = top.map(
+    ({ pkg, pctGrowth, latestCount, effectiveDays }) => {
+      const source = REGISTRY_SOURCE[pkg.registry];
+      return {
+        label: pkg.label,
+        value: `${formatCount(latestCount)} ${pkg.counterUnits}`,
+        delta: `${formatPct(pctGrowth)} over ${effectiveDays}d`,
+        sourceUrl: source.url,
+        sourceLabel: source.label,
+        caveat: pkg.caveat ?? undefined,
+      };
+    },
+  );
 
   const sanityWarnings: string[] = [];
   for (const { pkg, pctGrowth } of top) {
@@ -134,31 +138,76 @@ export function loadSdkAdoptionGainers30dBlock(
 }
 
 /**
- * Compute % growth between the most-recent non-null count and the
- * count `windowDays` ago. Returns null when:
- *   - the package has fewer than `windowDays + 1` total day entries,
- *   - the latest entry is null,
- *   - the day-N-ago entry is null,
- *   - the day-N-ago count is 0 (would divide by zero).
- *
- * The day axis in `pkg.days` is oldest-first by the assembler's
+ * Compute % growth across a `windowDays` window, tolerating sparse
+ * data. The day axis in `pkg.days` is oldest-first by the assembler's
  * contract — `days[length - 1]` is today, `days[length - 1 - N]` is
- * N days ago.
+ * N calendar days ago. Many packages have null tails (today's pull
+ * hasn't landed) and null gaps (some registries publish only weekly).
+ *
+ * Honest reading rule:
+ *   1. Find the newest non-null entry. Walk backwards from the end
+ *      of the array, scanning at most `windowDays` indices so we
+ *      never reach for ancient data.
+ *   2. From there, find the oldest non-null entry within the window.
+ *      The "window" is anchored at the newest non-null index — the
+ *      base index is `newestIdx - windowDays` (clamped to ≥ 0). We
+ *      scan forwards from the base looking for the first non-null,
+ *      so the comparison is "newest-known vs. oldest-known-within-window".
+ *
+ * Returns the readings PLUS `effectiveDays` (newestIdx - oldestIdx),
+ * which the row formatter prints — the report should never claim a
+ * 30-day comparison when the underlying data only spans 11 days.
+ *
+ * Returns null when:
+ *   - the package has zero non-null entries in its days array,
+ *   - the only non-null entry is at the very end (no baseline),
+ *   - the chosen baseline is 0 (would divide by zero).
  */
 export function computeWindowGrowth(
   pkg: SdkAdoptionPackage,
   windowDays: number,
-): { pctGrowth: number; latestCount: number; baseCount: number } | null {
+): {
+  pctGrowth: number;
+  latestCount: number;
+  baseCount: number;
+  /** Calendar days actually spanned between baseline and latest.
+   *  May be < windowDays when the data is sparse. The framing prose
+   *  must NOT claim "30-day growth" when this number is smaller. */
+  effectiveDays: number;
+} | null {
   const days = pkg.days;
-  if (days.length < windowDays + 1) return null;
-  const latestIdx = days.length - 1;
-  const baseIdx = latestIdx - windowDays;
-  const latest = days[latestIdx]?.count;
-  const base = days[baseIdx]?.count;
-  if (latest == null || base == null) return null;
+  if (days.length === 0) return null;
+  // Step 1: newest non-null, scanning at most windowDays backwards.
+  const lookbackLimit = Math.min(windowDays, days.length - 1);
+  let newestIdx = -1;
+  for (let i = days.length - 1; i >= days.length - 1 - lookbackLimit; i -= 1) {
+    if (i < 0) break;
+    if (days[i]?.count != null) {
+      newestIdx = i;
+      break;
+    }
+  }
+  if (newestIdx < 0) return null;
+  // Step 2: oldest non-null within the window anchored at newest.
+  const baseAnchor = Math.max(0, newestIdx - windowDays);
+  let oldestIdx = -1;
+  for (let i = baseAnchor; i < newestIdx; i += 1) {
+    if (days[i]?.count != null) {
+      oldestIdx = i;
+      break;
+    }
+  }
+  if (oldestIdx < 0) return null;
+  const latest = days[newestIdx].count!;
+  const base = days[oldestIdx].count!;
   if (base === 0) return null;
   const pctGrowth = ((latest - base) / base) * 100;
-  return { pctGrowth, latestCount: latest, baseCount: base };
+  return {
+    pctGrowth,
+    latestCount: latest,
+    baseCount: base,
+    effectiveDays: newestIdx - oldestIdx,
+  };
 }
 
 function formatCount(n: number): string {

@@ -31,7 +31,17 @@ import {
   loadOpenRouterClimbers30dBlock,
   loadOpenRouterFallers30dBlock,
 } from "@/lib/reports/blocks/openrouter-rank-movers";
+import { loadLabsActivityLeaders30dBlock } from "@/lib/reports/blocks/labs-activity-leaders-30d";
+import { loadToolIncidents30dBlock } from "@/lib/reports/blocks/tool-incidents-30d";
+import { loadAgentsVelocity30dBlock } from "@/lib/reports/blocks/agents-velocity-30d";
 import { redisOpenRouterStore } from "@/lib/data/openrouter-store";
+import { fetchLabActivity } from "@/lib/data/fetch-labs";
+import {
+  readAgentsLatest,
+  readAgentsSnapshot,
+} from "@/lib/data/agents-store";
+import { assembleAgentsView } from "@/lib/data/agents-view";
+import { AGENT_FRAMEWORKS } from "@/lib/data/agents-registry";
 import type {
   GenesisBlockId,
   GenesisBlockResult,
@@ -67,20 +77,12 @@ export async function loadBlock(
         return await loadOpenRouterClimbers();
       case "openrouter-rank-fallers-30d":
         return await loadOpenRouterFallers();
-      // G5: remaining 3 block ids land here. Until then, surface a
-      // structured "not yet implemented" result so the page doesn't
-      // crash and the launch-readiness gate refuses to mark the
-      // report ready.
       case "labs-activity-leaders-30d":
+        return await loadLabsLeaders();
       case "tool-incidents-30d":
+        return await loadToolIncidents();
       case "agents-velocity-30d":
-        return {
-          rows: [],
-          generatedAt,
-          sanityWarnings: [
-            `Block "${blockId}" is engineering-pending (G5). Not launch-ready.`,
-          ],
-        };
+        return await loadAgentsVelocity();
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -116,6 +118,45 @@ async function loadOpenRouterFallers(): Promise<GenesisBlockResult> {
     snapshots,
     windowDays: WINDOW_DAYS,
   });
+}
+
+async function loadLabsLeaders(): Promise<GenesisBlockResult> {
+  const payload = await fetchLabActivity();
+  return loadLabsActivityLeaders30dBlock({ payload });
+}
+
+async function loadToolIncidents(): Promise<GenesisBlockResult> {
+  const snapshots = await readRecentSnapshots(WINDOW_DAYS + 1);
+  return loadToolIncidents30dBlock({ snapshots, windowDays: WINDOW_DAYS });
+}
+
+async function loadAgentsVelocity(): Promise<GenesisBlockResult> {
+  const current = await readAgentsLatest();
+  if (!current) {
+    return {
+      rows: [],
+      generatedAt: new Date().toISOString(),
+      sanityWarnings: [
+        "Agents store is empty — no current snapshot to assemble velocity from.",
+      ],
+    };
+  }
+  const sevenDaysAgo = await readAgentsSnapshot(previousNDaysUtc(new Date(), 7));
+  const view = assembleAgentsView({
+    registry: AGENT_FRAMEWORKS,
+    current,
+    sevenDaysAgo,
+  });
+  return loadAgentsVelocity30dBlock({ view });
+}
+
+function previousNDaysUtc(now: Date, n: number): string {
+  const ts = now.getTime() - n * 24 * 60 * 60 * 1000;
+  const d = new Date(ts);
+  const yy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
 }
 
 /**

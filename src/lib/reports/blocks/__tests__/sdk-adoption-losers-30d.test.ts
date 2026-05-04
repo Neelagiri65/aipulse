@@ -72,7 +72,7 @@ describe("loadSdkAdoptionLosers30dBlock — happy path", () => {
       mkPackage("pypi", "x", mkDays([1000, ...Array(29).fill(800), 600])),
     ]);
     const result = loadSdkAdoptionLosers30dBlock({ dto, now: FIXED_NOW });
-    expect(result.rows[0].delta).toMatch(/^-\d+\.\d% 30d$/);
+    expect(result.rows[0].delta).toMatch(/^-\d+\.\d% over \d+d$/);
   });
 });
 
