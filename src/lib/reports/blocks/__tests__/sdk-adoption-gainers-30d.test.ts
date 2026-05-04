@@ -207,8 +207,8 @@ describe("loadSdkAdoptionGainers30dBlock — happy path", () => {
   });
 });
 
-describe("loadSdkAdoptionGainers30dBlock — sanity gates", () => {
-  it("flags growth above the high sanity ceiling (likely denominator-near-zero artifact)", () => {
+describe("loadSdkAdoptionGainers30dBlock — sanity gates (S62f: exclude from display)", () => {
+  it("EXCLUDES rows whose growth violates the sanity ceiling, warns ops", () => {
     const dto = mkDto([
       mkPackage(
         "npm",
@@ -217,11 +217,29 @@ describe("loadSdkAdoptionGainers30dBlock — sanity gates", () => {
       ),
     ]);
     const result = loadSdkAdoptionGainers30dBlock({ dto, now: FIXED_NOW });
+    // Warning emitted for ops monitoring.
     expect(result.sanityWarnings.length).toBeGreaterThanOrEqual(1);
     expect(result.sanityWarnings[0]).toContain("surge");
-    expect(result.sanityWarnings[0]).toContain("sanity ceiling");
-    // Row is still INCLUDED — sanity warnings are surfaced, not auto-suppressed.
-    expect(result.rows.map((r) => r.label)).toContain("surge");
+    expect(result.sanityWarnings[0]).toContain("excluded from display");
+    // Row NOT shipped to public display.
+    expect(result.rows.map((r) => r.label)).not.toContain("surge");
+  });
+
+  it("backfills the top-N with the next-best qualifying candidate when a row is excluded", () => {
+    const dto = mkDto([
+      // Sanity-violating row would otherwise be #1.
+      mkPackage("npm", "surge", mkDays([1, ...Array(29).fill(50), 20_000])),
+      // Three clean candidates that should fill the top-3.
+      mkPackage("npm", "good-a", mkDays([100, ...Array(29).fill(150), 200])),
+      mkPackage("npm", "good-b", mkDays([100, ...Array(29).fill(140), 180])),
+      mkPackage("npm", "good-c", mkDays([100, ...Array(29).fill(130), 160])),
+    ]);
+    const result = loadSdkAdoptionGainers30dBlock({ dto, now: FIXED_NOW });
+    expect(result.rows.map((r) => r.label)).toEqual([
+      "good-a",
+      "good-b",
+      "good-c",
+    ]);
   });
 
   it("does NOT flag growth within the sanity band", () => {

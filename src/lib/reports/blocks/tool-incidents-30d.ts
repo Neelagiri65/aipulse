@@ -121,8 +121,12 @@ export function loadToolIncidents30dBlock(
 
   const sanityWarnings: string[] = [];
   if (inWindow.length < windowDays / 2) {
+    // Reader-facing wording (S62f): the prior phrasing exposed the
+    // internal "expected snapshot count" framing which a non-operator
+    // reader can't act on. The new line lands the actionable point
+    // in plain language — "this is a floor, not a ceiling".
     sanityWarnings.push(
-      `Only ${inWindow.length} of ${windowDays} expected daily snapshots present — incident-days are an undercount of the true exposure.`,
+      `Based on ${inWindow.length} days of captured snapshots — represents a minimum, not a complete count.`,
     );
   }
 

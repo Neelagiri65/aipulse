@@ -113,7 +113,7 @@ describe("loadToolIncidents30dBlock — sanity + edge cases", () => {
     expect(result.sanityWarnings[0]).toContain("bootstrap mode");
   });
 
-  it("warns when fewer than half the expected snapshots are present (incident-days undercount)", () => {
+  it("warns reader-facing when fewer than half the expected snapshots are present", () => {
     const snapshots = days(5, (date) =>
       snap(date, [
         { id: "anthropic", status: "operational", activeIncidents: 1 },
@@ -124,10 +124,13 @@ describe("loadToolIncidents30dBlock — sanity + edge cases", () => {
       windowDays: 30,
       now: FIXED_NOW,
     });
-    // 5 < 30/2 = 15 → undercount warning fires.
-    expect(
-      result.sanityWarnings.some((w) => w.includes("undercount")),
-    ).toBe(true);
+    // 5 < 30/2 = 15 → caveat fires. Pin the reader-facing phrasing
+    // (S62f) — should NOT mention internal "expected snapshot count"
+    // framing, SHOULD say "minimum, not a complete count".
+    const warning = result.sanityWarnings[0];
+    expect(warning).toContain("Based on 5 days of captured snapshots");
+    expect(warning).toContain("minimum, not a complete count");
+    expect(warning).not.toContain("undercount");
   });
 
   it("returns rows: [] when no tool had any incident in the window", () => {

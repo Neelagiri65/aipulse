@@ -81,29 +81,31 @@ export function loadSdkAdoptionLosers30dBlock(
   }
   // Sort ascending so the steepest decline is row 0.
   candidates.sort((a, b) => a.pctGrowth - b.pctGrowth);
-  const bottom = candidates.slice(0, topN);
 
-  const rows: GenesisBlockRow[] = bottom.map(
-    ({ pkg, pctGrowth, latestCount, effectiveDays }) => {
-      const source = REGISTRY_SOURCE[pkg.registry];
-      return {
-        label: pkg.label,
-        value: `${formatCount(latestCount)} ${pkg.counterUnits}`,
-        delta: `${formatPct(pctGrowth)} over ${effectiveDays}d`,
-        sourceUrl: source.url,
-        sourceLabel: source.label,
-        caveat: pkg.caveat ?? undefined,
-      };
-    },
-  );
-
+  // Sanity gate: rows below the floor are EXCLUDED from the public
+  // top-N (operator policy locked at S62f). Warnings emitted to
+  // sanityWarnings[] for ops monitoring; the reader sees only rows
+  // the system trusts. Take the next-best candidate when available.
   const sanityWarnings: string[] = [];
-  for (const { pkg, pctGrowth } of bottom) {
+  const rows: GenesisBlockRow[] = [];
+  for (const cand of candidates) {
+    if (rows.length >= topN) break;
+    const { pkg, pctGrowth, latestCount, effectiveDays } = cand;
     if (pctGrowth < SDK_GROWTH_SANITY_LOW) {
       sanityWarnings.push(
-        `${pkg.label}: ${formatPct(pctGrowth)} growth below the ${SDK_GROWTH_SANITY_LOW}% sanity floor — denominator-near-zero artifact suspected, verify before launch.`,
+        `${pkg.label}: ${formatPct(pctGrowth)} growth below the ${SDK_GROWTH_SANITY_LOW}% sanity floor — excluded from display (denominator-near-zero artifact suspected).`,
       );
+      continue;
     }
+    const source = REGISTRY_SOURCE[pkg.registry];
+    rows.push({
+      label: pkg.label,
+      value: `${formatCount(latestCount)} ${pkg.counterUnits}`,
+      delta: `${formatPct(pctGrowth)} over ${effectiveDays}d`,
+      sourceUrl: source.url,
+      sourceLabel: source.label,
+      caveat: pkg.caveat ?? undefined,
+    });
   }
 
   return {

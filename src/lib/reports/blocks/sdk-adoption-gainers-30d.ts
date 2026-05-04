@@ -101,33 +101,40 @@ export function loadSdkAdoptionGainers30dBlock(
   }
 
   candidates.sort((a, b) => b.pctGrowth - a.pctGrowth);
-  const top = candidates.slice(0, topN);
 
-  const rows: GenesisBlockRow[] = top.map(
-    ({ pkg, pctGrowth, latestCount, effectiveDays }) => {
-      const source = REGISTRY_SOURCE[pkg.registry];
-      return {
-        label: pkg.label,
-        value: `${formatCount(latestCount)} ${pkg.counterUnits}`,
-        delta: `${formatPct(pctGrowth)} over ${effectiveDays}d`,
-        sourceUrl: source.url,
-        sourceLabel: source.label,
-        caveat: pkg.caveat ?? undefined,
-      };
-    },
-  );
-
+  // Sanity gate: rows whose growth violates the pre-committed bounds
+  // are EXCLUDED from the public top-N (operator policy locked at S62f
+  // — "do not launch with a number the system says might be wrong").
+  // The warnings are still emitted on `sanityWarnings[]` so ops can
+  // monitor data-quality drift; the public reader sees only rows the
+  // system trusts. Excluded rows are replaced by the next-best
+  // qualifying candidate to keep the top-N filled when possible.
   const sanityWarnings: string[] = [];
-  for (const { pkg, pctGrowth } of top) {
+  const rows: GenesisBlockRow[] = [];
+  for (const cand of candidates) {
+    if (rows.length >= topN) break;
+    const { pkg, pctGrowth, latestCount, effectiveDays } = cand;
     if (pctGrowth > SDK_GROWTH_SANITY_HIGH) {
       sanityWarnings.push(
-        `${pkg.label}: ${formatPct(pctGrowth)} growth exceeds the +${SDK_GROWTH_SANITY_HIGH}% sanity ceiling — denominator-near-zero artifact suspected, verify before launch.`,
+        `${pkg.label}: ${formatPct(pctGrowth)} growth exceeds the +${SDK_GROWTH_SANITY_HIGH}% sanity ceiling — excluded from display (denominator-near-zero artifact suspected).`,
       );
-    } else if (pctGrowth < SDK_GROWTH_SANITY_LOW) {
-      sanityWarnings.push(
-        `${pkg.label}: ${formatPct(pctGrowth)} growth below the ${SDK_GROWTH_SANITY_LOW}% sanity floor — verify before launch.`,
-      );
+      continue;
     }
+    if (pctGrowth < SDK_GROWTH_SANITY_LOW) {
+      sanityWarnings.push(
+        `${pkg.label}: ${formatPct(pctGrowth)} growth below the ${SDK_GROWTH_SANITY_LOW}% sanity floor — excluded from display.`,
+      );
+      continue;
+    }
+    const source = REGISTRY_SOURCE[pkg.registry];
+    rows.push({
+      label: pkg.label,
+      value: `${formatCount(latestCount)} ${pkg.counterUnits}`,
+      delta: `${formatPct(pctGrowth)} over ${effectiveDays}d`,
+      sourceUrl: source.url,
+      sourceLabel: source.label,
+      caveat: pkg.caveat ?? undefined,
+    });
   }
 
   return {

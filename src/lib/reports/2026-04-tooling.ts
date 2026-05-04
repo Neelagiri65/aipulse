@@ -93,11 +93,13 @@ export const report202604Tooling: GenesisReportConfig = {
         "Active incidents on the public status pages, summed per UTC day captured. More incident-days = more days a provider was flapping.",
       blockId: "tool-incidents-30d",
     },
-    {
-      header: "Agent framework velocity",
-      framing:
-        "Weekly download delta across the tracked agent frameworks. Archived frameworks excluded.",
-      blockId: "agents-velocity-30d",
-    },
+    // Agent framework velocity dropped from this report (S62f). The
+    // agents-store didn't begin collecting daily snapshots until
+    // 2026-05-03 — there's no 7-day baseline yet for the w/w delta
+    // the block computes. The block stays in the catalogue (other
+    // reports can use it once the baseline accumulates); only the
+    // CONFIG drops the section so this report doesn't ship an empty
+    // panel under a "velocity" header. Honest scoping > pretending
+    // the data exists.
   ],
 };

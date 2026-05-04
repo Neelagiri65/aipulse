@@ -76,17 +76,26 @@ describe("loadSdkAdoptionLosers30dBlock — happy path", () => {
   });
 });
 
-describe("loadSdkAdoptionLosers30dBlock — sanity gate", () => {
-  it("flags declines below the sanity floor (likely denominator-near-zero)", () => {
+describe("loadSdkAdoptionLosers30dBlock — sanity gate (S62f: exclude from display)", () => {
+  it("EXCLUDES rows below the sanity floor from display, warns ops", () => {
     const dto = mkDto([
       mkPackage("npm", "abandoned", mkDays([10_000, ...Array(29).fill(500), 50])), // -99.5%
     ]);
     const result = loadSdkAdoptionLosers30dBlock({ dto, now: FIXED_NOW });
     expect(result.sanityWarnings.length).toBeGreaterThanOrEqual(1);
     expect(result.sanityWarnings[0]).toContain("abandoned");
-    expect(result.sanityWarnings[0]).toContain("sanity floor");
-    // Row INCLUDED with the warning, not auto-suppressed.
-    expect(result.rows.map((r) => r.label)).toContain("abandoned");
+    expect(result.sanityWarnings[0]).toContain("excluded from display");
+    // Row NOT shipped to public display.
+    expect(result.rows.map((r) => r.label)).not.toContain("abandoned");
+  });
+
+  it("backfills with next-best candidate when a sanity-violating row is excluded", () => {
+    const dto = mkDto([
+      mkPackage("npm", "abandoned", mkDays([10_000, ...Array(29).fill(500), 50])), // -99.5%, excluded
+      mkPackage("npm", "real-decline", mkDays([1000, ...Array(29).fill(800), 600])), // -40%, kept
+    ]);
+    const result = loadSdkAdoptionLosers30dBlock({ dto, now: FIXED_NOW });
+    expect(result.rows.map((r) => r.label)).toEqual(["real-decline"]);
   });
 
   it("does NOT flag declines within the sanity band", () => {
