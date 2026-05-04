@@ -48,10 +48,10 @@ export async function generateMetadata({
   const config = getReportConfig(slug);
   if (!config) return { title: "Report not found · Gawk" };
   const titleText = isEditorialPlaceholder(config.title)
-    ? `Genesis Report · ${config.window} · Gawk`
+    ? `Gawk AI Genesis Report · ${config.window}`
     : `${config.title} · Gawk`;
   const subtitleText = isEditorialPlaceholder(config.subtitle)
-    ? `Genesis Report covering ${config.window}. Every number cites its public source.`
+    ? `Gawk AI Genesis Report covering ${config.window}. Every number cites its public source.`
     : config.subtitle;
   return {
     title: titleText,
@@ -84,7 +84,7 @@ export default async function ReportPage({
           Gawk
         </Link>
         <span aria-hidden="true"> · </span>
-        <span>Genesis Report · {config.window}</span>
+        <span>Gawk AI Genesis Report · {config.window}</span>
         {config.publishedAt !== "DRAFT" && (
           <>
             <span aria-hidden="true"> · </span>
@@ -125,7 +125,7 @@ export default async function ReportPage({
 
 function ReportHeader({ config }: { config: GenesisReportConfig }) {
   const titleText = isEditorialPlaceholder(config.title)
-    ? `Genesis Report · ${config.window}`
+    ? `Gawk AI Genesis Report · ${config.window}`
     : config.title;
   const subtitleText = isEditorialPlaceholder(config.subtitle)
     ? `[subtitle pending — operator-editable]`

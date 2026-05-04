@@ -26,7 +26,7 @@ import { getReportConfig } from "@/lib/reports/registry";
 export const runtime = "nodejs";
 export const contentType = "image/png";
 export const size = { width: 1200, height: 630 };
-export const alt = "Gawk Genesis Report — independent, source-cited AI tooling intelligence";
+export const alt = "Gawk AI Genesis Report — independent, source-cited AI tooling intelligence";
 
 type OgParams = { slug: string };
 
@@ -45,7 +45,7 @@ export default async function ReportOgImage({
   }
 
   const heroStat = isEditorialPlaceholder(config.hero.stat)
-    ? `Genesis Report · ${config.window}`
+    ? `Gawk AI Genesis Report · ${config.window}`
     : config.hero.stat;
   const heroCaption = isEditorialPlaceholder(config.hero.caption)
     ? null
@@ -96,7 +96,7 @@ export default async function ReportOgImage({
               color: "#2dd4bf",
             }}
           >
-            GENESIS REPORT · {config.window.toUpperCase()}
+            AI GENESIS REPORT · {config.window.toUpperCase()}
           </div>
         </div>
 
@@ -192,7 +192,7 @@ function BrandOnlyCard() {
         GAWK
       </div>
       <div style={{ fontSize: "20px", color: "#94a3b8" }}>
-        Genesis Report
+        AI Genesis Report
       </div>
     </div>
   );
