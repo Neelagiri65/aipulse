@@ -37,21 +37,48 @@ export default async function UnsubscribedPage({
   const state: UnsubState = isState(raw) ? raw : "invalid";
   const copy = COPY[state];
   return (
-    <main className="mx-auto max-w-md px-6 py-24 text-center text-foreground">
-      <h1 className="mb-3 font-mono text-2xl tracking-tight">
+    <main className="mx-auto max-w-lg px-6 py-16 text-center text-foreground">
+      <BrandHeader />
+      <h1 className="mb-3 text-3xl font-semibold tracking-tight">
         {copy.heading}
       </h1>
-      <p className="text-sm text-muted-foreground mb-6">{copy.body}</p>
-      <div className="flex items-center justify-center gap-3 text-sm">
-        <Link href="/" className="underline underline-offset-2">
+      <p className="mb-6 text-[15px] leading-relaxed text-muted-foreground">
+        {copy.body}
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+        <Link
+          href="/"
+          className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+        >
           Back to dashboard
         </Link>
-        <Link href="/subscribe" className="underline underline-offset-2">
+        <Link
+          href="/subscribe"
+          className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+        >
           Re-subscribe
         </Link>
       </div>
       <PrivacyFooter />
     </main>
+  );
+}
+
+function BrandHeader() {
+  return (
+    <Link
+      href="/"
+      className="mb-8 inline-flex items-center gap-3"
+      data-testid="unsub-brand-header"
+    >
+      <span
+        aria-hidden="true"
+        className="inline-block h-3 w-3 rounded-full bg-primary shadow-[0_0_12px_rgba(45,212,191,0.6)]"
+      />
+      <span className="font-mono text-[16px] font-bold tracking-[0.36em] text-foreground">
+        GAWK
+      </span>
+    </Link>
   );
 }
 
