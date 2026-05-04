@@ -26,6 +26,7 @@ import { readLatest, type PackageLatest } from "@/lib/data/pkg-store";
 import { readRecentSnapshots, ymdUtc } from "@/lib/data/snapshot";
 
 import { loadSdkAdoptionGainers30dBlock } from "@/lib/reports/blocks/sdk-adoption-gainers-30d";
+import { loadSdkAdoptionLosers30dBlock } from "@/lib/reports/blocks/sdk-adoption-losers-30d";
 import type {
   GenesisBlockId,
   GenesisBlockResult,
@@ -55,11 +56,12 @@ export async function loadBlock(
     switch (blockId) {
       case "sdk-adoption-gainers-30d":
         return await loadSdkGainers();
-      // G5: remaining 6 block ids land here. Until then, surface a
+      case "sdk-adoption-losers-30d":
+        return await loadSdkLosers();
+      // G5: remaining 5 block ids land here. Until then, surface a
       // structured "not yet implemented" result so the page doesn't
       // crash and the launch-readiness gate refuses to mark the
       // report ready.
-      case "sdk-adoption-losers-30d":
       case "openrouter-rank-climbers-30d":
       case "openrouter-rank-fallers-30d":
       case "labs-activity-leaders-30d":
@@ -84,6 +86,23 @@ export async function loadBlock(
 }
 
 async function loadSdkGainers(): Promise<GenesisBlockResult> {
+  const dto = await loadSdkDto();
+  return loadSdkAdoptionGainers30dBlock({ dto, windowDays: WINDOW_DAYS });
+}
+
+async function loadSdkLosers(): Promise<GenesisBlockResult> {
+  const dto = await loadSdkDto();
+  return loadSdkAdoptionLosers30dBlock({ dto, windowDays: WINDOW_DAYS });
+}
+
+/**
+ * Single SDK DTO assembler. Both gainers and losers consume the same
+ * shape — calling once per request would be cleaner but page-render
+ * is rare enough (1/render, edge-cached at the Vercel layer) that the
+ * symmetric "each block loads its own DTO" pattern is fine. If a
+ * report ever has 4+ SDK blocks this becomes a per-render memo.
+ */
+async function loadSdkDto() {
   const today = ymdUtc();
   // Need WINDOW_DAYS + 1 historic snapshots so day-N-ago has a
   // baseline value to compare against today's reading.
@@ -99,11 +118,10 @@ async function loadSdkGainers(): Promise<GenesisBlockResult> {
     brew: latests[4] ?? null,
     vscode: latests[5] ?? null,
   };
-  const dto = assembleSdkAdoption({
+  return assembleSdkAdoption({
     pkgLatest,
     snapshots,
     today,
     windowDays: WINDOW_DAYS,
   });
-  return loadSdkAdoptionGainers30dBlock({ dto, windowDays: WINDOW_DAYS });
 }
