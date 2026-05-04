@@ -2,6 +2,7 @@
 
 import { forwardRef } from "react";
 import type { GlobePoint } from "./Globe";
+import { shortEventType } from "@/components/globe/event-types";
 import { formatAgeLabel } from "@/lib/data/registry-shared";
 import type { ConfigKind } from "@/lib/data/registry-shared";
 import { LabCard } from "@/components/labs/LabCard";
@@ -754,30 +755,7 @@ function formatStars(n: number): string {
   return `${Math.round(n / 1000)}k`;
 }
 
-export function shortEventType(type: string): string {
-  switch (type) {
-    case "PushEvent":
-      return "PUSH";
-    case "PullRequestEvent":
-      return "PR";
-    case "PullRequestReviewEvent":
-      return "PR REVIEW";
-    case "IssuesEvent":
-      return "ISSUE";
-    case "IssueCommentEvent":
-      return "ISSUE CMT";
-    case "ReleaseEvent":
-      return "RELEASE";
-    case "CreateEvent":
-      return "CREATE";
-    case "ForkEvent":
-      return "FORK";
-    case "WatchEvent":
-      return "STAR";
-    default:
-      return type.replace(/Event$/, "").toUpperCase();
-  }
-}
+export { shortEventType } from "@/components/globe/event-types";
 
 export function formatRelative(iso?: string): string {
   if (!iso) return "—";
