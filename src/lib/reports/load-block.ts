@@ -27,6 +27,11 @@ import { readRecentSnapshots, ymdUtc } from "@/lib/data/snapshot";
 
 import { loadSdkAdoptionGainers30dBlock } from "@/lib/reports/blocks/sdk-adoption-gainers-30d";
 import { loadSdkAdoptionLosers30dBlock } from "@/lib/reports/blocks/sdk-adoption-losers-30d";
+import {
+  loadOpenRouterClimbers30dBlock,
+  loadOpenRouterFallers30dBlock,
+} from "@/lib/reports/blocks/openrouter-rank-movers";
+import { redisOpenRouterStore } from "@/lib/data/openrouter-store";
 import type {
   GenesisBlockId,
   GenesisBlockResult,
@@ -58,12 +63,14 @@ export async function loadBlock(
         return await loadSdkGainers();
       case "sdk-adoption-losers-30d":
         return await loadSdkLosers();
-      // G5: remaining 5 block ids land here. Until then, surface a
+      case "openrouter-rank-climbers-30d":
+        return await loadOpenRouterClimbers();
+      case "openrouter-rank-fallers-30d":
+        return await loadOpenRouterFallers();
+      // G5: remaining 3 block ids land here. Until then, surface a
       // structured "not yet implemented" result so the page doesn't
       // crash and the launch-readiness gate refuses to mark the
       // report ready.
-      case "openrouter-rank-climbers-30d":
-      case "openrouter-rank-fallers-30d":
       case "labs-activity-leaders-30d":
       case "tool-incidents-30d":
       case "agents-velocity-30d":
@@ -93,6 +100,22 @@ async function loadSdkGainers(): Promise<GenesisBlockResult> {
 async function loadSdkLosers(): Promise<GenesisBlockResult> {
   const dto = await loadSdkDto();
   return loadSdkAdoptionLosers30dBlock({ dto, windowDays: WINDOW_DAYS });
+}
+
+async function loadOpenRouterClimbers(): Promise<GenesisBlockResult> {
+  const snapshots = await redisOpenRouterStore.readSnapshots();
+  return loadOpenRouterClimbers30dBlock({
+    snapshots,
+    windowDays: WINDOW_DAYS,
+  });
+}
+
+async function loadOpenRouterFallers(): Promise<GenesisBlockResult> {
+  const snapshots = await redisOpenRouterStore.readSnapshots();
+  return loadOpenRouterFallers30dBlock({
+    snapshots,
+    windowDays: WINDOW_DAYS,
+  });
 }
 
 /**
