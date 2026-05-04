@@ -177,6 +177,28 @@ describe("DigestPageView — translate pill (S60 Build 4)", () => {
   });
 });
 
+describe("DigestPageView — tool-health chart (S62 Build 2)", () => {
+  it("embeds the tool-health PNG chart inside the tool-health section only", () => {
+    const html = render(mkDigest());
+    expect(html).toContain("/api/digest/chart/tool-health/2026-04-22");
+    // The chart URL renders TWICE per page by design: once as
+    // <link rel="preload" as="image"> in <head> (React 19's automatic
+    // resource preload for SSR'd images) and once as <img src> in
+    // the body. The benchmarks section in the fixture must NOT add a
+    // third occurrence — i.e. only the tool-health section emits it.
+    const matches = html.match(
+      /\/api\/digest\/chart\/tool-health\/2026-04-22/g,
+    );
+    expect(matches?.length ?? 0).toBe(2);
+  });
+
+  it("describes the chart in alt text so colour-only signal is recoverable", () => {
+    const html = render(mkDigest());
+    expect(html).toMatch(/alt="[^"]*Green\s*=\s*operational/i);
+    expect(html).toMatch(/alt="[^"]*grey\s*=\s*no data/i);
+  });
+});
+
 describe("DigestPageView — inferences (S60 Build 1)", () => {
   it("renders the 'What moved' block when inferences are populated", () => {
     const html = render(

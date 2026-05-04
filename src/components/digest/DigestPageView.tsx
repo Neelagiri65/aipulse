@@ -68,6 +68,7 @@ export function DigestPageView({
           section={section}
           permalink={permalink}
           baseUrl={baseUrl}
+          date={digest.date}
         />
       ))}
 
@@ -88,10 +89,12 @@ function DigestSectionView({
   section,
   permalink,
   baseUrl,
+  date,
 }: {
   section: DigestSection;
   permalink: string;
   baseUrl: string;
+  date: string;
 }): React.JSX.Element {
   const sectionUrl = `${permalink}#${section.anchorSlug}`;
   return (
@@ -114,6 +117,17 @@ function DigestSectionView({
       </div>
 
       <p className="mb-4 text-base font-semibold">{section.headline}</p>
+
+      {section.id === "tool-health" ? (
+        <img
+          src={`${baseUrl}/api/digest/chart/tool-health/${date}`}
+          alt={`Tool health, 7 days ending ${date}. Each row is one tool; each column is one UTC day. Green = operational, amber = degraded, red = outage, grey = no data.`}
+          width={720}
+          height={320}
+          className="mb-4 block w-full max-w-[720px] rounded border border-primary/20"
+          data-testid="digest-tool-health-chart"
+        />
+      ) : null}
 
       {section.items.length > 0 ? (
         <ul className="mb-4 space-y-3">

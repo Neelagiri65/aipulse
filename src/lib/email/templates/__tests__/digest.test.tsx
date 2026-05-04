@@ -238,6 +238,38 @@ describe("renderDigestHtml — translate pill (S60 Build 4)", () => {
   });
 });
 
+describe("renderDigestHtml — tool-health chart", () => {
+  it("embeds the tool-health PNG chart under the tool-health section", async () => {
+    const html = await renderDigestHtml(BASE);
+    expect(html).toContain(
+      "https://gawk.dev/api/digest/chart/tool-health/2026-04-22",
+    );
+  });
+
+  it("explains the chart in the alt text (no untranslated colour-only signal)", async () => {
+    const html = await renderDigestHtml(BASE);
+    // Trust contract: the chart is colour-coded, but a screen reader
+    // / image-blocked client must still get the legend semantics.
+    expect(html).toMatch(/alt="[^"]*Green\s*=\s*operational/i);
+    expect(html).toMatch(/alt="[^"]*amber\s*=\s*degraded/i);
+    expect(html).toMatch(/alt="[^"]*red\s*=\s*outage/i);
+    expect(html).toMatch(/alt="[^"]*grey\s*=\s*no data/i);
+  });
+
+  it("does NOT embed the tool-health chart under non-tool-health sections", async () => {
+    const html = await renderDigestHtml(BASE);
+    // The chart URL renders TWICE per email by design: once as
+    // <link rel="preload" as="image"> in <head> (react-email's
+    // automatic preload for <Img>) and once as <img src> in the body.
+    // The benchmarks section in the BASE fixture must NOT add a third
+    // occurrence — i.e. only the tool-health section emits the chart.
+    const matches = html.match(
+      /\/api\/digest\/chart\/tool-health\/2026-04-22/g,
+    );
+    expect(matches?.length ?? 0).toBe(2);
+  });
+});
+
 describe("renderDigestHtml — quiet mode", () => {
   it("renders a quiet-day digest without crashing on zero items", async () => {
     const quiet = mkDigest({

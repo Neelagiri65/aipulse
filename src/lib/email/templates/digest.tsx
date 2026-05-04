@@ -26,6 +26,7 @@ import {
   Heading,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Section,
@@ -40,6 +41,18 @@ import type {
 import { renderGreeting } from "@/lib/email/greeting";
 import { buildShareUrl, composeShareText } from "@/lib/email/share-urls";
 import { deriveTranslateUrl, TRANSLATE_LABEL } from "@/lib/i18n/translate-link";
+
+/** Tool-health 7-day chart embedded in the email and the public web
+ *  digest. URL is content-addressed by date so mail clients edge-cache
+ *  the same image across recipients of the same send.
+ *  Dimensions match the route's `TOOL_HEALTH_CHART_SIZE`; we hard-code
+ *  here rather than import to keep the email bundle lean and decoupled
+ *  from the route module. */
+const TOOL_HEALTH_CHART_W = 720;
+const TOOL_HEALTH_CHART_H = 320;
+function toolHealthChartUrl(baseUrl: string, date: string): string {
+  return `${baseUrl}/api/digest/chart/tool-health/${date}`;
+}
 
 export type DigestEmailProps = {
   digest: DigestBody;
@@ -149,6 +162,16 @@ function SectionBlock({
         {section.title}
       </Heading>
       <Text style={styles.sectionHeadline}>{section.headline}</Text>
+
+      {section.id === "tool-health" ? (
+        <Img
+          src={toolHealthChartUrl(baseUrl, date)}
+          alt={`Tool health, 7 days ending ${date}. Each row is one tool; each column is one UTC day. Green = operational, amber = degraded, red = outage, grey = no data.`}
+          width={TOOL_HEALTH_CHART_W}
+          height={TOOL_HEALTH_CHART_H}
+          style={styles.chart}
+        />
+      ) : null}
 
       {section.items.length > 0 ? (
         <div>
@@ -323,6 +346,15 @@ const styles = {
     fontWeight: 600,
     color: "#e6e7eb",
     margin: "0 0 12px 0",
+  },
+  chart: {
+    display: "block",
+    width: "100%",
+    maxWidth: `${TOOL_HEALTH_CHART_W}px`,
+    height: "auto",
+    margin: "0 0 14px 0",
+    border: "1px solid rgba(45, 212, 191, 0.18)",
+    borderRadius: "4px",
   },
   item: { margin: "10px 0" },
   itemHeadline: {
