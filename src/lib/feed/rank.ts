@@ -78,3 +78,49 @@ function shouldDeferType(
   }
   return true;
 }
+
+const DEDUP_WINDOW_MS_DEFAULT = 4 * 60 * 60 * 1000;
+
+/**
+ * Source dedup pass — collapse same-`sourceUrl` cards within a sliding
+ * time window down to the highest-ranked instance.
+ *
+ * Caller contract: the input must already be ranker-sorted (severity
+ * desc, time desc within tier). This function preserves the existing
+ * order and simply skips later cards whose sourceUrl matches an already
+ * kept card whose timestamp is within `windowMs`.
+ *
+ * Why per-`sourceUrl`: every Card carries the canonical primary-source
+ * URL the underlying number was read from (HN comments page, Reddit
+ * comments page, status-page incident URL, arXiv abstract, etc.). Two
+ * cards sharing a sourceUrl are by construction the same upstream
+ * story; dropping the lower-severity duplicate matches the trust
+ * contract — we surface the strongest signal once, not the same
+ * conversation six times in a row.
+ *
+ * Sliding window: the window anchors on the *kept* card. A third hit
+ * far enough from every kept anchor survives, even if it would be
+ * within the window of an earlier dropped card. Prevents the dedup
+ * from silently extending coverage indefinitely on a noisy URL.
+ *
+ * Pure: input array is not mutated.
+ */
+export function dedupeCardsBySource(
+  cards: readonly Card[],
+  windowMs: number = DEDUP_WINDOW_MS_DEFAULT,
+): Card[] {
+  if (cards.length < 2) return [...cards];
+  const keptByUrl = new Map<string, number[]>();
+  const out: Card[] = [];
+  for (const c of cards) {
+    const t = new Date(c.timestamp).getTime();
+    const anchors = keptByUrl.get(c.sourceUrl);
+    if (anchors && anchors.some((a) => Math.abs(a - t) < windowMs)) {
+      continue;
+    }
+    if (anchors) anchors.push(t);
+    else keptByUrl.set(c.sourceUrl, [t]);
+    out.push(c);
+  }
+  return out;
+}

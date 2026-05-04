@@ -31,7 +31,11 @@ import { deriveRedditCards } from "@/lib/feed/derivers/reddit";
 import { deriveResearchCards } from "@/lib/feed/derivers/research";
 import { deriveLabHighlightCards } from "@/lib/feed/derivers/lab-highlight";
 import type { RedditItem } from "@/lib/data/reddit-feed";
-import { diversifyCards, rankCards } from "@/lib/feed/rank";
+import {
+  dedupeCardsBySource,
+  diversifyCards,
+  rankCards,
+} from "@/lib/feed/rank";
 import { isQuietDay } from "@/lib/feed/quiet-day";
 import type { CurrentState, FeedResponse } from "@/lib/feed/types";
 
@@ -67,12 +71,15 @@ export function composeFeed(
     ...deriveLabHighlightCards(snapshots.labs),
   ];
 
-  // Rank by severity, then apply a diversity pass so a long run of the
-  // same card type (e.g. 10 MODEL_MOVERs) doesn't read as "this product
-  // does one thing". `diversifyCards` is loss-free and respects severity
-  // order — see rank.ts for the rule.
+  // Rank by severity, then dedupe same-sourceUrl within a 4h sliding
+  // window (kept = highest-severity instance, since `ranked` is already
+  // sorted), then apply a diversity pass so a long run of the same card
+  // type (e.g. 10 MODEL_MOVERs) doesn't read as "this product does one
+  // thing". Both passes are loss-free relative to their own contracts —
+  // see rank.ts for the rules.
   const ranked = rankCards(cards);
-  const composed = diversifyCards(ranked, 2);
+  const deduped = dedupeCardsBySource(ranked);
+  const composed = diversifyCards(deduped, 2);
 
   return {
     cards: composed,
