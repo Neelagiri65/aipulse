@@ -232,25 +232,61 @@ describe("/reports/[slug]", () => {
     expect(html).not.toMatch(/data-testid="report-block-caveat-/);
   });
 
-  it("renders the per-block sanity-warning banner when loadBlock returns warnings", async () => {
+  it("does NOT render ops-only sanityWarnings on the public page (S62g)", async () => {
     const reg = await import("@/lib/reports/registry");
     vi.mocked(reg.getReportConfig).mockReturnValue(mkConfig());
     const lb = await import("@/lib/reports/load-block");
     vi.mocked(lb.loadBlock).mockResolvedValue({
       rows: [],
       generatedAt: "2026-05-04T00:00:00.000Z",
-      sanityWarnings: ["torch: +9999% growth exceeds the +1000% sanity ceiling"],
+      sanityWarnings: [
+        "ollama: -106.4% growth below the -90% sanity floor — excluded from display",
+      ],
     });
     const Page = await loadPage();
     const html = renderToStaticMarkup(
       await Page({ params: Promise.resolve({ slug: "test-slug" }) }),
     );
-    expect(html).toContain("data needs review");
-    expect(html).toContain(
-      "torch: +9999% growth exceeds the +1000% sanity ceiling",
-    );
-    // Empty rows + sanity warning ⇒ honest empty placeholder visible.
+    // Reader must NEVER see the ops disclosure language.
+    expect(html).not.toContain("DATA NEEDS REVIEW");
+    expect(html).not.toContain("data needs review");
+    expect(html).not.toContain("excluded from display");
+    expect(html).not.toContain("sanity floor");
+    expect(html).not.toContain("ollama:");
+    // Honest empty placeholder still surfaces when rows.length === 0.
     expect(html).toContain("[no qualifying rows for this window");
+  });
+
+  it("renders reader-facing caveats[] as plain inline notes (no header label)", async () => {
+    const reg = await import("@/lib/reports/registry");
+    vi.mocked(reg.getReportConfig).mockReturnValue(mkConfig());
+    const lb = await import("@/lib/reports/load-block");
+    vi.mocked(lb.loadBlock).mockResolvedValue({
+      rows: [
+        {
+          label: "openai-api",
+          value: "7 incident-days",
+          sourceUrl: "https://status.openai.com",
+          sourceLabel: "status.openai.com",
+        },
+      ],
+      generatedAt: "2026-05-04T00:00:00.000Z",
+      sanityWarnings: [],
+      caveats: [
+        "Based on 12 days of captured snapshots — represents a minimum, not a complete count.",
+      ],
+    });
+    const Page = await loadPage();
+    const html = renderToStaticMarkup(
+      await Page({ params: Promise.resolve({ slug: "test-slug" }) }),
+    );
+    // The caveat text renders, but with no "data needs review" label.
+    expect(html).toContain(
+      "Based on 12 days of captured snapshots — represents a minimum, not a complete count",
+    );
+    expect(html).not.toContain("data needs review");
+    expect(html).not.toContain("DATA NEEDS REVIEW");
+    expect(html).toContain('data-testid="report-block-note-');
   });
 
   it("falls back to engine-safe placeholder text per field when only that field is the placeholder (no fabricated prose)", async () => {

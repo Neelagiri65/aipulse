@@ -80,6 +80,19 @@ export type GenesisBlockRow = {
  * this as a discriminated structure — when `rows` is empty the
  * section renders an "honest empty" state (data temporarily
  * unavailable), never invents a value.
+ *
+ * Two-channel disclosure (locked S62g):
+ *   - `sanityWarnings` is OPS-ONLY. Records "system-internal" data-
+ *     quality decisions the loader made (e.g. "ollama -106% excluded
+ *     from display, denominator-near-zero artifact suspected"). These
+ *     are NEVER rendered on the public report page; an operator-only
+ *     view (G8 launch-readiness gate, future) surfaces them. Their
+ *     job is to catch ops issues before launch, not to inform readers.
+ *   - `caveats` is READER-FACING. Records "what the data does and
+ *     does not mean" notes the reader needs to read the block honestly
+ *     (e.g. "Based on N days of captured snapshots — represents a
+ *     minimum, not a complete count"). Renders as plain inline italic
+ *     text under the section, no "DATA NEEDS REVIEW" framing.
  */
 export type GenesisBlockResult = {
   /** Block rows in display order. Empty when the upstream is
@@ -88,11 +101,12 @@ export type GenesisBlockResult = {
   /** ISO timestamp of the moment the loader finished assembling
    *  this block. Used in the per-block hover provenance tooltip. */
   generatedAt: string;
-  /** Pre-committed sanity warnings (e.g. delta exceeds the locked
-   *  range). Surfaces as a per-block banner in the UI; the operator
-   *  must clear all warnings before launch. NEVER auto-suppress —
-   *  the principle is "honest gap > comfortable lie". */
+  /** Ops-only sanity warnings. NEVER rendered to the public page.
+   *  See type doc for two-channel disclosure rationale. */
   sanityWarnings: string[];
+  /** Reader-facing caveats. Rendered as plain italic notes under
+   *  the section header. Optional — many blocks have none. */
+  caveats?: string[];
 };
 
 export type GenesisBlockLoader = () => Promise<GenesisBlockResult>;

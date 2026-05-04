@@ -103,17 +103,20 @@ describe("loadToolIncidents30dBlock — happy path", () => {
 });
 
 describe("loadToolIncidents30dBlock — sanity + edge cases", () => {
-  it("returns rows: [] + sanity warning when no snapshot is in window", () => {
+  it("returns rows: [] + reader-facing caveat when no snapshot is in window (S62g: caveats not sanityWarnings)", () => {
     const result = loadToolIncidents30dBlock({
       snapshots: [],
       windowDays: 30,
       now: FIXED_NOW,
     });
     expect(result.rows).toEqual([]);
-    expect(result.sanityWarnings[0]).toContain("bootstrap mode");
+    expect(result.sanityWarnings).toEqual([]);
+    // Reader-facing wording — must NOT use ops-internal "bootstrap mode".
+    expect(result.caveats?.[0]).toContain("No daily snapshots captured");
+    expect(result.caveats?.[0]).not.toMatch(/bootstrap/i);
   });
 
-  it("warns reader-facing when fewer than half the expected snapshots are present", () => {
+  it("emits a reader-facing caveat (NOT a sanityWarning) when fewer than half the expected snapshots are present (S62g)", () => {
     const snapshots = days(5, (date) =>
       snap(date, [
         { id: "anthropic", status: "operational", activeIncidents: 1 },
@@ -124,13 +127,14 @@ describe("loadToolIncidents30dBlock — sanity + edge cases", () => {
       windowDays: 30,
       now: FIXED_NOW,
     });
-    // 5 < 30/2 = 15 → caveat fires. Pin the reader-facing phrasing
-    // (S62f) — should NOT mention internal "expected snapshot count"
-    // framing, SHOULD say "minimum, not a complete count".
-    const warning = result.sanityWarnings[0];
-    expect(warning).toContain("Based on 5 days of captured snapshots");
-    expect(warning).toContain("minimum, not a complete count");
-    expect(warning).not.toContain("undercount");
+    // 5 < 30/2 = 15 → caveat fires. Lives on `caveats[]` (reader-
+    // facing), NOT `sanityWarnings[]` (ops-only) per the S62g
+    // two-channel disclosure contract.
+    expect(result.sanityWarnings).toEqual([]);
+    const note = result.caveats?.[0] ?? "";
+    expect(note).toContain("Based on 5 days of captured snapshots");
+    expect(note).toContain("minimum, not a complete count");
+    expect(note).not.toContain("undercount");
   });
 
   it("returns rows: [] when no tool had any incident in the window", () => {

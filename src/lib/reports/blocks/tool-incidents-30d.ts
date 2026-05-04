@@ -77,11 +77,14 @@ export function loadToolIncidents30dBlock(
   );
 
   if (inWindow.length === 0) {
+    // Bootstrap-mode is reader-facing too — the empty section needs
+    // to explain why it's empty without leaking ops-internal framing.
     return {
       rows: [],
       generatedAt: now.toISOString(),
-      sanityWarnings: [
-        `No snapshots in the trailing ${windowDays}-day window — bootstrap mode.`,
+      sanityWarnings: [],
+      caveats: [
+        `No daily snapshots captured in the trailing ${windowDays}-day window yet.`,
       ],
     };
   }
@@ -119,13 +122,13 @@ export function loadToolIncidents30dBlock(
     };
   });
 
-  const sanityWarnings: string[] = [];
+  // S62g: the partial-snapshot disclosure is reader-facing — the
+  // reader needs it to read the incident-days numbers honestly. Lives
+  // in `caveats[]`, not `sanityWarnings[]`. (See `GenesisBlockResult`
+  // type doc for the two-channel disclosure rationale.)
+  const caveats: string[] = [];
   if (inWindow.length < windowDays / 2) {
-    // Reader-facing wording (S62f): the prior phrasing exposed the
-    // internal "expected snapshot count" framing which a non-operator
-    // reader can't act on. The new line lands the actionable point
-    // in plain language — "this is a floor, not a ceiling".
-    sanityWarnings.push(
+    caveats.push(
       `Based on ${inWindow.length} days of captured snapshots — represents a minimum, not a complete count.`,
     );
   }
@@ -133,6 +136,7 @@ export function loadToolIncidents30dBlock(
   return {
     rows,
     generatedAt: now.toISOString(),
-    sanityWarnings,
+    sanityWarnings: [],
+    caveats,
   };
 }

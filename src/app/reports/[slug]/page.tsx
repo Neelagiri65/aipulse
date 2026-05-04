@@ -215,14 +215,19 @@ function ReportSectionView({
 }
 
 /**
- * Block render. Render-time caveat dedup: when every row in the
- * block carries the SAME caveat string (the common case for SDK
- * adoption + OpenRouter blocks where the caveat is registry-wide,
- * not row-specific), hoist it to a single section-level note ABOVE
- * the row list so the reader doesn't read the same disclosure six
- * times. When caveats DIFFER per row (heterogeneous block), each
- * row keeps its own. Trust contract preserved either way: every
- * caveat is still visible, just not duplicated.
+ * Block render. Two-channel disclosure (S62g):
+ *   - `block.sanityWarnings` is OPS-ONLY — never rendered on the
+ *     public page. The launch-readiness gate (G8, future) surfaces
+ *     them in an admin view.
+ *   - `block.caveats` is READER-FACING — rendered as plain italic
+ *     notes under the section header, no "DATA NEEDS REVIEW" framing
+ *     (the reader doesn't need internal-review language).
+ *   - Per-row caveat with render-time dedup: when every row in a
+ *     block shares the SAME caveat string (the common case for
+ *     OpenRouter / SDK adoption blocks where the caveat is
+ *     registry-wide, not row-specific), hoist it to a single
+ *     section-level note. When caveats DIFFER per row, each row
+ *     keeps its own.
  */
 function BlockView({
   blockId,
@@ -233,23 +238,21 @@ function BlockView({
 }) {
   const hasRows = block.rows.length > 0;
   const sharedCaveat = pickSharedCaveat(block.rows);
+  const blockCaveats = block.caveats ?? [];
   return (
     <div
       className="mt-4"
       data-testid={`report-block-${blockId}`}
     >
-      {block.sanityWarnings.length > 0 && (
-        <div
-          className="mb-3 rounded border border-amber-500/40 bg-amber-500/[0.06] px-3 py-2 font-mono text-[11px] leading-snug text-amber-300"
-          data-testid={`report-block-sanity-${blockId}`}
+      {blockCaveats.length > 0 && (
+        <ul
+          className="mb-2 space-y-1 text-[12px] italic leading-snug text-muted-foreground"
+          data-testid={`report-block-note-${blockId}`}
         >
-          <p className="uppercase tracking-wider">data needs review</p>
-          <ul className="mt-1 list-disc pl-4 normal-case text-amber-200/90">
-            {block.sanityWarnings.map((w, i) => (
-              <li key={i}>{w}</li>
-            ))}
-          </ul>
-        </div>
+          {blockCaveats.map((c, i) => (
+            <li key={i}>{c}</li>
+          ))}
+        </ul>
       )}
 
       {hasRows && sharedCaveat && (
