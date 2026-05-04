@@ -270,6 +270,25 @@ describe("renderDigestHtml — tool-health chart", () => {
   });
 });
 
+describe("renderDigestHtml — why this matters (S62 Build 3)", () => {
+  it("renders the 'Why this matters' line for every section", async () => {
+    const html = await renderDigestHtml(BASE);
+    // BASE has tool-health + benchmarks; both pinned copies must appear.
+    expect(html).toContain(
+      "Tracking the 7-day shape catches flapping providers",
+    );
+    expect(html).toContain("Public benchmarks are gameable");
+  });
+
+  it("labels the line so the reader knows it's a framing aid, not data", async () => {
+    const html = await renderDigestHtml(BASE);
+    // The "Why this matters" prefix must appear once per section. BASE
+    // has 2 sections.
+    const matches = html.match(/Why this matters/g);
+    expect(matches?.length ?? 0).toBe(2);
+  });
+});
+
 describe("renderDigestHtml — quiet mode", () => {
   it("renders a quiet-day digest without crashing on zero items", async () => {
     const quiet = mkDigest({

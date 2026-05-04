@@ -41,6 +41,7 @@ import type {
 import { renderGreeting } from "@/lib/email/greeting";
 import { buildShareUrl, composeShareText } from "@/lib/email/share-urls";
 import { deriveTranslateUrl, TRANSLATE_LABEL } from "@/lib/i18n/translate-link";
+import { whyThisMatters } from "@/lib/digest/why-this-matters";
 
 /** Tool-health 7-day chart embedded in the email and the public web
  *  digest. URL is content-addressed by date so mail clients edge-cache
@@ -162,6 +163,10 @@ function SectionBlock({
         {section.title}
       </Heading>
       <Text style={styles.sectionHeadline}>{section.headline}</Text>
+      <Text style={styles.whyThisMatters}>
+        <span style={styles.whyThisMattersLabel}>Why this matters · </span>
+        {whyThisMatters(section.id)}
+      </Text>
 
       {section.id === "tool-health" ? (
         <Img
@@ -355,6 +360,21 @@ const styles = {
     margin: "0 0 14px 0",
     border: "1px solid rgba(45, 212, 191, 0.18)",
     borderRadius: "4px",
+  },
+  whyThisMatters: {
+    fontSize: "12px",
+    lineHeight: "17px",
+    color: "#a1a4ac",
+    margin: "0 0 12px 0",
+    padding: "8px 10px",
+    background: "rgba(45, 212, 191, 0.04)",
+    borderLeft: "2px solid rgba(45, 212, 191, 0.45)",
+    borderRadius: "2px",
+  },
+  whyThisMattersLabel: {
+    color: "#2dd4bf",
+    fontWeight: 600,
+    letterSpacing: "0.02em",
   },
   item: { margin: "10px 0" },
   itemHeadline: {

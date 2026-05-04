@@ -199,6 +199,25 @@ describe("DigestPageView — tool-health chart (S62 Build 2)", () => {
   });
 });
 
+describe("DigestPageView — why this matters (S62 Build 3)", () => {
+  it("renders the 'Why this matters' line under each section", () => {
+    const html = render(mkDigest());
+    expect(html).toContain(
+      "Tracking the 7-day shape catches flapping providers",
+    );
+    expect(html).toContain("Public benchmarks are gameable");
+    // Prefix appears exactly once per section (2 in the fixture).
+    const matches = html.match(/Why this matters/g);
+    expect(matches?.length ?? 0).toBe(2);
+  });
+
+  it("scopes the framing block per section via a data-testid", () => {
+    const html = render(mkDigest());
+    expect(html).toContain('data-testid="digest-why-this-matters-tool-health"');
+    expect(html).toContain('data-testid="digest-why-this-matters-benchmarks"');
+  });
+});
+
 describe("DigestPageView — inferences (S60 Build 1)", () => {
   it("renders the 'What moved' block when inferences are populated", () => {
     const html = render(

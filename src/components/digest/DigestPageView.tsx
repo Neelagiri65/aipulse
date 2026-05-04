@@ -14,6 +14,7 @@ import type {
   DigestSectionItem,
 } from "@/lib/digest/types";
 import { deriveTranslateUrl, TRANSLATE_LABEL } from "@/lib/i18n/translate-link";
+import { whyThisMatters } from "@/lib/digest/why-this-matters";
 
 export type DigestPageViewProps = {
   digest: DigestBody;
@@ -116,7 +117,16 @@ function DigestSectionView({
         </a>
       </div>
 
-      <p className="mb-4 text-base font-semibold">{section.headline}</p>
+      <p className="mb-2 text-base font-semibold">{section.headline}</p>
+      <p
+        className="mb-4 rounded border-l-2 border-primary/45 bg-primary/[0.04] px-3 py-2 text-[12px] leading-snug text-muted-foreground"
+        data-testid={`digest-why-this-matters-${section.id}`}
+      >
+        <span className="font-semibold tracking-wide text-primary">
+          Why this matters ·{" "}
+        </span>
+        {whyThisMatters(section.id)}
+      </p>
 
       {section.id === "tool-health" ? (
         <img
