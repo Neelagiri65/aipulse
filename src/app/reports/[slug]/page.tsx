@@ -214,6 +214,16 @@ function ReportSectionView({
   );
 }
 
+/**
+ * Block render. Render-time caveat dedup: when every row in the
+ * block carries the SAME caveat string (the common case for SDK
+ * adoption + OpenRouter blocks where the caveat is registry-wide,
+ * not row-specific), hoist it to a single section-level note ABOVE
+ * the row list so the reader doesn't read the same disclosure six
+ * times. When caveats DIFFER per row (heterogeneous block), each
+ * row keeps its own. Trust contract preserved either way: every
+ * caveat is still visible, just not duplicated.
+ */
 function BlockView({
   blockId,
   block,
@@ -222,6 +232,7 @@ function BlockView({
   block: GenesisBlockResult;
 }) {
   const hasRows = block.rows.length > 0;
+  const sharedCaveat = pickSharedCaveat(block.rows);
   return (
     <div
       className="mt-4"
@@ -241,6 +252,15 @@ function BlockView({
         </div>
       )}
 
+      {hasRows && sharedCaveat && (
+        <p
+          className="mb-2 font-mono text-[10px] italic leading-snug text-muted-foreground/80"
+          data-testid={`report-block-caveat-${blockId}`}
+        >
+          {sharedCaveat}
+        </p>
+      )}
+
       {hasRows ? (
         <ul
           className="divide-y divide-border/30 rounded border border-border/40"
@@ -256,7 +276,10 @@ function BlockView({
             >
               <div className="flex flex-1 flex-col">
                 <span className="text-[14px] text-foreground">{r.label}</span>
-                {r.caveat && (
+                {/* Per-row caveat: only render when it differs from the
+                 *  shared (hoisted) one. Avoids the every-row repetition
+                 *  the operator called out. */}
+                {r.caveat && r.caveat !== sharedCaveat && (
                   <span className="mt-0.5 font-mono text-[10px] italic text-muted-foreground/80">
                     {r.caveat}
                   </span>
@@ -287,6 +310,23 @@ function BlockView({
       )}
     </div>
   );
+}
+
+/**
+ * Returns the caveat string that's identical across ALL rows in
+ * the block (or null when caveats vary or are absent). Pure helper
+ * exported for tests.
+ */
+export function pickSharedCaveat(
+  rows: readonly GenesisBlockResult["rows"][number][],
+): string | null {
+  if (rows.length === 0) return null;
+  const first = rows[0].caveat;
+  if (!first) return null;
+  for (let i = 1; i < rows.length; i += 1) {
+    if (rows[i].caveat !== first) return null;
+  }
+  return first;
 }
 
 function SubscribeCta() {

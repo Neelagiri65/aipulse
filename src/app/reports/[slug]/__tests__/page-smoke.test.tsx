@@ -150,6 +150,88 @@ describe("/reports/[slug]", () => {
     expect(html).not.toContain('data-testid="report-editorial-pending"');
   });
 
+  it("hoists a shared caveat to once-per-section when every row carries the same string (no per-row repetition)", async () => {
+    const reg = await import("@/lib/reports/registry");
+    vi.mocked(reg.getReportConfig).mockReturnValue(mkConfig());
+    const lb = await import("@/lib/reports/load-block");
+    const sharedCaveat = "OpenRouter request volume reflects developer API spending.";
+    vi.mocked(lb.loadBlock).mockResolvedValue({
+      rows: [
+        {
+          label: "row-1",
+          value: "rank 1",
+          sourceUrl: "https://x/1",
+          sourceLabel: "x",
+          caveat: sharedCaveat,
+        },
+        {
+          label: "row-2",
+          value: "rank 2",
+          sourceUrl: "https://x/2",
+          sourceLabel: "x",
+          caveat: sharedCaveat,
+        },
+        {
+          label: "row-3",
+          value: "rank 3",
+          sourceUrl: "https://x/3",
+          sourceLabel: "x",
+          caveat: sharedCaveat,
+        },
+      ],
+      generatedAt: "2026-05-04T00:00:00.000Z",
+      sanityWarnings: [],
+    });
+    const Page = await loadPage();
+    const html = renderToStaticMarkup(
+      await Page({ params: Promise.resolve({ slug: "test-slug" }) }),
+    );
+    // Caveat appears EXACTLY ONCE per section it covers (not once per
+    // row), and the dedicated section-level testid is present.
+    const matches = html.match(
+      /OpenRouter request volume reflects developer API spending/g,
+    );
+    // The fixture has 2 sections both calling loadBlock with the same
+    // mock → caveat hoisted in each. So we expect exactly 2 occurrences
+    // (not 6 = 3 rows × 2 sections).
+    expect(matches?.length ?? 0).toBe(2);
+    expect(html).toMatch(/data-testid="report-block-caveat-/);
+  });
+
+  it("keeps per-row caveat when caveats differ across rows", async () => {
+    const reg = await import("@/lib/reports/registry");
+    vi.mocked(reg.getReportConfig).mockReturnValue(mkConfig());
+    const lb = await import("@/lib/reports/load-block");
+    vi.mocked(lb.loadBlock).mockResolvedValue({
+      rows: [
+        {
+          label: "row-pypi",
+          value: "1k",
+          sourceUrl: "https://x/1",
+          sourceLabel: "x",
+          caveat: "PyPI caveat",
+        },
+        {
+          label: "row-npm",
+          value: "2k",
+          sourceUrl: "https://x/2",
+          sourceLabel: "x",
+          caveat: "npm caveat",
+        },
+      ],
+      generatedAt: "2026-05-04T00:00:00.000Z",
+      sanityWarnings: [],
+    });
+    const Page = await loadPage();
+    const html = renderToStaticMarkup(
+      await Page({ params: Promise.resolve({ slug: "test-slug" }) }),
+    );
+    // Both per-row caveats render, no shared-caveat hoist.
+    expect(html).toContain("PyPI caveat");
+    expect(html).toContain("npm caveat");
+    expect(html).not.toMatch(/data-testid="report-block-caveat-/);
+  });
+
   it("renders the per-block sanity-warning banner when loadBlock returns warnings", async () => {
     const reg = await import("@/lib/reports/registry");
     vi.mocked(reg.getReportConfig).mockReturnValue(mkConfig());
