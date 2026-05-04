@@ -13,6 +13,7 @@ import {
   formatIncidentDuration,
   formatIncidentImpact,
 } from "@/lib/data/last-incident";
+import { formatProvenanceTooltip } from "@/lib/provenance";
 
 export type ToolHealthCardProps = {
   config: ToolConfig;
@@ -287,8 +288,18 @@ function SourceFooter({
   sourceUrl?: string;
   sourceLabel: string;
 }) {
+  // Hover-only provenance: when we have both a fetched-at and a source
+  // URL, hovering the footer surfaces the full "Last verified Xs ago via
+  // {url}" line. Native title attr — no new lib, screen-reader friendly.
+  const provenanceTitle =
+    mode === "live" && data?.lastCheckedAt && sourceUrl
+      ? formatProvenanceTooltip(data.lastCheckedAt, sourceUrl)
+      : undefined;
   return (
-    <div className="flex items-center justify-between gap-2 border-t border-border/30 pt-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+    <div
+      className="flex items-center justify-between gap-2 border-t border-border/30 pt-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+      title={provenanceTitle}
+    >
       <span className="truncate">
         Source:{" "}
         {sourceUrl ? (

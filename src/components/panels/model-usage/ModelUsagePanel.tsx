@@ -30,6 +30,7 @@ import {
   OPENROUTER_SOURCE_CAVEAT,
   type ModelUsageDto,
 } from "@/lib/data/openrouter-types";
+import { formatProvenanceTooltip } from "@/lib/provenance";
 
 const TRENDING_DEEP_LINK = "https://openrouter.ai/rankings?view=trending";
 
@@ -161,7 +162,7 @@ export function ModelUsagePanel({
       />
       <footer
         className="model-usage-footer"
-        title={OPENROUTER_SOURCE_CAVEAT}
+        title={`${OPENROUTER_SOURCE_CAVEAT}\n\n${formatProvenanceTooltip(data.fetchedAt, "https://openrouter.ai/rankings")}`}
       >
         <span aria-hidden="true" className="model-usage-footer-icon">ⓘ</span>
         <span>
