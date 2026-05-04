@@ -26,68 +26,77 @@
  * prose, ever. Editorial copy is a hard human gate.
  */
 
-import {
-  EDITORIAL_PLACEHOLDER,
-  type GenesisReportConfig,
-} from "@/lib/reports/types";
+import type { GenesisReportConfig } from "@/lib/reports/types";
 
 export const report202604Tooling: GenesisReportConfig = {
   slug: "2026-04-tooling",
-  // Operator-edit zone — title + subtitle + hero caption + thesis.
-  title: EDITORIAL_PLACEHOLDER,
-  subtitle: EDITORIAL_PLACEHOLDER,
+  // Editorial copy supplied by the operator (Neelagiri) on 2026-05-04
+  // after reviewing the live data on prod. Section order matches the
+  // editorial flow: lead with what climbed (the surprise), then the
+  // mirror (what fell), then SDK / labs / tools / agents context.
+  title: "Who's actually winning in AI tooling — April 2026",
+  subtitle:
+    "30 days of verified data across models, SDKs, and tools. Every number links to its source.",
   window: "April 2026",
-  // Set on launch day. Until then, "DRAFT" so the public OG / page
-  // never claims a publication date the report doesn't have.
   publishedAt: "DRAFT",
   hero: {
-    // Engine fills `stat` + `sourceUrl` + `sourceLabel` at render time
-    // when the operator picks which block's headline drives the OG.
-    // Until then, a deterministic placeholder.
-    stat: EDITORIAL_PLACEHOLDER,
-    caption: EDITORIAL_PLACEHOLDER,
-    sourceUrl: "https://gawk.dev/sources",
-    sourceLabel: "Gawk sources",
+    // The hero stat is a one-line statement of the report's lead
+    // finding. The engine doesn't fill this — the operator picks it
+    // from the live blocks. Source URL points to the live OpenRouter
+    // model page so a reader can verify in one click.
+    stat:
+      "Tencent Hy3 Preview climbed 25 OpenRouter ranks to #1 in April",
+    caption:
+      "Three Chinese open-weight models entered the top-25 while two OpenAI models fell out of the top-40.",
+    sourceUrl: "https://openrouter.ai/rankings",
+    sourceLabel: "openrouter.ai/rankings",
   },
-  thesis: EDITORIAL_PLACEHOLDER,
-  // Section ORDER is the editorial decision; the BLOCK IDs are the
-  // engineering catalogue. The operator may reorder, swap, or drop
-  // sections — but every section's blockId must exist in the loader
-  // registry (G3 + G5).
+  thesis:
+    "April's biggest story isn't a model release — it's a shift in who developers are actually paying to use. Three Chinese models (Tencent Hy3, DeepSeek V4 Flash, MiniMax M2.5) climbed into OpenRouter's top 25 while two OpenAI models fell out of the top 40. The data doesn't say why. It says what happened.",
+  // Section order matches the editorial flow. Every header is a
+  // statement, not a category label — the body of the section is
+  // the data, the framing is one short context line.
   sections: [
     {
-      header: EDITORIAL_PLACEHOLDER,
-      framing: EDITORIAL_PLACEHOLDER,
-      blockId: "sdk-adoption-gainers-30d",
-    },
-    {
-      header: EDITORIAL_PLACEHOLDER,
-      framing: EDITORIAL_PLACEHOLDER,
-      blockId: "sdk-adoption-losers-30d",
-    },
-    {
-      header: EDITORIAL_PLACEHOLDER,
-      framing: EDITORIAL_PLACEHOLDER,
+      header: "Climbing the OpenRouter ranks",
+      framing:
+        "Rank changes between the start and end of the window. Climbers only — see the next section for fallers.",
       blockId: "openrouter-rank-climbers-30d",
     },
     {
-      header: EDITORIAL_PLACEHOLDER,
-      framing: EDITORIAL_PLACEHOLDER,
+      header: "Falling on OpenRouter",
+      framing:
+        "Same window, opposite direction. Movement here is request-volume movement, not capability change.",
       blockId: "openrouter-rank-fallers-30d",
     },
     {
-      header: EDITORIAL_PLACEHOLDER,
-      framing: EDITORIAL_PLACEHOLDER,
+      header: "SDK download gainers",
+      framing:
+        "Where developers are placing real install bets, ranked by % growth across PyPI / npm / crates / Docker / brew / VS Code.",
+      blockId: "sdk-adoption-gainers-30d",
+    },
+    {
+      header: "SDK download losers",
+      framing:
+        "Same registries, packages losing developer base. Steepest decline first.",
+      blockId: "sdk-adoption-losers-30d",
+    },
+    {
+      header: "AI labs by GitHub activity",
+      framing:
+        "Ranked by total public-event volume across each lab's flagship repos. Geographic spread visible per row.",
       blockId: "labs-activity-leaders-30d",
     },
     {
-      header: EDITORIAL_PLACEHOLDER,
-      framing: EDITORIAL_PLACEHOLDER,
+      header: "Provider incident-days",
+      framing:
+        "Active incidents on the public status pages, summed per UTC day captured. More incident-days = more days a provider was flapping.",
       blockId: "tool-incidents-30d",
     },
     {
-      header: EDITORIAL_PLACEHOLDER,
-      framing: EDITORIAL_PLACEHOLDER,
+      header: "Agent framework velocity",
+      framing:
+        "Weekly download delta across the tracked agent frameworks. Archived frameworks excluded.",
       blockId: "agents-velocity-30d",
     },
   ],

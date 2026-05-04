@@ -73,16 +73,25 @@ export default async function ReportPage({
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-10 text-foreground">
-      <nav className="mb-6 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+      {/* Single breadcrumb-with-publication line — no separate kicker
+       *  above the H1. Reader sees: where they are + when this was
+       *  published, in one line. */}
+      <p className="mb-6 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
         <Link
           href="/"
           className="underline decoration-dotted underline-offset-2 hover:text-foreground"
         >
           Gawk
         </Link>
-        <span aria-hidden="true"> / </span>
-        <span className="text-foreground/80">Reports / {config.slug}</span>
-      </nav>
+        <span aria-hidden="true"> · </span>
+        <span>Genesis Report · {config.window}</span>
+        {config.publishedAt !== "DRAFT" && (
+          <>
+            <span aria-hidden="true"> · </span>
+            <span>Published {config.publishedAt}</span>
+          </>
+        )}
+      </p>
 
       {!editorialFilled && (
         <div
@@ -131,29 +140,30 @@ function ReportHeader({ config }: { config: GenesisReportConfig }) {
     ? "[thesis paragraph pending — operator-editable]"
     : config.thesis;
 
+  // The hero card was carrying a redundant "Hero stat" kicker label
+  // and an outsized stat-as-number visual that didn't match operator-
+  // written full-sentence statements. New shape: the stat IS the
+  // visual lead — large readable text — with the caption directly
+  // under and one source citation, no label noise.
   return (
     <header className="mb-8 border-b border-border/40 pb-6">
-      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">
-        Genesis Report · {config.window}
-      </p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-        {titleText}
-      </h1>
+      <h1 className="text-3xl font-semibold tracking-tight">{titleText}</h1>
       <p className="mt-1.5 text-[14px] text-muted-foreground">{subtitleText}</p>
 
       <div
         className="mt-5 rounded border border-primary/30 bg-primary/[0.04] px-4 py-4"
         data-testid="report-hero"
       >
-        <p className="font-mono text-[10px] uppercase tracking-wider text-primary">
-          Hero stat
-        </p>
-        <p className="mt-1 font-mono text-[28px] tabular-nums text-foreground">
+        <p className="text-[18px] font-semibold leading-snug text-foreground">
           {heroStat}
         </p>
-        <p className="mt-1 text-[13px] text-muted-foreground">{heroCaption}</p>
+        {heroCaption && (
+          <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+            {heroCaption}
+          </p>
+        )}
         <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80">
-          Source:{" "}
+          Verify:{" "}
           <a
             href={config.hero.sourceUrl}
             target="_blank"
@@ -303,38 +313,28 @@ function SubscribeCta() {
   );
 }
 
-function MethodologyFooter({ config }: { config: GenesisReportConfig }) {
-  const publishedText =
-    config.publishedAt === "DRAFT"
-      ? "DRAFT · not yet published"
-      : `Published ${config.publishedAt}`;
+function MethodologyFooter({ config: _config }: { config: GenesisReportConfig }) {
+  // Keep this footer to ONE line. The publication date + window
+  // already render in the breadcrumb at the top. Repeating them here
+  // is digest-bloat. The methodology + sources links are the only
+  // genuinely-new info this footer carries.
   return (
     <footer className="mt-10 border-t border-border/40 pt-4 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-      <p>{publishedText} · Genesis Report covering {config.window}.</p>
-      <p className="mt-1">
-        Every number traces to a public source.{" "}
-        <Link
-          href="/sources"
-          className="underline decoration-dotted underline-offset-2 hover:text-foreground"
-        >
-          Sources ↗
-        </Link>{" "}
-        ·{" "}
-        <Link
-          href="/methodology"
-          className="underline decoration-dotted underline-offset-2 hover:text-foreground"
-        >
-          Methodology ↗
-        </Link>
-      </p>
-      {/* Visible reminder of the editorial-vs-engine separation; not a
-       *  marketing line, just an honest disclosure. */}
-      <p className="mt-1 text-muted-foreground/70">
-        Engine generates numbers + provenance. Operator writes the
-        framing. No LLM in either path.
-      </p>
-      {/* Sentinel, useful for tests; not visible (tracking-wider keeps
-       *  it readable to screen readers). */}
+      Every number traces to a public source ·{" "}
+      <Link
+        href="/sources"
+        className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+      >
+        Sources ↗
+      </Link>{" "}
+      ·{" "}
+      <Link
+        href="/methodology"
+        className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+      >
+        Methodology ↗
+      </Link>
+      {/* Sentinel for tests, not visible. */}
       <span
         className="sr-only"
         data-testid="report-editorial-placeholder-sentinel"
