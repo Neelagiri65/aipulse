@@ -1,0 +1,109 @@
+/**
+ * Genesis Report — block resolver.
+ *
+ * Given a `GenesisBlockId`, loads the block's data shape using the
+ * existing engines (snapshots, package store, openrouter store, etc.).
+ * Each block is a pure transform over already-loaded data; this module
+ * is the only IO seam between the report renderer and the rest of the
+ * stack.
+ *
+ * Trust contract:
+ *   - Each block returns the canonical `GenesisBlockResult` shape.
+ *   - When a block isn't yet implemented (G5 catalogue not yet
+ *     filled), returns a structured "not yet implemented" result so
+ *     the page renders without crashing AND the launch-readiness
+ *     gate (G8) refuses to mark the report ready.
+ *   - Per-block load errors are caught here and surfaced as a sanity
+ *     warning + empty rows. The report never 500s on a single block
+ *     failure — graceful degradation per CLAUDE.md.
+ */
+
+import {
+  assembleSdkAdoption,
+  type SdkAdoptionRegistry,
+} from "@/lib/data/sdk-adoption";
+import { readLatest, type PackageLatest } from "@/lib/data/pkg-store";
+import { readRecentSnapshots, ymdUtc } from "@/lib/data/snapshot";
+
+import { loadSdkAdoptionGainers30dBlock } from "@/lib/reports/blocks/sdk-adoption-gainers-30d";
+import type {
+  GenesisBlockId,
+  GenesisBlockResult,
+} from "@/lib/reports/types";
+
+const SDK_REGISTRIES: SdkAdoptionRegistry[] = [
+  "pypi",
+  "npm",
+  "crates",
+  "docker",
+  "brew",
+  "vscode",
+];
+
+const WINDOW_DAYS = 30;
+
+/**
+ * Load the block's data. Returns a structured result for every
+ * block id — even unimplemented ones, where the result carries a
+ * sanity warning instead of throwing.
+ */
+export async function loadBlock(
+  blockId: GenesisBlockId,
+): Promise<GenesisBlockResult> {
+  const generatedAt = new Date().toISOString();
+  try {
+    switch (blockId) {
+      case "sdk-adoption-gainers-30d":
+        return await loadSdkGainers();
+      // G5: remaining 6 block ids land here. Until then, surface a
+      // structured "not yet implemented" result so the page doesn't
+      // crash and the launch-readiness gate refuses to mark the
+      // report ready.
+      case "sdk-adoption-losers-30d":
+      case "openrouter-rank-climbers-30d":
+      case "openrouter-rank-fallers-30d":
+      case "labs-activity-leaders-30d":
+      case "tool-incidents-30d":
+      case "agents-velocity-30d":
+        return {
+          rows: [],
+          generatedAt,
+          sanityWarnings: [
+            `Block "${blockId}" is engineering-pending (G5). Not launch-ready.`,
+          ],
+        };
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      rows: [],
+      generatedAt,
+      sanityWarnings: [`Block "${blockId}" failed to load: ${msg}`],
+    };
+  }
+}
+
+async function loadSdkGainers(): Promise<GenesisBlockResult> {
+  const today = ymdUtc();
+  // Need WINDOW_DAYS + 1 historic snapshots so day-N-ago has a
+  // baseline value to compare against today's reading.
+  const [snapshots, ...latests] = await Promise.all([
+    readRecentSnapshots(WINDOW_DAYS + 1),
+    ...SDK_REGISTRIES.map((r) => readLatest(r)),
+  ]);
+  const pkgLatest: Record<SdkAdoptionRegistry, PackageLatest | null> = {
+    pypi: latests[0] ?? null,
+    npm: latests[1] ?? null,
+    crates: latests[2] ?? null,
+    docker: latests[3] ?? null,
+    brew: latests[4] ?? null,
+    vscode: latests[5] ?? null,
+  };
+  const dto = assembleSdkAdoption({
+    pkgLatest,
+    snapshots,
+    today,
+    windowDays: WINDOW_DAYS,
+  });
+  return loadSdkAdoptionGainers30dBlock({ dto, windowDays: WINDOW_DAYS });
+}

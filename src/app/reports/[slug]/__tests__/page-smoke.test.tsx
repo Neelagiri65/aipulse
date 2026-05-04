@@ -31,6 +31,25 @@ vi.mock("@/lib/reports/registry", async () => {
   return { ...actual, getReportConfig: vi.fn() };
 });
 
+// Stub loadBlock — tests at this layer assert layout + editorial
+// guards. Block-internal logic is covered by per-block unit tests
+// under src/lib/reports/blocks/__tests__/.
+vi.mock("@/lib/reports/load-block", () => ({
+  loadBlock: vi.fn(async (blockId: string) => ({
+    rows: [
+      {
+        label: `mock-row-${blockId}`,
+        value: "1.2k",
+        delta: "+50% 30d",
+        sourceUrl: "https://example.com/source",
+        sourceLabel: "example.com",
+      },
+    ],
+    generatedAt: "2026-05-04T00:00:00.000Z",
+    sanityWarnings: [],
+  })),
+}));
+
 function mkConfig(
   overrides: Partial<GenesisReportConfig> = {},
 ): GenesisReportConfig {
@@ -86,7 +105,11 @@ describe("/reports/[slug]", () => {
     expect(html).toContain("Losers");
     expect(html).toContain('data-testid="report-section-sdk-adoption-gainers-30d"');
     expect(html).toContain('data-testid="report-section-sdk-adoption-losers-30d"');
-    expect(html).toContain('data-testid="report-block-placeholder-sdk-adoption-gainers-30d"');
+    expect(html).toContain('data-testid="report-block-sdk-adoption-gainers-30d"');
+    // Mocked loadBlock returns one row per block; verify the row label
+    // and the source link both render.
+    expect(html).toContain("mock-row-sdk-adoption-gainers-30d");
+    expect(html).toContain("example.com");
     expect(html).toContain('data-testid="report-subscribe-cta"');
     expect(html).toContain("Subscribe to the daily digest");
     expect(html).toContain("Sources");
@@ -125,6 +148,27 @@ describe("/reports/[slug]", () => {
       await Page({ params: Promise.resolve({ slug: "test-slug" }) }),
     );
     expect(html).not.toContain('data-testid="report-editorial-pending"');
+  });
+
+  it("renders the per-block sanity-warning banner when loadBlock returns warnings", async () => {
+    const reg = await import("@/lib/reports/registry");
+    vi.mocked(reg.getReportConfig).mockReturnValue(mkConfig());
+    const lb = await import("@/lib/reports/load-block");
+    vi.mocked(lb.loadBlock).mockResolvedValue({
+      rows: [],
+      generatedAt: "2026-05-04T00:00:00.000Z",
+      sanityWarnings: ["torch: +9999% growth exceeds the +1000% sanity ceiling"],
+    });
+    const Page = await loadPage();
+    const html = renderToStaticMarkup(
+      await Page({ params: Promise.resolve({ slug: "test-slug" }) }),
+    );
+    expect(html).toContain("data needs review");
+    expect(html).toContain(
+      "torch: +9999% growth exceeds the +1000% sanity ceiling",
+    );
+    // Empty rows + sanity warning ⇒ honest empty placeholder visible.
+    expect(html).toContain("[no qualifying rows for this window");
   });
 
   it("falls back to engine-safe placeholder text per field when only that field is the placeholder (no fabricated prose)", async () => {
