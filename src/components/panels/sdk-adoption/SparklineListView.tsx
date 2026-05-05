@@ -102,7 +102,11 @@ export function SparklineListView({
     );
   }
 
-  const groups = groupByRegistry(trimmed.packages);
+  // S62g.10: default sort within each registry is now "movement" (abs
+  // 7d delta % desc, falling back to count when delta is null) — the
+  // story is what's changing, not what's biggest. Registry grouping +
+  // headers preserved unchanged.
+  const groups = groupByRegistry(trimmed.packages, "movement");
   const now = nowMs ?? Date.now();
 
   return (

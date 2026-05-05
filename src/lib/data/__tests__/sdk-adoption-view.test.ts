@@ -184,6 +184,88 @@ describe("groupByRegistry", () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].registry).toBe("pypi");
   });
+
+  describe("groupByRegistry — sortBy: 'movement' (S62g.10)", () => {
+    function days(values: Array<number | null>) {
+      return values.map((count, i) => ({
+        date: `2026-04-${String(i + 1).padStart(2, "0")}`,
+        count,
+        delta: null,
+      }));
+    }
+
+    it("ranks packages by absolute 7d delta % descending — biggest movers first, either direction", () => {
+      // Three packages, all on pypi, with very different 7d movement.
+      // a: flat 100→100 over 7 days  → ~0% delta
+      // b: 100→100→100→100→100→100→100→200 → +100% delta vs prior 6
+      // c: 1000→1000→1000→1000→1000→1000→1000→200 → -80% delta
+      const d = dto([
+        pkg(
+          "pypi:flat",
+          days([100, 100, 100, 100, 100, 100, 100, 100]),
+          { latest: { count: 100, fetchedAt: null } },
+        ),
+        pkg(
+          "pypi:gainer",
+          days([100, 100, 100, 100, 100, 100, 100, 200]),
+          { latest: { count: 200, fetchedAt: null } },
+        ),
+        pkg(
+          "pypi:faller",
+          days([1000, 1000, 1000, 1000, 1000, 1000, 1000, 200]),
+          { latest: { count: 200, fetchedAt: null } },
+        ),
+      ]);
+      const [pypi] = groupByRegistry(d.packages, "movement");
+      // Faller has |-80%| = 0.8; Gainer has |+100%| = 1.0; Flat ~0.
+      // Order: gainer > faller > flat.
+      expect(pypi.packages.map((p) => p.id)).toEqual([
+        "pypi:gainer",
+        "pypi:faller",
+        "pypi:flat",
+      ]);
+    });
+
+    it("packages with no delta data fall to the bottom; tiebreak by count desc", () => {
+      const d = dto([
+        pkg(
+          "pypi:no-data",
+          [{ date: "d1", count: 5000, delta: null }], // <2 days, delta is null
+          { latest: { count: 5000, fetchedAt: null } },
+        ),
+        pkg(
+          "pypi:mover",
+          days([100, 100, 100, 100, 100, 100, 100, 150]),
+          { latest: { count: 150, fetchedAt: null } },
+        ),
+      ]);
+      const [pypi] = groupByRegistry(d.packages, "movement");
+      // Mover has delta data → ranks ahead even though its count is
+      // smaller. no-data packages sink.
+      expect(pypi.packages.map((p) => p.id)).toEqual([
+        "pypi:mover",
+        "pypi:no-data",
+      ]);
+    });
+
+    it("default (no sortBy arg) is unchanged 'count' behavior — back-compat preserved", () => {
+      const d = dto([
+        pkg("pypi:a", [], { latest: { count: 100, fetchedAt: null } }),
+        pkg("pypi:b", [], { latest: { count: 1000, fetchedAt: null } }),
+      ]);
+      const [pypi] = groupByRegistry(d.packages); // no second arg
+      expect(pypi.packages.map((p) => p.id)).toEqual(["pypi:b", "pypi:a"]);
+    });
+
+    it("registry grouping + stable order are preserved under movement sort", () => {
+      const d = dto([
+        pkg("npm:x", days([100, 100, 100, 100, 100, 100, 100, 200])),
+        pkg("pypi:y", days([100, 100, 100, 100, 100, 100, 100, 110])),
+      ]);
+      const groups = groupByRegistry(d.packages, "movement");
+      expect(groups.map((g) => g.registry)).toEqual(["pypi", "npm"]);
+    });
+  });
 });
 
 describe("computeWindowDelta", () => {

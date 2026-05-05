@@ -185,6 +185,16 @@ export function SdkAdoptionPanel({
           ({columnDates.length}/{HEATMAP_MIN_DAYS} so far).
         </p>
       )}
+      {/* S62g.10: one-line context per active view so a first-time
+       *  reader knows what they're looking at without hovering or
+       *  guessing. Both labels are static deterministic strings —
+       *  no LLM, no scoring. */}
+      <p
+        className="sdk-adoption-view-caption"
+        data-testid={`sdk-view-caption-${effectiveViewMode}`}
+      >
+        {VIEW_CAPTION[effectiveViewMode]}
+      </p>
       {effectiveViewMode === "list" ? (
         <SparklineListView
           data={trimmed}
@@ -243,6 +253,16 @@ export function SdkAdoptionPanel({
  *  full weekly cycles, enough to absorb mid-week vs weekend variance.
  */
 const HEATMAP_MIN_DAYS = 14;
+
+/** One-line context-on-arrival captions per view. The reader sees this
+ *  as soon as they switch views — no hover, no guess. Both strings are
+ *  static + deterministic; updating them is a one-file edit. */
+const VIEW_CAPTION: Record<"list" | "heatmap", string> = {
+  list:
+    "Per-package weekly downloads across 6 registries — biggest movers first (green = growing, red = declining).",
+  heatmap:
+    "Darker cells = more downloads. Compare adoption density across packages and registries at a glance.",
+};
 
 function deriveColumnDates(data: SdkAdoptionDto): string[] {
   // All rows share the same column-date axis (assembler emits the same

@@ -1465,6 +1465,17 @@
   letter-spacing: 0.08em;
 }
 
+/* S62g.10: per-view context caption. Sits under the toolbar / above
+ * the view body. Plain prose, italic for visual separation from the
+ * data rows; subdued colour so it doesn't compete with the values. */
+.sdk-adoption-panel .sdk-adoption-view-caption {
+  font-size: 12px;
+  line-height: 1.4;
+  font-style: italic;
+  color: rgba(148, 163, 184, 0.85);
+  margin: 6px 0 10px;
+}
+
 .sdk-adoption-panel .sdk-matrix-legend {
   display: inline-flex;
   align-items: center;

@@ -99,13 +99,25 @@ export type RegistryGroup = {
   packages: SdkAdoptionPackage[];
 };
 
+export type GroupSort = "count" | "movement";
+
 /**
- * Group packages by registry in stable order, sort within each group
- * by latest count descending (nulls last so they don't anchor the
- * top). Empty registries are omitted.
+ * Group packages by registry in stable order. Sort within each group
+ * by `sortBy`:
+ *
+ *   - "count" (default, back-compat): latest count descending, nulls
+ *     last. Preserves the original "biggest first" reading.
+ *   - "movement" (S62g.10): absolute 7d delta % descending, then count
+ *     descending as tiebreaker (so a package with no delta data still
+ *     appears under its registry header in count order). Movers first
+ *     reading — "the story is what's changing, not what's biggest".
+ *     Matches the operator's spec for the SparklineListView default.
+ *
+ * Empty registries are omitted in both modes.
  */
 export function groupByRegistry(
   packages: SdkAdoptionPackage[],
+  sortBy: GroupSort = "count",
 ): RegistryGroup[] {
   const byReg = new Map<SdkAdoptionRegistry, SdkAdoptionPackage[]>();
   for (const p of packages) {
@@ -116,17 +128,56 @@ export function groupByRegistry(
   for (const reg of REGISTRY_ORDER) {
     const list = byReg.get(reg);
     if (!list || list.length === 0) continue;
-    const sorted = [...list].sort((a, b) => {
-      const ac = a.latest.count;
-      const bc = b.latest.count;
-      if (ac == null && bc == null) return a.label.localeCompare(b.label);
-      if (ac == null) return 1;
-      if (bc == null) return -1;
-      return bc - ac;
-    });
+    const sorted =
+      sortBy === "movement"
+        ? sortByMovement(list)
+        : sortByCount(list);
     out.push({ registry: reg, packages: sorted });
   }
   return out;
+}
+
+function sortByCount(list: SdkAdoptionPackage[]): SdkAdoptionPackage[] {
+  return [...list].sort((a, b) => {
+    const ac = a.latest.count;
+    const bc = b.latest.count;
+    if (ac == null && bc == null) return a.label.localeCompare(b.label);
+    if (ac == null) return 1;
+    if (bc == null) return -1;
+    return bc - ac;
+  });
+}
+
+function sortByMovement(list: SdkAdoptionPackage[]): SdkAdoptionPackage[] {
+  // Pre-compute the 7d delta once per package so the comparator is
+  // O(n log n) instead of O(n² log n).
+  const deltaByPkg = new Map<string, number | null>();
+  for (const p of list) {
+    deltaByPkg.set(p.id, computeWindowDelta(p.days, 7));
+  }
+  return [...list].sort((a, b) => {
+    const ad = deltaByPkg.get(a.id);
+    const bd = deltaByPkg.get(b.id);
+    const aHas = ad !== null && ad !== undefined;
+    const bHas = bd !== null && bd !== undefined;
+    // Packages with delta data sort ahead of those without.
+    if (aHas && !bHas) return -1;
+    if (!aHas && bHas) return 1;
+    if (aHas && bHas) {
+      // Absolute movement first — a +50% gainer and a -50% loser are
+      // equally important "movers" from the editorial perspective.
+      const aMag = Math.abs(ad as number);
+      const bMag = Math.abs(bd as number);
+      if (aMag !== bMag) return bMag - aMag;
+    }
+    // Tiebreaker (or fallback when both have no delta): count desc.
+    const ac = a.latest.count;
+    const bc = b.latest.count;
+    if (ac == null && bc == null) return a.label.localeCompare(b.label);
+    if (ac == null) return 1;
+    if (bc == null) return -1;
+    return bc - ac;
+  });
 }
 
 /**

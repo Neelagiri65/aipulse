@@ -190,6 +190,57 @@ describe("SdkAdoptionPanel", () => {
     expect(html).toMatch(/baseline|collecting|no rows/i);
   });
 
+  it("renders the per-view context caption (S62g.10) — list-mode default", () => {
+    const html = renderToStaticMarkup(
+      <SdkAdoptionPanel
+        data={dto()}
+        error={null}
+        isInitialLoading={false}
+        originUrl="https://gawk.dev"
+      />,
+    );
+    expect(html).toContain('data-testid="sdk-view-caption-list"');
+    expect(html).toMatch(/biggest movers first/);
+    expect(html).toMatch(/green = growing/);
+    // Heatmap caption must NOT appear when list is the active view.
+    expect(html).not.toContain('data-testid="sdk-view-caption-heatmap"');
+  });
+
+  it("renders the heatmap caption when heatmap is the active view", () => {
+    const richDto: SdkAdoptionDto = {
+      generatedAt: "2026-05-10T12:00:00Z",
+      packages: [
+        {
+          id: "pypi:transformers",
+          label: "transformers",
+          registry: "pypi",
+          latest: { count: 5_000_000, fetchedAt: "2026-05-10T04:00:00Z" },
+          days: Array.from({ length: 14 }, (_, i) => ({
+            date: `2026-04-${(27 + i).toString().padStart(2, "0")}`,
+            count: 100 + i * 10,
+            delta: null,
+          })),
+          firstParty: false,
+          caveat: null,
+          counterName: "lastDay",
+          counterUnits: "downloads/day",
+        },
+      ],
+    };
+    const html = renderToStaticMarkup(
+      <SdkAdoptionPanel
+        data={richDto}
+        error={null}
+        isInitialLoading={false}
+        originUrl="https://gawk.dev"
+        initialViewMode="heatmap"
+      />,
+    );
+    expect(html).toContain('data-testid="sdk-view-caption-heatmap"');
+    expect(html).toMatch(/Darker cells = more downloads/);
+    expect(html).not.toContain('data-testid="sdk-view-caption-list"');
+  });
+
   it("opens the drawer on mount when initialFocusedRowId is provided", () => {
     const html = renderToStaticMarkup(
       <SdkAdoptionPanel
