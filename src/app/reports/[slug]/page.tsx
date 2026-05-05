@@ -63,13 +63,17 @@ export async function generateMetadata({
     subtitleText.length >= 100
       ? subtitleText
       : `${subtitleText} Gawk AI Genesis Report — ${config.window}. Source-cited AI tooling intelligence.`;
-  // S62g.3: explicit openGraph.images pin. Next 16 auto-discovers
-  // opengraph-image.tsx, but the auto-discovered URL carries a hash
-  // query-string (?abc123) that some unfurl scrapers (LinkedIn
-  // historically) skip. Pinning the canonical un-hashed path here
-  // gives LinkedIn a clean URL while Next's auto-discovered hashed
-  // URL still serves as the second image candidate.
-  const ogImageUrl = `https://gawk.dev/reports/${slug}/opengraph-image`;
+  // S62g.4: pin og:image to a STATIC pre-baked PNG in /public/og/.
+  // Why: the dynamic /reports/[slug]/opengraph-image route built
+  // via next/og + ImageResponse is throwing on prod for this route
+  // (returns Next.js error-page HTML with image/png header — caught
+  // by LinkedIn Post Inspector reporting "No image found"). The
+  // site-wide /opengraph-image works fine; the per-report variant
+  // breaks somewhere in the registry-import chain. For this one-shot
+  // launch the editorial copy is locked, so a hand-rendered static
+  // PNG is more reliable than debugging the Satori render. Future
+  // dynamic OGs are TBD; this ships the launch.
+  const ogImageUrl = `https://gawk.dev/og/${slug}.png`;
   return {
     title: titleText,
     description: descriptionText,
