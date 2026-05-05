@@ -53,10 +53,39 @@ export async function generateMetadata({
   const subtitleText = isEditorialPlaceholder(config.subtitle)
     ? `Gawk AI Genesis Report covering ${config.window}. Every number cites its public source.`
     : config.subtitle;
+  // S62g.3: meta description must be ≥100 chars per LinkedIn's
+  // unfurl-quality bar. The visible page subtitle stays operator-
+  // written and short; the META description appends the report
+  // window + the Gawk-Report kicker so it lands well over 100 chars
+  // without touching operator copy. Falls back to subtitle alone if
+  // the operator copy is already long enough.
+  const descriptionText =
+    subtitleText.length >= 100
+      ? subtitleText
+      : `${subtitleText} Gawk AI Genesis Report — ${config.window}. Source-cited AI tooling intelligence.`;
+  // S62g.3: explicit openGraph.images pin. Next 16 auto-discovers
+  // opengraph-image.tsx, but the auto-discovered URL carries a hash
+  // query-string (?abc123) that some unfurl scrapers (LinkedIn
+  // historically) skip. Pinning the canonical un-hashed path here
+  // gives LinkedIn a clean URL while Next's auto-discovered hashed
+  // URL still serves as the second image candidate.
+  const ogImageUrl = `https://gawk.dev/reports/${slug}/opengraph-image`;
   return {
     title: titleText,
-    description: subtitleText,
-    openGraph: { title: titleText, description: subtitleText },
+    description: descriptionText,
+    openGraph: {
+      title: titleText,
+      description: descriptionText,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `Gawk AI Genesis Report — ${config.window}`,
+          type: "image/png",
+        },
+      ],
+    },
   };
 }
 
