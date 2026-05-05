@@ -118,9 +118,73 @@ export async function generateMetadata({
 
 /** Author byline used on every Gawk AI Genesis Report. The operator
  *  owns the editorial framing; the engine generates the numbers.
- *  Surfaces in `og:article:author` + the page's <meta name="author">.
- *  Updating this single constant updates every report. */
+ *  Surfaces in `og:article:author`, the page's <meta name="author">,
+ *  AND the JSON-LD `Article.author.name`. Updating this single
+ *  constant updates every report. */
 const REPORT_AUTHOR = "Neelagiri";
+
+/**
+ * JSON-LD Article schema. LinkedIn's unfurl scraper prefers JSON-LD
+ * over og:article:* meta tags when both are present (Google Search
+ * does too). Without this, LinkedIn was reporting "No author found"
+ * + "No publication date found" even with the meta tags emitting
+ * correctly — likely because their cache was stuck on the pre-
+ * metadata version of the page and the meta tags alone aren't
+ * authoritative enough for LinkedIn to override its cache.
+ *
+ * Schema.org NewsArticle is the right type for a date-bound editorial
+ * artifact like the Gawk AI Genesis Report.
+ */
+function ArticleJsonLd({
+  config,
+  slug,
+  publishedIso,
+}: {
+  config: GenesisReportConfig;
+  slug: string;
+  publishedIso: string;
+}) {
+  const headline = isEditorialPlaceholder(config.title)
+    ? `Gawk AI Genesis Report · ${config.window}`
+    : config.title;
+  const description = isEditorialPlaceholder(config.subtitle)
+    ? `Gawk AI Genesis Report covering ${config.window}. Every number cites its public source.`
+    : config.subtitle;
+  const ld = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline,
+    description,
+    datePublished: publishedIso,
+    dateModified: publishedIso,
+    author: [
+      {
+        "@type": "Person",
+        name: REPORT_AUTHOR,
+      },
+    ],
+    publisher: {
+      "@type": "Organization",
+      name: "Gawk",
+      url: "https://gawk.dev",
+    },
+    image: [`https://gawk.dev/og/${slug}.png`],
+    url: `https://gawk.dev/reports/${slug}`,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `https://gawk.dev/reports/${slug}`,
+    },
+  };
+  return (
+    <script
+      type="application/ld+json"
+      // JSON.stringify is safe here — the shape is operator-controlled
+      // strings, not user input. dangerouslySetInnerHTML is the
+      // standard React pattern for inline JSON-LD per Next.js docs.
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
+    />
+  );
+}
 
 export default async function ReportPage({
   params,
@@ -163,6 +227,16 @@ export default async function ReportPage({
           DRAFT · editorial copy not yet filled · NOT launch-ready
         </div>
       )}
+
+      <ArticleJsonLd
+        config={config}
+        slug={slug}
+        publishedIso={
+          config.publishedAt === "DRAFT"
+            ? new Date().toISOString()
+            : `${config.publishedAt}T00:00:00.000Z`
+        }
+      />
 
       <ReportHeader config={config} />
 
