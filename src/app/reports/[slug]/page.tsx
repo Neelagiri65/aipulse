@@ -94,13 +94,22 @@ export async function generateMetadata({
   return {
     title: titleText,
     description: descriptionText,
-    authors: [{ name: REPORT_AUTHOR }],
+    // metadata.authors → emits BOTH `<meta name="author">` (the
+    // HTML5 author tag — name string) AND `<link rel="author">`
+    // (the URL form). Next's API takes name+url as one object.
+    authors: [{ name: REPORT_AUTHOR, url: REPORT_AUTHOR_URL }],
     openGraph: {
       type: "article",
       title: titleText,
       description: descriptionText,
       publishedTime: publishedIso,
-      authors: [REPORT_AUTHOR],
+      // openGraph.authors → emits `<meta property="article:author">`
+      // which per the OG spec is a "profile array" — a URL pointing
+      // to a profile, NOT a name. LinkedIn enforces this strictly:
+      // string-name values get reported as "No author found". Pin
+      // the canonical LinkedIn profile URL here so the unfurl
+      // resolves the author through their own graph.
+      authors: [REPORT_AUTHOR_URL],
       url: `https://gawk.dev/reports/${slug}`,
       siteName: "Gawk",
       images: [
@@ -118,10 +127,18 @@ export async function generateMetadata({
 
 /** Author byline used on every Gawk AI Genesis Report. The operator
  *  owns the editorial framing; the engine generates the numbers.
- *  Surfaces in `og:article:author`, the page's <meta name="author">,
- *  AND the JSON-LD `Article.author.name`. Updating this single
- *  constant updates every report. */
+ *  Surfaces in the HTML5 `<meta name="author">` tag + the JSON-LD
+ *  `Person.name`. Updating this single constant updates every report. */
 const REPORT_AUTHOR = "Neelagiri";
+
+/** Operator's canonical LinkedIn profile URL. Surfaces as the URL
+ *  form in `<meta property="article:author">` (LinkedIn's unfurl
+ *  scraper requires a URL, not a string), `<link rel="author">`,
+ *  AND the JSON-LD `Person.url`. Pinning the profile URL means
+ *  LinkedIn can resolve the author through its own member graph
+ *  rather than reporting "No author found". */
+const REPORT_AUTHOR_URL =
+  "https://www.linkedin.com/in/srinathprasanna-n-b7889622/";
 
 /**
  * JSON-LD Article schema. LinkedIn's unfurl scraper prefers JSON-LD
@@ -161,6 +178,7 @@ function ArticleJsonLd({
       {
         "@type": "Person",
         name: REPORT_AUTHOR,
+        url: REPORT_AUTHOR_URL,
       },
     ],
     publisher: {
