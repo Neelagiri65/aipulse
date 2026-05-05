@@ -88,11 +88,37 @@ type RawHfModel = {
   } | null;
 };
 
+/**
+ * Build the request headers for a HuggingFace API call. When the
+ * `HF_TOKEN` env var is set (Vercel prod has it as of S62g), include a
+ * Bearer authorization so we hit HF's authenticated rate-limit budget
+ * (~1000 req/min vs 100 req/min unauthenticated) AND so HF returns the
+ * full `cardData` block on every row — the unauth path silently
+ * truncates `cardData` under load, which is why the license field
+ * intermittently shows up empty on NEW_RELEASE cards.
+ *
+ * Token is optional by design: local dev without populate-env, CI
+ * without the secret, and any deploy that hasn't flipped the env yet
+ * all fall back to unauthenticated fetches — preserves the prior
+ * behavior, no breaking change. Token is read fresh on each call so a
+ * runtime env-var rotation is picked up without a redeploy.
+ *
+ * Never logged: this function returns the headers object only;
+ * callers don't need to inspect the token, and we never include it in
+ * error messages or response bodies.
+ */
+export function hfRequestHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { Accept: "application/json" };
+  const token = process.env.HF_TOKEN;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
 export async function fetchTopModels(): Promise<ModelsResult> {
   const generatedAt = new Date().toISOString();
   try {
     const res = await fetch(HF_MODELS_URL, {
-      headers: { Accept: "application/json" },
+      headers: hfRequestHeaders(),
       next: { revalidate: 60 * 15, tags: ["hf-models"] },
     });
     if (!res.ok) {
@@ -173,7 +199,7 @@ export async function fetchRecentModels(): Promise<RecentModelsResult> {
   const generatedAt = new Date().toISOString();
   try {
     const res = await fetch(HF_RECENT_URL, {
-      headers: { Accept: "application/json" },
+      headers: hfRequestHeaders(),
       next: { revalidate: 60 * 15, tags: ["hf-models-recent"] },
     });
     if (!res.ok) {
