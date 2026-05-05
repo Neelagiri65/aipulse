@@ -38,7 +38,11 @@ export const report202604Tooling: GenesisReportConfig = {
   subtitle:
     "30 days of verified data across models, SDKs, and tools. Every number links to its source.",
   window: "April 2026",
-  publishedAt: "DRAFT",
+  // S62g.5: flipped from "DRAFT" → real ISO date for the LinkedIn
+  // launch on 2026-05-05. This populates the breadcrumb's "Published"
+  // text on the page AND drives the og:article:published_time meta
+  // tag that LinkedIn's unfurl uses for "Publish date" attribution.
+  publishedAt: "2026-05-05",
   hero: {
     // The hero stat is a one-line statement of the report's lead
     // finding. The engine doesn't fill this — the operator picks it

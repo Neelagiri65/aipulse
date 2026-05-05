@@ -74,12 +74,35 @@ export async function generateMetadata({
   // PNG is more reliable than debugging the Satori render. Future
   // dynamic OGs are TBD; this ships the launch.
   const ogImageUrl = `https://gawk.dev/og/${slug}.png`;
+  // S62g.5: article-type metadata for LinkedIn unfurl. The Post
+  // Inspector flagged "No author found" + "No publication date
+  // found" — both come from `og:article:author` + `og:article:
+  // published_time` which Next emits when openGraph.type='article'
+  // + openGraph.authors + openGraph.publishedTime are set.
+  //
+  // Author is the operator (Neelagiri) — the LinkedIn launch post
+  // is from his personal account, the editorial framing is his.
+  // Engine generates numbers; operator owns the byline.
+  //
+  // publishedTime: ISO 8601 from `config.publishedAt`. Falls back
+  // to today's UTC midnight when the config is still "DRAFT" so
+  // the meta tag is never empty even on pre-launch URLs.
+  const publishedIso =
+    config.publishedAt === "DRAFT"
+      ? new Date().toISOString()
+      : `${config.publishedAt}T00:00:00.000Z`;
   return {
     title: titleText,
     description: descriptionText,
+    authors: [{ name: REPORT_AUTHOR }],
     openGraph: {
+      type: "article",
       title: titleText,
       description: descriptionText,
+      publishedTime: publishedIso,
+      authors: [REPORT_AUTHOR],
+      url: `https://gawk.dev/reports/${slug}`,
+      siteName: "Gawk",
       images: [
         {
           url: ogImageUrl,
@@ -92,6 +115,12 @@ export async function generateMetadata({
     },
   };
 }
+
+/** Author byline used on every Gawk AI Genesis Report. The operator
+ *  owns the editorial framing; the engine generates the numbers.
+ *  Surfaces in `og:article:author` + the page's <meta name="author">.
+ *  Updating this single constant updates every report. */
+const REPORT_AUTHOR = "Neelagiri";
 
 export default async function ReportPage({
   params,
