@@ -94,10 +94,20 @@ export async function generateMetadata({
   return {
     title: titleText,
     description: descriptionText,
-    // metadata.authors → emits BOTH `<meta name="author">` (the
-    // HTML5 author tag — name string) AND `<link rel="author">`
-    // (the URL form). Next's API takes name+url as one object.
-    authors: [{ name: REPORT_AUTHOR, url: REPORT_AUTHOR_URL }],
+    // S62g.8: NOT setting `metadata.authors`. Next 16 auto-generates
+    // `<meta property="article:author">` from `metadata.authors[0].name`
+    // (the NAME string), which overrides any URL set in
+    // `openGraph.authors`. LinkedIn rejects name-strings on
+    // article:author and reports "No author found". The fix is to
+    // let `openGraph.authors` (URL form) be the SOLE source for the
+    // article:author tag.
+    //
+    // The `<meta name="author">` (HTML5 author tag) + `<link
+    // rel="author">` are sacrificed in this trade-off — they carry
+    // less unfurl signal than the OG tag + JSON-LD anyway. The
+    // JSON-LD author block (rendered separately below) carries
+    // both name + url so Schema.org parsers (LinkedIn, Google) get
+    // the full author identity.
     openGraph: {
       type: "article",
       title: titleText,
