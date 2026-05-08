@@ -87,7 +87,7 @@ export function PushAlertToggle() {
   if (state === "denied") {
     return (
       <span
-        className="hidden font-mono text-[10px] text-muted-foreground sm:inline"
+        className="font-mono text-[10px] text-muted-foreground"
         title="Push notifications blocked in browser settings"
       >
         Alerts blocked
@@ -100,7 +100,7 @@ export function PushAlertToggle() {
       <button
         type="button"
         onClick={unsubscribe}
-        className="hidden items-center gap-1 rounded-sm border border-teal-500/40 px-2 py-1 font-mono text-[10px] text-teal-300 transition-colors hover:border-teal-400 hover:text-teal-200 sm:flex"
+        className="flex items-center gap-1 rounded-sm border border-teal-500/40 px-2 py-1 font-mono text-[10px] text-teal-300 transition-colors hover:border-teal-400 hover:text-teal-200"
         title="Push alerts active — click to disable"
       >
         <BellIcon active />
@@ -113,7 +113,7 @@ export function PushAlertToggle() {
     <button
       type="button"
       onClick={subscribe}
-      className="hidden items-center gap-1 rounded-sm border border-border/60 px-2 py-1 font-mono text-[10px] text-muted-foreground transition-colors hover:border-border hover:text-foreground sm:flex"
+      className="flex items-center gap-1 rounded-sm border border-border/60 px-2 py-1 font-mono text-[10px] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
       title="Enable push notifications for AI tool outages"
     >
       <BellIcon active={false} />
