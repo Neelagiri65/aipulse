@@ -25,15 +25,19 @@ export function PushAlertToggle() {
       setState("unsupported");
       return;
     }
+    // "denied" = user explicitly blocked. "default" = never asked (show button).
     if (Notification.permission === "denied") {
       setState("denied");
       return;
     }
-    navigator.serviceWorker.ready.then((reg) => {
-      reg.pushManager.getSubscription().then((sub) => {
-        if (sub) setState("subscribed");
+    if (Notification.permission === "granted") {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.pushManager.getSubscription().then((sub) => {
+          if (sub) setState("subscribed");
+        });
       });
-    });
+    }
+    // permission === "default" → stay in "idle" state → show "Enable alerts"
   }, []);
 
   const subscribe = useCallback(async () => {
@@ -82,15 +86,35 @@ export function PushAlertToggle() {
     }
   }, []);
 
-  if (state === "unsupported") return null;
+  if (state === "unsupported") {
+    // On iOS Safari (not installed as PWA), PushManager doesn't exist.
+    // Show a hint to install the PWA.
+    const isIOS =
+      typeof navigator !== "undefined" &&
+      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+      !(navigator as any).standalone;
+    if (isIOS) {
+      return (
+        <span
+          className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground"
+          title="Add Gawk to your Home Screen for push alerts"
+        >
+          <BellIcon active={false} />
+          <span className="hidden sm:inline">Add to Home</span>
+        </span>
+      );
+    }
+    return null;
+  }
 
   if (state === "denied") {
     return (
       <span
-        className="font-mono text-[10px] text-muted-foreground"
-        title="Push notifications blocked in browser settings"
+        className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground"
+        title="Notifications blocked — reset in browser settings for this site"
       >
-        Alerts blocked
+        <BellIcon active={false} />
+        <span className="hidden sm:inline">Alerts blocked</span>
       </span>
     );
   }
