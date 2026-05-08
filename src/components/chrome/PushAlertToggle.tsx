@@ -87,24 +87,16 @@ export function PushAlertToggle() {
   }, []);
 
   if (state === "unsupported") {
-    // On iOS Safari (not installed as PWA), PushManager doesn't exist.
-    // Show a hint to install the PWA.
-    const isIOS =
-      typeof navigator !== "undefined" &&
-      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-      !(navigator as any).standalone;
-    if (isIOS) {
-      return (
-        <span
-          className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground"
-          title="Add Gawk to your Home Screen for push alerts"
-        >
-          <BellIcon active={false} />
-          <span className="hidden sm:inline">Add to Home</span>
-        </span>
-      );
-    }
-    return null;
+    return (
+      <a
+        href="/subscribe"
+        className="flex items-center gap-1 rounded-sm border border-border/60 px-2 py-1 font-mono text-[10px] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+        title="Push alerts not supported in this browser — subscribe to the daily digest instead"
+      >
+        <BellIcon active={false} />
+        <span>Subscribe</span>
+      </a>
+    );
   }
 
   if (state === "denied") {
