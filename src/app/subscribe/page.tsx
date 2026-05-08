@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Subscribe — Gawk daily digest",
     description: SUBSCRIBE_DESCRIPTION,
+    images: ["/opengraph-image"],
   },
   twitter: {
     title: "Subscribe — Gawk daily digest",
