@@ -3,10 +3,20 @@ import Link from "next/link";
 import { SubscribeForm } from "@/components/subscribe/SubscribeForm";
 import { PrivacyFooter } from "@/components/consent/PrivacyFooter";
 
+const SUBSCRIBE_DESCRIPTION =
+  "Track AI tool outages, model rankings, and SDK adoption in real time. One daily email — every number cites its public source. No ads, no hype.";
+
 export const metadata: Metadata = {
   title: "Subscribe — Gawk daily digest",
-  description:
-    "One daily email covering what shipped, what broke, and which models moved. Unsubscribe in one click.",
+  description: SUBSCRIBE_DESCRIPTION,
+  openGraph: {
+    title: "Subscribe — Gawk daily digest",
+    description: SUBSCRIBE_DESCRIPTION,
+  },
+  twitter: {
+    title: "Subscribe — Gawk daily digest",
+    description: SUBSCRIBE_DESCRIPTION,
+  },
 };
 
 /**
