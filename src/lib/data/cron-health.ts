@@ -60,6 +60,9 @@ export const CRON_WORKFLOWS = {
   // Discord webhook for TOOL_ALERT transitions. Drift bumped 30→90 in
   // S53 (observed p95 = 140m on the */5 cron schedule).
   "notify-tool-alerts": { expectedIntervalMinutes: 90 },
+  // Push notifications broadcast — piggybacked on notify-tool-alerts.
+  // Same cadence: fires only when a tool transition happens.
+  "push-send": { expectedIntervalMinutes: 90 },
   // Curated Reddit subs (r/LocalLLaMA + r/ClaudeAI) feed NEWS cards.
   // Drift bumped 30→120 in S53 (observed p95 = 208m, the worst of the
   // short-cadence workflows).

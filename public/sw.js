@@ -91,6 +91,40 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
+// Web Push notification handler
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { title: "Gawk", body: event.data.text() };
+  }
+  const options = {
+    body: payload.body || "",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    tag: payload.tag || "gawk-alert",
+    data: { url: payload.url || "/" },
+    vibrate: [100, 50, 100],
+  };
+  event.waitUntil(self.registration.showNotification(payload.title || "Gawk", options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "https://gawk.dev";
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => {
+        const match = clients.find((c) => c.url === url);
+        if (match) return match.focus();
+        return self.clients.openWindow(url);
+      }),
+  );
+});
+
 async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);

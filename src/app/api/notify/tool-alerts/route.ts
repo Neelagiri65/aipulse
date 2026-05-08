@@ -31,6 +31,7 @@ import {
   buildRecoveryEmbed,
   postEmbeds,
 } from "@/lib/notify/discord";
+import { broadcastPush } from "@/lib/push/send";
 import {
   computeTransitions,
   toolDisplayNameFromHeadline,
@@ -187,6 +188,27 @@ export const POST = withIngest<RouteResult>({
     }
 
     const discordResult = await postEmbeds(embeds);
+
+    // Broadcast push notifications for each transition (fire-and-forget;
+    // push failures don't block state persistence or Discord flow).
+    for (const t of alerts) {
+      const toolName = toolDisplayNameFromHeadline(t.card.headline);
+      const status = String(t.card.meta.status);
+      broadcastPush({
+        title: `Gawk: ${toolName} ${status}`,
+        body: t.card.detail || `Status changed to ${status}`,
+        url: "https://gawk.dev",
+        tag: `tool-alert-${toolName}`,
+      }).catch(() => {});
+    }
+    for (const r of recoveries) {
+      broadcastPush({
+        title: `Gawk: ${r.state.toolDisplayName} recovered`,
+        body: `Back to operational from ${r.state.status}`,
+        url: "https://gawk.dev",
+        tag: `tool-alert-${r.state.toolDisplayName}`,
+      }).catch(() => {});
+    }
 
     // Persist state ONLY when:
     //   - webhook is unconfigured (operator-pending; persisting prevents

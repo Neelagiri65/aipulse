@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { StatusResult } from "@/lib/data/fetch-status";
 import { VERIFIED_SOURCES, PENDING_SOURCES } from "@/lib/data-sources";
+import { PushAlertToggle } from "@/components/chrome/PushAlertToggle";
 
 export type FreshnessState = {
   /** True while the very first poll is in flight. */
@@ -78,6 +79,7 @@ export function TopBar({
           verified={VERIFIED_SOURCES.length}
           pending={PENDING_SOURCES.length}
         />
+        <PushAlertToggle />
         <span className="hidden font-mono text-[11px] tracking-wider text-teal-300 sm:inline">
           {now}
         </span>

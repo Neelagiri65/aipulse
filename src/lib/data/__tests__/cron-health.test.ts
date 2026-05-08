@@ -124,6 +124,7 @@ describe("CRON_WORKFLOWS registry", () => {
       "pkg-npm",
       "pkg-pypi",
       "pkg-vscode",
+      "push-send",
       "registry-backfill-events",
       "registry-discover",
       "registry-discover-deps",
