@@ -3,7 +3,6 @@
 import type { StatusResult } from "@/lib/data/fetch-status";
 import type { FreshnessState } from "@/components/chrome/TopBar";
 import { ShareButton } from "@/components/chrome/ShareButton";
-import { CommunityLink } from "@/components/chrome/CommunityLink";
 
 export type CronHealthSummary = {
   total: number;
@@ -169,7 +168,6 @@ export function StatusBar({
         </span>
       </div>
       <div className="ml-auto flex items-center gap-2">
-        <CommunityLink />
         <ShareButton />
       </div>
     </div>

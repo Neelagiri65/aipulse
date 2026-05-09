@@ -141,7 +141,7 @@ export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
         aria-label="Show filters"
         title="Show filters"
         className="ap-filter-panel-trigger fixed right-3 z-40 ap-panel-surface flex h-10 items-center gap-2 px-3 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground/90 transition-colors hover:text-[var(--ap-accent)] border border-[var(--ap-accent)]/40 shadow-[0_0_12px_-4px_rgba(45,212,191,0.4)]"
-        style={{ top: "calc(100px + var(--ap-strip-h, 0px))" }}
+        style={{ top: "calc(156px + var(--ap-strip-h, 0px))" }}
       >
         <FunnelIcon />
         <span>Show filters</span>
@@ -159,7 +159,7 @@ export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
       <aside
         className="ap-filter-panel--full fixed right-3 z-40 ap-panel-surface"
         style={{
-          top: "calc(100px + var(--ap-strip-h, 0px))",
+          top: "calc(156px + var(--ap-strip-h, 0px))",
           width: 220,
         }}
         aria-label="Globe filters"
@@ -222,7 +222,7 @@ export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
       <aside
         className="ap-filter-panel--icons fixed right-3 z-40 ap-panel-surface"
         style={{
-          top: "calc(100px + var(--ap-strip-h, 0px))",
+          top: "calc(156px + var(--ap-strip-h, 0px))",
           width: 44,
         }}
         aria-label="Globe filters"

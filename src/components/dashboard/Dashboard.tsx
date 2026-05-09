@@ -10,6 +10,7 @@ import { MetricsRow } from "@/components/dashboard/MetricsRow";
 import { WirePage, type WireItem } from "@/components/dashboard/WirePage";
 import { TopBar, type ViewTabId } from "@/components/chrome/TopBar";
 import { StatusBar, deriveSev } from "@/components/chrome/StatusBar";
+import { HeroStrip } from "@/components/chrome/HeroStrip";
 import { StatBar, type StatSegment } from "@/components/chrome/StatBar";
 import {
   topCategoryCounts,
@@ -462,23 +463,17 @@ export function Dashboard({
   } | null>(null);
   useEffect(() => {
     const W = typeof window !== "undefined" ? window.innerWidth : 1440;
-    // Win y-values sit below TopBar (48px) + StatusBar (28px) = 76px
+    // Win y-values sit below TopBar (48px) + StatusBar (28px) + HeroStrip (56px) = 132px
     // total chrome, with a 24px safety margin before the first panel.
-    // Right-anchored panels reserve the FilterPanel rail so they don't
-    // render behind it on first open: 220w + 12 right-offset + 8 gap at
-    // ≥1440px, 44w + 12 + 8 below — matches FilterPanel.tsx breakpoints.
     const filterReserve = W >= 1440 ? 240 : 64;
     const rightAnchor = (panelW: number, floor: number) =>
       Math.max(floor, W - panelW - filterReserve);
-    // Push initial panel y down by the highlights-strip height when
-    // the strip is visible at mount, so the panel header doesn't
-    // tuck behind the strip's z-38 layer.
     const stripOffset =
       typeof document !== "undefined" &&
       document.body.dataset.highlights === "1"
         ? 36
         : 0;
-    const dy = (y: number) => y + stripOffset;
+    const dy = (y: number) => y + 56 + stripOffset;
     setInitialPos({
       wire: { x: 64, y: dy(100), w: 380, h: 540 },
       tools: { x: rightAnchor(376, 460), y: dy(100), w: 376, h: 540 },
@@ -822,7 +817,7 @@ export function Dashboard({
   // severity cards into a "pay attention" position.
   const highlights = pickTopHighlights(feed.data, 3);
   const hasHighlights = highlights.length > 0;
-  const stagePaddingTop = hasHighlights ? 112 : 76;
+  const stagePaddingTop = hasHighlights ? 168 : 132;
 
   // Shift LeftNav + FilterPanel + initial panel positions down by the
   // strip's height when it's visible. CSS variable approach so the
@@ -951,6 +946,8 @@ export function Dashboard({
             : undefined
         }
       />
+
+      <HeroStrip status={status.data} />
 
       <HighlightsStrip
         highlights={highlights}

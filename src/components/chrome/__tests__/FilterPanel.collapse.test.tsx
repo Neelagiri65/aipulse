@@ -83,9 +83,7 @@ describe("FilterPanel — collapse state markup", () => {
         onReset={() => {}}
       />,
     );
-    // The full panel and the icon rail both anchor to top: calc(100px + var(--ap-strip-h, 0px))
-    // so when the highlights strip is visible they shift down by 36.
-    expect(html).toMatch(/calc\(100px \+ var\(--ap-strip-h[^)]*\)\)/);
+    expect(html).toMatch(/calc\(156px \+ var\(--ap-strip-h[^)]*\)\)/);
   });
 });
 

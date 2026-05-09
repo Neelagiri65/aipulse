@@ -5,7 +5,6 @@ import { useState } from "react";
 
 import { WirePage, type WireItem } from "@/components/dashboard/WirePage";
 import { ShareButton } from "@/components/chrome/ShareButton";
-import { CommunityLink } from "@/components/chrome/CommunityLink";
 import {
   MobileBottomBar,
   type MobileTopLevelTab,
@@ -38,6 +37,7 @@ import type { CronHealthSnapshot } from "@/components/dashboard/MetricTicker";
 import type { FreshnessState } from "@/components/chrome/TopBar";
 import type { FeedResponse } from "@/lib/feed/types";
 import { track } from "@/lib/analytics";
+import { HeroStrip } from "@/components/chrome/HeroStrip";
 import { HighlightsStrip } from "@/components/dashboard/HighlightsStrip";
 import {
   pickTopHighlights,
@@ -267,9 +267,10 @@ export function MobileDashboard(props: MobileDashboardProps) {
           <span className="ap-mobile-brand__beta">BETA</span>
         </a>
         <FreshnessChip freshness={props.statusFreshness} />
-        <CommunityLink />
         <ShareButton />
       </header>
+
+      <HeroStrip status={props.status} variant="mobile" />
 
       <main className="ap-mobile-body" role="tabpanel">
         {topTab !== "feed" && (
