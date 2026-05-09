@@ -129,7 +129,7 @@ export function PushAlertToggle() {
     <button
       type="button"
       onClick={subscribe}
-      className="flex items-center gap-1 rounded-sm border border-border/60 px-2 py-1 font-mono text-[10px] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+      className="flex items-center gap-1.5 rounded border border-teal-500/50 px-2.5 py-1 font-mono text-[10px] text-teal-300 shadow-[0_0_10px_-3px_rgba(45,212,191,0.3)] transition-colors hover:border-teal-400 hover:text-teal-200 hover:shadow-[0_0_14px_-3px_rgba(45,212,191,0.5)]"
       title="Enable push notifications for AI tool outages"
     >
       <BellIcon active={false} />

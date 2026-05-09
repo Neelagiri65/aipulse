@@ -30,9 +30,9 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
     return (
       <div className="flex flex-col gap-2 border-b border-border/40 bg-background/90 px-4 py-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium tracking-tight text-foreground">
+          <span className="text-base font-medium tracking-tight text-foreground">
             Real-time status for{" "}
-            <span className="text-muted-foreground">
+            <span className="text-white">
               Claude · Cursor · Copilot · Windsurf · OpenAI
             </span>
           </span>
@@ -67,20 +67,20 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
       style={{ top: 76, height: 56 }}
     >
       <div className="flex flex-col gap-0.5">
-        <span className="text-sm font-medium tracking-tight text-foreground sm:text-base">
+        <span className="text-base font-medium tracking-tight text-foreground lg:text-lg">
           Real-time status for{" "}
-          <span className="text-muted-foreground">
+          <span className="text-white">
             Claude · Cursor · Copilot · Windsurf · OpenAI
           </span>
         </span>
-        <span className="text-[11px] text-muted-foreground/70">
+        <span className="text-xs text-gray-300">
           Get pinged when they break.
         </span>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-5">
         <span
-          className="flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tabular-nums"
+          className="flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-semibold tabular-nums"
           style={{
             color: pillColor,
             border: `1px solid color-mix(in srgb, ${pillColor} 40%, transparent)`,
@@ -88,16 +88,16 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
           }}
         >
           <span
-            className="inline-block h-2 w-2 rounded-full"
+            className="inline-block h-2.5 w-2.5 rounded-full"
             style={{
               background: pillColor,
-              boxShadow: `0 0 6px ${pillColor}`,
+              boxShadow: `0 0 8px ${pillColor}`,
             }}
           />
           {pillLabel}
         </span>
 
-        <div className="scale-125">
+        <div className="scale-[1.35]">
           <PushAlertToggle />
         </div>
       </div>
