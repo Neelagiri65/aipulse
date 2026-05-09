@@ -65,32 +65,6 @@ export function StatusBar({
         aria-hidden
       />
       <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.1em]">
-        <Segment
-          value={total === 0 ? "—" : `${sev.operational}/${total}`}
-          label="Operational"
-          color={total === 0 ? "var(--ap-fg-dim)" : "var(--sev-op)"}
-        />
-        {sev.degraded > 0 && (
-          <>
-            <Divider />
-            <Segment
-              value={sev.degraded}
-              label="Degraded"
-              color="var(--sev-degrade)"
-            />
-          </>
-        )}
-        {sev.outage > 0 && (
-          <>
-            <Divider />
-            <Segment
-              value={sev.outage}
-              label="Outage"
-              color="var(--sev-outage)"
-            />
-          </>
-        )}
-        <Divider />
         <a
           href="/sources"
           className="text-muted-foreground hover:text-foreground"

@@ -1,17 +1,3 @@
-/**
- * Render-shape contract for the FilterPanel collapse state.
- *
- * The panel collapses on the user clicking "Hide filters" — the
- * collapsed state persists across reloads via `localStorage`. This
- * test asserts both render variants emit the expected accessibility
- * affordances so a screen reader user can re-open the panel.
- *
- * Click handling itself is covered by the localStorage round-trip
- * (the component reads its initial `open` from storage) — we set the
- * key before render to exercise the collapsed branch without needing
- * a JSDOM-style click simulator.
- */
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -39,8 +25,6 @@ function mockLocalStorage(initial: Record<string, string> = {}) {
 
 describe("FilterPanel — collapse state markup", () => {
   beforeEach(() => {
-    // Each test resets the global window.localStorage so the SSR-side
-    // hydration effect inside FilterPanel doesn't leak between cases.
     Object.defineProperty(globalThis, "window", {
       value: {
         localStorage: mockLocalStorage(),
@@ -57,7 +41,7 @@ describe("FilterPanel — collapse state markup", () => {
     delete (globalThis as { window?: unknown }).window;
   });
 
-  it("renders the full panel by default with a Hide control", () => {
+  it("renders collapsed by default with a Show filters trigger", () => {
     const html = renderToStaticMarkup(
       <FilterPanel
         filters={DEFAULT_FILTERS}
@@ -65,14 +49,7 @@ describe("FilterPanel — collapse state markup", () => {
         onReset={() => {}}
       />,
     );
-    // Both the labelled <header> and the icon-only rail contain a
-    // "Hide filters" affordance — at least one must be present.
-    expect(html.match(/aria-label="Hide filters"/g)?.length ?? 0).toBeGreaterThan(0);
-    // Reset button exists in the labelled variant.
-    expect(html).toContain("Reset");
-    // Trigger button (used in the collapsed state) should NOT appear
-    // when the panel is open.
-    expect(html).not.toContain('aria-label="Show filters"');
+    expect(html).toContain('aria-label="Show filters"');
   });
 
   it("uses the CSS strip-offset variable so it tucks below the highlights strip", () => {

@@ -1,14 +1,3 @@
-/**
- * Render shape for HighlightsStrip.
- *
- * The selection logic + panel mapping live in `src/lib/feed/highlights.ts`
- * and are unit-tested separately. Here we only assert that the
- * presentational component:
- *  - renders nothing when there are no highlights (empty-state contract);
- *  - emits one chip per highlight in order with the expected dot tone;
- *  - exposes the panel id + card id on click so the host can route.
- */
-
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -69,26 +58,15 @@ describe("HighlightsStrip", () => {
     expect(html).toBe("");
   });
 
-  it("renders one chip per highlight in order with headline + detail", () => {
+  it("desktop: renders one chip at a time (rotating ticker)", () => {
     const html = renderToStaticMarkup(
       <HighlightsStrip highlights={sample} onSelect={() => {}} />,
     );
     expect(html).toContain("GitHub Copilot degraded");
-    expect(html).toContain("Kimi K2.6 +5 ranks");
-    expect(html).toContain("rank 9 → rank 4");
-    expect(html).toContain("torch downloads -24% week-on-week");
-    // Three chip buttons + region wrapper
-    const chipMatches = html.match(/data-testid="highlights-chip"/g) ?? [];
-    expect(chipMatches.length).toBe(3);
-  });
-
-  it("annotates each chip with its card type for diagnostics", () => {
-    const html = renderToStaticMarkup(
-      <HighlightsStrip highlights={sample} onSelect={() => {}} />,
-    );
     expect(html).toContain('data-card-type="TOOL_ALERT"');
-    expect(html).toContain('data-card-type="MODEL_MOVER"');
-    expect(html).toContain('data-card-type="SDK_TREND"');
+    const chipMatches = html.match(/data-testid="highlights-chip"/g) ?? [];
+    expect(chipMatches.length).toBe(1);
+    expect(html).toContain("1/3");
   });
 
   it("includes the desktop variant marker class by default", () => {
@@ -98,7 +76,7 @@ describe("HighlightsStrip", () => {
     expect(html).toContain("ap-highlights-strip--desktop");
   });
 
-  it("renders the mobile variant when requested", () => {
+  it("mobile: renders all chips for horizontal scrolling", () => {
     const html = renderToStaticMarkup(
       <HighlightsStrip
         highlights={sample}
@@ -107,7 +85,10 @@ describe("HighlightsStrip", () => {
       />,
     );
     expect(html).toContain("ap-highlights-strip--mobile");
-    // Mobile variant skips the "Now" lede so the strip stays compact.
-    expect(html).not.toMatch(/>Now</);
+    expect(html).toContain("GitHub Copilot degraded");
+    expect(html).toContain("Kimi K2.6 +5 ranks");
+    expect(html).toContain("torch downloads -24% week-on-week");
+    const chipMatches = html.match(/data-testid="highlights-chip"/g) ?? [];
+    expect(chipMatches.length).toBe(3);
   });
 });

@@ -109,17 +109,15 @@ export type FilterPanelProps = {
  */
 export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
   const cats: Layer["category"][] = ["Event types", "Signal", "Layers"];
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
-  // Hydrate from localStorage on mount so the user's collapse preference
-  // persists across reloads. SSR-safe: useEffect only runs client-side.
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved === "0") setOpen(false);
+      if (saved === "1") setOpen(true);
     } catch {
-      // localStorage unavailable (private mode etc.) — keep default open.
+      // localStorage unavailable (private mode etc.) — keep default collapsed.
     }
   }, []);
 

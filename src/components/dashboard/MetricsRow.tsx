@@ -33,12 +33,11 @@ export function MetricsRow({
     aiCfgEventsCard(events, eventsLoading),
     aiCfgShareCard(events, eventsLoading),
     eventsWindowCard(events, eventsLoading),
-    toolsOpsCard(status, statusLoading),
   ];
 
   return (
     <div
-      className="pointer-events-none fixed bottom-[124px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 pb-1"
+      className="pointer-events-none fixed bottom-[68px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 pb-1"
       aria-label="Headline metrics"
     >
       {cards.map((card, i) => (

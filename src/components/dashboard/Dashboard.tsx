@@ -965,7 +965,7 @@ export function Dashboard({
           reserves space for MetricsRow + LiveTicker + MetricTicker stack. */}
       <div
         className="fixed inset-0"
-        style={{ paddingTop: stagePaddingTop, paddingBottom: 196, zIndex: 3 }}
+        style={{ paddingTop: stagePaddingTop, paddingBottom: 140, zIndex: 3 }}
       >
         {activeTab === "map" && (
           <div className="relative h-full w-full">
@@ -1410,23 +1410,8 @@ export function Dashboard({
             <LiveTicker rows={wireRows} />
           </>
         )}
-        <MetricTicker
-          status={status.data}
-          events={events.data}
-          verifiedSourceCount={VERIFIED_SOURCES.length}
-          pendingSourceCount={PENDING_SOURCES.length}
-          cronHealth={
-            cronHealth.data
-              ? {
-                  total: cronHealth.data.total,
-                  healthy: cronHealth.data.healthy,
-                  stale: cronHealth.data.stale,
-                }
-              : undefined
-          }
-          statusLoading={status.isInitialLoading}
-          eventsLoading={events.isInitialLoading}
-        />
+        {/* MetricTicker (6-tile diagnostics row) hidden from default view.
+            The data is still available via /sources and /api/cron-health. */}
       </div>
     </>
   );

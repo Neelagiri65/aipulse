@@ -29,14 +29,9 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
   if (variant === "mobile") {
     return (
       <div className="flex flex-col gap-2 border-b border-border/40 bg-background/90 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <span className="text-base font-medium tracking-tight text-foreground">
-            Real-time status for{" "}
-            <span className="text-white">
-              Claude · Cursor · Copilot · Windsurf · OpenAI
-            </span>
-          </span>
-        </div>
+        <span className="text-lg font-semibold tracking-tight text-white">
+          Is your AI coding stack working right now?
+        </span>
         <div className="flex items-center justify-between">
           <span
             className="flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tabular-nums"
@@ -67,14 +62,11 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
       style={{ top: 76, height: 56 }}
     >
       <div className="flex flex-col gap-0.5">
-        <span className="text-base font-medium tracking-tight text-foreground lg:text-lg">
-          Real-time status for{" "}
-          <span className="text-white">
-            Claude · Cursor · Copilot · Windsurf · OpenAI
-          </span>
+        <span style={{ fontSize: 28, lineHeight: 1.2 }} className="font-semibold tracking-tight text-white">
+          Is your AI coding stack working right now?
         </span>
-        <span className="text-xs text-gray-300">
-          Get pinged when they break.
+        <span className="text-xs text-gray-400">
+          Claude · Cursor · Copilot · Windsurf · OpenAI — tracked from 38 verified sources.
         </span>
       </div>
 
