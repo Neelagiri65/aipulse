@@ -917,7 +917,7 @@
   z-index: 50;
   transition: width 180ms ease;
 }
-.ap-icon-nav--collapsed { width: 44px; }
+.ap-icon-nav--collapsed { width: 44px; overflow: hidden; }
 .ap-icon-nav--expanded  { width: 176px; border-right-color: var(--ap-border); background: rgba(10, 13, 16, 0.88); backdrop-filter: blur(10px); }
 
 .ap-icon-nav__hamburger {
@@ -2216,6 +2216,7 @@
   white-space: nowrap;
   animation: ap-ticker-scroll 90s linear infinite;
   will-change: transform;
+  padding-left: 12px;
 }
 
 .ap-live-ticker:hover .ap-live-ticker-track {

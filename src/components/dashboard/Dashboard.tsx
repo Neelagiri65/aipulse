@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Globe, type GlobePoint } from "@/components/globe/Globe";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
 import { LiveFeed } from "@/components/dashboard/LiveFeed";
-import { MetricTicker } from "@/components/dashboard/MetricTicker";
 import { MetricsRow } from "@/components/dashboard/MetricsRow";
 import { WirePage, type WireItem } from "@/components/dashboard/WirePage";
 import { TopBar, type ViewTabId } from "@/components/chrome/TopBar";

@@ -83,7 +83,7 @@ export default function RootLayout({
       lang="en"
       className={`${dmSans.variable} ${jetbrainsMono.variable} dark h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-hidden">
         <div className="ap-stage-bg" aria-hidden />
         <CursorGlow />
         <div className="relative z-10 flex flex-1 flex-col">{children}</div>
