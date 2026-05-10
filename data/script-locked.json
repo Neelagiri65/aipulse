@@ -1,68 +1,88 @@
 [
   {
-    "id": "hermes-agent",
+    "id": "top-model",
     "segment": "hook",
-    "headline": "Hermes Agent takes #1 on OpenRouter Global Ranking",
+    "headline": "Kimi K2.6 holds #1 on OpenRouter",
     "type": "leaderboard",
     "scene": "globe",
     "holdSec": 10,
     "leaderboard": {
-      "label": "GLOBAL RANKING · TOKEN VOLUME",
-      "heroName": "HERMES AGENT",
-      "heroSub": "#1 — displaces OpenClaw",
+      "label": "OPENROUTER RANKING · 11 MAY",
+      "heroName": "KIMI K2.6",
+      "heroSub": "#1 — holds position",
       "rows": [
-        { "rank": 1, "name": "Hermes Agent", "value": "271B tokens" },
-        { "rank": 2, "name": "OpenClaw", "value": "245B tokens" },
-        { "rank": 3, "name": "Kilo Code", "value": "149B tokens" },
-        { "rank": 4, "name": "Claude Code", "value": "79.2B tokens" },
-        { "rank": 5, "name": "Descript", "value": "48.9B tokens" }
+        {
+          "rank": 1,
+          "name": "Kimi K2.6",
+          "value": "$0.75/MTok"
+        },
+        {
+          "rank": 2,
+          "name": "Claude Sonnet 4.6",
+          "value": "$3.00/MTok"
+        },
+        {
+          "rank": 3,
+          "name": "Claude Opus 4.7",
+          "value": "$5.00/MTok"
+        },
+        {
+          "rank": 4,
+          "name": "DeepSeek V4 Flash",
+          "value": "$0.14/MTok"
+        },
+        {
+          "rank": 5,
+          "name": "Gemini 3 Flash Preview",
+          "value": "$0.50/MTok"
+        }
       ],
-      "source": "Source: OpenRouter Global Ranking · 10 May 2026"
+      "source": "Source: OpenRouter Top Weekly · 11 May"
     }
   },
   {
-    "id": "gpt-oss-drop",
+    "id": "narrative-0",
     "segment": "story",
-    "headline": "OpenAI gpt-oss-120b down 21 ranks on OpenRouter",
+    "headline": "elebumm/RedditVideoMakerBot trending on GitHub (77 stars today)",
     "type": "data-card",
-    "scene": "models",
+    "scene": "wire",
     "holdSec": 7,
     "dataCard": {
-      "label": "RANK DOWN",
-      "number": "↓ 21",
-      "direction": "down",
-      "title": "gpt-oss-120b (free) — Now #36, was #15",
-      "source": "Source: OpenRouter Weekly"
+      "label": "TRENDING",
+      "number": "★ 77",
+      "direction": "up",
+      "title": "elebumm/RedditVideoMakerBot trending on GitHub (77 stars today)",
+      "source": "Source: GitHub Trending · 11 May"
     }
   },
   {
-    "id": "hy3-climb",
+    "id": "narrative-1",
     "segment": "story",
-    "headline": "Tencent Hy3 preview climbs 28 ranks (38 → 10)",
+    "headline": "Hy3 preview moved from rank 38 to 9",
     "type": "data-card",
     "scene": "models",
     "holdSec": 7,
     "dataCard": {
       "label": "RANK UP",
-      "number": "38 → 10",
+      "number": "↑ 29",
       "direction": "up",
-      "title": "Hy3 preview — $0.066/M tokens",
-      "source": "Source: OpenRouter Weekly"
+      "title": "Hy3 preview — Now #9, was #38",
+      "source": "Source: OpenRouter Weekly · 11 May"
     }
   },
   {
-    "id": "kimi-holds",
+    "id": "narrative-2",
     "segment": "story",
-    "headline": "Kimi K2.6 holds #1 by developer spend",
+    "headline": "@langchain/core downloads up 28.6% on npm",
     "type": "data-card",
-    "scene": "models",
+    "scene": "sdk-adoption",
     "holdSec": 7,
     "dataCard": {
-      "label": "MODEL RANKINGS",
-      "number": "#1",
+      "label": "DOWNLOADS",
+      "number": "↑ 29%",
       "direction": "up",
-      "title": "Kimi K2.6 — $0.75/M tokens",
-      "source": "Source: OpenRouter top-weekly"
+      "title": "@langchain/core downloads up 28.6% on npm",
+      "source": "Source: Package registry data · 11 May"
     }
   }
 ]

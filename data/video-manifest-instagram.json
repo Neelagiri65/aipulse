@@ -9,9 +9,9 @@
     "endSec": 1
   },
   {
-    "id": "hermes-agent",
+    "id": "top-model",
     "segment": "hook",
-    "headline": "Hermes Agent takes #1 on OpenRouter Global Ranking",
+    "headline": "Kimi K2.6 holds #1 on OpenRouter",
     "scene": "globe",
     "holdSec": 10,
     "startSec": 1,
@@ -27,10 +27,10 @@
     "endSec": 12
   },
   {
-    "id": "gpt-oss-drop",
+    "id": "narrative-0",
     "segment": "story",
-    "headline": "OpenAI gpt-oss-120b down 21 ranks on OpenRouter",
-    "scene": "models",
+    "headline": "elebumm/RedditVideoMakerBot trending on GitHub (77 stars today)",
+    "scene": "wire",
     "holdSec": 7,
     "startSec": 12,
     "endSec": 19
@@ -45,9 +45,9 @@
     "endSec": 20
   },
   {
-    "id": "hy3-climb",
+    "id": "narrative-1",
     "segment": "story",
-    "headline": "Tencent Hy3 preview climbs 28 ranks (38 → 10)",
+    "headline": "Hy3 preview moved from rank 38 to 9",
     "scene": "models",
     "holdSec": 7,
     "startSec": 20,
@@ -63,10 +63,10 @@
     "endSec": 28
   },
   {
-    "id": "kimi-holds",
+    "id": "narrative-2",
     "segment": "story",
-    "headline": "Kimi K2.6 holds #1 by developer spend",
-    "scene": "models",
+    "headline": "@langchain/core downloads up 28.6% on npm",
+    "scene": "sdk-adoption",
     "holdSec": 7,
     "startSec": 28,
     "endSec": 35
