@@ -20,7 +20,8 @@
     "video:render": "npx tsx scripts/video/render.ts",
     "video:screenshots": "npx tsx scripts/video/capture-screenshots.ts",
     "video:all": "npm run video:fetch && npm run video:script && npm run video:record-map && npm run video:tts && npm run video:render",
-    "video:quick": "npm run video:fetch && npm run video:script && npm run video:record-map && npm run video:render"
+    "video:quick": "npm run video:fetch && npm run video:script && npm run video:record-map && npm run video:render",
+    "video:curate": "npx tsx scripts/video/curate-stories.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",

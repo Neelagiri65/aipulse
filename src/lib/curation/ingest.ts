@@ -2,6 +2,15 @@ import type { CurationEvent } from "./types";
 
 const GAWK_BASE = process.env.GAWK_BASE_URL || "https://gawk.dev";
 
+function decodeHtmlEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
 const AI_KEYWORDS = [
   "artificial intelligence", "machine learning", "large language model",
   "LLM", "GPT", "Claude", "Gemini", "OpenAI", "Anthropic", "DeepSeek",
@@ -153,7 +162,7 @@ export async function ingestReddit(): Promise<CurationEvent[]> {
         events.push({
           id: eventId("reddit", d.permalink),
           source: "reddit" as const,
-          title: d.title,
+          title: decodeHtmlEntities(d.title),
           summary: `r/${sub} · ${d.score} upvotes · ${d.num_comments} comments`,
           url: `https://reddit.com${d.permalink}`,
           timestamp: new Date(d.created_utc * 1000).toISOString(),
@@ -236,11 +245,11 @@ export async function ingestGitHubTrending(): Promise<CurationEvent[]> {
     const starsPattern = /(\d[\d,]*)\s*stars today/g;
     const repos = [...html.matchAll(/<article class="Box-row"[^>]*>([\s\S]*?)<\/article>/g)];
     for (const [, block] of repos.slice(0, 10)) {
-      const href = block.match(/href="\/([^"]+)"/)?.[1];
+      const allHrefs = [...block.matchAll(/href="\/([^"]+)"/g)].map(m => m[1]);
+      const href = allHrefs.find(h => /^[^/]+\/[^/]+$/.test(h) && !h.startsWith("login"));
       if (!href) continue;
-      const name = href.split("/").pop() ?? href;
-      const owner = href.split("/")[0] ?? "";
-      const desc = block.match(/<p[^>]*>([\s\S]*?)<\/p>/)?.[1]?.trim().replace(/<[^>]+>/g, "").trim() ?? "";
+      const [owner, name] = href.split("/");
+      const desc = decodeHtmlEntities(block.match(/<p[^>]*>([\s\S]*?)<\/p>/)?.[1]?.trim().replace(/<[^>]+>/g, "").trim() ?? "");
       const starsToday = block.match(/([\d,]+)\s*stars today/)?.[1]?.replace(/,/g, "") ?? "0";
       const isAI = AI_KEYWORDS.some(k => (name + " " + desc).toLowerCase().includes(k.toLowerCase()));
       if (!isAI && parseInt(starsToday) < 100) continue;
