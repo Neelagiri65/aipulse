@@ -116,8 +116,11 @@ export async function ingestGawkSDK(): Promise<CurationEvent[]> {
       const recent = pkg.days.filter(d => d.delta !== null).slice(-3);
       if (recent.length === 0) continue;
       const avg = recent.reduce((s, d) => s + (d.delta ?? 0), 0) / recent.length;
-      const pct = Math.round(avg * 1000) / 10;
-      if (Math.abs(pct) < 10) continue;
+      const rawPct = Math.round(avg * 1000) / 10;
+      if (Math.abs(rawPct) < 10) continue;
+      // Clamp to sane range — matches SDK report block bounds
+      const pct = Math.max(-90, Math.min(1000, rawPct));
+      if (Math.abs(rawPct) > 1000 || rawPct < -90) continue;
       events.push({
         id: eventId("gawk-sdk", pkg.id),
         source: "gawk-sdk" as const,
