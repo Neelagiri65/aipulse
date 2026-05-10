@@ -16,7 +16,43 @@ const AI_KEYWORDS = [
   "LLM", "GPT", "Claude", "Gemini", "OpenAI", "Anthropic", "DeepSeek",
   "Mistral", "Meta AI", "neural network", "transformer", "diffusion",
   "AI agent", "RAG", "fine-tuning", "RLHF", "inference",
+  "ChatGPT", "Copilot", "Cursor", "Windsurf", "coding assistant",
+  "llama", "ollama", "stable diffusion", "midjourney", "DALL-E",
+  "vector database", "embedding", "tokenizer", "prompt engineering",
+  "AI model", "foundation model", "MCP", "model context protocol",
+  "agentic", "AI coding", "code generation", "reasoning model",
+  "vision model", "multimodal", "text-to-image", "text-to-video",
+  "speech-to-text", "TTS", "voice AI", "AI safety", "alignment",
+  "benchmark", "MMLU", "HumanEval", "open source AI", "weights",
+  "quantization", "GGUF", "ONNX", "vLLM", "tensor", "GPU",
+  "CUDA", "compute", "training run", "AI startup", "AI lab",
+  "Hugging Face", "Replicate", "Perplexity", "Cohere",
+  "AI regulation", "AI policy", "frontier model",
+  "NVIDIA", "AMD", "Apple Silicon", "TPU", "NPU", "chip", "silicon",
+  "data center", "cloud computing", "edge AI", "on-device",
+  "robotics", "autonomous", "self-driving", "computer vision",
+  "NLP", "natural language", "deep learning", "reinforcement learning",
+  "open source", "developer tool", "API", "SDK",
+  "Linux", "kernel", "CVE", "security", "exploit",
+  "tech industry", "startup", "venture capital", "acquisition",
 ];
+
+const NOISE_PATTERNS = [
+  /what if .* experienced/i,
+  /blockbuster/i,
+  /movie to watch/i,
+  /transfer to a new mac/i,
+  /wallpaper/i,
+  /meme/i,
+  /nostalgia/i,
+  /years ago.*today/i,
+];
+
+function isAIRelevant(text: string): boolean {
+  const lower = text.toLowerCase();
+  if (NOISE_PATTERNS.some(p => p.test(text))) return false;
+  return AI_KEYWORDS.some(k => lower.includes(k.toLowerCase()));
+}
 
 function eventId(source: string, key: string): string {
   return `${source}:${key}`;
@@ -105,7 +141,7 @@ export async function ingestGawkWire(): Promise<CurationEvent[]> {
     const data = await res.json() as {
       cards: { headline: string; detail?: string; type: string; sourceName: string }[];
     };
-    return (data.cards ?? []).slice(0, 10).map((c, i) => ({
+    return (data.cards ?? []).filter(c => isAIRelevant(c.headline + " " + (c.detail ?? ""))).slice(0, 10).map((c, i) => ({
       id: eventId("gawk-wire", `${i}-${c.headline.slice(0, 30)}`),
       source: "gawk-wire" as const,
       title: c.headline,
@@ -127,7 +163,8 @@ export async function ingestHN(): Promise<CurationEvent[]> {
       items: { title: string; points: number; numComments?: number; url?: string }[];
     };
     return (data.items ?? [])
-      .filter(i => i.points >= 50 && (i.numComments ?? 0) >= 10)
+      .filter(i => i.points >= 20 && (i.numComments ?? 0) >= 3)
+      .filter(i => isAIRelevant(i.title))
       .slice(0, 15)
       .map((i, idx) => ({
         id: eventId("hn", `${idx}-${i.title.slice(0, 30)}`),
@@ -158,7 +195,8 @@ export async function ingestReddit(): Promise<CurationEvent[]> {
       };
       for (const post of data.data?.children ?? []) {
         const d = post.data;
-        if (d.score < 50 || d.num_comments < 5) continue;
+        if (d.score < 20 || d.num_comments < 3) continue;
+        if (!isAIRelevant(d.title)) continue;
         events.push({
           id: eventId("reddit", d.permalink),
           source: "reddit" as const,

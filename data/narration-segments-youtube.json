@@ -1,0 +1,155 @@
+[
+  {
+    "id": "intro",
+    "segment": "intro",
+    "headline": "Intro",
+    "narration": "Good morning. This is Gawk Daily for 10 May 2026... your no-spin briefing on what's actually moving in the AI world. Every number you'll hear today comes from public data — nothing invented, nothing speculated. Let's get into it.",
+    "scene": "globe",
+    "durationSec": 15.888,
+    "audioFile": "out/narration-seg-intro.mp3"
+  },
+  {
+    "id": "narrative-0",
+    "segment": "hook",
+    "headline": "ollama downloads down 186.7% on brew",
+    "narration": "ollama... the tool that lets you run large language models locally on your own hardware. Downloads have dropped — by 187 percent. That's not a small fluctuation. That's a signal. When install rates shift this sharply... it usually means developers are either flocking to something new, or moving away from it. We're seeing 3 related signals reinforcing this trend.",
+    "scene": "sdk-adoption",
+    "durationSec": 23.328,
+    "audioFile": "out/narration-seg-narrative-0.mp3"
+  },
+  {
+    "id": "narrative-1",
+    "segment": "lead",
+    "headline": "The gap between knowing something and actually understanding it — AI accelerated my learning curve",
+    "narration": "Next up. From the Gawk wire feed: The gap between knowing something and actually understanding it — AI accelerated my learning curve. Discussion on r/LocalLLaMA.",
+    "scene": "wire",
+    "durationSec": 11.016,
+    "audioFile": "out/narration-seg-narrative-1.mp3"
+  },
+  {
+    "id": "narrative-2",
+    "segment": "story",
+    "headline": "Hy3 preview moved from rank 38 to 15",
+    "narration": "Shifting gears. Hy3 — has climbed 23 positions on the leaderboard. That's a significant move. It tells us developers are actively switching their workloads... and when that many people change direction at once, it's worth paying attention to.",
+    "scene": "models",
+    "durationSec": 15.264,
+    "audioFile": "out/narration-seg-narrative-2.mp3"
+  },
+  {
+    "id": "narrative-3",
+    "segment": "story",
+    "headline": "ripienaar/free-for-dev trending on GitHub (112 stars today)",
+    "narration": "Also worth noting... On GitHub... ripienaar/free-for-dev is trending — picking up 112 stars in a single day. Star\n\n\n  \n\n  \n    \n    \n\n\n      \n        ripienaar /\n\n      free-for-dev  \n\n    \n      A list of SaaS, PaaS and IaaS offerings that have free tiers of interest to devops and infradev. When a project trends on GitHub, it means developers aren't just looking — they're bookmarking it for use.",
+    "scene": "wire",
+    "durationSec": 23.232,
+    "audioFile": "out/narration-seg-narrative-3.mp3"
+  },
+  {
+    "id": "narrative-4",
+    "segment": "story",
+    "headline": "milvus-io/milvus trending on GitHub (20 stars today)",
+    "narration": "Here's something interesting. On GitHub... milvus-io/milvus is trending. Star\n\n\n  \n\n  \n    \n    \n\n\n      \n        milvus-io /\n\n      milvus  \n\n    \n      Milvus is a high-performance, cloud-native vector database built for scalable vector ANN search. When a project trends on GitHub, it means developers aren't just looking — they're bookmarking it for use.",
+    "scene": "wire",
+    "durationSec": 20.928,
+    "audioFile": "out/narration-seg-narrative-4.mp3"
+  },
+  {
+    "id": "narrative-5",
+    "segment": "community",
+    "headline": "Using Claude Code: The unreasonable effectiveness of HTML",
+    "narration": "Now... From Hacker News: Using Claude Code: The unreasonable effectiveness of HTML. Anthropic's Claude Code has been gaining traction as a coding assistant, and developer experiences like this help the community understand where it excels and where it falls short compared to alternatives.",
+    "scene": "wire",
+    "durationSec": 16.656,
+    "audioFile": "out/narration-seg-narrative-5.mp3"
+  },
+  {
+    "id": "narrative-6",
+    "segment": "community",
+    "headline": "A recent experience with ChatGPT 5.5 Pro",
+    "narration": "Meanwhile... From Hacker News: A recent experience with ChatGPT 5.5 Pro. OpenAI's ChatGPT continues to evolve rapidly, and real-world user reports like this provide the most honest assessment of what these models can actually do in practice.",
+    "scene": "wire",
+    "durationSec": 15.792,
+    "audioFile": "out/narration-seg-narrative-6.mp3"
+  },
+  {
+    "id": "narrative-7",
+    "segment": "radar",
+    "headline": "tracel-ai/burn trending on GitHub (13 stars today)",
+    "narration": "On a related note... On GitHub... tracel-ai/burn is trending. Star\n\n\n  \n\n  \n    \n    \n\n\n      \n        tracel-ai /\n\n      burn  \n\n    \n      Burn is a next generation tensor library and Deep Learning Framework that doesn't compromise on flexibility, efficiency a. When a project trends on GitHub, it means developers aren't just looking — they're bookmarking it for use.",
+    "scene": "wire",
+    "durationSec": 21.072,
+    "audioFile": "out/narration-seg-narrative-7.mp3"
+  },
+  {
+    "id": "narrative-8",
+    "segment": "story",
+    "headline": "OpenAI: gpt-oss-120b (free) down 22 ranks on OpenRouter weekly",
+    "narration": "Switching tracks. From the Gawk wire feed: OpenAI: gpt-oss-120b (free) down 22 ranks on OpenRouter weekly. Now #37, was #15.",
+    "scene": "wire",
+    "durationSec": 12.936,
+    "audioFile": "out/narration-seg-narrative-8.mp3"
+  },
+  {
+    "id": "narrative-9",
+    "segment": "story",
+    "headline": "I made a small Telegram bot to manage Claude Code Channels sessions on a headless server",
+    "narration": "And this one's worth your attention. From the Gawk wire feed: I made a small Telegram bot to manage Claude Code Channels sessions on a headless server. Discussion on r/ClaudeAI.",
+    "scene": "wire",
+    "durationSec": 11.016,
+    "audioFile": "out/narration-seg-narrative-9.mp3"
+  },
+  {
+    "id": "narrative-10",
+    "segment": "story",
+    "headline": "I used Claude to build an AI assistant that helps run live TTRPG sessions and am looking for a few playtest GMs",
+    "narration": "Moving on. From the Gawk wire feed: I used Claude to build an AI assistant that helps run live TTRPG sessions and am looking for a few playtest GMs. Discussion on r/ClaudeAI.",
+    "scene": "wire",
+    "durationSec": 11.808,
+    "audioFile": "out/narration-seg-narrative-10.mp3"
+  },
+  {
+    "id": "narrative-11",
+    "segment": "story",
+    "headline": "Anthropic leads 7-day GitHub activity (200 events)",
+    "narration": "Next up. From the Gawk wire feed: Anthropic leads 7-day GitHub activity (200 events). San Francisco, US · anthropics",
+    "scene": "wire",
+    "durationSec": 10.416,
+    "audioFile": "out/narration-seg-narrative-11.mp3"
+  },
+  {
+    "id": "narrative-12",
+    "segment": "story",
+    "headline": "Why Global LLM Leaderboards Are Misleading: Small Portfolios for Heterogeneous Supervised ML",
+    "narration": "Shifting gears. From the Gawk wire feed: Why Global LLM Leaderboards Are Misleading: Small Portfolios for Heterogeneous Supervised ML. Jai Moondra, Ayela Chughtai, Bhargavi Lanka et al. · cs.LG",
+    "scene": "wire",
+    "durationSec": 13.656,
+    "audioFile": "out/narration-seg-narrative-12.mp3"
+  },
+  {
+    "id": "narrative-13",
+    "segment": "community",
+    "headline": "\"Dirty Frag\" (CVE-2026-43284): The Second Linux Root Exploit in Eight Days",
+    "narration": "Also worth noting... From Hacker News: \"Dirty Frag\" (CVE-2026-43284): The Second Linux Root Exploit in Eight Days. Security vulnerabilities at the kernel level have direct implications for AI infrastructure, since most AI workloads run on Linux servers. A root exploit means every data centre running unpatched systems is potentially exposed.",
+    "scene": "wire",
+    "durationSec": 22.656,
+    "audioFile": "out/narration-seg-narrative-13.mp3"
+  },
+  {
+    "id": "narrative-14",
+    "segment": "community",
+    "headline": "Asked ChatGPT to make my apartment look more alive",
+    "narration": "Here's something interesting. From the ChatGPT community on Reddit: Asked ChatGPT to make my apartment look more alive. OpenAI's ChatGPT continues to evolve rapidly, and real-world user reports like this provide the most honest assessment of what these models can actually do in practice.",
+    "scene": "wire",
+    "durationSec": 17.4,
+    "audioFile": "out/narration-seg-narrative-14.mp3"
+  },
+  {
+    "id": "outro",
+    "segment": "outro",
+    "headline": "Outro",
+    "narration": "And that's your briefing for 10 May 2026. If any of these stories caught your attention... the full dashboard is live at gawk dot dev — every number links back to its source so you can verify it yourself. If you found this useful, hit subscribe — it helps more people find independent AI coverage. And if you think someone else should see this... share it. This is Gawk Daily. See what the AI world actually sees.",
+    "scene": "globe",
+    "durationSec": 25.536,
+    "audioFile": "out/narration-seg-outro.mp3"
+  }
+]

@@ -68,6 +68,7 @@ type Segment = Narrative["segment"];
 function assignSegment(rank: number, cluster: ScoredEvent[]): Segment {
   if (rank === 0) return "hook";
   if (rank === 1) return "lead";
+  if (rank <= 4) return "story";
 
   const hasGeo = cluster.some((e) => e.geo?.lat != null);
   if (hasGeo) return "map";
