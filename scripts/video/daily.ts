@@ -125,20 +125,12 @@ function main() {
       copyFileSync(walkthroughSrc, walkthroughDest);
     }
 
-    // Generate narration (locked or standard)
-    if (hasLockedScript && hasLockedNarration) {
-      run(
-        `Generate narration (${format})`,
-        "npx tsx scripts/video/generate-narration-locked.ts",
-        { optional: true }
-      );
-    } else if (fileExists("data/video-daily.json")) {
-      run(
-        `Generate TTS (${format})`,
-        "npx tsx scripts/video/generate-tts.ts",
-        { optional: true }
-      );
-    }
+    // Generate narration from locked script (always present after generate-daily-script)
+    run(
+      `Generate narration (${format})`,
+      "npx tsx scripts/video/generate-narration-locked.ts",
+      { optional: true }
+    );
 
     // Composite
     if (!run(
