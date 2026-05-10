@@ -168,7 +168,7 @@ function buildFilterChain(overlays: Overlay[], format: string, videoDuration?: n
   for (const o of overlays) {
     const headline = escapeFFmpegText(o.text);
     const source = escapeFFmpegText(o.source);
-    const yBase = format === "vertical" ? "h-h*0.22" : "h-h*0.17";
+    const yBase = format === "vertical" ? "h-h*0.28" : "h-h*0.25";
 
     // Headline
     filters.push(

@@ -94,7 +94,7 @@ function sourceLabel(scene: string): string {
 const OVERLAY_CSS = `
   .gawk-lower-third {
     position: fixed;
-    bottom: 80px;
+    bottom: 140px;
     left: 40px;
     right: 40px;
     z-index: 2147483647;
