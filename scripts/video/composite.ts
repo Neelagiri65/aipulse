@@ -109,7 +109,7 @@ function buildFilterChain(overlays: Overlay[], format: string): string {
   // Persistent badge: "LIVE • gawk.dev" top-right
   filters.push(
     `drawtext=text='LIVE \\: gawk.dev':` +
-      `fontfile=${BRAND.fontFamily}:fontsize=20:fontcolor=0x${BRAND.accent}:` +
+      `font='${BRAND.fontFamily}':fontsize=20:fontcolor=0x${BRAND.accent}:` +
       `x=w-tw-30:y=25:` +
       `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=8`
   );
@@ -117,7 +117,7 @@ function buildFilterChain(overlays: Overlay[], format: string): string {
   // Date stamp top-left
   filters.push(
     `drawtext=text='${DATE}':` +
-      `fontfile=${BRAND.fontFamily}:fontsize=18:fontcolor=0x${BRAND.fgMuted}:` +
+      `font='${BRAND.fontFamily}':fontsize=18:fontcolor=0x${BRAND.fgMuted}:` +
       `x=30:y=28:` +
       `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=6`
   );
@@ -131,7 +131,7 @@ function buildFilterChain(overlays: Overlay[], format: string): string {
     // Headline
     filters.push(
       `drawtext=text='${headline}':` +
-        `fontfile=${BRAND.fontFamily}:fontsize=${format === "vertical" ? 28 : 32}:fontcolor=0x${BRAND.fg}:` +
+        `font='${BRAND.fontFamily}':fontsize=${format === "vertical" ? 28 : 32}:fontcolor=0x${BRAND.fg}:` +
         `x=40:y=${yBase}:` +
         `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=12:` +
         `enable='between(t,${o.startSec},${o.endSec})'`
@@ -140,7 +140,7 @@ function buildFilterChain(overlays: Overlay[], format: string): string {
     // Source line
     filters.push(
       `drawtext=text='${source}':` +
-        `fontfile=${BRAND.fontFamily}:fontsize=${format === "vertical" ? 18 : 20}:fontcolor=0x${BRAND.accent}:` +
+        `font='${BRAND.fontFamily}':fontsize=${format === "vertical" ? 18 : 20}:fontcolor=0x${BRAND.accent}:` +
         `x=40:y=${yBase}+${format === "vertical" ? 42 : 48}:` +
         `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=6:` +
         `enable='between(t,${o.startSec},${o.endSec})'`
@@ -152,13 +152,13 @@ function buildFilterChain(overlays: Overlay[], format: string): string {
   const ctaEnd = format === "vertical" ? 60 : 90;
   filters.push(
     `drawtext=text='gawk.dev':` +
-      `fontfile=${BRAND.fontFamily}:fontsize=48:fontcolor=0x${BRAND.accent}:` +
+      `font='${BRAND.fontFamily}':fontsize=48:fontcolor=0x${BRAND.accent}:` +
       `x=(w-tw)/2:y=(h-th)/2-20:` +
       `enable='between(t,${ctaStart},${ctaEnd})'`
   );
   filters.push(
     `drawtext=text='See what the AI world actually sees.':` +
-      `fontfile=${BRAND.fontFamily}:fontsize=22:fontcolor=0x${BRAND.fgMuted}:` +
+      `font='${BRAND.fontFamily}':fontsize=22:fontcolor=0x${BRAND.fgMuted}:` +
       `x=(w-tw)/2:y=(h-th)/2+30:` +
       `enable='between(t,${ctaStart},${ctaEnd})'`
   );
