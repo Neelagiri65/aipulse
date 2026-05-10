@@ -66,7 +66,7 @@ function sourceToPanel(source: string): SceneDirection {
 const OVERLAY_CSS = `
   .gawk-data-card {
     position: fixed; inset: 0; z-index: 2147483647;
-    background: rgba(6, 8, 10, 0.92);
+    background: rgba(6, 8, 10, 0.98);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     font-family: 'JetBrains Mono', 'DM Sans', -apple-system, sans-serif;
     pointer-events: none;
@@ -253,20 +253,47 @@ async function hideAllChrome(page: Page) {
 
   await page.evaluate(() => {
     const selectors = [
-      ".ap-live-ticker",
+      // Left nav + icon bar
       ".ap-icon-nav",
+      // Live ticker
+      ".ap-live-ticker",
+      // Filter panel (trigger + expanded forms)
       ".ap-filter-panel-trigger",
+      ".ap-filter-panel--full",
+      ".ap-filter-panel--icons",
+      // Map legend + cursor glow + small labels
       ".ap-map-legend",
       ".ap-cursor-glow",
+      ".ap-label-sm",
+      // TopBar (fixed top, z-40 — contains tabs + logo + status pills)
+      ".ap-tabs",
+      // StatusBar (fixed, z-39, data-testid="global-status-bar")
+      "[data-testid='global-status-bar']",
+      // SubscribeModal / Daily Digest popup (fixed bottom-right, z-40)
+      "[data-testid='subscribe-modal']",
+      // Consent / cookie banners
       "[class*='consent'], [class*='Consent'], [class*='cookie'], [class*='Cookie']",
+      // Toasts
       "[class*='toast'], [class*='Toast'], [class*='Toaster']",
+      // Banners + footer
       "[class*='banner'], [class*='Banner']",
       "footer, [class*='privacy'], [class*='Privacy']",
-      ".ap-label-sm",
     ];
     for (const sel of selectors) {
       document.querySelectorAll(sel).forEach(function(el) {
         (el as HTMLElement).style.setProperty("display", "none", "important");
+      });
+    }
+
+    // TopBar (fixed header, top:0, z-40) + HeroStrip (fixed div, top:76, z-38)
+    // Hide all fixed-position elements in the top 150px — but skip gawk-injected overlays
+    for (const tag of ["header", "div", "nav", "section"]) {
+      document.querySelectorAll(tag).forEach(function(el) {
+        if ((el as HTMLElement).className.startsWith("gawk-")) return;
+        const style = window.getComputedStyle(el);
+        if (style.position === "fixed" && el.getBoundingClientRect().top < 150 && el.getBoundingClientRect().height < 120) {
+          (el as HTMLElement).style.setProperty("display", "none", "important");
+        }
       });
     }
 

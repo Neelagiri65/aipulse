@@ -148,21 +148,21 @@ function buildFilterChain(overlays: Overlay[], format: string, videoDuration?: n
     filters.push("scale=1080:1920");
   }
 
-  // Persistent badge: "LIVE • gawk.dev" top-right
-  filters.push(
-    `drawtext=text='LIVE \\: gawk.dev':` +
-      `font='${BRAND.fontFamily}':fontsize=20:fontcolor=0x${BRAND.accent}:` +
-      `x=w-tw-30:y=25:` +
-      `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=8`
-  );
-
-  // Date stamp top-left
-  filters.push(
-    `drawtext=text='${DATE}':` +
-      `font='${BRAND.fontFamily}':fontsize=18:fontcolor=0x${BRAND.fgMuted}:` +
-      `x=30:y=28:` +
-      `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=6`
-  );
+  // Persistent badge + date stamp: only for vertical format (landscape uses DOM-injected watermark)
+  if (format === "vertical") {
+    filters.push(
+      `drawtext=text='LIVE \\: gawk.dev':` +
+        `font='${BRAND.fontFamily}':fontsize=20:fontcolor=0x${BRAND.accent}:` +
+        `x=w-tw-30:y=25:` +
+        `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=8`
+    );
+    filters.push(
+      `drawtext=text='${DATE}':` +
+        `font='${BRAND.fontFamily}':fontsize=18:fontcolor=0x${BRAND.fgMuted}:` +
+        `x=30:y=28:` +
+        `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=6`
+    );
+  }
 
   // Lower-third overlays: DOM-injected versions are captured in the recording
   // (better styling: gradients, backdrop-filter, rounded corners, animation).
@@ -259,7 +259,7 @@ function main() {
     `-i "${WALKTHROUGH}"`,
     hasAudio ? `-i "${audioPath}"` : "",
     `-t ${duration}`,
-    `-vf "${filterChain}"`,
+    filterChain ? `-vf "${filterChain}"` : "",
     hasAudio ? "-map 0:v -map 1:a" : "-an",
     "-c:v libx264 -preset medium -crf 23",
     hasAudio ? "-c:a aac -b:a 128k" : "",
