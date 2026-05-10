@@ -142,16 +142,16 @@ function escapeFFmpegText(text: string): string {
     .replace(/%/g, "%%");
 }
 
-function buildFilterChain(overlays: Overlay[], format: string, videoDuration?: number): string {
+function buildFilterChain(overlays: Overlay[], format: string, videoDuration?: number, sourceIsVertical?: boolean): string {
   const filters: string[] = [];
 
-  if (format === "vertical") {
+  if (format === "vertical" && !sourceIsVertical) {
     filters.push("crop=ih*9/16:ih:iw/2-ih*9/32:0");
     filters.push("scale=1080:1920");
   }
 
-  // Persistent badge + date stamp: only for vertical format (landscape uses DOM-injected watermark)
-  if (format === "vertical") {
+  // Persistent badge + date stamp: only when cropping landscape→vertical (native vertical has DOM overlays)
+  if (format === "vertical" && !sourceIsVertical) {
     filters.push(
       `drawtext=text='LIVE \\: gawk.dev':` +
         `font='${BRAND.fontFamily}':fontsize=20:fontcolor=0x${BRAND.accent}:` +
@@ -166,10 +166,7 @@ function buildFilterChain(overlays: Overlay[], format: string, videoDuration?: n
     );
   }
 
-  // Lower-third overlays: DOM-injected versions are captured in the recording
-  // (better styling: gradients, backdrop-filter, rounded corners, animation).
-  // Only add ffmpeg drawtext lower-thirds for formats that skip recording (vertical crop).
-  if (format === "vertical") {
+  if (format === "vertical" && !sourceIsVertical) {
     for (const o of overlays) {
       const headline = escapeFFmpegText(o.text);
       const source = escapeFFmpegText(o.source);
@@ -193,8 +190,7 @@ function buildFilterChain(overlays: Overlay[], format: string, videoDuration?: n
     }
   }
 
-  // CTA at the end — only for vertical format (landscape uses DOM-injected CTA)
-  if (format === "vertical") {
+  if (format === "vertical" && !sourceIsVertical) {
     const ctaEnd = videoDuration ?? 60;
     const ctaStart = ctaEnd - 5;
     filters.push(
@@ -283,7 +279,17 @@ function main() {
     `out/gawk-daily-${DATE}${FORMAT === "vertical" ? "-vertical" : ""}.mp4`
   );
 
-  const filterChain = buildFilterChain(overlays, FORMAT, duration);
+  // Detect if source video is already vertical (recorded at 1080x1920)
+  let sourceIsVertical = false;
+  try {
+    const dims = execSync(
+      `ffprobe -v error -show_entries stream=width,height -of csv=p=0:s=x "${WALKTHROUGH}" 2>&1`
+    ).toString().trim().split("\n")[0];
+    const [w, h] = dims.split("x").map(Number);
+    if (w && h && h > w) sourceIsVertical = true;
+  } catch { /* fall back to false */ }
+
+  const filterChain = buildFilterChain(overlays, FORMAT, duration, sourceIsVertical);
 
   const cmd = [
     "ffmpeg -y",

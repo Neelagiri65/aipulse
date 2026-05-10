@@ -1,0 +1,83 @@
+[
+  {
+    "id": "intro",
+    "segment": "intro",
+    "headline": "Cold open",
+    "scene": "globe",
+    "holdSec": 1,
+    "startSec": 0,
+    "endSec": 1
+  },
+  {
+    "id": "hermes-agent",
+    "segment": "hook",
+    "headline": "Hermes Agent takes #1 on OpenRouter Global Ranking",
+    "scene": "globe",
+    "holdSec": 10,
+    "startSec": 1,
+    "endSec": 11
+  },
+  {
+    "id": "breathe-0",
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
+    "startSec": 11,
+    "endSec": 12
+  },
+  {
+    "id": "gpt-oss-drop",
+    "segment": "story",
+    "headline": "OpenAI gpt-oss-120b down 21 ranks on OpenRouter",
+    "scene": "models",
+    "holdSec": 7,
+    "startSec": 12,
+    "endSec": 19
+  },
+  {
+    "id": "breathe-1",
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
+    "startSec": 19,
+    "endSec": 20
+  },
+  {
+    "id": "hy3-climb",
+    "segment": "story",
+    "headline": "Tencent Hy3 preview climbs 28 ranks (38 → 10)",
+    "scene": "models",
+    "holdSec": 7,
+    "startSec": 20,
+    "endSec": 27
+  },
+  {
+    "id": "breathe-2",
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
+    "startSec": 27,
+    "endSec": 28
+  },
+  {
+    "id": "kimi-holds",
+    "segment": "story",
+    "headline": "Kimi K2.6 holds #1 by developer spend",
+    "scene": "models",
+    "holdSec": 7,
+    "startSec": 28,
+    "endSec": 35
+  },
+  {
+    "id": "outro",
+    "segment": "outro",
+    "headline": "Outro",
+    "scene": "globe",
+    "holdSec": 4,
+    "startSec": 35,
+    "endSec": 39
+  }
+]

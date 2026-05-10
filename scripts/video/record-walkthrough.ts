@@ -47,11 +47,13 @@ type ManifestEntry = SegmentPlan & {
   endSec: number;
 };
 
-const FORMAT_CONFIGS: Record<string, { maxItems: number }> = {
-  youtube: { maxItems: 12 },
-  linkedin: { maxItems: 5 },
-  instagram: { maxItems: 4 },
+const FORMAT_CONFIGS: Record<string, { maxItems: number; width: number; height: number }> = {
+  youtube: { maxItems: 12, width: 1920, height: 1080 },
+  linkedin: { maxItems: 5, width: 1920, height: 1080 },
+  instagram: { maxItems: 4, width: 1080, height: 1920 },
 };
+
+const IS_VERTICAL = (FORMAT_CONFIGS[FORMAT]?.height ?? 1080) > (FORMAT_CONFIGS[FORMAT]?.width ?? 1920);
 
 function sourceToPanel(source: string): SceneDirection {
   if (source.startsWith("gawk-models")) return "models";
@@ -63,13 +65,32 @@ function sourceToPanel(source: string): SceneDirection {
 
 // --- CSS for injected overlays ---
 
-const OVERLAY_CSS = `
+function buildOverlayCSS(vertical: boolean): string {
+  const numSize = vertical ? "80px" : "120px";
+  const arrowSize = vertical ? "56px" : "80px";
+  const titleSize = vertical ? "26px" : "32px";
+  const titleMax = vertical ? "90%" : "800px";
+  const ltBottom = vertical ? "120px" : "60px";
+  const ltLeft = vertical ? "24px" : "40px";
+  const ltMaxW = vertical ? "calc(100% - 48px)" : "700px";
+  const ltHeadSize = vertical ? "22px" : "18px";
+  const ctaLogo = vertical ? "48px" : "64px";
+  const ctaTag = vertical ? "18px" : "20px";
+  const ctaDir = vertical ? "column" : "row";
+  const lbHero = vertical ? "48px" : "72px";
+  const lbHeroSub = vertical ? "22px" : "28px";
+  const lbTableW = vertical ? "90%" : "700px";
+  const lbRowFont = vertical ? "17px" : "20px";
+  const lbRankFont = vertical ? "15px" : "18px";
+  const lbValFont = vertical ? "15px" : "18px";
+
+  return `
   .gawk-data-card {
     position: fixed; inset: 0; z-index: 2147483647;
     background: #06080a;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     font-family: 'JetBrains Mono', 'DM Sans', -apple-system, sans-serif;
-    pointer-events: none;
+    pointer-events: none; padding: ${vertical ? "40px 24px" : "0"};
     animation: gawk-card-in 0.5s ease-out;
   }
   .gawk-data-card__label {
@@ -77,15 +98,15 @@ const OVERLAY_CSS = `
     letter-spacing: 4px; text-transform: uppercase; margin-bottom: 20px;
   }
   .gawk-data-card__number {
-    font-size: 120px; font-weight: 700; line-height: 1;
+    font-size: ${numSize}; font-weight: 700; line-height: 1;
     margin-bottom: 16px;
   }
   .gawk-data-card__number--up { color: #4ade80; }
   .gawk-data-card__number--down { color: #f87171; }
   .gawk-data-card__number--neutral { color: #e2e8f0; }
   .gawk-data-card__title {
-    font-size: 32px; font-weight: 500; color: #e2e8f0;
-    margin-bottom: 12px; text-align: center; max-width: 800px;
+    font-size: ${titleSize}; font-weight: 500; color: #e2e8f0;
+    margin-bottom: 12px; text-align: center; max-width: ${titleMax};
     font-family: 'DM Sans', -apple-system, sans-serif;
   }
   .gawk-data-card__source {
@@ -93,14 +114,14 @@ const OVERLAY_CSS = `
     font-family: 'JetBrains Mono', monospace;
   }
   .gawk-data-card__arrow {
-    font-size: 80px; line-height: 1; margin-bottom: 8px;
+    font-size: ${arrowSize}; line-height: 1; margin-bottom: 8px;
   }
   .gawk-data-card__arrow--up { color: #4ade80; }
   .gawk-data-card__arrow--down { color: #f87171; }
 
   .gawk-lower-third {
     position: fixed;
-    bottom: 60px; left: 40px;
+    bottom: ${ltBottom}; left: ${ltLeft};
     z-index: 2147483647;
     background: linear-gradient(135deg, #06080a, #0f141e);
     border: 1px solid rgba(45, 212, 191, 0.3);
@@ -111,7 +132,7 @@ const OVERLAY_CSS = `
     box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(45,212,191,0.08);
     animation: gawk-slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: none;
-    max-width: 700px;
+    max-width: ${ltMaxW};
   }
   .gawk-lower-third__segment {
     font-size: 11px; font-weight: 600;
@@ -119,7 +140,7 @@ const OVERLAY_CSS = `
     letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px;
   }
   .gawk-lower-third__headline {
-    font-size: 18px; font-weight: 500; color: #e2e8f0; line-height: 1.3;
+    font-size: ${ltHeadSize}; font-weight: 500; color: #e2e8f0; line-height: 1.3;
   }
 
   .gawk-watermark {
@@ -141,20 +162,20 @@ const OVERLAY_CSS = `
     background: #06080a;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     font-family: 'JetBrains Mono', 'DM Sans', -apple-system, sans-serif;
-    pointer-events: none;
+    pointer-events: none; padding: ${vertical ? "40px 24px" : "0"};
     animation: gawk-card-in 0.8s ease-out;
   }
   .gawk-cta-card__logo {
-    font-size: 64px; font-weight: 700; color: #e2e8f0;
+    font-size: ${ctaLogo}; font-weight: 700; color: #e2e8f0;
     letter-spacing: 6px; margin-bottom: 16px;
   }
   .gawk-cta-card__dot { color: rgba(45, 212, 191, 1); }
   .gawk-cta-card__tagline {
-    font-size: 20px; color: #64748b; margin-bottom: 40px;
-    font-family: 'DM Sans', -apple-system, sans-serif;
+    font-size: ${ctaTag}; color: #64748b; margin-bottom: 40px;
+    font-family: 'DM Sans', -apple-system, sans-serif; text-align: center;
   }
   .gawk-cta-card__actions {
-    display: flex; gap: 24px;
+    display: flex; flex-direction: ${ctaDir}; gap: ${vertical ? "16px" : "24px"}; align-items: center;
   }
   .gawk-cta-card__action {
     padding: 12px 32px; border-radius: 8px; font-size: 16px;
@@ -178,39 +199,39 @@ const OVERLAY_CSS = `
     background: #06080a;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     font-family: 'JetBrains Mono', 'DM Sans', -apple-system, sans-serif;
-    pointer-events: none;
+    pointer-events: none; padding: ${vertical ? "40px 24px" : "0"};
     animation: gawk-card-in 0.5s ease-out;
   }
   .gawk-leaderboard__label {
     font-size: 14px; font-weight: 600; color: rgba(45, 212, 191, 0.7);
     letter-spacing: 4px; text-transform: uppercase; margin-bottom: 12px;
   }
-  .gawk-leaderboard__crown { font-size: 48px; margin-bottom: 8px; }
+  .gawk-leaderboard__crown { font-size: ${vertical ? "36px" : "48px"}; margin-bottom: 8px; }
   .gawk-leaderboard__hero {
-    font-size: 72px; font-weight: 700; color: #4ade80;
+    font-size: ${lbHero}; font-weight: 700; color: #4ade80;
     margin-bottom: 4px; letter-spacing: 2px;
   }
   .gawk-leaderboard__hero-sub {
-    font-size: 28px; font-weight: 500; color: rgba(78, 205, 154, 0.7);
+    font-size: ${lbHeroSub}; font-weight: 500; color: rgba(78, 205, 154, 0.7);
     margin-bottom: 40px; font-family: 'DM Sans', sans-serif;
   }
   .gawk-leaderboard__table {
-    width: 700px; border-collapse: separate; border-spacing: 0 6px;
+    width: ${lbTableW}; border-collapse: separate; border-spacing: 0 6px;
   }
   .gawk-leaderboard__row td {
-    padding: 10px 16px; font-size: 20px; font-weight: 500;
+    padding: ${vertical ? "8px 12px" : "10px 16px"}; font-size: ${lbRowFont}; font-weight: 500;
     background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
   }
   .gawk-leaderboard__row td:first-child {
     border-radius: 8px 0 0 8px; width: 50px; text-align: center;
-    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 18px; color: #64748b;
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: ${lbRankFont}; color: #64748b;
   }
   .gawk-leaderboard__row td:nth-child(2) {
     font-family: 'DM Sans', sans-serif; font-weight: 600; color: #cbd5e1;
   }
   .gawk-leaderboard__row td:last-child {
     border-radius: 0 8px 8px 0; text-align: right;
-    font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #94a3b8; font-size: 18px;
+    font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #94a3b8; font-size: ${lbValFont};
   }
   .gawk-leaderboard__row--1 td { background: rgba(74,222,128,0.08); border-color: rgba(74,222,128,0.25); }
   .gawk-leaderboard__row--1 td:first-child { color: #4ade80; }
@@ -246,6 +267,9 @@ const OVERLAY_CSS = `
     background: #06080a;
   }
 `;
+}
+
+const OVERLAY_CSS = buildOverlayCSS(IS_VERTICAL);
 
 // --- Page manipulation helpers ---
 
@@ -579,13 +603,17 @@ async function main() {
 
   mkdirSync(OUT_DIR, { recursive: true });
 
+  const fmtConfig = FORMAT_CONFIGS[FORMAT] ?? FORMAT_CONFIGS.youtube;
+  const VW = fmtConfig.width;
+  const VH = fmtConfig.height;
+
   const browser = await chromium.launch({
     headless: true,
     args: ["--run-all-compositor-stages-before-draw", "--disable-checker-imaging"],
   });
   const context = await browser.newContext({
-    viewport: { width: 1920, height: 1080 },
-    recordVideo: { dir: OUT_DIR, size: { width: 1920, height: 1080 } },
+    viewport: { width: VW, height: VH },
+    recordVideo: { dir: OUT_DIR, size: { width: VW, height: VH } },
   });
 
   const page = await context.newPage();
