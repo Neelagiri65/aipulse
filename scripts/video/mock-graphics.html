@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Gawk Daily — Graphic Mocks</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #06080a;
+    color: #e2e8f0;
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    overflow: hidden;
+  }
+
+  .frame {
+    width: 1920px;
+    height: 1080px;
+    position: relative;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .frame.active { display: flex; }
+
+  /* --- LEADERBOARD GRAPHIC --- */
+  .leaderboard {
+    position: absolute; inset: 0;
+    background: rgba(6, 8, 10, 0.95);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', 'DM Sans', -apple-system, sans-serif;
+  }
+  .leaderboard__label {
+    font-size: 14px; font-weight: 600;
+    color: rgba(45, 212, 191, 0.7);
+    letter-spacing: 4px; text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .leaderboard__crown {
+    font-size: 48px; margin-bottom: 8px;
+  }
+  .leaderboard__hero {
+    font-size: 72px; font-weight: 700;
+    color: #4ade80; margin-bottom: 4px;
+    letter-spacing: 2px;
+  }
+  .leaderboard__hero-sub {
+    font-size: 28px; font-weight: 500;
+    color: rgba(78, 205, 154, 0.7);
+    margin-bottom: 40px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .leaderboard__table {
+    width: 700px;
+    border-collapse: separate;
+    border-spacing: 0 6px;
+  }
+  .leaderboard__row {
+    height: 52px;
+  }
+  .leaderboard__row td {
+    padding: 10px 16px;
+    font-size: 20px;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .leaderboard__row td:first-child {
+    border-radius: 8px 0 0 8px;
+    width: 50px; text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700; font-size: 18px;
+    color: #64748b;
+  }
+  .leaderboard__row td:nth-child(2) {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    color: #cbd5e1;
+  }
+  .leaderboard__row td:last-child {
+    border-radius: 0 8px 8px 0;
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: #94a3b8;
+    font-size: 18px;
+  }
+
+  /* Row 1 — highlighted green */
+  .leaderboard__row--1 td {
+    background: rgba(74, 222, 128, 0.08);
+    border-color: rgba(74, 222, 128, 0.25);
+  }
+  .leaderboard__row--1 td:first-child { color: #4ade80; }
+  .leaderboard__row--1 td:nth-child(2) { color: #4ade80; font-weight: 700; }
+  .leaderboard__row--1 td:last-child { color: #4ade80; }
+
+  /* Row 2 — subtle white */
+  .leaderboard__row--2 td {
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .leaderboard__row--2 td:nth-child(2) { color: #e2e8f0; }
+
+  /* Row 4 — Claude Code, teal accent */
+  .leaderboard__row--4 td {
+    background: rgba(45, 212, 191, 0.06);
+    border-color: rgba(45, 212, 191, 0.2);
+  }
+  .leaderboard__row--4 td:first-child { color: rgba(45, 212, 191, 0.8); }
+  .leaderboard__row--4 td:nth-child(2) { color: rgba(45, 212, 191, 0.9); }
+  .leaderboard__row--4 td:last-child { color: rgba(45, 212, 191, 0.8); }
+
+  .leaderboard__source {
+    margin-top: 32px;
+    font-size: 14px; color: #64748b;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* --- CTA END CARD --- */
+  .cta-card {
+    position: absolute; inset: 0;
+    background: #06080a;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', 'DM Sans', -apple-system, sans-serif;
+  }
+  .cta-card__logo {
+    font-size: 72px; font-weight: 700; color: #e2e8f0;
+    letter-spacing: 6px; margin-bottom: 16px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .cta-card__dot { color: rgba(45, 212, 191, 1); }
+  .cta-card__tagline {
+    font-size: 22px; color: #64748b; margin-bottom: 48px;
+    font-family: 'DM Sans', -apple-system, sans-serif;
+  }
+  .cta-card__actions {
+    display: flex; gap: 24px;
+  }
+  .cta-card__action {
+    padding: 14px 36px; border-radius: 8px; font-size: 17px;
+    font-weight: 600; letter-spacing: 1px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .cta-card__action--primary {
+    background: rgba(45, 212, 191, 0.15);
+    border: 1px solid rgba(45, 212, 191, 0.4);
+    color: rgba(45, 212, 191, 0.9);
+  }
+  .cta-card__action--secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+  }
+  .cta-card__date {
+    margin-top: 40px;
+    font-size: 13px; color: #475569;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Watermark + date stamp */
+  .watermark {
+    position: absolute; top: 20px; right: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; color: rgba(45, 212, 191, 0.5);
+    letter-spacing: 1px;
+  }
+  .date-stamp {
+    position: absolute; top: 20px; left: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: rgba(100, 116, 139, 0.6);
+  }
+
+  /* Nav */
+  .nav { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 12px; z-index: 100; }
+  .nav button { padding: 8px 20px; border: 1px solid #334155; border-radius: 6px;
+    background: #1e293b; color: #e2e8f0; cursor: pointer; font-size: 14px; }
+  .nav button:hover { background: #334155; }
+  .nav button.active { border-color: rgba(45, 212, 191, 0.5); color: #2dd4bf; }
+</style>
+</head>
+<body>
+
+<!-- FRAME 1: Hermes Agent Leaderboard -->
+<div class="frame active" id="frame-leaderboard">
+  <div class="watermark">gawk.dev</div>
+  <div class="date-stamp">2026-05-10</div>
+  <div class="leaderboard">
+    <div class="leaderboard__label">GLOBAL RANKING · TOKEN VOLUME</div>
+    <div class="leaderboard__crown">👑</div>
+    <div class="leaderboard__hero">HERMES AGENT</div>
+    <div class="leaderboard__hero-sub">#1 — displaces OpenClaw</div>
+    <table class="leaderboard__table">
+      <tr class="leaderboard__row leaderboard__row--1">
+        <td>1</td><td>Hermes Agent</td><td>271B tokens</td>
+      </tr>
+      <tr class="leaderboard__row leaderboard__row--2">
+        <td>2</td><td>OpenClaw</td><td>245B tokens</td>
+      </tr>
+      <tr class="leaderboard__row leaderboard__row--3">
+        <td>3</td><td>Kilo Code</td><td>149B tokens</td>
+      </tr>
+      <tr class="leaderboard__row leaderboard__row--4">
+        <td>4</td><td>Claude Code</td><td>79.2B tokens</td>
+      </tr>
+      <tr class="leaderboard__row leaderboard__row--5">
+        <td>5</td><td>Descript</td><td>48.9B tokens</td>
+      </tr>
+    </table>
+    <div class="leaderboard__source">Source: OpenRouter Global Ranking · 10 May 2026</div>
+  </div>
+</div>
+
+<!-- FRAME 2: CTA End Card -->
+<div class="frame" id="frame-cta">
+  <div class="cta-card">
+    <div class="cta-card__logo">gawk<span class="cta-card__dot">.</span>dev</div>
+    <div class="cta-card__tagline">Track what actually matters in AI.</div>
+    <div class="cta-card__actions">
+      <div class="cta-card__action cta-card__action--primary">Subscribe for daily briefs</div>
+      <div class="cta-card__action cta-card__action--secondary">Bookmark gawk.dev</div>
+    </div>
+    <div class="cta-card__date">10 May 2026</div>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="active" onclick="show('leaderboard')">Leaderboard</button>
+  <button onclick="show('cta')">CTA End Card</button>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
+  document.getElementById('frame-' + id).classList.add('active');
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

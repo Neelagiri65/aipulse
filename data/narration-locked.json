@@ -1,0 +1,26 @@
+[
+  {
+    "id": "intro",
+    "narration": "10 May. New king of the agents."
+  },
+  {
+    "id": "hermes-agent",
+    "narration": "Hermes Agent just took number one on OpenRouter's global ranking — 271 billion tokens. OpenClaw held that crown yesterday. Claude Code sits at number four, 3.4x behind."
+  },
+  {
+    "id": "gpt-oss-drop",
+    "narration": "OpenAI's open-source flagship dropped 21 ranks on OpenRouter this week. Now 36th. Free isn't enough when the competition ships daily."
+  },
+  {
+    "id": "hy3-climb",
+    "narration": "Tencent's Hy3 jumped 28 ranks — from 38th to 10th. At six cents per million tokens, it's a fraction of the price of everything above it."
+  },
+  {
+    "id": "kimi-holds",
+    "narration": "Kimi K2.6 holds number one by developer spend. Seventy-five cents per million tokens. Developers voting with their wallets."
+  },
+  {
+    "id": "outro",
+    "narration": "That's the briefing. Every number links to its source. gawk dot dev."
+  }
+]

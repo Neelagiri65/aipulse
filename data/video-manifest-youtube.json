@@ -2,145 +2,82 @@
   {
     "id": "intro",
     "segment": "intro",
-    "headline": "Intro",
+    "headline": "Cold open",
     "scene": "globe",
-    "holdSec": 5,
+    "holdSec": 1,
     "startSec": 0,
-    "endSec": 5
+    "endSec": 1
   },
   {
-    "id": "narrative-0",
+    "id": "hermes-agent",
     "segment": "hook",
-    "headline": "ollama downloads down 186.7% on brew",
-    "scene": "sdk-adoption",
-    "holdSec": 6,
-    "startSec": 5,
+    "headline": "Hermes Agent takes #1 on OpenRouter Global Ranking",
+    "scene": "globe",
+    "holdSec": 10,
+    "startSec": 1,
     "endSec": 11
   },
   {
-    "id": "narrative-1",
-    "segment": "lead",
-    "headline": "The gap between knowing something and actually understanding it — AI accelerated my learning curve",
-    "scene": "wire",
-    "holdSec": 8,
-    "startSec": 11.3,
-    "endSec": 19.3
+    "id": "breathe-0",
+    "segment": "map",
+    "headline": "Map breathe",
+    "scene": "globe",
+    "holdSec": 2,
+    "startSec": 11,
+    "endSec": 13
   },
   {
-    "id": "narrative-2",
+    "id": "gpt-oss-drop",
     "segment": "story",
-    "headline": "Hy3 preview moved from rank 38 to 15",
+    "headline": "OpenAI gpt-oss-120b down 21 ranks on OpenRouter",
     "scene": "models",
-    "holdSec": 6,
-    "startSec": 19.6,
-    "endSec": 25.6
+    "holdSec": 7,
+    "startSec": 13,
+    "endSec": 20
   },
   {
-    "id": "narrative-3",
-    "segment": "story",
-    "headline": "ripienaar/free-for-dev trending on GitHub (112 stars today)",
-    "scene": "wire",
-    "holdSec": 6,
-    "startSec": 25.900000000000002,
-    "endSec": 31.900000000000002
-  },
-  {
-    "id": "map-1",
+    "id": "breathe-1",
     "segment": "map",
-    "headline": "Fly to Europe",
+    "headline": "Map breathe",
     "scene": "globe",
-    "holdSec": 3,
-    "startSec": 32.2,
-    "endSec": 35.2
+    "holdSec": 2,
+    "startSec": 20,
+    "endSec": 22
   },
   {
-    "id": "narrative-4",
+    "id": "hy3-climb",
     "segment": "story",
-    "headline": "milvus-io/milvus trending on GitHub (20 stars today)",
-    "scene": "wire",
-    "holdSec": 8,
-    "startSec": 35.2,
-    "endSec": 43.2
+    "headline": "Tencent Hy3 preview climbs 28 ranks (38 → 10)",
+    "scene": "models",
+    "holdSec": 7,
+    "startSec": 22,
+    "endSec": 29
   },
   {
-    "id": "narrative-5",
-    "segment": "community",
-    "headline": "Using Claude Code: The unreasonable effectiveness of HTML",
-    "scene": "wire",
-    "holdSec": 8,
-    "startSec": 43.5,
-    "endSec": 51.5
-  },
-  {
-    "id": "narrative-6",
-    "segment": "community",
-    "headline": "A recent experience with ChatGPT 5.5 Pro",
-    "scene": "wire",
-    "holdSec": 8,
-    "startSec": 51.8,
-    "endSec": 59.8
-  },
-  {
-    "id": "narrative-7",
-    "segment": "radar",
-    "headline": "tracel-ai/burn trending on GitHub (13 stars today)",
-    "scene": "wire",
-    "holdSec": 8,
-    "startSec": 60.099999999999994,
-    "endSec": 68.1
-  },
-  {
-    "id": "map-2",
+    "id": "breathe-2",
     "segment": "map",
-    "headline": "Fly to North America",
+    "headline": "Map breathe",
     "scene": "globe",
-    "holdSec": 3,
-    "startSec": 68.39999999999999,
-    "endSec": 71.39999999999999
+    "holdSec": 2,
+    "startSec": 29,
+    "endSec": 31
   },
   {
-    "id": "narrative-8",
+    "id": "kimi-holds",
     "segment": "story",
-    "headline": "OpenAI: gpt-oss-120b (free) down 22 ranks on OpenRouter weekly",
-    "scene": "wire",
-    "holdSec": 8,
-    "startSec": 71.39999999999999,
-    "endSec": 79.39999999999999
-  },
-  {
-    "id": "narrative-9",
-    "segment": "story",
-    "headline": "I made a small Telegram bot to manage Claude Code Channels sessions on a headless server",
-    "scene": "wire",
-    "holdSec": 8,
-    "startSec": 79.69999999999999,
-    "endSec": 87.69999999999999
-  },
-  {
-    "id": "narrative-10",
-    "segment": "story",
-    "headline": "I used Claude to build an AI assistant that helps run live TTRPG sessions and am looking for a few playtest GMs",
-    "scene": "wire",
-    "holdSec": 8,
-    "startSec": 87.99999999999999,
-    "endSec": 95.99999999999999
-  },
-  {
-    "id": "narrative-11",
-    "segment": "story",
-    "headline": "Anthropic leads 7-day GitHub activity (200 events)",
-    "scene": "wire",
-    "holdSec": 8,
-    "startSec": 96.29999999999998,
-    "endSec": 104.29999999999998
+    "headline": "Kimi K2.6 holds #1 by developer spend",
+    "scene": "models",
+    "holdSec": 7,
+    "startSec": 31,
+    "endSec": 38
   },
   {
     "id": "outro",
     "segment": "outro",
     "headline": "Outro",
     "scene": "globe",
-    "holdSec": 12,
-    "startSec": 104.59999999999998,
-    "endSec": 114.59999999999998
+    "holdSec": 4,
+    "startSec": 38,
+    "endSec": 42
   }
 ]

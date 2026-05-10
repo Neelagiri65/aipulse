@@ -191,21 +191,23 @@ function buildFilterChain(overlays: Overlay[], format: string, videoDuration?: n
     }
   }
 
-  // CTA at the end
-  const ctaEnd = videoDuration ?? (format === "vertical" ? 60 : 90);
-  const ctaStart = ctaEnd - 5;
-  filters.push(
-    `drawtext=text='gawk.dev':` +
-      `font='${BRAND.fontFamily}':fontsize=48:fontcolor=0x${BRAND.accent}:` +
-      `x=(w-tw)/2:y=(h-th)/2-20:` +
-      `enable='between(t,${ctaStart},${ctaEnd})'`
-  );
-  filters.push(
-    `drawtext=text='See what the AI world actually sees.':` +
-      `font='${BRAND.fontFamily}':fontsize=22:fontcolor=0x${BRAND.fgMuted}:` +
-      `x=(w-tw)/2:y=(h-th)/2+30:` +
-      `enable='between(t,${ctaStart},${ctaEnd})'`
-  );
+  // CTA at the end — only for vertical format (landscape uses DOM-injected CTA)
+  if (format === "vertical") {
+    const ctaEnd = videoDuration ?? 60;
+    const ctaStart = ctaEnd - 5;
+    filters.push(
+      `drawtext=text='gawk.dev':` +
+        `font='${BRAND.fontFamily}':fontsize=48:fontcolor=0x${BRAND.accent}:` +
+        `x=(w-tw)/2:y=(h-th)/2-20:` +
+        `enable='between(t,${ctaStart},${ctaEnd})'`
+    );
+    filters.push(
+      `drawtext=text='See what the AI world actually sees.':` +
+        `font='${BRAND.fontFamily}':fontsize=22:fontcolor=0x${BRAND.fgMuted}:` +
+        `x=(w-tw)/2:y=(h-th)/2+30:` +
+        `enable='between(t,${ctaStart},${ctaEnd})'`
+    );
+  }
 
   return filters.join(",");
 }
