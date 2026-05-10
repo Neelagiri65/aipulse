@@ -18,16 +18,17 @@ declare const __HAS_AUDIO__: boolean;
 declare const __HAS_SCREENSHOTS__: boolean;
 
 const FPS = 30;
+const CROSSFADE_FRAMES = 12;
 
 const C = {
-  bg: "#0a0e1a",
-  bgCard: "#111827",
-  bgCardHover: "#1e293b",
+  bg: "#080c14",
+  bgCard: "rgba(17, 24, 39, 0.85)",
+  bgCardSolid: "#111827",
   accent: "#14b8a6",
-  accentGlow: "rgba(20, 184, 166, 0.15)",
+  accentGlow: "rgba(20, 184, 166, 0.2)",
   text: "#f1f5f9",
   textMuted: "#94a3b8",
-  textDim: "#64748b",
+  textDim: "#475569",
   orange: "#ff6600",
   green: "#22c55e",
   red: "#ef4444",
@@ -36,437 +37,560 @@ const C = {
   pink: "#ec4899",
   amber: "#f59e0b",
   cyan: "#06b6d4",
-  border: "#1e293b",
+  border: "rgba(30, 41, 59, 0.6)",
   borderAccent: "rgba(20, 184, 166, 0.3)",
+  gridLine: "rgba(20, 184, 166, 0.04)",
 };
 
-// --- Animations ---
+// --- Terminal grid background ---
 
-function useCountUp(target: number, dur = 40, delay = 0): number {
+function TerminalGrid() {
   const frame = useCurrentFrame();
-  return Math.round(
-    interpolate(frame - delay, [0, dur], [0, target], {
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
-      easing: Easing.out(Easing.cubic),
-    })
+  const scanY = interpolate(frame % 180, [0, 180], [-5, 105]);
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      {/* Grid lines */}
+      <div style={{
+        position: "absolute", inset: 0,
+        backgroundImage: `
+          linear-gradient(${C.gridLine} 1px, transparent 1px),
+          linear-gradient(90deg, ${C.gridLine} 1px, transparent 1px)
+        `,
+        backgroundSize: "60px 60px",
+        opacity: 0.8,
+      }} />
+      {/* Scanline */}
+      <div style={{
+        position: "absolute", left: 0, right: 0,
+        top: `${scanY}%`, height: 2,
+        background: `linear-gradient(90deg, transparent, rgba(20,184,166,0.08), transparent)`,
+      }} />
+      {/* Vignette */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.4) 100%)",
+      }} />
+    </AbsoluteFill>
   );
 }
 
-function FadeSlideIn({
-  children,
-  delay = 0,
-  direction = "up",
-}: {
-  children: React.ReactNode;
-  delay?: number;
-  direction?: "up" | "down" | "left" | "right";
+// --- Scene wrapper with crossfade ---
+
+function SceneWrap({ children, durationInFrames }: { children: React.ReactNode; durationInFrames: number }) {
+  const frame = useCurrentFrame();
+  const fadeIn = interpolate(frame, [0, CROSSFADE_FRAMES], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const fadeOut = interpolate(frame, [durationInFrames - CROSSFADE_FRAMES, durationInFrames], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  return (
+    <AbsoluteFill style={{ opacity: Math.min(fadeIn, fadeOut) }}>
+      <AbsoluteFill style={{ background: C.bg }} />
+      <TerminalGrid />
+      {children}
+    </AbsoluteFill>
+  );
+}
+
+// --- Animations ---
+
+function useCountUp(target: number, dur = 35, delay = 0): number {
+  const frame = useCurrentFrame();
+  return Math.round(interpolate(frame - delay, [0, dur], [0, target], {
+    extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic),
+  }));
+}
+
+function FadeSlideIn({ children, delay = 0, direction = "up" }: {
+  children: React.ReactNode; delay?: number; direction?: "up" | "left" | "right";
 }) {
   const frame = useCurrentFrame();
-  const p = interpolate(frame - delay, [0, 20], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-    easing: Easing.out(Easing.cubic),
+  const p = interpolate(frame - delay, [0, 18], [0, 1], {
+    extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic),
   });
-  const off = interpolate(p, [0, 1], [30, 0]);
-  const t: Record<string, string> = {
-    up: `translateY(${off}px)`,
-    down: `translateY(${-off}px)`,
-    left: `translateX(${off}px)`,
-    right: `translateX(${-off}px)`,
+  const off = (1 - p) * 24;
+  const transforms: Record<string, string> = {
+    up: `translateY(${off}px)`, left: `translateX(${off}px)`, right: `translateX(${-off}px)`,
   };
-  return <div style={{ opacity: p, transform: t[direction] }}>{children}</div>;
+  return <div style={{ opacity: p, transform: transforms[direction] }}>{children}</div>;
 }
 
 function ScaleIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const s = spring({ frame: frame - delay, fps, config: { damping: 12, stiffness: 120 } });
+  const s = spring({ frame: frame - delay, fps, config: { damping: 14, stiffness: 100 } });
   const o = interpolate(frame - delay, [0, 8], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return <div style={{ transform: `scale(${s})`, opacity: o }}>{children}</div>;
 }
 
-function SourceFooter({ source, delay = 50 }: { source: string; delay?: number }) {
+function GlowLine({ delay = 0, color = C.accent }: { delay?: number; color?: string }) {
   const frame = useCurrentFrame();
-  const o = interpolate(frame - delay, [0, 15], [0, 0.5], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  return (
-    <div style={{ position: "absolute", bottom: 28, right: 40, fontSize: 14, color: C.textDim, opacity: o, letterSpacing: 1 }}>
-      {source}
-    </div>
-  );
+  const w = interpolate(frame - delay, [0, 30], [0, 100], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) });
+  return <div style={{ width: `${w}%`, height: 1, background: `linear-gradient(90deg, transparent, ${color}, transparent)`, margin: "12px auto 0" }} />;
 }
 
-function GlowBar() {
+function SourceTag({ text, delay = 40 }: { text: string; delay?: number }) {
   const frame = useCurrentFrame();
-  const w = interpolate(frame, [0, 35], [0, 100], { extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) });
-  return <div style={{ width: `${w}%`, height: 2, background: `linear-gradient(90deg, transparent, ${C.accent}, transparent)`, marginTop: 16, borderRadius: 2 }} />;
+  const o = interpolate(frame - delay, [0, 12], [0, 0.45], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  return <div style={{ position: "absolute", bottom: 24, right: 36, fontSize: 12, color: C.textDim, opacity: o, letterSpacing: 1.5, fontFamily: "monospace" }}>{text}</div>;
 }
 
-function SectionLabel({ text, color = C.accent }: { text: string; color?: string }) {
+function SectionHeader({ text, color = C.accent, delay = 0 }: { text: string; color?: string; delay?: number }) {
   return (
-    <FadeSlideIn>
-      <div style={{ fontSize: 16, color, letterSpacing: 6, textTransform: "uppercase", fontWeight: 500, marginBottom: 28 }}>
+    <FadeSlideIn delay={delay}>
+      <div style={{ fontSize: 13, color, letterSpacing: 7, textTransform: "uppercase", fontWeight: 500, marginBottom: 24 }}>
         {text}
       </div>
     </FadeSlideIn>
   );
 }
 
-function KenBurns({ src, zoomStart = 1, zoomEnd = 1.12, panX = 15, panY = -8 }: {
-  src: string; zoomStart?: number; zoomEnd?: number; panX?: number; panY?: number;
+// --- Ken Burns ---
+
+function KenBurns({ src, zoomEnd = 1.12, panX = 15, panY = -8 }: {
+  src: string; zoomEnd?: number; panX?: number; panY?: number;
 }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const zoom = spring({ frame, fps, from: zoomStart, to: zoomEnd, config: { stiffness: 30, damping: 20 } })
-    + noise2D("kz", frame * 0.1, 0) * 0.005;
-  const x = spring({ frame: Math.max(0, frame - 15), fps, from: 0, to: panX, config: { stiffness: 25, damping: 22 } })
-    + noise2D("kx", frame * 0.08, 0) * 1;
-  const y = noise2D("ky", frame * 0.07, 0) * 0.8 + interpolate(frame, [0, 300], [0, panY], { extrapolateRight: "clamp" });
+  const zoom = spring({ frame, fps, from: 1, to: zoomEnd, config: { stiffness: 25, damping: 20 } })
+    + noise2D("kz", frame * 0.1, 0) * 0.004;
+  const x = spring({ frame: Math.max(0, frame - 12), fps, from: 0, to: panX, config: { stiffness: 22, damping: 22 } })
+    + noise2D("kx", frame * 0.07, 0) * 0.8;
+  const y = interpolate(frame, [0, 400], [0, panY], { extrapolateRight: "clamp" })
+    + noise2D("ky", frame * 0.06, 0) * 0.6;
   return (
     <AbsoluteFill style={{ overflow: "hidden" }}>
-      <Img src={src} style={{ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${zoom}) translate(${x}px, ${y}px)`, transformOrigin: "center center" }} />
+      <Img src={src} style={{ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${zoom}) translate(${x}px, ${y}px)`, transformOrigin: "center" }} />
     </AbsoluteFill>
   );
 }
 
 // --- Scenes ---
 
-function HeroScene() {
+function HeroScene({ durationInFrames }: { durationInFrames: number }) {
   const d = __VIDEO_DATA__;
-  const s = d.ecosystemStats;
+  const hasMap = __HAS_SCREENSHOTS__;
   return (
-    <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 30%, #1e1b4b 0%, ${C.bg} 70%)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 80 }}>
-      <FadeSlideIn><div style={{ fontSize: 18, color: C.accent, letterSpacing: 8, textTransform: "uppercase", fontWeight: 500 }}>GAWK DAILY BRIEF</div></FadeSlideIn>
-      <FadeSlideIn delay={8}><GlowBar /></FadeSlideIn>
-      <FadeSlideIn delay={14}><div style={{ fontSize: 52, fontWeight: 700, color: C.text, textAlign: "center", lineHeight: 1.3, marginTop: 28 }}>AI Ecosystem Daily Brief</div></FadeSlideIn>
-      <FadeSlideIn delay={22}><div style={{ fontSize: 30, color: C.textMuted, marginTop: 12 }}>{formatDate(d.date)}</div></FadeSlideIn>
-      <FadeSlideIn delay={32}>
-        <div style={{ display: "flex", gap: 44, marginTop: 44 }}>
-          <HeroStat label="Data Sources" value={s.sources} delay={34} />
-          <HeroStat label="Live Crons" value={s.crons} delay={38} />
-          <HeroStat label="AI Labs" value={s.labs} delay={42} />
-        </div>
-      </FadeSlideIn>
-      <SourceFooter source="gawk.dev" delay={50} />
-    </AbsoluteFill>
+    <SceneWrap durationInFrames={durationInFrames}>
+      {hasMap && (
+        <AbsoluteFill style={{ opacity: 0.35 }}>
+          <KenBurns src={staticFile("video-screenshots/map-global.png")} zoomEnd={1.08} panX={10} panY={-5} />
+        </AbsoluteFill>
+      )}
+      <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 80 }}>
+        <FadeSlideIn>
+          <div style={{ fontSize: 14, color: C.accent, letterSpacing: 10, textTransform: "uppercase", fontWeight: 400, fontFamily: "monospace" }}>GAWK · DAILY BRIEF</div>
+        </FadeSlideIn>
+        <FadeSlideIn delay={8}><GlowLine /></FadeSlideIn>
+        <FadeSlideIn delay={14}>
+          <div style={{ fontSize: 48, fontWeight: 700, color: C.text, textAlign: "center", lineHeight: 1.2, marginTop: 24 }}>
+            AI Ecosystem Intelligence
+          </div>
+        </FadeSlideIn>
+        <FadeSlideIn delay={22}>
+          <div style={{ fontSize: 26, color: C.textMuted, marginTop: 10, fontFamily: "monospace" }}>{formatDate(d.date)}</div>
+        </FadeSlideIn>
+        <FadeSlideIn delay={34}>
+          <div style={{ display: "flex", gap: 56, marginTop: 48 }}>
+            <CountStat label="SOURCES" value={d.ecosystemStats.sources} delay={36} />
+            <CountStat label="CRONS" value={d.ecosystemStats.crons} delay={40} />
+            <CountStat label="AI LABS" value={d.ecosystemStats.labs} delay={44} />
+          </div>
+        </FadeSlideIn>
+      </AbsoluteFill>
+      <SourceTag text="gawk.dev" delay={50} />
+    </SceneWrap>
   );
 }
 
-function HeroStat({ label, value, delay }: { label: string; value: number; delay: number }) {
-  const c = useCountUp(value, 25, delay);
+function CountStat({ label, value, delay }: { label: string; value: number; delay: number }) {
+  const c = useCountUp(value, 22, delay);
   return (
     <div style={{ textAlign: "center" }}>
-      <div style={{ fontSize: 40, fontWeight: 700, color: C.accent }}>{c}</div>
-      <div style={{ fontSize: 14, color: C.textMuted, marginTop: 4 }}>{label}</div>
+      <div style={{ fontSize: 38, fontWeight: 700, color: C.accent, fontFamily: "monospace" }}>{c}</div>
+      <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, letterSpacing: 3 }}>{label}</div>
     </div>
   );
 }
 
-function MapScene() {
-  if (!__HAS_SCREENSHOTS__) {
-    const d = __VIDEO_DATA__;
-    if (!d.topRegion) return <EmptyScene text="No regional data" />;
-    const pct = useCountUp(Math.round(d.topRegion.deltaPct), 30, 12);
-    return (
-      <AbsoluteFill style={{ background: `radial-gradient(ellipse at 30% 50%, rgba(20,184,166,0.08) 0%, ${C.bg} 60%)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 80 }}>
-        <SectionLabel text="FASTEST GROWING REGION · 24H" />
-        <ScaleIn delay={6}><div style={{ fontSize: 68, fontWeight: 700, color: C.text }}>{d.topRegion.country}</div></ScaleIn>
-        <FadeSlideIn delay={16}><div style={{ fontSize: 48, fontWeight: 600, color: C.green, marginTop: 12 }}>↑ {pct}%</div></FadeSlideIn>
-        {d.mostActiveCity && <FadeSlideIn delay={26}><div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 30px", marginTop: 32, fontSize: 22, color: C.textMuted }}>Most active: {d.mostActiveCity.city} · <span style={{ color: C.text, fontWeight: 600 }}>{d.mostActiveCity.count}</span> events</div></FadeSlideIn>}
-        <SourceFooter source="Source: GitHub Events API · 24h" />
-      </AbsoluteFill>
-    );
-  }
+function MapScene({ durationInFrames }: { durationInFrames: number }) {
   const d = __VIDEO_DATA__;
+  const hasMap = __HAS_SCREENSHOTS__;
+  if (!hasMap && !d.topRegion) return <SceneWrap durationInFrames={durationInFrames}><EmptyScene text="Awaiting regional data" /></SceneWrap>;
+
   return (
-    <AbsoluteFill>
-      <KenBurns src={staticFile("video-screenshots/map-global.png")} zoomEnd={1.15} panX={20} panY={-10} />
-      <div style={{ position: "absolute", top: 40, left: 48 }}>
-        <FadeSlideIn><div style={{ fontSize: 16, color: C.accent, letterSpacing: 6, textTransform: "uppercase", background: "rgba(0,0,0,0.7)", padding: "8px 16px", borderRadius: 8 }}>GLOBAL ACTIVITY · 24H</div></FadeSlideIn>
-      </div>
-      {d.topRegion && (
-        <div style={{ position: "absolute", bottom: 60, left: 48 }}>
-          <FadeSlideIn delay={15}>
-            <div style={{ background: "rgba(0,0,0,0.8)", border: `1px solid ${C.borderAccent}`, borderRadius: 14, padding: "20px 28px" }}>
-              <div style={{ fontSize: 14, color: C.accent, letterSpacing: 4, textTransform: "uppercase" }}>FASTEST GROWING</div>
-              <div style={{ fontSize: 36, fontWeight: 700, color: C.text, marginTop: 6 }}>{d.topRegion.country} <span style={{ color: C.green }}>↑{Math.round(d.topRegion.deltaPct)}%</span></div>
+    <SceneWrap durationInFrames={durationInFrames}>
+      {hasMap ? (
+        <>
+          <KenBurns src={staticFile("video-screenshots/map-global.png")} zoomEnd={1.25} panX={30} panY={-15} />
+          <AbsoluteFill style={{ background: "linear-gradient(to top, rgba(8,12,20,0.9) 0%, transparent 40%, transparent 70%, rgba(8,12,20,0.7) 100%)" }} />
+        </>
+      ) : (
+        <AbsoluteFill style={{ background: `radial-gradient(ellipse at 30% 50%, rgba(20,184,166,0.06) 0%, ${C.bg} 60%)` }} />
+      )}
+      <AbsoluteFill style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "0 60px 60px" }}>
+        <SectionHeader text="GLOBAL ACTIVITY · 24H" delay={6} />
+        {d.topRegion && (
+          <FadeSlideIn delay={14}>
+            <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
+              <div style={{ background: C.bgCard, backdropFilter: "blur(12px)", border: `1px solid ${C.borderAccent}`, borderRadius: 14, padding: "22px 32px", display: "flex", alignItems: "baseline", gap: 16 }}>
+                <div style={{ fontSize: 42, fontWeight: 700, color: C.text }}>{d.topRegion.country}</div>
+                <div style={{ fontSize: 32, fontWeight: 600, color: C.green }}>↑{Math.round(d.topRegion.deltaPct)}%</div>
+              </div>
+              {d.mostActiveCity && (
+                <div style={{ background: C.bgCard, backdropFilter: "blur(12px)", border: `1px solid ${C.border}`, borderRadius: 12, padding: "18px 24px" }}>
+                  <div style={{ fontSize: 12, color: C.textDim, letterSpacing: 2, textTransform: "uppercase" }}>MOST ACTIVE</div>
+                  <div style={{ fontSize: 24, fontWeight: 600, color: C.text, marginTop: 4 }}>{d.mostActiveCity.city} · {d.mostActiveCity.count}</div>
+                </div>
+              )}
             </div>
           </FadeSlideIn>
-        </div>
-      )}
-      <SourceFooter source="Source: GitHub Events API" />
-    </AbsoluteFill>
+        )}
+      </AbsoluteFill>
+      <SourceTag text="SRC: GITHUB EVENTS API" />
+    </SceneWrap>
   );
 }
 
-function ToolsScene() {
+function ToolsScene({ durationInFrames }: { durationInFrames: number }) {
   const d = __VIDEO_DATA__;
   const allOk = d.toolHealth.degraded === 0;
   return (
-    <AbsoluteFill style={{ background: C.bg, display: "flex", flexDirection: "column", padding: "60px 80px" }}>
-      <SectionLabel text="TOOL HEALTH" />
-      <FadeSlideIn delay={6}>
-        <div style={{ fontSize: 42, fontWeight: 700, color: allOk ? C.green : C.amber, marginBottom: 28 }}>
-          {d.toolHealth.operational}/{d.toolHealth.total} Operational
+    <SceneWrap durationInFrames={durationInFrames}>
+      <AbsoluteFill style={{ display: "flex", flexDirection: "column", padding: "56px 72px" }}>
+        <SectionHeader text="TOOL HEALTH STATUS" />
+        <FadeSlideIn delay={6}>
+          <div style={{ fontSize: 56, fontWeight: 700, color: allOk ? C.green : C.amber, fontFamily: "monospace", marginBottom: 32 }}>
+            {d.toolHealth.operational}/{d.toolHealth.total}
+            <span style={{ fontSize: 20, color: C.textMuted, marginLeft: 12, fontWeight: 400 }}>OPERATIONAL</span>
+          </div>
+        </FadeSlideIn>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+          {d.toolHealth.tools.map((t, i) => {
+            const ok = t.status === "operational";
+            return (
+              <FadeSlideIn key={t.name} delay={14 + i * 6} direction="left">
+                <div style={{
+                  background: C.bgCard, border: `1px solid ${ok ? C.border : C.red}`,
+                  borderLeft: `3px solid ${ok ? C.green : C.red}`,
+                  borderRadius: 10, padding: "16px 22px", minWidth: 180,
+                }}>
+                  <div style={{ fontSize: 10, color: ok ? C.green : C.red, fontWeight: 600, textTransform: "uppercase", letterSpacing: 2, fontFamily: "monospace" }}>
+                    ● {t.status}
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: C.text, marginTop: 4 }}>{t.name}</div>
+                </div>
+              </FadeSlideIn>
+            );
+          })}
         </div>
-      </FadeSlideIn>
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-        {d.toolHealth.tools.map((t, i) => (
-          <FadeSlideIn key={t.name} delay={12 + i * 8} direction="left">
-            <div style={{ background: C.bgCard, border: `1px solid ${t.status === "operational" ? C.border : C.red}`, borderRadius: 12, padding: "18px 24px", minWidth: 200 }}>
-              <div style={{ fontSize: 10, color: t.status === "operational" ? C.green : C.red, fontWeight: 600, textTransform: "uppercase", letterSpacing: 2 }}>{t.status}</div>
-              <div style={{ fontSize: 22, fontWeight: 600, color: C.text, marginTop: 4 }}>{t.name}</div>
-            </div>
-          </FadeSlideIn>
-        ))}
-      </div>
-      <SourceFooter source="Source: Anthropic · OpenAI · GitHub status pages" />
-    </AbsoluteFill>
+      </AbsoluteFill>
+      <SourceTag text="SRC: ANTHROPIC · OPENAI · GITHUB STATUS" />
+    </SceneWrap>
   );
 }
 
-function ModelsScene() {
+function ModelsScene({ durationInFrames }: { durationInFrames: number }) {
   const d = __VIDEO_DATA__;
   return (
-    <AbsoluteFill style={{ background: C.bg, display: "flex", flexDirection: "column", padding: "60px 80px" }}>
-      <SectionLabel text="MODEL RANKINGS · OPENROUTER" />
-      {d.topModels.map((m, i) => (
-        <FadeSlideIn key={m.name} delay={8 + i * 10} direction="left">
-          <div style={{ display: "flex", alignItems: "center", gap: 18, background: i === 0 ? C.bgCardHover : C.bgCard, border: `1px solid ${i === 0 ? C.borderAccent : C.border}`, borderRadius: 12, padding: "18px 28px", marginBottom: 10 }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: i === 0 ? C.accent : C.textDim, width: 48, textAlign: "center" }}>#{m.rank}</div>
-            <div style={{ flex: 1, fontSize: 22, fontWeight: 600, color: C.text }}>{m.name}</div>
-            <ModelDelta current={m.rank} previous={m.previousRank} />
-          </div>
-        </FadeSlideIn>
-      ))}
-      <SourceFooter source={`Source: OpenRouter${d.modelsFetchedAt ? ` · ${new Date(d.modelsFetchedAt).toISOString().slice(0, 16)}Z` : ""}`} />
-    </AbsoluteFill>
+    <SceneWrap durationInFrames={durationInFrames}>
+      <AbsoluteFill style={{ display: "flex", flexDirection: "column", padding: "56px 72px" }}>
+        <SectionHeader text="MODEL RANKINGS · OPENROUTER" />
+        {d.topModels.map((m, i) => {
+          const isTop = i === 0;
+          return (
+            <FadeSlideIn key={m.name} delay={8 + i * 8} direction="left">
+              <div style={{
+                display: "flex", alignItems: "center", gap: 16,
+                background: isTop ? "rgba(20,184,166,0.06)" : C.bgCard,
+                border: `1px solid ${isTop ? C.borderAccent : C.border}`,
+                borderRadius: 10, padding: "16px 24px", marginBottom: 8,
+              }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: isTop ? C.accent : C.textDim, width: 44, textAlign: "center", fontFamily: "monospace" }}>
+                  {m.rank}
+                </div>
+                <div style={{ width: 2, height: 28, background: isTop ? C.accent : C.border, borderRadius: 1 }} />
+                <div style={{ flex: 1, fontSize: 20, fontWeight: 600, color: C.text }}>{m.name}</div>
+                <ModelDelta current={m.rank} previous={m.previousRank} />
+              </div>
+            </FadeSlideIn>
+          );
+        })}
+      </AbsoluteFill>
+      <SourceTag text={`SRC: OPENROUTER${d.modelsFetchedAt ? " · " + new Date(d.modelsFetchedAt).toISOString().slice(0, 16) + "Z" : ""}`} />
+    </SceneWrap>
   );
 }
 
 function ModelDelta({ current, previous }: { current: number; previous: number | null }) {
-  if (previous === null) return <div style={{ fontSize: 14, fontWeight: 600, color: C.textDim, background: "rgba(100,116,139,0.2)", borderRadius: 6, padding: "3px 10px" }}>NEW</div>;
+  if (previous === null) return <div style={{ fontSize: 12, fontWeight: 600, color: C.accent, background: "rgba(20,184,166,0.15)", borderRadius: 4, padding: "2px 8px", fontFamily: "monospace" }}>NEW</div>;
   const delta = previous - current;
-  if (delta === 0) return <div style={{ fontSize: 18, color: C.textDim }}>—</div>;
-  return <div style={{ fontSize: 20, fontWeight: 600, color: delta > 0 ? C.green : C.red }}>{delta > 0 ? "↑" : "↓"} {Math.abs(delta)}</div>;
+  if (delta === 0) return <div style={{ fontSize: 16, color: C.textDim, fontFamily: "monospace" }}>—</div>;
+  return <div style={{ fontSize: 18, fontWeight: 700, color: delta > 0 ? C.green : C.red, fontFamily: "monospace" }}>{delta > 0 ? "↑" : "↓"}{Math.abs(delta)}</div>;
 }
 
-function SdkScene() {
+function SdkScene({ durationInFrames }: { durationInFrames: number }) {
   const d = __VIDEO_DATA__;
-  if (d.sdkMovers.length === 0) return <EmptyScene text="No SDK data" />;
+  if (d.sdkMovers.length === 0) return <SceneWrap durationInFrames={durationInFrames}><EmptyScene text="No SDK data" /></SceneWrap>;
+  const maxAbs = Math.max(...d.sdkMovers.map((s) => Math.abs(s.diffPct)), 1);
   return (
-    <AbsoluteFill style={{ background: C.bg, display: "flex", flexDirection: "column", padding: "60px 80px" }}>
-      <SectionLabel text="SDK ADOPTION · TOP MOVERS" color={C.blue} />
-      {d.sdkMovers.map((s, i) => {
-        const isUp = s.diffPct > 0;
-        return (
-          <FadeSlideIn key={s.name} delay={8 + i * 12} direction="left">
-            <div style={{ display: "flex", alignItems: "center", gap: 20, background: C.bgCard, border: `1px solid ${C.border}`, borderLeft: `4px solid ${isUp ? C.green : C.red}`, borderRadius: 12, padding: "20px 28px", marginBottom: 12 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 24, fontWeight: 600, color: C.text }}>{s.name}</div>
-                <div style={{ fontSize: 14, color: C.textDim, marginTop: 2 }}>{s.registry}</div>
+    <SceneWrap durationInFrames={durationInFrames}>
+      <AbsoluteFill style={{ display: "flex", flexDirection: "column", padding: "56px 72px" }}>
+        <SectionHeader text="SDK ADOPTION · TOP MOVERS" color={C.blue} />
+        {d.sdkMovers.map((s, i) => {
+          const isUp = s.diffPct > 0;
+          const barPct = (Math.abs(s.diffPct) / maxAbs) * 100;
+          return (
+            <FadeSlideIn key={s.name} delay={8 + i * 10} direction="left">
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                  <div>
+                    <span style={{ fontSize: 22, fontWeight: 600, color: C.text }}>{s.name}</span>
+                    <span style={{ fontSize: 13, color: C.textDim, marginLeft: 10 }}>{s.registry}</span>
+                  </div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: isUp ? C.green : C.red, fontFamily: "monospace" }}>
+                    {isUp ? "+" : ""}{s.diffPct}%
+                  </div>
+                </div>
+                <AnimatedBar pct={barPct} delay={12 + i * 10} color={isUp ? C.green : C.red} />
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: isUp ? C.green : C.red }}>{isUp ? "↑" : "↓"} {Math.abs(s.diffPct)}%</div>
-            </div>
-          </FadeSlideIn>
-        );
-      })}
-      <SourceFooter source="Source: PyPI · npm · crates.io · Docker Hub" />
-    </AbsoluteFill>
+            </FadeSlideIn>
+          );
+        })}
+      </AbsoluteFill>
+      <SourceTag text="SRC: PYPI · NPM · CRATES.IO · DOCKER HUB" />
+    </SceneWrap>
   );
 }
 
-function AgentsScene() {
-  const d = __VIDEO_DATA__;
-  if (d.topAgents.length === 0) return <EmptyScene text="No agent data" />;
-  return (
-    <AbsoluteFill style={{ background: C.bg, display: "flex", flexDirection: "column", padding: "60px 80px" }}>
-      <SectionLabel text="AGENT FRAMEWORKS" color={C.purple} />
-      {d.topAgents.map((a, i) => (
-        <FadeSlideIn key={a.name} delay={8 + i * 10} direction="left">
-          <div style={{ display: "flex", alignItems: "center", gap: 20, background: i === 0 ? C.bgCardHover : C.bgCard, border: `1px solid ${i === 0 ? C.borderAccent : C.border}`, borderRadius: 12, padding: "20px 28px", marginBottom: 12 }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: i === 0 ? C.accent : C.textDim, width: 36 }}>#{i + 1}</div>
-            <div style={{ flex: 1, fontSize: 22, fontWeight: 600, color: C.text }}>{a.name}</div>
-            <div style={{ fontSize: 20, color: C.textMuted }}>{formatNum(a.weeklyDownloads)}/wk</div>
-          </div>
-        </FadeSlideIn>
-      ))}
-      <SourceFooter source="Source: PyPI · npm weekly downloads" />
-    </AbsoluteFill>
-  );
-}
-
-function LabsScene() {
-  const d = __VIDEO_DATA__;
-  if (d.topLabs.length === 0) return <EmptyScene text="No lab data" />;
-  const maxEvents = d.topLabs[0]?.eventCount ?? 1;
-  return (
-    <AbsoluteFill style={{ background: C.bg, display: "flex", flexDirection: "column", padding: "60px 80px" }}>
-      <SectionLabel text="LAB ACTIVITY · 24H" color={C.pink} />
-      {d.topLabs.map((l, i) => {
-        const barW = interpolate(l.eventCount, [0, maxEvents], [20, 100]);
-        return (
-          <FadeSlideIn key={l.name} delay={8 + i * 10} direction="left">
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <div style={{ fontSize: 22, fontWeight: 600, color: C.text }}>{l.name}</div>
-                <div style={{ fontSize: 20, color: C.textMuted }}>{l.eventCount} events · {l.repoCount} repos</div>
-              </div>
-              <BarFill pct={barW} delay={12 + i * 10} color={i === 0 ? C.accent : C.blue} />
-            </div>
-          </FadeSlideIn>
-        );
-      })}
-      <SourceFooter source="Source: GitHub Events API" />
-    </AbsoluteFill>
-  );
-}
-
-function BarFill({ pct, delay, color }: { pct: number; delay: number; color: string }) {
+function AnimatedBar({ pct, delay, color }: { pct: number; delay: number; color: string }) {
   const frame = useCurrentFrame();
-  const w = interpolate(frame - delay, [0, 30], [0, pct], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) });
+  const w = interpolate(frame - delay, [0, 25], [0, pct], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) });
   return (
-    <div style={{ width: "100%", height: 8, background: C.bgCard, borderRadius: 4, overflow: "hidden" }}>
-      <div style={{ width: `${w}%`, height: "100%", background: color, borderRadius: 4 }} />
+    <div style={{ width: "100%", height: 6, background: "rgba(30,41,59,0.4)", borderRadius: 3, overflow: "hidden" }}>
+      <div style={{ width: `${w}%`, height: "100%", background: `linear-gradient(90deg, ${color}, ${color}88)`, borderRadius: 3, boxShadow: `0 0 8px ${color}44` }} />
     </div>
   );
 }
 
-function ReposScene() {
+function AgentsScene({ durationInFrames }: { durationInFrames: number }) {
   const d = __VIDEO_DATA__;
-  if (d.topRepos.length === 0) return <EmptyScene text="No repo data" />;
+  if (d.topAgents.length === 0) return <SceneWrap durationInFrames={durationInFrames}><EmptyScene text="No agent data" /></SceneWrap>;
+  const maxDl = d.topAgents[0]?.weeklyDownloads ?? 1;
   return (
-    <AbsoluteFill style={{ background: C.bg, display: "flex", flexDirection: "column", padding: "60px 80px" }}>
-      <SectionLabel text="TOP GITHUB REPOS · 24H" color={C.cyan} />
-      {d.topRepos.map((r, i) => (
-        <FadeSlideIn key={`${r.owner}/${r.name}`} delay={8 + i * 12} direction="left">
-          <div style={{ display: "flex", alignItems: "center", gap: 18, background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 28px", marginBottom: 12 }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: C.textDim, width: 36 }}>#{i + 1}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 22, fontWeight: 600, color: C.text }}>{r.owner}/{r.name}</div>
-              {r.language && <div style={{ fontSize: 14, color: C.textDim, marginTop: 2 }}>{r.language}</div>}
+    <SceneWrap durationInFrames={durationInFrames}>
+      <AbsoluteFill style={{ display: "flex", flexDirection: "column", padding: "56px 72px" }}>
+        <SectionHeader text="AGENT FRAMEWORKS · WEEKLY" color={C.purple} />
+        {d.topAgents.map((a, i) => {
+          const barPct = (a.weeklyDownloads / maxDl) * 100;
+          return (
+            <FadeSlideIn key={a.name} delay={8 + i * 10} direction="left">
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                    <span style={{ fontSize: 20, fontWeight: 700, color: C.textDim, fontFamily: "monospace" }}>{i + 1}</span>
+                    <span style={{ fontSize: 22, fontWeight: 600, color: C.text }}>{a.name}</span>
+                  </div>
+                  <div style={{ fontSize: 20, color: C.textMuted, fontFamily: "monospace" }}>{fmtNum(a.weeklyDownloads)}/wk</div>
+                </div>
+                <AnimatedBar pct={barPct} delay={12 + i * 10} color={C.purple} />
+              </div>
+            </FadeSlideIn>
+          );
+        })}
+      </AbsoluteFill>
+      <SourceTag text="SRC: PYPI · NPM WEEKLY DOWNLOADS" />
+    </SceneWrap>
+  );
+}
+
+function LabsScene({ durationInFrames }: { durationInFrames: number }) {
+  const d = __VIDEO_DATA__;
+  if (d.topLabs.length === 0) return <SceneWrap durationInFrames={durationInFrames}><EmptyScene text="No lab data" /></SceneWrap>;
+  const maxEv = d.topLabs[0]?.eventCount ?? 1;
+  return (
+    <SceneWrap durationInFrames={durationInFrames}>
+      <AbsoluteFill style={{ display: "flex", flexDirection: "column", padding: "56px 72px" }}>
+        <SectionHeader text="AI LAB ACTIVITY · 24H" color={C.pink} />
+        {d.topLabs.map((l, i) => {
+          const barPct = (l.eventCount / maxEv) * 100;
+          const count = useCountUp(l.eventCount, 28, 14 + i * 8);
+          return (
+            <FadeSlideIn key={l.name} delay={8 + i * 10} direction="left">
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                  <span style={{ fontSize: 24, fontWeight: 600, color: C.text }}>{l.name}</span>
+                  <div style={{ fontFamily: "monospace" }}>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: C.accent }}>{count}</span>
+                    <span style={{ fontSize: 14, color: C.textDim, marginLeft: 6 }}>events</span>
+                    <span style={{ fontSize: 14, color: C.textDim, marginLeft: 12 }}>{l.repoCount} repos</span>
+                  </div>
+                </div>
+                <AnimatedBar pct={barPct} delay={14 + i * 10} color={i === 0 ? C.accent : C.blue} />
+              </div>
+            </FadeSlideIn>
+          );
+        })}
+      </AbsoluteFill>
+      <SourceTag text="SRC: GITHUB EVENTS API" />
+    </SceneWrap>
+  );
+}
+
+function ReposScene({ durationInFrames }: { durationInFrames: number }) {
+  const d = __VIDEO_DATA__;
+  if (d.topRepos.length === 0) return <SceneWrap durationInFrames={durationInFrames}><EmptyScene text="No repo data" /></SceneWrap>;
+  return (
+    <SceneWrap durationInFrames={durationInFrames}>
+      <AbsoluteFill style={{ display: "flex", flexDirection: "column", padding: "56px 72px" }}>
+        <SectionHeader text="TOP REPOS · 24H" color={C.cyan} />
+        {d.topRepos.map((r, i) => (
+          <FadeSlideIn key={`${r.owner}/${r.name}`} delay={8 + i * 10} direction="left">
+            <div style={{
+              display: "flex", alignItems: "center", gap: 14,
+              background: C.bgCard, border: `1px solid ${C.border}`,
+              borderRadius: 10, padding: "16px 24px", marginBottom: 10,
+            }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: C.textDim, width: 32, fontFamily: "monospace" }}>{i + 1}</div>
+              <div style={{ width: 2, height: 24, background: C.border, borderRadius: 1 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 20, fontWeight: 600, color: C.text }}>{r.owner}<span style={{ color: C.textDim }}>/</span>{r.name}</div>
+              </div>
+              <div style={{ fontSize: 18, color: C.accent, fontWeight: 600, fontFamily: "monospace" }}>{r.eventCount} events</div>
             </div>
-            <div style={{ fontSize: 20, color: C.accent, fontWeight: 600 }}>{r.eventCount} events</div>
-          </div>
-        </FadeSlideIn>
-      ))}
-      <SourceFooter source="Source: GitHub Events API" />
-    </AbsoluteFill>
+          </FadeSlideIn>
+        ))}
+      </AbsoluteFill>
+      <SourceTag text="SRC: GITHUB EVENTS API" />
+    </SceneWrap>
   );
 }
 
-function FeedScene() {
+function HNScene({ durationInFrames }: { durationInFrames: number }) {
   const d = __VIDEO_DATA__;
-  const cards = d.topCards.slice(0, 3);
+  if (!d.hnTopStory) return <SceneWrap durationInFrames={durationInFrames}><EmptyScene text="No significant HN activity" /></SceneWrap>;
+  const pts = useCountUp(d.hnTopStory.points, 28, 16);
   return (
-    <AbsoluteFill style={{ background: C.bg, display: "flex", flexDirection: "column", padding: "60px 80px" }}>
-      <SectionLabel text="TOP SIGNALS" />
-      {cards.map((c, i) => (
-        <FadeSlideIn key={c.headline} delay={8 + i * 14} direction="left">
-          <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderLeft: `4px solid ${cardColor(c.type)}`, borderRadius: 12, padding: "22px 28px", marginBottom: 14, display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 24, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>{c.headline}</div>
-              {c.detail && <div style={{ fontSize: 16, color: C.textMuted, marginTop: 4 }}>{c.detail}</div>}
-            </div>
-            <div style={{ background: cardColor(c.type), borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#fff", textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap" }}>{c.type.replace(/_/g, " ")}</div>
+    <SceneWrap durationInFrames={durationInFrames}>
+      <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 80 }}>
+        <SectionHeader text="TOP ON HACKER NEWS" color={C.orange} />
+        <ScaleIn delay={8}>
+          <div style={{
+            background: C.bgCard, border: `1px solid ${C.border}`, borderTop: `2px solid ${C.orange}`,
+            borderRadius: 14, padding: "36px 44px", maxWidth: 1000, textAlign: "center",
+          }}>
+            <div style={{ fontSize: 32, fontWeight: 600, color: C.text, lineHeight: 1.4 }}>{d.hnTopStory.title}</div>
+            <div style={{ fontSize: 28, color: C.orange, marginTop: 16, fontWeight: 700, fontFamily: "monospace" }}>{pts} pts</div>
           </div>
-        </FadeSlideIn>
-      ))}
-      <SourceFooter source="Source: Gawk Feed · ranked by severity" />
-    </AbsoluteFill>
+        </ScaleIn>
+      </AbsoluteFill>
+      <SourceTag text="SRC: HACKER NEWS · ALGOLIA API" />
+    </SceneWrap>
   );
 }
 
-function HNScene() {
-  const d = __VIDEO_DATA__;
-  if (!d.hnTopStory) return <EmptyScene text="No significant HN activity today" />;
-  const pts = useCountUp(d.hnTopStory.points, 30, 18);
-  return (
-    <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 60%, rgba(255,102,0,0.06) 0%, ${C.bg} 60%)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 80 }}>
-      <SectionLabel text="TOP ON HACKER NEWS" color={C.orange} />
-      <ScaleIn delay={8}>
-        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderTop: `3px solid ${C.orange}`, borderRadius: 16, padding: "36px 44px", maxWidth: 1100, textAlign: "center" }}>
-          <div style={{ fontSize: 34, fontWeight: 600, color: C.text, lineHeight: 1.4 }}>{d.hnTopStory.title}</div>
-          <div style={{ fontSize: 28, color: C.orange, marginTop: 16, fontWeight: 700 }}>{pts} points</div>
-        </div>
-      </ScaleIn>
-      <SourceFooter source="Source: Hacker News · Algolia API" />
-    </AbsoluteFill>
-  );
-}
-
-function OutroScene() {
+function OutroScene({ durationInFrames }: { durationInFrames: number }) {
   const frame = useCurrentFrame();
-  const pulse = interpolate(Math.sin(frame / 10), [-1, 1], [0.96, 1.04]);
+  const hasMap = __HAS_SCREENSHOTS__;
+  const pulse = interpolate(Math.sin(frame / 8), [-1, 1], [0.97, 1.03]);
   return (
-    <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 40%, #1e1b4b 0%, ${C.bg} 70%)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-      <ScaleIn>
-        <div style={{ fontSize: 68, fontWeight: 700, color: C.accent, transform: `scale(${pulse})` }}>gawk.dev</div>
-      </ScaleIn>
-      <FadeSlideIn delay={12}><div style={{ fontSize: 26, color: C.text, marginTop: 20 }}>Track the AI ecosystem in real time</div></FadeSlideIn>
-      <FadeSlideIn delay={24}>
-        <div style={{ marginTop: 32, background: `linear-gradient(135deg, ${C.accent}, #0d9488)`, color: "#fff", fontSize: 18, fontWeight: 600, padding: "12px 40px", borderRadius: 10, boxShadow: `0 0 30px ${C.accentGlow}` }}>
-          Subscribe for the daily digest →
-        </div>
-      </FadeSlideIn>
-    </AbsoluteFill>
+    <SceneWrap durationInFrames={durationInFrames}>
+      {hasMap && (
+        <AbsoluteFill style={{ opacity: 0.15 }}>
+          <KenBurns src={staticFile("video-screenshots/map-zoom.png")} zoomEnd={1.06} panX={-8} panY={4} />
+        </AbsoluteFill>
+      )}
+      <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <ScaleIn>
+          <div style={{ fontSize: 64, fontWeight: 700, color: C.accent, transform: `scale(${pulse})`, fontFamily: "monospace" }}>gawk.dev</div>
+        </ScaleIn>
+        <FadeSlideIn delay={12}>
+          <div style={{ fontSize: 22, color: C.textMuted, marginTop: 16 }}>Real-time AI ecosystem intelligence</div>
+        </FadeSlideIn>
+        <FadeSlideIn delay={24}>
+          <GlowLine delay={24} />
+        </FadeSlideIn>
+        <FadeSlideIn delay={30}>
+          <div style={{
+            marginTop: 28, background: `linear-gradient(135deg, ${C.accent}, #0d9488)`, color: "#fff",
+            fontSize: 16, fontWeight: 600, padding: "12px 36px", borderRadius: 8,
+            boxShadow: `0 0 24px ${C.accentGlow}`, letterSpacing: 1,
+          }}>
+            SUBSCRIBE → DAILY DIGEST
+          </div>
+        </FadeSlideIn>
+      </AbsoluteFill>
+      <SourceTag text="gawk.dev/subscribe" delay={30} />
+    </SceneWrap>
   );
 }
 
 function EmptyScene({ text }: { text: string }) {
-  return <AbsoluteFill style={{ background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ fontSize: 28, color: C.textMuted }}>{text}</div></AbsoluteFill>;
+  return <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ fontSize: 24, color: C.textDim }}>{text}</div>
+  </AbsoluteFill>;
 }
 
-// --- Main composition ---
+// --- Main ---
 
 export const DailyBrief: React.FC = () => {
   const data = __VIDEO_DATA__;
-  let frameOffset = 0;
-  const seqs: { id: string; from: number; duration: number }[] = [];
+  let offset = 0;
+  const seqs: { id: string; from: number; dur: number }[] = [];
   for (const sc of data.scenes) {
     const dur = sc.durationInSeconds * FPS;
-    seqs.push({ id: sc.id, from: frameOffset, duration: dur });
-    frameOffset += dur;
+    seqs.push({ id: sc.id, from: offset, dur });
+    offset += dur;
   }
 
-  const components: Record<string, React.FC> = {
-    hero: HeroScene,
-    region: MapScene,
-    tools: ToolsScene,
-    models: ModelsScene,
-    sdk: SdkScene,
-    agents: AgentsScene,
-    labs: LabsScene,
-    repos: ReposScene,
-    feed: FeedScene,
-    hn: HNScene,
-    outro: OutroScene,
+  const components: Record<string, React.FC<{ durationInFrames: number }>> = {
+    hero: HeroScene, region: MapScene, tools: ToolsScene, models: ModelsScene,
+    sdk: SdkScene, agents: AgentsScene, labs: LabsScene, repos: ReposScene,
+    feed: FeedScene, hn: HNScene, outro: OutroScene,
   };
 
   return (
-    <AbsoluteFill style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
+    <AbsoluteFill style={{ fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif", background: C.bg }}>
       {seqs.map((s) => {
         const Comp = components[s.id];
         if (!Comp) return null;
-        return <Sequence key={s.id} from={s.from} durationInFrames={s.duration}><Comp /></Sequence>;
+        return <Sequence key={s.id} from={s.from} durationInFrames={s.dur}><Comp durationInFrames={s.dur} /></Sequence>;
       })}
       {__HAS_AUDIO__ && <Audio src={staticFile("video-narration.mp3")} />}
     </AbsoluteFill>
   );
 };
 
-function cardColor(type: string): string {
+function FeedScene({ durationInFrames }: { durationInFrames: number }) {
+  const d = __VIDEO_DATA__;
+  const cards = d.topCards.slice(0, 3);
+  return (
+    <SceneWrap durationInFrames={durationInFrames}>
+      <AbsoluteFill style={{ display: "flex", flexDirection: "column", padding: "56px 72px" }}>
+        <SectionHeader text="TOP SIGNALS" />
+        {cards.map((c, i) => (
+          <FadeSlideIn key={c.headline} delay={8 + i * 12} direction="left">
+            <div style={{
+              background: C.bgCard, border: `1px solid ${C.border}`, borderLeft: `3px solid ${cardColor(c.type)}`,
+              borderRadius: 10, padding: "18px 24px", marginBottom: 10,
+              display: "flex", alignItems: "center", gap: 14,
+            }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 20, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>{c.headline}</div>
+                {c.detail && <div style={{ fontSize: 14, color: C.textMuted, marginTop: 3 }}>{c.detail}</div>}
+              </div>
+              <div style={{ background: cardColor(c.type), borderRadius: 4, padding: "3px 8px", fontSize: 9, fontWeight: 600, color: "#fff", textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap", fontFamily: "monospace" }}>
+                {c.type.replace(/_/g, " ")}
+              </div>
+            </div>
+          </FadeSlideIn>
+        ))}
+      </AbsoluteFill>
+      <SourceTag text="SRC: GAWK FEED · RANKED BY SEVERITY" />
+    </SceneWrap>
+  );
+}
+
+function cardColor(t: string): string {
   const m: Record<string, string> = { TOOL_ALERT: C.red, MODEL_MOVER: C.purple, NEW_RELEASE: C.green, SDK_TREND: C.blue, NEWS: C.amber, RESEARCH: C.cyan, LAB_HIGHLIGHT: C.pink };
-  return m[type] ?? C.accent;
+  return m[t] ?? C.accent;
 }
-
-function formatNum(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-  return String(n);
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso + "T00:00:00Z");
-  return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
-}
+function fmtNum(n: number): string { return n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(0)}K` : String(n); }
+function formatDate(iso: string): string { const d = new Date(iso + "T00:00:00Z"); return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }); }
