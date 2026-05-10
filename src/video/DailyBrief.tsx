@@ -65,7 +65,6 @@ function SceneWrap({ children, durationInFrames }: { children: React.ReactNode; 
   return (
     <AbsoluteFill style={{ opacity: Math.min(fadeIn, fadeOut) }}>
       <AbsoluteFill style={{ background: C.bg }} />
-      <TerminalGrid />
       {children}
     </AbsoluteFill>
   );
