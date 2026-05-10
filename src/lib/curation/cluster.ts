@@ -1,4 +1,5 @@
 import type { ScoredEvent, Narrative } from "./types";
+import { narrativeDecay } from "./decay";
 
 function normaliseWords(text: string): Set<string> {
   return new Set(
@@ -92,10 +93,11 @@ export function buildNarratives(
   const clusters = clusterEvents(deduped);
 
   const ranked = clusters
-    .map((cluster) => ({
-      cluster,
-      score: cluster.reduce((s, e) => s + e.attention.total, 0),
-    }))
+    .map((cluster) => {
+      const rawScore = cluster.reduce((s, e) => s + e.attention.total, 0);
+      const decay = narrativeDecay(cluster);
+      return { cluster, score: Math.round(rawScore * decay * 100) / 100 };
+    })
     .sort((a, b) => b.score - a.score)
     .slice(0, maxNarratives);
 

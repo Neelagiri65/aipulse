@@ -31,7 +31,7 @@ export async function ingestGawkModels(): Promise<CurationEvent[]> {
         pricing: { promptPerMTok: number | null; completionPerMTok: number | null } }[];
     };
     return (data.rows ?? [])
-      .filter((m) => m.previousRank !== null && m.previousRank !== m.rank)
+      .filter((m) => m.previousRank != null && m.previousRank !== m.rank)
       .map((m) => ({
         id: eventId("gawk-models", m.name),
         source: "gawk-models" as const,
@@ -127,7 +127,7 @@ export async function ingestHN(): Promise<CurationEvent[]> {
       items: { title: string; points: number; numComments?: number; url?: string }[];
     };
     return (data.items ?? [])
-      .filter(i => i.points >= 20)
+      .filter(i => i.points >= 50 && (i.numComments ?? 0) >= 10)
       .slice(0, 15)
       .map((i, idx) => ({
         id: eventId("hn", `${idx}-${i.title.slice(0, 30)}`),
@@ -158,7 +158,7 @@ export async function ingestReddit(): Promise<CurationEvent[]> {
       };
       for (const post of data.data?.children ?? []) {
         const d = post.data;
-        if (d.score < 50) continue;
+        if (d.score < 50 || d.num_comments < 5) continue;
         events.push({
           id: eventId("reddit", d.permalink),
           source: "reddit" as const,
@@ -252,7 +252,7 @@ export async function ingestGitHubTrending(): Promise<CurationEvent[]> {
       const desc = decodeHtmlEntities(block.match(/<p[^>]*>([\s\S]*?)<\/p>/)?.[1]?.trim().replace(/<[^>]+>/g, "").trim() ?? "");
       const starsToday = block.match(/([\d,]+)\s*stars today/)?.[1]?.replace(/,/g, "") ?? "0";
       const isAI = AI_KEYWORDS.some(k => (name + " " + desc).toLowerCase().includes(k.toLowerCase()));
-      if (!isAI && parseInt(starsToday) < 100) continue;
+      if (!isAI && parseInt(starsToday) < 50) continue;
       events.push({
         id: eventId("github-trending", href),
         source: "github-trending" as const,

@@ -1,6 +1,5 @@
 import type { CurationEvent, AttentionScore, ScoredEvent } from "./types";
-
-const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+import { preClusterDecay } from "./decay";
 
 function surpriseScore(e: CurationEvent): number {
   const m = e.metrics;
@@ -62,13 +61,9 @@ function controversyScore(e: CurationEvent): number {
   return 1;
 }
 
-function recencyScore(e: CurationEvent): number {
-  const age = Date.now() - new Date(e.timestamp).getTime();
-  if (age < SIX_HOURS_MS) return 5;
-  if (age < 12 * 60 * 60 * 1000) return 3;
-  if (age < 24 * 60 * 60 * 1000) return 2;
-  return 1;
-}
+// recencyScore replaced by continuous temporal decay model (decay.ts).
+// Signal, intent, and attention decay are applied as a multiplier on the
+// raw attention score. Information decay runs post-cluster in cluster.ts.
 
 function concreteNumberScore(e: CurationEvent): number {
   const m = e.metrics;
@@ -86,21 +81,33 @@ export function scoreEvent(e: CurationEvent, allEvents: CurationEvent[]): Scored
   const crossSource = crossSourceScore(e, allEvents);
   const userImpact = userImpactScore(e);
   const controversy = controversyScore(e);
-  const recency = recencyScore(e);
   const concreteNumber = concreteNumberScore(e);
 
-  const total =
+  const rawTotal =
     surprise * 3 +
     crossSource * 2 +
     userImpact * 2 +
     controversy * 2 +
-    recency * 1 +
     concreteNumber * 1;
 
-  return {
+  const scored: ScoredEvent = {
     ...e,
-    attention: { surprise, crossSource, userImpact, controversy, recency, concreteNumber, total },
+    attention: {
+      surprise,
+      crossSource,
+      userImpact,
+      controversy,
+      recency: 0,
+      concreteNumber,
+      total: rawTotal,
+    },
   };
+
+  const decay = preClusterDecay(scored);
+  scored.attention.recency = Math.round(decay * 100) / 100;
+  scored.attention.total = Math.round(rawTotal * decay * 100) / 100;
+
+  return scored;
 }
 
 export function scoreAll(events: CurationEvent[]): ScoredEvent[] {
