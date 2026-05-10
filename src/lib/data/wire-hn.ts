@@ -14,6 +14,9 @@
  *     returns null; story still shows in WIRE, just never on the map.
  */
 
+/** Minimum HN points required for a story to enter the wire. */
+export const HN_MIN_WIRE_POINTS = 5;
+
 import type { GlobePoint } from "@/components/globe/Globe";
 import { geocode } from "@/lib/geocoding";
 import {
@@ -378,7 +381,7 @@ export async function runIngest(opts: {
   const passed: HnStoryRaw[] = [];
   for (const s of raw) {
     const host = hostFromUrl(s.url);
-    if (isAiRelevant(s.title, host)) passed.push(s);
+    if (isAiRelevant(s.title, host) && s.points >= HN_MIN_WIRE_POINTS) passed.push(s);
     if (passed.length >= cap) break;
   }
 

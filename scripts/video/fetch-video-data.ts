@@ -5,9 +5,9 @@
  * Usage: npx tsx scripts/video/fetch-video-data.ts
  */
 
-import { writeFileSync, readFileSync } from "fs";
+import { writeFileSync } from "fs";
 import { resolve } from "path";
-import type { VideoData, ContinentData, ModelEntry, PanelCount } from "../../src/video/types";
+import type { VideoData, ModelEntry, PanelCount } from "../../src/video/types";
 
 const BASE_URL = process.env.GAWK_BASE_URL || "https://gawk.dev";
 const HN_MIN_POINTS = 50;
@@ -22,36 +22,6 @@ async function fetchJSON<T>(path: string): Promise<T | null> {
     return null;
   }
 }
-
-const COUNTRY_TO_CONTINENT: Record<string, string> = {
-  "United States": "North America", "Canada": "North America", "Mexico": "North America",
-  "Brazil": "South America", "Colombia": "South America", "Argentina": "South America",
-  "Chile": "South America", "Peru": "South America", "Uruguay": "South America",
-  "Germany": "Europe", "United Kingdom": "Europe", "France": "Europe",
-  "Spain": "Europe", "Poland": "Europe", "Austria": "Europe", "Ireland": "Europe",
-  "Netherlands": "Europe", "Switzerland": "Europe", "Sweden": "Europe",
-  "Norway": "Europe", "Denmark": "Europe", "Finland": "Europe", "Belgium": "Europe",
-  "Italy": "Europe", "Portugal": "Europe", "Czech Republic": "Europe", "Czechia": "Europe",
-  "Romania": "Europe", "Greece": "Europe", "Hungary": "Europe", "Ukraine": "Europe",
-  "Türkiye": "Europe", "Russia": "Europe", "Serbia": "Europe", "Croatia": "Europe",
-  "Bulgaria": "Europe", "Slovakia": "Europe", "Lithuania": "Europe", "Latvia": "Europe",
-  "Estonia": "Europe", "Slovenia": "Europe",
-  "China": "Asia", "Japan": "Asia", "India": "Asia", "South Korea": "Asia",
-  "Singapore": "Asia", "Indonesia": "Asia", "Vietnam": "Asia", "Thailand": "Asia",
-  "Malaysia": "Asia", "Philippines": "Asia", "Taiwan": "Asia", "Pakistan": "Asia",
-  "Bangladesh": "Asia", "Sri Lanka": "Asia", "Hong Kong": "Asia", "Israel": "Asia",
-  "United Arab Emirates": "Asia", "Saudi Arabia": "Asia",
-  "Australia": "Oceania", "New Zealand": "Oceania",
-  "Nigeria": "Africa", "South Africa": "Africa", "Kenya": "Africa", "Egypt": "Africa",
-  "Ghana": "Africa", "Ethiopia": "Africa", "Morocco": "Africa", "Tunisia": "Africa",
-};
-
-const LAB_COUNTRY_TO_CONTINENT: Record<string, string> = {
-  US: "North America", CA: "North America",
-  GB: "Europe", DE: "Europe", FR: "Europe", CH: "Europe",
-  CN: "Asia", JP: "Asia", IN: "Asia", KR: "Asia", SG: "Asia", IL: "Asia", AE: "Asia",
-  AU: "Oceania",
-};
 
 async function main() {
   const [feedRes, modelsRes, hnRes, regionRes, labsRes, agentsRes, sdkRes, statusRes, benchRes, researchRes] =
@@ -196,15 +166,6 @@ async function main() {
   // --- Top repos ---
   const topRepos = deriveTopRepos(allLabsRaw);
 
-  // --- Continental breakdown ---
-  const labsJsonPath = resolve(process.cwd(), "data/ai-labs.json");
-  let labsJson: { displayName: string; country: string; orgs: string[] }[] = [];
-  try {
-    labsJson = JSON.parse(readFileSync(labsJsonPath, "utf8"));
-  } catch { /* no labs json */ }
-
-  const continents = buildContinentData(byCountry, allLabsRaw, labsJson);
-
   // --- Total events ---
   const totalEvents = Object.values(byCountry).reduce((s, c) => s + (c.current24h ?? 0), 0);
   const activeCountries = Object.keys(byCountry).length;
@@ -234,10 +195,14 @@ async function main() {
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10);
 
+  // Map walkthrough duration: calculated from Playwright recording (~27s)
+  // The recording script produces the webm; this scene just embeds it
+  const MAP_WALKTHROUGH_SECONDS = 27;
+
   const scenes = buildScenes({
-    topCards, topModels, biggestMovers, toolHealth, topRegion, mostActiveCity,
-    hnTopStory, inferences, dateStr, sdkMovers, topAgents, topLabs, topRepos,
-    continents, panelCounts, ecosystemStats,
+    topCards, topModels, biggestMovers, toolHealth,
+    hnTopStory, inferences, dateStr, sdkMovers,
+    mapWalkthroughSeconds: MAP_WALKTHROUGH_SECONDS,
   });
 
   const data: VideoData = {
@@ -258,88 +223,18 @@ async function main() {
     topAgents,
     topLabs,
     topRepos,
-    continents,
+    continents: [],
     panelCounts,
     screenshots: { map: "map-global.png", mapZoom: "map-zoom.png" },
   };
 
   const outPath = resolve(process.cwd(), "data/video-daily.json");
   writeFileSync(outPath, JSON.stringify(data, null, 2));
+  const totalSec = scenes.reduce((s, sc) => s + sc.durationInSeconds, 0);
   console.log(
-    `Wrote ${outPath} (${scenes.length} scenes, ${continents.length} continents, ` +
-    `${topCards.length} cards, ${topModels.length} models, ${biggestMovers.length} movers, ` +
-    `${topLabs.length} labs, ${topAgents.length} agents, ${sdkMovers.length} SDK movers, ${topRepos.length} repos)`
+    `Wrote ${outPath} (${scenes.length} scenes, ${totalSec}s total, ` +
+    `${topCards.length} cards, ${topModels.length} models, ${biggestMovers.length} movers)`
   );
-}
-
-function buildContinentData(
-  byCountry: Record<string, { current24h: number }>,
-  labsApi: { displayName: string; total: number; repos: { owner: string; repo: string; total: number }[] }[],
-  labsJson: { displayName: string; country: string; orgs: string[] }[],
-): ContinentData[] {
-  const continentMap = new Map<string, ContinentData>();
-
-  for (const [country, data] of Object.entries(byCountry)) {
-    const continent = COUNTRY_TO_CONTINENT[country] ?? "Other";
-    if (continent === "Other") continue;
-    if (!continentMap.has(continent)) {
-      continentMap.set(continent, { name: continent, totalEvents: 0, topCountries: [], labs: [], topRepos: [] });
-    }
-    const cd = continentMap.get(continent)!;
-    cd.totalEvents += data.current24h ?? 0;
-    cd.topCountries.push({ country, events: data.current24h ?? 0 });
-  }
-
-  // Map labs to continents via labsJson country codes
-  const labOrgToContinent = new Map<string, string>();
-  for (const lab of labsJson) {
-    const continent = LAB_COUNTRY_TO_CONTINENT[lab.country];
-    if (continent) {
-      for (const org of lab.orgs ?? []) {
-        labOrgToContinent.set(org, continent);
-      }
-    }
-  }
-
-  for (const lab of labsApi) {
-    let continent: string | undefined;
-    for (const repo of lab.repos ?? []) {
-      continent = labOrgToContinent.get(repo.owner);
-      if (continent) break;
-    }
-    if (!continent) {
-      // Fallback: guess from lab name
-      const name = lab.displayName.toLowerCase();
-      if (name.includes("openai") || name.includes("anthropic") || name.includes("meta") || name.includes("google")) continent = "North America";
-      else if (name.includes("deepseek") || name.includes("baidu") || name.includes("tencent") || name.includes("alibaba") || name.includes("zhipu")) continent = "Asia";
-      else if (name.includes("mistral") || name.includes("aleph")) continent = "Europe";
-    }
-    if (!continent) continue;
-
-    if (!continentMap.has(continent)) {
-      continentMap.set(continent, { name: continent, totalEvents: 0, topCountries: [], labs: [], topRepos: [] });
-    }
-    const cd = continentMap.get(continent)!;
-    cd.labs.push({ name: lab.displayName, eventCount: lab.total });
-
-    for (const repo of (lab.repos ?? []).slice(0, 2)) {
-      cd.topRepos.push({ owner: repo.owner, repo: repo.repo, eventCount: repo.total });
-    }
-  }
-
-  // Sort internals and pick top 3 continents by events
-  for (const cd of continentMap.values()) {
-    cd.topCountries.sort((a, b) => b.events - a.events);
-    cd.topCountries = cd.topCountries.slice(0, 3);
-    cd.labs.sort((a, b) => b.eventCount - a.eventCount);
-    cd.labs = cd.labs.slice(0, 3);
-    cd.topRepos.sort((a, b) => b.eventCount - a.eventCount);
-    cd.topRepos = cd.topRepos.slice(0, 2);
-  }
-
-  return Array.from(continentMap.values())
-    .sort((a, b) => b.totalEvents - a.totalEvents)
-    .slice(0, 4);
 }
 
 function deriveSdkMovers(
@@ -374,60 +269,38 @@ function buildScenes(d: {
   topModels: VideoData["topModels"];
   biggestMovers: VideoData["biggestMovers"];
   toolHealth: VideoData["toolHealth"];
-  topRegion: VideoData["topRegion"];
-  mostActiveCity: VideoData["mostActiveCity"];
   hnTopStory: VideoData["hnTopStory"];
   inferences: string[];
   dateStr: string;
   sdkMovers: VideoData["sdkMovers"];
-  topAgents: VideoData["topAgents"];
-  topLabs: VideoData["topLabs"];
-  topRepos: VideoData["topRepos"];
-  continents: VideoData["continents"];
-  panelCounts: VideoData["panelCounts"];
-  ecosystemStats: VideoData["ecosystemStats"];
+  mapWalkthroughSeconds: number;
 }): VideoData["scenes"] {
   const scenes: VideoData["scenes"] = [];
 
-  // 1: Hero
+  // [0-8s] Title card
   scenes.push({
     id: "hero",
     durationInSeconds: 8,
     narration: `Here's what moved in the AI ecosystem on ${formatDate(d.dateStr)}.`,
   });
 
-  // 2: Global map overview
+  // [8-35s] Map walkthrough (Playwright screen recording)
   scenes.push({
-    id: "globe-overview",
-    durationInSeconds: 6,
-    narration: `${d.ecosystemStats.totalEvents} events across ${d.ecosystemStats.activeCountries} countries in the last 24 hours.`,
+    id: "map-walkthrough",
+    durationInSeconds: d.mapWalkthroughSeconds,
+    narration: "Live from the gawk dashboard. Developer activity across the globe in the last 24 hours.",
   });
 
-  // 3-5: Continental zooms (top 3 by events)
-  for (const cont of d.continents.slice(0, 3)) {
-    const topCountry = cont.topCountries[0];
-    const topLab = cont.labs[0];
-    let narr = `${cont.name}: ${cont.totalEvents} events.`;
-    if (topCountry) narr += ` ${topCountry.country} leads with ${topCountry.events}.`;
-    if (topLab) narr += ` ${topLab.name} most active.`;
+  // [35-50s] Top Signals
+  if (d.topCards.length > 0) {
     scenes.push({
-      id: `continent-${cont.name.toLowerCase().replace(/\s+/g, "-")}`,
-      durationInSeconds: 8,
-      narration: narr,
+      id: "signals",
+      durationInSeconds: 15,
+      narration: `Top signal: ${d.topCards[0].headline}.`,
     });
   }
 
-  // 6: Tool Health
-  const degradedTools = d.toolHealth.tools.filter((t) => t.status !== "operational");
-  scenes.push({
-    id: "tools",
-    durationInSeconds: 8,
-    narration: degradedTools.length > 0
-      ? `${d.toolHealth.operational} of ${d.toolHealth.total} tools operational. ${degradedTools.map((t) => `${t.name} reporting ${t.status}`).join(". ")}.`
-      : `All ${d.toolHealth.total} AI coding tools fully operational.`,
-  });
-
-  // 7: Model Rankings (biggest movers + top 5)
+  // [50-65s] Model Leaderboard
   if (d.topModels.length > 0) {
     const moverParts = d.biggestMovers.map((m) => {
       const delta = (m.previousRank ?? m.rank) - m.rank;
@@ -435,54 +308,24 @@ function buildScenes(d: {
     });
     scenes.push({
       id: "models",
-      durationInSeconds: 10,
+      durationInSeconds: 15,
       narration: `Model rankings. ${d.topModels[0].shortName} holds number 1.${moverParts.length > 0 ? ` Biggest movers: ${moverParts.join(", ")}.` : ""}`,
     });
   }
 
-  // 8: SDK Adoption
-  if (d.sdkMovers.length > 0) {
-    const narParts = d.sdkMovers.map((s) => {
-      const dir = s.diffPct > 0 ? "up" : "down";
-      return `${s.name} ${dir} ${Math.abs(s.diffPct)}%`;
-    });
-    scenes.push({
-      id: "sdk",
-      durationInSeconds: 8,
-      narration: `SDK adoption movers. ${narParts.join(". ")}.`,
-    });
-  }
-
-  // 9: Wire Overview (panel counts)
-  const totalItems = d.panelCounts.reduce((s, p) => s + p.count, 0);
-  scenes.push({
-    id: "wire-overview",
-    durationInSeconds: 8,
-    narration: `The ecosystem at a glance. ${totalItems} data points across ${d.panelCounts.length} categories. ${d.panelCounts.map((p) => `${p.count} ${p.label}`).join(", ")}.`,
-  });
-
-  // 10: Top Signals
-  if (d.topCards.length > 0) {
-    scenes.push({
-      id: "feed",
-      durationInSeconds: 8,
-      narration: `Top signal: ${d.topCards[0].headline}.`,
-    });
-  }
-
-  // 11: HN
+  // [65-80s] HN + Regional Wire
   if (d.hnTopStory) {
     scenes.push({
-      id: "hn",
-      durationInSeconds: 7,
+      id: "hn-wire",
+      durationInSeconds: 15,
       narration: `Top on Hacker News: ${d.hnTopStory.title}. ${d.hnTopStory.points} points.`,
     });
   }
 
-  // 12: Outro
+  // [80-90s] Outro
   scenes.push({
     id: "outro",
-    durationInSeconds: 7,
+    durationInSeconds: 10,
     narration: "Track it live at gawk dot dev. Subscribe for the daily digest.",
   });
 

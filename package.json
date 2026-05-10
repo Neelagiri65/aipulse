@@ -14,11 +14,12 @@
     "test:visual:headed": "playwright test --headed",
     "test:visual:report": "playwright show-report",
     "video:fetch": "npx tsx scripts/video/fetch-video-data.ts",
+    "video:record-map": "npx tsx scripts/video/record-map.ts",
     "video:tts": "npx tsx scripts/video/generate-tts.ts",
     "video:render": "npx tsx scripts/video/render.ts",
     "video:screenshots": "npx tsx scripts/video/capture-screenshots.ts",
-    "video:all": "npm run video:fetch && npm run video:screenshots && npm run video:tts && npm run video:render",
-    "video:quick": "npm run video:fetch && npm run video:render"
+    "video:all": "npm run video:fetch && npm run video:screenshots && npm run video:record-map && npm run video:tts && npm run video:render",
+    "video:quick": "npm run video:fetch && npm run video:record-map && npm run video:render"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
