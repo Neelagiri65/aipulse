@@ -23,7 +23,11 @@
     "video:quick": "npm run video:fetch && npm run video:script && npm run video:record-map && npm run video:render",
     "video:curate": "npx tsx scripts/video/curate-stories.ts",
     "video:composite": "npx tsx scripts/video/composite.ts",
-    "video:composite:vertical": "npx tsx scripts/video/composite.ts --format vertical"
+    "video:composite:vertical": "npx tsx scripts/video/composite.ts --format vertical",
+    "video:daily": "npx tsx scripts/video/daily.ts",
+    "video:daily:render-only": "npx tsx scripts/video/daily.ts --no-distribute",
+    "video:distribute": "npx tsx scripts/video/distribute.ts",
+    "video:upload:youtube": "npx tsx scripts/video/upload-youtube.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
