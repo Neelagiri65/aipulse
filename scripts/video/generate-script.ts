@@ -146,7 +146,7 @@ async function generateWithLLM(
   provider: "nvidia" | "gemini",
   apiKey: string
 ): Promise<string> {
-  const prompt = `You are a concise tech news anchor. Given the following AI ecosystem data and a template script, rewrite the script to sound natural and engaging. Keep every number exactly as provided — do not round, estimate, or fabricate. Keep it under 250 words total. Use short, punchy sentences.
+  const prompt = `You are a concise tech news anchor. Given the following AI ecosystem data and a template script, rewrite the script to sound natural and engaging. Keep every number exactly as provided — do not round, estimate, or fabricate. Keep it under 250 words total. Use short, punchy sentences. IMPORTANT: output plain text only — no markdown, no bold, no asterisks, no formatting. This text will be read aloud by a TTS engine.
 
 DATA (JSON):
 ${JSON.stringify({
@@ -176,7 +176,7 @@ Return ONLY the rewritten script, nothing else. Three paragraphs: hero (2 senten
     url = "https://integrate.api.nvidia.com/v1/chat/completions";
     headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
     body = {
-      model: "nvidia/nemotron-super",
+      model: "nvidia/llama-3.3-nemotron-super-49b-v1",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 600,
       temperature: 0.7,
@@ -205,13 +205,17 @@ Return ONLY the rewritten script, nothing else. Three paragraphs: hero (2 senten
 
   const json = await res.json() as Record<string, unknown>;
 
+  let text: string | undefined;
   if (provider === "nvidia") {
     const choices = (json as { choices?: { message?: { content?: string } }[] }).choices;
-    return choices?.[0]?.message?.content?.trim() ?? templateScript;
+    text = choices?.[0]?.message?.content?.trim();
   } else {
     const candidates = (json as { candidates?: { content?: { parts?: { text?: string }[] } }[] }).candidates;
-    return candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? templateScript;
+    text = candidates?.[0]?.content?.parts?.[0]?.text?.trim();
   }
+
+  if (!text) return templateScript;
+  return text.replace(/\*\*/g, "").replace(/[*_#`]/g, "");
 }
 
 async function main() {
