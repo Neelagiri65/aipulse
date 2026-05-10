@@ -337,21 +337,44 @@ function generateTTS(text: string, outFile: string): number {
   return parseFloat(probe) || 0;
 }
 
-function concatenateAudio(segments: NarrationSegment[], outFile: string) {
+function concatenateAudio(segments: NarrationSegment[], outFile: string, manifest: ManifestEntry[]) {
   const listFile = resolve(ROOT, "out/concat-list.txt");
-  const silenceFile = resolve(ROOT, "out/silence-0.8s.mp3");
-
-  execSync(
-    `ffmpeg -y -f lavfi -i anullsrc=r=24000:cl=mono -t 0.8 -c:a libmp3lame -b:a 192k "${silenceFile}" 2>&1`
-  );
-
   const lines: string[] = [];
-  for (let i = 0; i < segments.length; i++) {
-    lines.push(`file '${segments[i].audioFile}'`);
-    if (i < segments.length - 1) {
-      lines.push(`file '${silenceFile}'`);
+
+  if (manifest.length > 0) {
+    // Manifest mode: place each segment at its video start time using silence gaps
+    let cursor = 0;
+    for (const seg of segments) {
+      const m = manifest.find((e) => e.id === seg.id);
+      const targetStart = m ? m.startSec : cursor;
+
+      const gap = targetStart - cursor;
+      if (gap > 0.05) {
+        const gapFile = resolve(ROOT, `out/silence-${seg.id}.mp3`);
+        execSync(
+          `ffmpeg -y -f lavfi -i anullsrc=r=24000:cl=mono -t ${gap.toFixed(3)} -c:a libmp3lame -b:a 192k "${gapFile}" 2>&1`
+        );
+        lines.push(`file '${gapFile}'`);
+        cursor += gap;
+      }
+
+      lines.push(`file '${seg.audioFile}'`);
+      cursor += seg.durationSec;
+    }
+  } else {
+    // Standalone mode: simple concatenation with 0.8s pauses
+    const silenceFile = resolve(ROOT, "out/silence-0.8s.mp3");
+    execSync(
+      `ffmpeg -y -f lavfi -i anullsrc=r=24000:cl=mono -t 0.8 -c:a libmp3lame -b:a 192k "${silenceFile}" 2>&1`
+    );
+    for (let i = 0; i < segments.length; i++) {
+      lines.push(`file '${segments[i].audioFile}'`);
+      if (i < segments.length - 1) {
+        lines.push(`file '${silenceFile}'`);
+      }
     }
   }
+
   writeFileSync(listFile, lines.join("\n"));
 
   execSync(
@@ -530,7 +553,7 @@ function main() {
 
   // Concatenate
   const fullAudio = resolve(ROOT, `data/video-narration-${FORMAT}.mp3`);
-  concatenateAudio(segments, fullAudio);
+  concatenateAudio(segments, fullAudio, manifest);
 
   // Also write to default path for compositor
   if (FORMAT === "youtube") {

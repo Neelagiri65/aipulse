@@ -164,29 +164,31 @@ function buildFilterChain(overlays: Overlay[], format: string, videoDuration?: n
       `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=6`
   );
 
-  // Lower-third overlays for each narrative
-  for (const o of overlays) {
-    const headline = escapeFFmpegText(o.text);
-    const source = escapeFFmpegText(o.source);
-    const yBase = format === "vertical" ? "h-h*0.28" : "h-h*0.25";
+  // Lower-third overlays: DOM-injected versions are captured in the recording
+  // (better styling: gradients, backdrop-filter, rounded corners, animation).
+  // Only add ffmpeg drawtext lower-thirds for formats that skip recording (vertical crop).
+  if (format === "vertical") {
+    for (const o of overlays) {
+      const headline = escapeFFmpegText(o.text);
+      const source = escapeFFmpegText(o.source);
+      const yBase = "h-h*0.28";
 
-    // Headline
-    filters.push(
-      `drawtext=text='${headline}':` +
-        `font='${BRAND.fontFamily}':fontsize=${format === "vertical" ? 28 : 32}:fontcolor=0x${BRAND.fg}:` +
-        `x=40:y=${yBase}:` +
-        `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=12:` +
-        `enable='between(t,${o.startSec},${o.endSec})'`
-    );
+      filters.push(
+        `drawtext=text='${headline}':` +
+          `font='${BRAND.fontFamily}':fontsize=28:fontcolor=0x${BRAND.fg}:` +
+          `x=40:y=${yBase}:` +
+          `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=12:` +
+          `enable='between(t,${o.startSec},${o.endSec})'`
+      );
 
-    // Source line
-    filters.push(
-      `drawtext=text='${source}':` +
-        `font='${BRAND.fontFamily}':fontsize=${format === "vertical" ? 18 : 20}:fontcolor=0x${BRAND.accent}:` +
-        `x=40:y=${yBase}+${format === "vertical" ? 42 : 48}:` +
-        `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=6:` +
-        `enable='between(t,${o.startSec},${o.endSec})'`
-    );
+      filters.push(
+        `drawtext=text='${source}':` +
+          `font='${BRAND.fontFamily}':fontsize=18:fontcolor=0x${BRAND.accent}:` +
+          `x=40:y=${yBase}+42:` +
+          `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=6:` +
+          `enable='between(t,${o.startSec},${o.endSec})'`
+      );
+    }
   }
 
   // CTA at the end
