@@ -320,64 +320,17 @@ async function main() {
   const page = await context.newPage();
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  // Dark bg + styles before any navigation
-  await page.evaluate(() => {
-    document.documentElement.style.background = "#06080a";
-    document.body.style.background = "#06080a";
-  });
-  await page.addStyleTag({ content: OVERLAY_CSS });
-
-  // Branded intro overlay on blank page
-  console.log("Showing branded intro...");
-  await page.evaluate((date) => {
-    const overlay = document.createElement("div");
-    overlay.className = "gawk-intro-overlay";
-    overlay.id = "gawk-intro";
-    overlay.innerHTML = `
-      <div class="gawk-intro-overlay__logo">gawk<span class="gawk-intro-overlay__dot">.</span>dev</div>
-      <div class="gawk-intro-overlay__tagline">See what the AI world actually sees.</div>
-      <div class="gawk-intro-overlay__date">${date}</div>
-      <div class="gawk-intro-overlay__pulse"></div>
-    `;
-    document.body.appendChild(overlay);
-  }, todayStr);
-
-  await page.waitForTimeout(1500);
-
-  // Load gawk.dev behind the intro overlay
-  console.log("Loading gawk.dev behind intro...");
+  // Load gawk.dev first (no recording yet — video starts after page is ready)
+  console.log("Pre-loading gawk.dev...");
   await page.goto(BASE_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
-
-  // Re-inject intro overlay immediately (goto clears the DOM)
-  await page.addStyleTag({ content: OVERLAY_CSS });
-  await page.evaluate((date) => {
-    document.documentElement.style.background = "#06080a";
-    document.body.style.background = "#06080a";
-    const overlay = document.createElement("div");
-    overlay.className = "gawk-intro-overlay";
-    overlay.id = "gawk-intro";
-    overlay.innerHTML = `
-      <div class="gawk-intro-overlay__logo">gawk<span class="gawk-intro-overlay__dot">.</span>dev</div>
-      <div class="gawk-intro-overlay__tagline">See what the AI world actually sees.</div>
-      <div class="gawk-intro-overlay__date">${date}</div>
-      <div class="gawk-intro-overlay__pulse"></div>
-    `;
-    document.body.appendChild(overlay);
-  }, todayStr);
-
-  // Wait for page render behind overlay
-  await page.waitForTimeout(500);
   await page.evaluate(() => {
     return new Promise<void>((resolve) => {
       if (document.readyState === "complete") resolve();
       else window.addEventListener("load", () => resolve());
     });
   });
-  await page.waitForTimeout(1000);
-  await page.addStyleTag({ content: OVERLAY_CSS });
-  await hidePageChrome(page);
 
-  // Wait for map
+  // Wait for map to be ready (happens behind the scenes, before recording starts)
   try {
     await page.waitForSelector(".ap-fm-cluster", { timeout: 10000 });
   } catch {
@@ -397,23 +350,40 @@ async function main() {
     await page.evaluate(() => {
       (window as any).__map.setView([20, 0], 2, { animate: false });
     });
-    await page.waitForTimeout(500);
   }
 
-  // Navigate to globe view BEFORE fading out intro
   await navigateToPanel(page, "globe");
-  await page.waitForTimeout(500);
+  await hidePageChrome(page);
 
-  // Fade out intro
+  // Inject styles + branded intro overlay OVER the loaded page
+  await page.addStyleTag({ content: OVERLAY_CSS });
+  console.log("Showing branded intro (page already loaded)...");
+  await page.evaluate((date) => {
+    const overlay = document.createElement("div");
+    overlay.className = "gawk-intro-overlay";
+    overlay.id = "gawk-intro";
+    overlay.innerHTML = `
+      <div class="gawk-intro-overlay__logo">gawk<span class="gawk-intro-overlay__dot">.</span>dev</div>
+      <div class="gawk-intro-overlay__tagline">See what the AI world actually sees.</div>
+      <div class="gawk-intro-overlay__date">${date}</div>
+      <div class="gawk-intro-overlay__pulse"></div>
+    `;
+    document.body.appendChild(overlay);
+  }, todayStr);
+
+  // Brief hold on intro card — page is already loaded underneath
+  await page.waitForTimeout(3000);
+
+  // Fade out intro — globe is immediately visible
   console.log("Fading out intro...");
   await page.evaluate(() => {
     const intro = document.getElementById("gawk-intro");
     if (intro) {
-      intro.style.animation = "gawk-intro-out 1s ease-in forwards";
-      setTimeout(() => intro.remove(), 1000);
+      intro.style.animation = "gawk-intro-out 0.8s ease-in forwards";
+      setTimeout(() => intro.remove(), 800);
     }
   });
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(1000);
 
   await hidePageChrome(page);
   await showBadge(page);
@@ -422,8 +392,8 @@ async function main() {
   console.log("Recording segments...\n");
 
   const manifest: ManifestEntry[] = [];
-  let clock = 0; // approximate seconds since recording start (intro overlay eats ~15s)
-  const introOverheadSec = 15; // estimated time spent on intro + page load
+  let clock = 0;
+  const introOverheadSec = 4; // 3s hold + 1s fade (page pre-loaded before recording)
   clock = introOverheadSec;
 
   let lastScene = "";
@@ -441,7 +411,7 @@ async function main() {
     if (seg.scene !== lastScene) {
       if (seg.scene === "globe" && mapReady) {
         await navigateToPanel(page, "globe");
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(300);
         if (i > 0) {
           const regions = [
             { lat: 50, lng: 15 },
@@ -458,8 +428,8 @@ async function main() {
       } else {
         await navigateToPanel(page, seg.scene);
       }
-      await page.waitForTimeout(800);
-      clock += 1.3;
+      await page.waitForTimeout(500);
+      clock += 0.8;
       lastScene = seg.scene;
     }
 
@@ -504,8 +474,8 @@ async function main() {
     manifest.push({ ...seg, startSec, endSec });
 
     // Brief pause between segments
-    await page.waitForTimeout(800);
-    clock += 0.8;
+    await page.waitForTimeout(500);
+    clock += 0.5;
   }
 
   // Final globe hold

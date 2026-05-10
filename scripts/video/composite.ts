@@ -132,6 +132,7 @@ function buildOverlaysFromCurated(curated: CurationResult): Overlay[] {
 function escapeFFmpegText(text: string): string {
   return text
     .replace(/\\/g, "\\\\")
+    .replace(/"/g, "'")
     .replace(/'/g, "'\\''")
     .replace(/:/g, "\\:")
     .replace(/\[/g, "\\[")
@@ -139,7 +140,7 @@ function escapeFFmpegText(text: string): string {
     .replace(/%/g, "%%");
 }
 
-function buildFilterChain(overlays: Overlay[], format: string): string {
+function buildFilterChain(overlays: Overlay[], format: string, videoDuration?: number): string {
   const filters: string[] = [];
 
   if (format === "vertical") {
@@ -188,9 +189,9 @@ function buildFilterChain(overlays: Overlay[], format: string): string {
     );
   }
 
-  // CTA at the end (85-90s)
-  const ctaStart = format === "vertical" ? 55 : 85;
-  const ctaEnd = format === "vertical" ? 60 : 90;
+  // CTA at the end
+  const ctaEnd = videoDuration ?? (format === "vertical" ? 60 : 90);
+  const ctaStart = ctaEnd - 5;
   filters.push(
     `drawtext=text='gawk.dev':` +
       `font='${BRAND.fontFamily}':fontsize=48:fontcolor=0x${BRAND.accent}:` +
@@ -230,13 +231,24 @@ function main() {
 
   const audioPath = existsSync(AUDIO) ? AUDIO : existsSync(AUDIO_FALLBACK) ? AUDIO_FALLBACK : null;
   const hasAudio = !NO_AUDIO && audioPath !== null;
-  const duration = FORMAT === "vertical" ? 60 : 90;
+
+  // Detect actual video duration for youtube format
+  let duration = FORMAT === "vertical" ? 60 : 90;
+  if (VIDEO_FORMAT === "youtube") {
+    try {
+      const probe = execSync(
+        `ffprobe -v error -show_entries format=duration -of csv=p=0 "${WALKTHROUGH}" 2>&1`
+      ).toString().trim();
+      const videoDur = Math.floor(parseFloat(probe) || 0);
+      if (videoDur > 0) duration = videoDur;
+    } catch { /* fall back to default */ }
+  }
   const outFile = resolve(
     ROOT,
     `out/gawk-daily-${DATE}${FORMAT === "vertical" ? "-vertical" : ""}.mp4`
   );
 
-  const filterChain = buildFilterChain(overlays, FORMAT);
+  const filterChain = buildFilterChain(overlays, FORMAT, duration);
 
   const cmd = [
     "ffmpeg -y",
