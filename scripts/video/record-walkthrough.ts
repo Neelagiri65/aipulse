@@ -1,21 +1,23 @@
 /**
- * Video-first walkthrough recorder.
+ * Cinematic walkthrough recorder for Gawk Daily.
  *
- * Pipeline: curate → record video (fixed timings) → generate script to fit.
+ * NOT a screen recording. This is a scripted video production that uses
+ * the live dashboard as a canvas. Every frame is intentional.
  *
- * Reads curated.json for narratives, assigns fixed durations per segment type,
- * records the walkthrough, and outputs a timing manifest that the narration
- * generator uses to write script + TTS to match.
+ * Rules:
+ * - No white screens. Ever. Dark mode only.
+ * - No UI chrome visible (popups, tickers, sidebars, badges, legends).
+ * - One panel at a time, maximized. Map fades when panel is showing.
+ * - Map zooms are full-screen with all panels closed.
+ * - Key numbers get full-screen treatment (injected data cards).
+ * - Narrative arc: Hook → Deep Dive → Movers → Map → CTA
  *
  * Output:
  *   out/walkthrough.webm          — the recorded video
  *   data/video-manifest.json      — per-segment timestamps for narration sync
- *
- * Usage: npx tsx scripts/video/record-walkthrough.ts
- *        npx tsx scripts/video/record-walkthrough.ts --format linkedin
  */
 
-import { chromium } from "@playwright/test";
+import { chromium, type Page } from "@playwright/test";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, renameSync } from "fs";
 import { resolve } from "path";
 import type { CurationResult, Narrative } from "../../src/lib/curation/types";
@@ -45,21 +47,10 @@ type ManifestEntry = SegmentPlan & {
   endSec: number;
 };
 
-const SEGMENT_DURATIONS: Record<string, number> = {
-  intro: 10,
-  hook: 20,
-  lead: 15,
-  story: 15,
-  community: 15,
-  radar: 12,
-  map: 12,
-  outro: 20,
-};
-
-const FORMAT_CONFIGS: Record<string, { maxItems: number; introDur: number; outroDur: number }> = {
-  youtube: { maxItems: 20, introDur: 10, outroDur: 20 },
-  linkedin: { maxItems: 5, introDur: 5, outroDur: 8 },
-  instagram: { maxItems: 4, introDur: 5, outroDur: 8 },
+const FORMAT_CONFIGS: Record<string, { maxItems: number }> = {
+  youtube: { maxItems: 12 },
+  linkedin: { maxItems: 5 },
+  instagram: { maxItems: 4 },
 };
 
 function sourceToPanel(source: string): SceneDirection {
@@ -70,167 +61,177 @@ function sourceToPanel(source: string): SceneDirection {
   return "wire";
 }
 
-function segmentLabel(seg: string): string {
-  const map: Record<string, string> = {
-    hook: "BREAKING", lead: "TOP STORY", story: "IN FOCUS",
-    community: "COMMUNITY", radar: "ON THE RADAR", map: "GLOBAL VIEW",
-    intro: "GAWK DAILY", outro: "GAWK DAILY",
-  };
-  return map[seg] ?? seg.toUpperCase();
-}
-
-function sourceLabel(scene: string): string {
-  const map: Record<string, string> = {
-    "sdk-adoption": "Source: Gawk SDK Tracker",
-    models: "Source: Gawk Models Leaderboard",
-    tools: "Source: Gawk Tool Health",
-    wire: "Source: Gawk Wire",
-    labs: "Source: Gawk Labs",
-    globe: "Source: gawk.dev",
-  };
-  return map[scene] ?? "Source: gawk.dev";
-}
+// --- CSS for injected overlays ---
 
 const OVERLAY_CSS = `
+  .gawk-data-card {
+    position: fixed; inset: 0; z-index: 2147483647;
+    background: rgba(6, 8, 10, 0.92);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', 'DM Sans', -apple-system, sans-serif;
+    pointer-events: none;
+    animation: gawk-card-in 0.5s ease-out;
+  }
+  .gawk-data-card__label {
+    font-size: 14px; font-weight: 600; color: rgba(45, 212, 191, 0.7);
+    letter-spacing: 4px; text-transform: uppercase; margin-bottom: 20px;
+  }
+  .gawk-data-card__number {
+    font-size: 120px; font-weight: 700; line-height: 1;
+    margin-bottom: 16px;
+  }
+  .gawk-data-card__number--up { color: #4ade80; }
+  .gawk-data-card__number--down { color: #f87171; }
+  .gawk-data-card__number--neutral { color: #e2e8f0; }
+  .gawk-data-card__title {
+    font-size: 32px; font-weight: 500; color: #e2e8f0;
+    margin-bottom: 12px; text-align: center; max-width: 800px;
+    font-family: 'DM Sans', -apple-system, sans-serif;
+  }
+  .gawk-data-card__source {
+    font-size: 14px; color: #64748b;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .gawk-data-card__arrow {
+    font-size: 80px; line-height: 1; margin-bottom: 8px;
+  }
+  .gawk-data-card__arrow--up { color: #4ade80; }
+  .gawk-data-card__arrow--down { color: #f87171; }
+
   .gawk-lower-third {
     position: fixed;
-    bottom: 140px;
-    left: 40px;
-    right: 40px;
+    bottom: 60px; left: 40px;
     z-index: 2147483647;
     background: linear-gradient(135deg, rgba(6, 8, 10, 0.95), rgba(15, 20, 30, 0.92));
     border: 1px solid rgba(45, 212, 191, 0.3);
     border-radius: 12px;
-    padding: 20px 28px;
+    padding: 16px 24px;
     font-family: 'DM Sans', -apple-system, sans-serif;
     backdrop-filter: blur(16px);
     box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(45,212,191,0.08);
-    animation: gawk-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: gawk-slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: none;
-    max-width: 800px;
+    max-width: 700px;
   }
   .gawk-lower-third__segment {
     font-size: 11px; font-weight: 600;
     color: rgba(45, 212, 191, 0.8);
-    letter-spacing: 3px; text-transform: uppercase; margin-bottom: 6px;
+    letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px;
   }
   .gawk-lower-third__headline {
-    font-size: 20px; font-weight: 500; color: #e2e8f0; line-height: 1.4;
+    font-size: 18px; font-weight: 500; color: #e2e8f0; line-height: 1.3;
   }
-  .gawk-lower-third__source {
-    font-size: 12px; color: #64748b; margin-top: 8px;
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .gawk-badge {
+
+  .gawk-watermark {
     position: fixed; top: 20px; right: 24px; z-index: 2147483646;
-    background: rgba(6, 8, 10, 0.85);
-    border: 1px solid rgba(45, 212, 191, 0.25); border-radius: 8px;
-    padding: 8px 16px; font-family: 'JetBrains Mono', monospace;
-    font-size: 13px; color: rgba(45, 212, 191, 0.9);
-    backdrop-filter: blur(8px); pointer-events: none; letter-spacing: 1px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; color: rgba(45, 212, 191, 0.5);
+    pointer-events: none; letter-spacing: 1px;
+    animation: gawk-fade-in 1s ease-out;
   }
-  .gawk-date {
+  .gawk-date-stamp {
     position: fixed; top: 20px; left: 24px; z-index: 2147483646;
-    font-family: 'JetBrains Mono', monospace; font-size: 12px;
-    color: #64748b; pointer-events: none;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    color: rgba(100, 116, 139, 0.6); pointer-events: none;
+    animation: gawk-fade-in 1s ease-out;
   }
-  .gawk-intro-overlay {
-    position: fixed; inset: 0; z-index: 2147483647; background: #06080a;
+
+  .gawk-cta-card {
+    position: fixed; inset: 0; z-index: 2147483647;
+    background: #06080a;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     font-family: 'JetBrains Mono', 'DM Sans', -apple-system, sans-serif;
-    animation: gawk-intro-in 1s ease-out;
+    pointer-events: none;
+    animation: gawk-card-in 0.8s ease-out;
   }
-  .gawk-intro-overlay__logo {
-    font-size: 72px; font-weight: 700; color: #e2e8f0;
+  .gawk-cta-card__logo {
+    font-size: 64px; font-weight: 700; color: #e2e8f0;
     letter-spacing: 6px; margin-bottom: 16px;
   }
-  .gawk-intro-overlay__dot { color: rgba(45, 212, 191, 1); }
-  .gawk-intro-overlay__tagline {
-    font-size: 18px; color: #64748b; letter-spacing: 2px; margin-bottom: 32px;
+  .gawk-cta-card__dot { color: rgba(45, 212, 191, 1); }
+  .gawk-cta-card__tagline {
+    font-size: 20px; color: #64748b; margin-bottom: 40px;
     font-family: 'DM Sans', -apple-system, sans-serif;
   }
-  .gawk-intro-overlay__date {
-    font-size: 14px; color: rgba(45, 212, 191, 0.6);
-    letter-spacing: 4px; text-transform: uppercase;
+  .gawk-cta-card__actions {
+    display: flex; gap: 24px;
   }
-  .gawk-intro-overlay__pulse {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: rgba(45, 212, 191, 0.8); margin-top: 40px;
-    animation: gawk-pulse 1.5s ease-in-out infinite;
+  .gawk-cta-card__action {
+    padding: 12px 32px; border-radius: 8px; font-size: 16px;
+    font-weight: 600; letter-spacing: 1px;
   }
+  .gawk-cta-card__action--primary {
+    background: rgba(45, 212, 191, 0.15); border: 1px solid rgba(45, 212, 191, 0.4);
+    color: rgba(45, 212, 191, 0.9);
+  }
+  .gawk-cta-card__action--secondary {
+    background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+  }
+
   @keyframes gawk-slide-up {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
   }
   @keyframes gawk-fade-out {
     from { opacity: 1; }
-    to { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 0; }
   }
-  @keyframes gawk-intro-in { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes gawk-pulse {
-    0%, 100% { opacity: 0.4; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.8); }
+  @keyframes gawk-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
-  @keyframes gawk-intro-out { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes gawk-card-in {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+  }
 `;
 
-async function hidePageChrome(page: import("@playwright/test").Page) {
+// --- Page manipulation helpers ---
+
+async function hideAllChrome(page: Page) {
   try {
     const rejectBtn = await page.$("button:has-text('Reject all')");
     if (rejectBtn) { await rejectBtn.click(); await page.waitForTimeout(500); }
   } catch { /* no consent banner */ }
 
   await page.evaluate(() => {
-    document.querySelectorAll("[class*='consent'], [class*='Consent'], [class*='cookie'], [class*='Cookie'], [class*='toast'], [class*='Toast'], [class*='Toaster'], [class*='banner'], [class*='Banner']")
-      .forEach(el => (el as HTMLElement).style.setProperty("display", "none", "important"));
-    document.querySelectorAll("footer, [class*='privacy'], [class*='Privacy']")
-      .forEach(el => (el as HTMLElement).style.setProperty("display", "none", "important"));
-  });
-}
-
-async function showBadge(page: import("@playwright/test").Page) {
-  const date = new Date().toISOString().slice(0, 10);
-  await page.evaluate((d) => {
-    if (document.querySelector(".gawk-badge")) return;
-    const badge = document.createElement("div");
-    badge.className = "gawk-badge";
-    badge.textContent = "LIVE · gawk.dev";
-    document.body.appendChild(badge);
-    const dateEl = document.createElement("div");
-    dateEl.className = "gawk-date";
-    dateEl.textContent = d;
-    document.body.appendChild(dateEl);
-  }, date);
-}
-
-async function showLowerThird(
-  page: import("@playwright/test").Page,
-  segment: string, headline: string, source: string,
-) {
-  await page.evaluate(({ segment, headline, source }) => {
-    document.querySelectorAll(".gawk-lower-third").forEach(el => el.remove());
-    const el = document.createElement("div");
-    el.className = "gawk-lower-third";
-    el.innerHTML = `
-      <div class="gawk-lower-third__segment">${segment}</div>
-      <div class="gawk-lower-third__headline">${headline}</div>
-      <div class="gawk-lower-third__source">${source}</div>
-    `;
-    document.body.appendChild(el);
-  }, { segment, headline, source });
-}
-
-async function hideLowerThird(page: import("@playwright/test").Page) {
-  await page.evaluate(() => {
-    const el = document.querySelector(".gawk-lower-third") as HTMLElement | null;
-    if (el) {
-      el.style.animation = "gawk-fade-out 0.4s ease-in forwards";
-      setTimeout(() => el.remove(), 400);
+    const selectors = [
+      ".ap-live-ticker",
+      ".ap-icon-nav",
+      ".ap-filter-panel-trigger",
+      ".ap-map-legend",
+      ".ap-cursor-glow",
+      "[class*='consent'], [class*='Consent'], [class*='cookie'], [class*='Cookie']",
+      "[class*='toast'], [class*='Toast'], [class*='Toaster']",
+      "[class*='banner'], [class*='Banner']",
+      "footer, [class*='privacy'], [class*='Privacy']",
+      ".ap-label-sm",
+    ];
+    for (const sel of selectors) {
+      document.querySelectorAll(sel).forEach(function(el) {
+        (el as HTMLElement).style.setProperty("display", "none", "important");
+      });
     }
+
+    document.querySelectorAll("[class*='z-50']").forEach(function(el) {
+      const rect = el.getBoundingClientRect();
+      if (rect.y > 800) (el as HTMLElement).style.setProperty("display", "none", "important");
+    });
+
+    document.querySelectorAll(".ap-panel-surface").forEach(function(el) {
+      const rect = el.getBoundingClientRect();
+      if (rect.y > 900) (el as HTMLElement).style.setProperty("display", "none", "important");
+    });
+
+    document.querySelectorAll("[class*='alert'], [class*='Alert']").forEach(function(el) {
+      const rect = el.getBoundingClientRect();
+      if (rect.width < 200) (el as HTMLElement).style.setProperty("display", "none", "important");
+    });
   });
 }
 
-async function navigateToPanel(page: import("@playwright/test").Page, panelId: string): Promise<boolean> {
+async function navigateToPanel(page: Page, panelId: string): Promise<boolean> {
   if (panelId === "globe") {
     return page.evaluate(() => {
       const items = document.querySelectorAll(".ap-icon-nav__item");
@@ -241,13 +242,17 @@ async function navigateToPanel(page: import("@playwright/test").Page, panelId: s
           return true;
         }
       }
-      const map = document.querySelector(".ap-fm-root");
-      if (map) { (map as HTMLElement).click(); return true; }
       return false;
     });
   }
 
-  return page.evaluate((target) => {
+  // Temporarily show nav to click, then re-hide
+  await page.evaluate(() => {
+    const nav = document.querySelector(".ap-icon-nav") as HTMLElement;
+    if (nav) nav.style.setProperty("display", "flex", "important");
+  });
+
+  const clicked = await page.evaluate((target) => {
     const items = document.querySelectorAll(".ap-icon-nav__item");
     for (const item of items) {
       const label = item.querySelector(".ap-icon-nav__label");
@@ -258,39 +263,127 @@ async function navigateToPanel(page: import("@playwright/test").Page, panelId: s
         return true;
       }
     }
-    for (const item of items) {
-      if (item.getAttribute("title")?.toLowerCase().includes(target.replace(/-/g, " "))) {
-        (item as HTMLElement).click();
-        return true;
-      }
-    }
     return false;
   }, panelId);
-}
 
-function buildSegmentPlan(narratives: Narrative[], config: typeof FORMAT_CONFIGS.youtube): SegmentPlan[] {
-  const plan: SegmentPlan[] = [];
+  await page.waitForTimeout(300);
 
-  plan.push({
-    id: "intro", segment: "intro", headline: "Intro",
-    scene: "globe", holdSec: config.introDur,
+  // Re-hide nav
+  await page.evaluate(() => {
+    const nav = document.querySelector(".ap-icon-nav") as HTMLElement;
+    if (nav) nav.style.setProperty("display", "none", "important");
   });
 
-  for (const n of narratives) {
-    const scene = sourceToPanel(n.events[0]?.source ?? "");
-    plan.push({
-      id: n.id, segment: n.segment, headline: n.headline,
-      scene, holdSec: SEGMENT_DURATIONS[n.segment] ?? 15,
-    });
-  }
-
-  plan.push({
-    id: "outro", segment: "outro", headline: "Outro",
-    scene: "globe", holdSec: config.outroDur,
-  });
-
-  return plan;
+  return clicked;
 }
+
+async function showDataCard(page: Page, opts: {
+  label: string;
+  number: string;
+  direction: "up" | "down" | "neutral";
+  title: string;
+  source: string;
+}) {
+  await page.evaluate((o) => {
+    document.querySelectorAll(".gawk-data-card").forEach(el => el.remove());
+    const arrow = o.direction === "up" ? "↑" : o.direction === "down" ? "↓" : "";
+    const el = document.createElement("div");
+    el.className = "gawk-data-card";
+    el.innerHTML = `
+      <div class="gawk-data-card__label">${o.label}</div>
+      ${arrow ? `<div class="gawk-data-card__arrow gawk-data-card__arrow--${o.direction}">${arrow}</div>` : ""}
+      <div class="gawk-data-card__number gawk-data-card__number--${o.direction}">${o.number}</div>
+      <div class="gawk-data-card__title">${o.title}</div>
+      <div class="gawk-data-card__source">${o.source}</div>
+    `;
+    document.body.appendChild(el);
+  }, opts);
+}
+
+async function hideDataCard(page: Page) {
+  await page.evaluate(() => {
+    const el = document.querySelector(".gawk-data-card") as HTMLElement | null;
+    if (el) {
+      el.style.animation = "gawk-fade-out 0.5s ease-in forwards";
+      setTimeout(() => el.remove(), 500);
+    }
+  });
+}
+
+async function showLowerThird(page: Page, segment: string, headline: string) {
+  await page.evaluate(({ segment, headline }) => {
+    document.querySelectorAll(".gawk-lower-third").forEach(el => el.remove());
+    const el = document.createElement("div");
+    el.className = "gawk-lower-third";
+    el.innerHTML = `
+      <div class="gawk-lower-third__segment">${segment}</div>
+      <div class="gawk-lower-third__headline">${headline}</div>
+    `;
+    document.body.appendChild(el);
+  }, { segment, headline });
+}
+
+async function hideLowerThird(page: Page) {
+  await page.evaluate(() => {
+    const el = document.querySelector(".gawk-lower-third") as HTMLElement | null;
+    if (el) {
+      el.style.animation = "gawk-fade-out 0.4s ease-in forwards";
+      setTimeout(() => el.remove(), 400);
+    }
+  });
+}
+
+async function showCTA(page: Page) {
+  await page.evaluate(() => {
+    const el = document.createElement("div");
+    el.className = "gawk-cta-card";
+    el.innerHTML = `
+      <div class="gawk-cta-card__logo">gawk<span class="gawk-cta-card__dot">.</span>dev</div>
+      <div class="gawk-cta-card__tagline">Track what actually matters in AI.</div>
+      <div class="gawk-cta-card__actions">
+        <div class="gawk-cta-card__action gawk-cta-card__action--primary">Subscribe for daily briefs</div>
+        <div class="gawk-cta-card__action gawk-cta-card__action--secondary">Bookmark gawk.dev</div>
+      </div>
+    `;
+    document.body.appendChild(el);
+  });
+}
+
+async function showWatermark(page: Page) {
+  const date = new Date().toISOString().slice(0, 10);
+  await page.evaluate((d) => {
+    if (document.querySelector(".gawk-watermark")) return;
+    const w = document.createElement("div");
+    w.className = "gawk-watermark";
+    w.textContent = "gawk.dev";
+    document.body.appendChild(w);
+    const dt = document.createElement("div");
+    dt.className = "gawk-date-stamp";
+    dt.textContent = d;
+    document.body.appendChild(dt);
+  }, date);
+}
+
+async function mapFlyTo(page: Page, lat: number, lng: number, zoom: number, durationSec: number) {
+  await page.evaluate(({ lat, lng, zoom, dur }) => {
+    if ((window as any).__map) {
+      (window as any).__map.flyTo([lat, lng], zoom, { duration: dur });
+    }
+  }, { lat, lng, zoom, dur: durationSec });
+}
+
+// --- Segment plan builder ---
+
+function segmentLabel(seg: string): string {
+  const map: Record<string, string> = {
+    hook: "BREAKING", lead: "TOP STORY", story: "IN FOCUS",
+    community: "COMMUNITY", radar: "ON THE RADAR",
+    intro: "GAWK DAILY", outro: "GAWK DAILY",
+  };
+  return map[seg] ?? seg.toUpperCase();
+}
+
+// --- Main ---
 
 async function main() {
   if (!existsSync(CURATED)) {
@@ -301,10 +394,8 @@ async function main() {
   const config = FORMAT_CONFIGS[FORMAT] ?? FORMAT_CONFIGS.youtube;
   const curated: CurationResult = JSON.parse(readFileSync(CURATED, "utf-8"));
   const narratives = curated.narratives.slice(0, config.maxItems);
-  const plan = buildSegmentPlan(narratives, config);
 
-  const totalHold = plan.reduce((s, p) => s + p.holdSec, 0);
-  console.log(`Format: ${FORMAT} | ${plan.length} segments | ~${totalHold}s hold time\n`);
+  console.log(`Format: ${FORMAT} | ${narratives.length} stories\n`);
 
   mkdirSync(OUT_DIR, { recursive: true });
 
@@ -318,9 +409,8 @@ async function main() {
   });
 
   const page = await context.newPage();
-  const todayStr = new Date().toISOString().slice(0, 10);
 
-  // Load gawk.dev first (no recording yet — video starts after page is ready)
+  // --- PRE-LOAD (before recording starts) ---
   console.log("Pre-loading gawk.dev...");
   await page.goto(BASE_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
   await page.evaluate(() => {
@@ -330,7 +420,6 @@ async function main() {
     });
   });
 
-  // Wait for map to be ready (happens behind the scenes, before recording starts)
   try {
     await page.waitForSelector(".ap-fm-cluster", { timeout: 10000 });
   } catch {
@@ -346,146 +435,201 @@ async function main() {
     return true;
   });
 
+  // Set up: hide everything, navigate to map, inject styles
+  await hideAllChrome(page);
+  await navigateToPanel(page, "globe");
+  await page.addStyleTag({ content: OVERLAY_CSS });
+  await hideAllChrome(page); // re-hide after nav click
+
   if (mapReady) {
     await page.evaluate(() => {
-      (window as any).__map.setView([20, 0], 2, { animate: false });
+      (window as any).__map.setView([50, 15], 3, { animate: false }); // Start on Europe
     });
   }
 
-  await navigateToPanel(page, "globe");
-  await hidePageChrome(page);
+  await page.waitForTimeout(500);
 
-  // Inject styles + branded intro overlay OVER the loaded page
-  await page.addStyleTag({ content: OVERLAY_CSS });
-  console.log("Showing branded intro (page already loaded)...");
-  await page.evaluate((date) => {
-    const overlay = document.createElement("div");
-    overlay.className = "gawk-intro-overlay";
-    overlay.id = "gawk-intro";
-    overlay.innerHTML = `
-      <div class="gawk-intro-overlay__logo">gawk<span class="gawk-intro-overlay__dot">.</span>dev</div>
-      <div class="gawk-intro-overlay__tagline">See what the AI world actually sees.</div>
-      <div class="gawk-intro-overlay__date">${date}</div>
-      <div class="gawk-intro-overlay__pulse"></div>
-    `;
-    document.body.appendChild(overlay);
-  }, todayStr);
-
-  // Brief hold on intro card — page is already loaded underneath
-  await page.waitForTimeout(3000);
-
-  // Fade out intro — globe is immediately visible
-  console.log("Fading out intro...");
-  await page.evaluate(() => {
-    const intro = document.getElementById("gawk-intro");
-    if (intro) {
-      intro.style.animation = "gawk-intro-out 0.8s ease-in forwards";
-      setTimeout(() => intro.remove(), 800);
-    }
-  });
-  await page.waitForTimeout(1000);
-
-  await hidePageChrome(page);
-  await showBadge(page);
-
-  // --- Record segments with actual timestamps ---
-  console.log("Recording segments...\n");
+  // --- RECORDING STARTS ---
+  // The video begins here. Map is showing Europe, all chrome hidden.
 
   const manifest: ManifestEntry[] = [];
   let clock = 0;
-  const introOverheadSec = 4; // 3s hold + 1s fade (page pre-loaded before recording)
-  clock = introOverheadSec;
 
-  let lastScene = "";
+  const MAP_REGIONS = [
+    { name: "Europe", lat: 50, lng: 15, zoom: 3 },
+    { name: "North America", lat: 40, lng: -95, zoom: 3 },
+    { name: "Asia", lat: 30, lng: 105, zoom: 3 },
+    { name: "Global", lat: 20, lng: 0, zoom: 2 },
+  ];
 
-  for (let i = 0; i < plan.length; i++) {
-    const seg = plan[i];
-    const holdMs = seg.holdSec * 1000;
+  // === SEGMENT: INTRO — Map fly across Europe (already in motion) ===
+  console.log("  [INTRO    ] Map fly-to Europe — 5s");
+  const introStart = clock;
+  await showWatermark(page);
+  if (mapReady) {
+    await mapFlyTo(page, 48, 10, 4, 3); // Zoom into central Europe
+  }
+  await page.waitForTimeout(5000);
+  clock += 5;
+  manifest.push({
+    id: "intro", segment: "intro", headline: "Intro",
+    scene: "globe", holdSec: 5, startSec: introStart, endSec: clock,
+  });
 
-    console.log(
-      `  [${seg.segment.toUpperCase().padEnd(9)}] ${seg.headline.slice(0, 55).padEnd(55)} ` +
-      `${seg.holdSec}s → ${seg.scene}`
+  // === CONTENT SEGMENTS ===
+  let regionIdx = 0;
+
+  for (let idx = 0; idx < narratives.length; idx++) {
+    const n = narratives[idx];
+    const scene = sourceToPanel(n.events[0]?.source ?? "");
+    const lead = n.events[0];
+    const m = lead?.metrics ?? {};
+
+    // Determine if this segment deserves a full-screen data card
+    const hasKeyNumber = (
+      (m.deltaPct !== undefined && Math.abs(m.deltaPct) > 20) ||
+      (m.rank !== undefined && m.previousRank !== undefined && Math.abs(m.previousRank - m.rank) > 10) ||
+      (m.stars !== undefined && m.stars > 50)
     );
 
-    // Navigate if scene changed
-    if (seg.scene !== lastScene) {
-      if (seg.scene === "globe" && mapReady) {
-        await navigateToPanel(page, "globe");
-        await page.waitForTimeout(300);
-        if (i > 0) {
-          const regions = [
-            { lat: 50, lng: 15 },
-            { lat: 40, lng: -95 },
-            { lat: 30, lng: 105 },
-          ];
-          const region = regions[i % regions.length];
-          await page.evaluate(({ lat, lng }) => {
-            if ((window as any).__map) {
-              (window as any).__map.flyTo([lat, lng], 3, { duration: 2 });
-            }
-          }, region);
+    // Every 4 stories, do a map fly (visual break)
+    if (idx > 0 && idx % 4 === 0 && mapReady) {
+      const region = MAP_REGIONS[regionIdx % MAP_REGIONS.length];
+      regionIdx++;
+
+      console.log(`  [MAP      ] Fly to ${region.name} — 3s`);
+      const mapStart = clock;
+
+      await hideDataCard(page);
+      await hideLowerThird(page);
+      await hideAllChrome(page);
+      await navigateToPanel(page, "globe");
+      await page.waitForTimeout(200);
+      await mapFlyTo(page, region.lat, region.lng, region.zoom, 2);
+      await page.waitForTimeout(3000);
+      clock += 3;
+
+      manifest.push({
+        id: `map-${regionIdx}`, segment: "map", headline: `Fly to ${region.name}`,
+        scene: "globe", holdSec: 3, startSec: mapStart, endSec: clock,
+      });
+    }
+
+    const segStart = clock;
+
+    if (hasKeyNumber && idx < 6) {
+      // --- Full-screen data card for big stories ---
+      let number = "";
+      let direction: "up" | "down" | "neutral" = "neutral";
+      let label = segmentLabel(n.segment);
+      let source = "";
+
+      if (m.deltaPct !== undefined) {
+        const abs = Math.abs(m.deltaPct);
+        if (abs > 80 && m.deltaPct < 0) {
+          number = "↓↓";
+          label = "COLLAPSED";
+        } else {
+          number = `${abs.toFixed(0)}%`;
         }
-      } else {
-        await navigateToPanel(page, seg.scene);
+        direction = m.deltaPct < 0 ? "down" : "up";
+        source = "Source: Package download data";
+      } else if (m.rank !== undefined && m.previousRank !== undefined) {
+        const moved = Math.abs(m.previousRank - m.rank);
+        number = `${moved}`;
+        direction = m.previousRank > m.rank ? "up" : "down";
+        label = `RANK ${direction === "up" ? "UP" : "DOWN"}`;
+        source = "Source: OpenRouter usage leaderboard";
+      } else if (m.stars !== undefined) {
+        number = `${m.stars}`;
+        direction = "up";
+        label = "TRENDING";
+        source = "Source: GitHub";
       }
-      await page.waitForTimeout(500);
-      clock += 0.8;
-      lastScene = seg.scene;
-    }
 
-    const startSec = Math.round(clock * 10) / 10;
+      console.log(`  [${n.segment.toUpperCase().padEnd(9)}] DATA CARD: ${number} — ${n.headline.slice(0, 45)} — 6s`);
+      await showDataCard(page, {
+        label,
+        number,
+        direction,
+        title: n.headline.slice(0, 70),
+        source,
+      });
+      await page.waitForTimeout(4500);
+      await hideDataCard(page);
+      await page.waitForTimeout(1500);
+      clock += 6;
+    } else {
+      // --- Panel view with lower-third ---
+      console.log(`  [${n.segment.toUpperCase().padEnd(9)}] ${n.headline.slice(0, 55)} — 8s → ${scene}`);
 
-    // Show lower-third (not for intro/outro)
-    if (seg.segment !== "intro" && seg.segment !== "outro") {
-      await showLowerThird(
-        page,
-        segmentLabel(seg.segment),
-        seg.headline.slice(0, 80),
-        sourceLabel(seg.scene),
-      );
-    }
+      if (scene !== "globe") {
+        await navigateToPanel(page, scene);
+        await page.waitForTimeout(400);
+      }
+      await hideAllChrome(page);
 
-    // Hold
-    await page.waitForTimeout(holdMs);
-    clock += seg.holdSec;
+      await showLowerThird(page, segmentLabel(n.segment), n.headline.slice(0, 80));
+      await page.waitForTimeout(6000);
 
-    // Scroll for visual movement on longer segments
-    if (seg.holdSec > 15 && seg.scene !== "globe") {
       try {
         await page.evaluate(() => {
           const scrollable = document.querySelector("[class*='panel-body']")
             ?? document.querySelector("[class*='drawer']")
             ?? document.querySelector(".ap-panel-scroll");
           if (scrollable) {
-            scrollable.scrollTo({ top: scrollable.scrollHeight * 0.3, behavior: "smooth" });
+            scrollable.scrollTo({ top: scrollable.scrollHeight * 0.25, behavior: "smooth" });
           }
         });
       } catch { /* ignore */ }
-    }
 
-    // Hide lower-third
-    if (seg.segment !== "intro" && seg.segment !== "outro") {
       await hideLowerThird(page);
-      await page.waitForTimeout(400);
-      clock += 0.4;
+      await page.waitForTimeout(1500);
+      clock += 8;
     }
 
-    const endSec = Math.round(clock * 10) / 10;
-    manifest.push({ ...seg, startSec, endSec });
+    const segEnd = clock;
+    manifest.push({
+      id: n.id, segment: n.segment, headline: n.headline,
+      scene, holdSec: segEnd - segStart, startSec: segStart, endSec: segEnd,
+    });
 
-    // Brief pause between segments
-    await page.waitForTimeout(500);
-    clock += 0.5;
+    // Brief pause
+    await page.waitForTimeout(300);
+    clock += 0.3;
   }
 
-  // Final globe hold
+  // === SEGMENT: OUTRO — Return to global map + CTA ===
+  console.log("  [OUTRO    ] Global map + CTA card — 10s");
+  const outroStart = clock;
+
+  await hideLowerThird(page);
+  await hideDataCard(page);
+  await hideAllChrome(page);
+  await navigateToPanel(page, "globe");
+  await page.waitForTimeout(200);
+
   if (mapReady) {
-    await page.evaluate(() => {
-      (window as any).__map.flyTo([20, 0], 2, { duration: 2 });
-    });
+    await mapFlyTo(page, 20, 0, 2, 2);
   }
   await page.waitForTimeout(3000);
 
+  await showCTA(page);
+  await page.waitForTimeout(5000);
+
+  await page.evaluate(() => {
+    const el = document.querySelector(".gawk-cta-card") as HTMLElement;
+    if (el) el.style.animation = "gawk-fade-out 1.5s ease-in forwards";
+  });
+  await page.waitForTimeout(1500);
+  clock += 10;
+
+  manifest.push({
+    id: "outro", segment: "outro", headline: "Outro",
+    scene: "globe", holdSec: 12, startSec: outroStart, endSec: clock,
+  });
+
+  // === SAVE ===
   const videoPath = await page.video()?.path();
   await context.close();
   await browser.close();
@@ -501,7 +645,6 @@ async function main() {
     console.log(`\nWalkthrough saved: ${destPath}`);
   }
 
-  // Write timing manifest
   const manifestPath = resolve(ROOT, `data/video-manifest-${FORMAT}.json`);
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
   console.log(`Manifest saved: ${manifestPath}`);
