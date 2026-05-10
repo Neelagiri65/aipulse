@@ -1,0 +1,11 @@
+This is Gawk Daily for May tenth, twenty twenty-six. Here's what the AI world actually sees right now.
+
+Ollama downloads on Homebrew have dropped sharply. The SDK tracker is showing a one hundred and eighty-seven percent decline in install velocity. That's a significant signal worth watching.
+
+On the models front, Hy3 preview has dropped from rank one to sixteen on our leaderboard. Meanwhile, free-for-dev, a curated list of free developer resources, is trending on GitHub with a hundred and twelve stars today.
+
+Over on Hacker News, developers are sharing early experiences with ChatGPT five point five Pro. And a post about Claude Code and the unreasonable effectiveness of HTML is generating discussion.
+
+Looking at the live map, you can see AI development activity concentrated across Europe, North America, and Asia. Every dot represents a real, verifiable event from the last twenty-four hours.
+
+All tools are reporting operational. The full dashboard is live at gawk dot dev. See what the AI world actually sees.

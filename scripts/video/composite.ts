@@ -197,7 +197,7 @@ function main() {
     hasAudio ? `-i "${AUDIO}"` : "",
     `-t ${duration}`,
     `-vf "${filterChain}"`,
-    hasAudio ? "-map 0:v -map 1:a -shortest" : "-an",
+    hasAudio ? "-map 0:v -map 1:a" : "-an",
     "-c:v libx264 -preset medium -crf 23",
     hasAudio ? "-c:a aac -b:a 128k" : "",
     "-movflags +faststart",
