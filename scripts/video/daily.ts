@@ -88,16 +88,11 @@ function main() {
     abort("Cannot proceed without curated stories");
   }
 
-  // ─── PHASE 2: SCRIPT + NARRATION ───
+  // ─── PHASE 2: GENERATE FRESH SCRIPT + NARRATION ───
 
-  const hasLockedScript = fileExists("data/script-locked.json");
-  const hasLockedNarration = fileExists("data/narration-locked.json");
-
-  if (hasLockedScript && hasLockedNarration) {
-    console.log("\n  Using locked script + narration (data/script-locked.json)");
-  } else if (fileExists("data/video-daily.json")) {
-    // Auto path: generate script from fetched data
-    run("Generate script", "npx tsx scripts/video/generate-script.ts", { optional: true });
+  // Always regenerate from today's curated data — stale locked files produce repeated content
+  if (!run("Generate daily script", "npx tsx scripts/video/generate-daily-script.ts")) {
+    abort("Cannot proceed without a script");
   }
 
   // ─── PHASE 3: RECORD + COMPOSITE PER FORMAT ───
