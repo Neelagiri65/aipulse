@@ -195,15 +195,10 @@ async function main() {
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10);
 
-  // Map walkthrough duration: calculated from Playwright recording (~27s)
-  // The recording script produces the webm; this scene just embeds it
-  const MAP_WALKTHROUGH_SECONDS = 27;
+  // Walkthrough duration: the Playwright recording covers map + all panels (~80s)
+  const WALKTHROUGH_SECONDS = 80;
 
-  const scenes = buildScenes({
-    topCards, topModels, biggestMovers, toolHealth,
-    hnTopStory, inferences, dateStr, sdkMovers,
-    mapWalkthroughSeconds: MAP_WALKTHROUGH_SECONDS,
-  });
+  const scenes = buildScenes({ dateStr, walkthroughSeconds: WALKTHROUGH_SECONDS });
 
   const data: VideoData = {
     generatedAt: now.toISOString(),
@@ -265,68 +260,30 @@ function deriveTopRepos(
 }
 
 function buildScenes(d: {
-  topCards: VideoData["topCards"];
-  topModels: VideoData["topModels"];
-  biggestMovers: VideoData["biggestMovers"];
-  toolHealth: VideoData["toolHealth"];
-  hnTopStory: VideoData["hnTopStory"];
-  inferences: string[];
   dateStr: string;
-  sdkMovers: VideoData["sdkMovers"];
-  mapWalkthroughSeconds: number;
+  walkthroughSeconds: number;
 }): VideoData["scenes"] {
   const scenes: VideoData["scenes"] = [];
 
-  // [0-8s] Title card
+  // [0-5s] Title card
   scenes.push({
     id: "hero",
-    durationInSeconds: 8,
+    durationInSeconds: 5,
     narration: `Here's what moved in the AI ecosystem on ${formatDate(d.dateStr)}.`,
   });
 
-  // [8-35s] Map walkthrough (Playwright screen recording)
+  // [5-85s] Full site walkthrough (Playwright recording: map + panels)
   scenes.push({
-    id: "map-walkthrough",
-    durationInSeconds: d.mapWalkthroughSeconds,
-    narration: "Live from the gawk dashboard. Developer activity across the globe in the last 24 hours.",
+    id: "walkthrough",
+    durationInSeconds: d.walkthroughSeconds,
+    narration: "Live from gawk.dev. Map, tools, models, wire, SDK — all real.",
   });
 
-  // [35-50s] Top Signals
-  if (d.topCards.length > 0) {
-    scenes.push({
-      id: "signals",
-      durationInSeconds: 15,
-      narration: `Top signal: ${d.topCards[0].headline}.`,
-    });
-  }
-
-  // [50-65s] Model Leaderboard
-  if (d.topModels.length > 0) {
-    const moverParts = d.biggestMovers.map((m) => {
-      const delta = (m.previousRank ?? m.rank) - m.rank;
-      return `${m.shortName} ${delta > 0 ? "up" : "down"} ${Math.abs(delta)}`;
-    });
-    scenes.push({
-      id: "models",
-      durationInSeconds: 15,
-      narration: `Model rankings. ${d.topModels[0].shortName} holds number 1.${moverParts.length > 0 ? ` Biggest movers: ${moverParts.join(", ")}.` : ""}`,
-    });
-  }
-
-  // [65-80s] HN + Regional Wire
-  if (d.hnTopStory) {
-    scenes.push({
-      id: "hn-wire",
-      durationInSeconds: 15,
-      narration: `Top on Hacker News: ${d.hnTopStory.title}. ${d.hnTopStory.points} points.`,
-    });
-  }
-
-  // [80-90s] Outro
+  // [85-90s] Outro
   scenes.push({
     id: "outro",
-    durationInSeconds: 10,
-    narration: "Track it live at gawk dot dev. Subscribe for the daily digest.",
+    durationInSeconds: 5,
+    narration: "Track it live at gawk dot dev.",
   });
 
   return scenes;
