@@ -33,7 +33,9 @@ const VIDEO_FORMAT = args.includes("--video-format")
 const WALKTHROUGH = resolve(ROOT, "out/walkthrough.webm");
 const AUDIO = resolve(ROOT, `data/video-narration-${VIDEO_FORMAT}.mp3`);
 const AUDIO_FALLBACK = resolve(ROOT, "data/video-narration.mp3");
+const JINGLE = resolve(ROOT, "data/jingle.mp3");
 const NARRATION_SEGMENTS = resolve(ROOT, `data/narration-segments-${VIDEO_FORMAT}.json`);
+const TRIM_FILE = resolve(ROOT, `data/video-trim-${VIDEO_FORMAT}.json`);
 const CURATED = resolve(ROOT, "data/curated.json");
 const DATE = new Date().toISOString().slice(0, 10);
 
@@ -233,9 +235,6 @@ function main() {
     console.warn("No narration segments or curated.json found — compositing without lower-thirds");
   }
 
-  const audioPath = existsSync(AUDIO) ? AUDIO : existsSync(AUDIO_FALLBACK) ? AUDIO_FALLBACK : null;
-  const hasAudio = !NO_AUDIO && audioPath !== null;
-
   // Detect actual video duration for youtube format
   let duration = FORMAT === "vertical" ? 60 : 90;
   if (VIDEO_FORMAT === "youtube") {
@@ -247,6 +246,38 @@ function main() {
       if (videoDur > 0) duration = videoDur;
     } catch { /* fall back to default */ }
   }
+
+  const rawAudioPath = existsSync(AUDIO) ? AUDIO : existsSync(AUDIO_FALLBACK) ? AUDIO_FALLBACK : null;
+  const hasJingle = existsSync(JINGLE);
+  let audioPath = rawAudioPath;
+
+  // Mix jingle under narration at -20dB if jingle.mp3 exists
+  if (rawAudioPath && hasJingle && !NO_AUDIO) {
+    const mixedAudio = resolve(ROOT, "out/mixed-audio.mp3");
+    const trimDur = Math.ceil(duration);
+    console.log(`Mixing jingle at -20dB under narration (${trimDur}s)...`);
+    execSync(
+      `ffmpeg -y -i "${rawAudioPath}" -i "${JINGLE}" -filter_complex ` +
+      `"[1:a]aloop=loop=-1:size=2e+09,atrim=0=${trimDur},volume=-20dB[bg];` +
+      `[0:a][bg]amix=inputs=2:duration=first:dropout_transition=2[out]" ` +
+      `-map "[out]" -c:a libmp3lame -b:a 192k "${mixedAudio}" 2>&1`,
+      { timeout: 60_000 }
+    );
+    audioPath = mixedAudio;
+  }
+
+  const hasAudio = !NO_AUDIO && audioPath !== null;
+
+  // Trim pre-load from recording start (white screen / page load)
+  let trimSec = 0;
+  if (existsSync(TRIM_FILE)) {
+    try {
+      const trimData = JSON.parse(readFileSync(TRIM_FILE, "utf-8"));
+      trimSec = trimData.preloadSec || 0;
+      if (trimSec > 0) console.log(`Trimming ${trimSec}s pre-load from recording start`);
+    } catch { /* ignore */ }
+  }
+
   const outFile = resolve(
     ROOT,
     `out/gawk-daily-${DATE}${FORMAT === "vertical" ? "-vertical" : ""}.mp4`
@@ -256,6 +287,7 @@ function main() {
 
   const cmd = [
     "ffmpeg -y",
+    trimSec > 0 ? `-ss ${trimSec}` : "",
     `-i "${WALKTHROUGH}"`,
     hasAudio ? `-i "${audioPath}"` : "",
     `-t ${duration}`,

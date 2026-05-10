@@ -5,7 +5,7 @@
     "headline": "intro",
     "narration": "10 May. New king of the agents.",
     "scene": "globe",
-    "durationSec": 2.688,
+    "durationSec": 1.872,
     "audioFile": "out/narration-seg-intro.mp3",
     "videoStartSec": 0,
     "videoEndSec": 1
@@ -16,7 +16,7 @@
     "headline": "Hermes Agent takes #1 on OpenRouter Global Ranking",
     "narration": "Hermes Agent just took number one on OpenRouter's global ranking — 271 billion tokens. OpenClaw held that crown yesterday. Claude Code sits at number four, 3.4x behind.",
     "scene": "globe",
-    "durationSec": 9.696,
+    "durationSec": 9.264,
     "audioFile": "out/narration-seg-hermes-agent.mp3",
     "videoStartSec": 1,
     "videoEndSec": 11
@@ -27,10 +27,10 @@
     "headline": "OpenAI gpt-oss-120b down 21 ranks on OpenRouter",
     "narration": "OpenAI's open-source flagship dropped 21 ranks on OpenRouter this week. Now 36th. Free isn't enough when the competition ships daily.",
     "scene": "models",
-    "durationSec": 6.792,
+    "durationSec": 7.08,
     "audioFile": "out/narration-seg-gpt-oss-drop.mp3",
-    "videoStartSec": 13,
-    "videoEndSec": 20
+    "videoStartSec": 12,
+    "videoEndSec": 19
   },
   {
     "id": "hy3-climb",
@@ -38,10 +38,10 @@
     "headline": "Tencent Hy3 preview climbs 28 ranks (38 → 10)",
     "narration": "Tencent's Hy3 jumped 28 ranks — from 38th to 10th. At six cents per million tokens, it's a fraction of the price of everything above it.",
     "scene": "models",
-    "durationSec": 6.96,
+    "durationSec": 7.08,
     "audioFile": "out/narration-seg-hy3-climb.mp3",
-    "videoStartSec": 22,
-    "videoEndSec": 29
+    "videoStartSec": 20,
+    "videoEndSec": 27
   },
   {
     "id": "kimi-holds",
@@ -49,10 +49,10 @@
     "headline": "Kimi K2.6 holds #1 by developer spend",
     "narration": "Kimi K2.6 holds number one by developer spend. Seventy-five cents per million tokens. Developers voting with their wallets.",
     "scene": "models",
-    "durationSec": 6.96,
+    "durationSec": 7.056,
     "audioFile": "out/narration-seg-kimi-holds.mp3",
-    "videoStartSec": 31,
-    "videoEndSec": 38
+    "videoStartSec": 28,
+    "videoEndSec": 35
   },
   {
     "id": "outro",
@@ -60,9 +60,9 @@
     "headline": "outro",
     "narration": "That's the briefing. Every number links to its source. gawk dot dev.",
     "scene": "globe",
-    "durationSec": 4.368,
+    "durationSec": 3.624,
     "audioFile": "out/narration-seg-outro.mp3",
-    "videoStartSec": 38,
-    "videoEndSec": 42
+    "videoStartSec": 35,
+    "videoEndSec": 39
   }
 ]

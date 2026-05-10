@@ -19,12 +19,12 @@
   },
   {
     "id": "breathe-0",
-    "segment": "map",
-    "headline": "Map breathe",
-    "scene": "globe",
-    "holdSec": 2,
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
     "startSec": 11,
-    "endSec": 13
+    "endSec": 12
   },
   {
     "id": "gpt-oss-drop",
@@ -32,17 +32,17 @@
     "headline": "OpenAI gpt-oss-120b down 21 ranks on OpenRouter",
     "scene": "models",
     "holdSec": 7,
-    "startSec": 13,
-    "endSec": 20
+    "startSec": 12,
+    "endSec": 19
   },
   {
     "id": "breathe-1",
-    "segment": "map",
-    "headline": "Map breathe",
-    "scene": "globe",
-    "holdSec": 2,
-    "startSec": 20,
-    "endSec": 22
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
+    "startSec": 19,
+    "endSec": 20
   },
   {
     "id": "hy3-climb",
@@ -50,17 +50,17 @@
     "headline": "Tencent Hy3 preview climbs 28 ranks (38 → 10)",
     "scene": "models",
     "holdSec": 7,
-    "startSec": 22,
-    "endSec": 29
+    "startSec": 20,
+    "endSec": 27
   },
   {
     "id": "breathe-2",
-    "segment": "map",
-    "headline": "Map breathe",
-    "scene": "globe",
-    "holdSec": 2,
-    "startSec": 29,
-    "endSec": 31
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
+    "startSec": 27,
+    "endSec": 28
   },
   {
     "id": "kimi-holds",
@@ -68,8 +68,8 @@
     "headline": "Kimi K2.6 holds #1 by developer spend",
     "scene": "models",
     "holdSec": 7,
-    "startSec": 31,
-    "endSec": 38
+    "startSec": 28,
+    "endSec": 35
   },
   {
     "id": "outro",
@@ -77,7 +77,7 @@
     "headline": "Outro",
     "scene": "globe",
     "holdSec": 4,
-    "startSec": 38,
-    "endSec": 42
+    "startSec": 35,
+    "endSec": 39
   }
 ]

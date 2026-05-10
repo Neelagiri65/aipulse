@@ -66,7 +66,7 @@ function sourceToPanel(source: string): SceneDirection {
 const OVERLAY_CSS = `
   .gawk-data-card {
     position: fixed; inset: 0; z-index: 2147483647;
-    background: rgba(6, 8, 10, 0.98);
+    background: #06080a;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     font-family: 'JetBrains Mono', 'DM Sans', -apple-system, sans-serif;
     pointer-events: none;
@@ -102,7 +102,7 @@ const OVERLAY_CSS = `
     position: fixed;
     bottom: 60px; left: 40px;
     z-index: 2147483647;
-    background: linear-gradient(135deg, rgba(6, 8, 10, 0.95), rgba(15, 20, 30, 0.92));
+    background: linear-gradient(135deg, #06080a, #0f141e);
     border: 1px solid rgba(45, 212, 191, 0.3);
     border-radius: 12px;
     padding: 16px 24px;
@@ -175,7 +175,7 @@ const OVERLAY_CSS = `
 
   .gawk-leaderboard {
     position: fixed; inset: 0; z-index: 2147483647;
-    background: rgba(6, 8, 10, 0.95);
+    background: #06080a;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     font-family: 'JetBrains Mono', 'DM Sans', -apple-system, sans-serif;
     pointer-events: none;
@@ -240,6 +240,10 @@ const OVERLAY_CSS = `
   @keyframes gawk-card-in {
     from { opacity: 0; transform: scale(0.97); }
     to { opacity: 1; transform: scale(1); }
+  }
+  .gawk-breathe-wipe {
+    position: fixed; inset: 0; z-index: 2147483646;
+    background: #06080a;
   }
 `;
 
@@ -368,7 +372,7 @@ async function showDataCard(page: Page, opts: {
   source: string;
 }) {
   await page.evaluate((o) => {
-    document.querySelectorAll(".gawk-data-card").forEach(el => el.remove());
+    document.querySelectorAll(".gawk-data-card, .gawk-breathe-wipe").forEach(el => el.remove());
     const arrow = o.direction === "up" ? "↑" : o.direction === "down" ? "↓" : "";
     const el = document.createElement("div");
     el.className = "gawk-data-card";
@@ -424,7 +428,7 @@ async function showLeaderboard(page: Page, opts: {
   source: string;
 }) {
   await page.evaluate(function(o) {
-    document.querySelectorAll(".gawk-leaderboard").forEach(function(el) { el.remove(); });
+    document.querySelectorAll(".gawk-leaderboard, .gawk-breathe-wipe").forEach(function(el) { el.remove(); });
     var rowsHtml = o.rows.map(function(r) {
       return '<tr class="gawk-leaderboard__row gawk-leaderboard__row--' + r.rank + '">' +
         '<td>' + r.rank + '</td><td>' + r.name + '</td><td>' + r.value + '</td></tr>';
@@ -455,6 +459,7 @@ async function hideLeaderboard(page: Page) {
 async function showCTA(page: Page) {
   var dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   await page.evaluate(function(d) {
+    document.querySelectorAll(".gawk-data-card, .gawk-leaderboard, .gawk-breathe-wipe").forEach(function(e) { e.remove(); });
     var el = document.createElement("div");
     el.className = "gawk-cta-card";
     el.innerHTML =
@@ -490,6 +495,25 @@ async function mapFlyTo(page: Page, lat: number, lng: number, zoom: number, dura
       (window as any).__map.flyTo([lat, lng], zoom, { duration: dur });
     }
   }, { lat, lng, zoom, dur: durationSec });
+}
+
+async function showBreatheWipe(page: Page) {
+  await page.evaluate(() => {
+    document.querySelectorAll(".gawk-breathe-wipe").forEach(el => el.remove());
+    const el = document.createElement("div");
+    el.className = "gawk-breathe-wipe";
+    document.body.appendChild(el);
+  });
+}
+
+async function hideBreatheWipe(page: Page) {
+  await page.evaluate(() => {
+    const el = document.querySelector(".gawk-breathe-wipe") as HTMLElement | null;
+    if (el) {
+      el.style.animation = "gawk-fade-out 0.3s ease-in forwards";
+      setTimeout(() => el.remove(), 300);
+    }
+  });
 }
 
 // --- Segment plan builder ---
@@ -566,7 +590,14 @@ async function main() {
 
   const page = await context.newPage();
 
+  // Pre-accept cookies BEFORE page loads to prevent consent banner flash
+  await page.addInitScript(() => {
+    document.cookie = "cookie_consent=accepted; path=/; max-age=86400";
+    try { localStorage.setItem("cookie_consent", "accepted"); } catch {}
+  });
+
   // --- PRE-LOAD (before recording starts) ---
+  const preloadStart = Date.now();
   console.log("Pre-loading gawk.dev...");
   await page.goto(BASE_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
   await page.evaluate(() => {
@@ -591,12 +622,6 @@ async function main() {
     return true;
   });
 
-  // Pre-accept cookies to prevent banner
-  await page.evaluate(function() {
-    document.cookie = "cookie_consent=accepted; path=/; max-age=86400";
-    try { localStorage.setItem("cookie_consent", "accepted"); } catch {}
-  });
-
   // Set up: hide everything, navigate to map, inject styles
   await hideAllChrome(page);
   await navigateToPanel(page, "globe");
@@ -613,6 +638,8 @@ async function main() {
 
   // --- RECORDING STARTS ---
   // The video begins here. Map is showing Europe, all chrome hidden.
+  const preloadSec = (Date.now() - preloadStart) / 1000;
+  console.log(`  Pre-load took ${preloadSec.toFixed(1)}s (will be trimmed in compositor)`);
 
   const manifest: ManifestEntry[] = [];
   let clock = 0;
@@ -642,20 +669,14 @@ async function main() {
         console.log(`  [${story.segment.toUpperCase().padEnd(9)}] LEADERBOARD: ${story.headline.slice(0, 45)} — ${story.holdSec}s`);
         await showLeaderboard(page, story.leaderboard);
         await page.waitForTimeout(story.holdSec * 1000);
-        await hideLeaderboard(page);
-        await page.waitForTimeout(500);
       } else if (story.type === "data-card" && story.dataCard) {
         console.log(`  [${story.segment.toUpperCase().padEnd(9)}] DATA CARD: ${story.dataCard.number} — ${story.headline.slice(0, 45)} — ${story.holdSec}s`);
         await showDataCard(page, story.dataCard);
-        await page.waitForTimeout((story.holdSec - 1) * 1000);
-        await hideDataCard(page);
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(story.holdSec * 1000);
       } else {
         console.log(`  [${story.segment.toUpperCase().padEnd(9)}] ${story.headline.slice(0, 55)} — ${story.holdSec}s`);
         await showLowerThird(page, segmentLabel(story.segment), story.headline.slice(0, 80));
-        await page.waitForTimeout((story.holdSec - 1) * 1000);
-        await hideLowerThird(page);
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(story.holdSec * 1000);
       }
 
       clock += story.holdSec;
@@ -664,40 +685,26 @@ async function main() {
         scene: story.scene, holdSec: story.holdSec, startSec: segStart, endSec: clock,
       });
 
-      // Map breathe between stories (2 seconds)
+      // Solid colour wipe between stories (1 second)
+      // Wipe stays until the next graphic covers it (higher z-index)
       if (idx < lockedScript.length - 1) {
-        console.log("  [BREATHE  ] Map — 2s");
+        console.log("  [BREATHE  ] Wipe — 1s");
         const breatheStart = clock;
-        await hideAllChrome(page);
-        if (mapReady) {
-          const regions = [
-            { lat: 40, lng: -95, zoom: 3 },
-            { lat: 30, lng: 105, zoom: 3 },
-            { lat: 20, lng: 0, zoom: 2 },
-            { lat: 50, lng: 15, zoom: 3 },
-          ];
-          const r = regions[idx % regions.length];
-          await mapFlyTo(page, r.lat, r.lng, r.zoom, 1.5);
-        }
-        await page.waitForTimeout(2000);
-        clock += 2;
+        await showBreatheWipe(page);
+        await page.waitForTimeout(1000);
+        clock += 1;
         manifest.push({
-          id: `breathe-${idx}`, segment: "map", headline: "Map breathe",
-          scene: "globe", holdSec: 2, startSec: breatheStart, endSec: clock,
+          id: `breathe-${idx}`, segment: "wipe", headline: "Colour wipe",
+          scene: "wipe", holdSec: 1, startSec: breatheStart, endSec: clock,
         });
       }
     }
 
     // === CTA — 4 seconds ===
-    console.log("  [OUTRO    ] Globe spin + CTA — 4s");
+    console.log("  [OUTRO    ] CTA — 4s");
     const outroStart = clock;
-    await hideAllChrome(page);
-    if (mapReady) {
-      await mapFlyTo(page, 20, 0, 2, 1);
-    }
-    await page.waitForTimeout(500);
     await showCTA(page);
-    await page.waitForTimeout(3500);
+    await page.waitForTimeout(4000);
     clock += 4;
     manifest.push({
       id: "outro", segment: "outro", headline: "Outro",
@@ -848,6 +855,10 @@ async function main() {
 
   const manifestPath = resolve(ROOT, `data/video-manifest-${FORMAT}.json`);
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  writeFileSync(
+    resolve(ROOT, `data/video-trim-${FORMAT}.json`),
+    JSON.stringify({ preloadSec: Math.round(preloadSec * 10) / 10 })
+  );
   console.log(`Manifest saved: ${manifestPath}`);
   console.log(`\nTotal segments: ${manifest.length}`);
   console.log(`Estimated duration: ${Math.round(clock)}s`);

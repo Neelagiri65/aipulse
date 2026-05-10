@@ -9,7 +9,7 @@ import { resolve } from "path";
 import { execSync } from "child_process";
 
 const ROOT = process.cwd();
-const VOICE = "en-US-ChristopherNeural";
+const VOICE = "en-US-AndrewMultilingualNeural";
 const BASE_RATE = 12;
 const EDGE_TTS = "/tmp/edge-tts-venv/bin/edge-tts";
 
