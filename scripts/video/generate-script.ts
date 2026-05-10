@@ -176,7 +176,7 @@ Return ONLY the rewritten script, nothing else. Three paragraphs: hero (2 senten
     url = "https://integrate.api.nvidia.com/v1/chat/completions";
     headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
     body = {
-      model: "nvidia/llama-3.3-nemotron-super-49b-v1",
+      model: "meta/llama-4-maverick-17b-128e-instruct",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 600,
       temperature: 0.7,
