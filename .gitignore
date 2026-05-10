@@ -79,3 +79,6 @@ next-env.d.ts
 /public/video-narration.mp3
 /public/video-screenshots/
 /public/video-map-walkthrough.webm
+data/video-narration-youtube.mp3
+data/video-narration.mp3
+out/*.mp4
