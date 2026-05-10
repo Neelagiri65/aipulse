@@ -12,7 +12,13 @@
     "test:visual": "playwright test",
     "test:visual:local": "LOCAL_URL=http://localhost:3000 playwright test",
     "test:visual:headed": "playwright test --headed",
-    "test:visual:report": "playwright show-report"
+    "test:visual:report": "playwright show-report",
+    "video:fetch": "npx tsx scripts/video/fetch-video-data.ts",
+    "video:tts": "npx tsx scripts/video/generate-tts.ts",
+    "video:render": "npx tsx scripts/video/render.ts",
+    "video:screenshots": "npx tsx scripts/video/capture-screenshots.ts",
+    "video:all": "npm run video:fetch && npm run video:screenshots && npm run video:tts && npm run video:render",
+    "video:quick": "npm run video:fetch && npm run video:render"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
@@ -38,6 +44,11 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
+    "@remotion/bundler": "^4.0.459",
+    "@remotion/cli": "^4.0.459",
+    "@remotion/google-fonts": "^4.0.459",
+    "@remotion/noise": "^4.0.459",
+    "@remotion/renderer": "^4.0.459",
     "@tailwindcss/postcss": "^4",
     "@types/leaflet": "^1.9.21",
     "@types/leaflet.markercluster": "^1.5.6",
@@ -49,6 +60,7 @@
     "@vitest/ui": "^4.1.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "remotion": "^4.0.459",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.4"

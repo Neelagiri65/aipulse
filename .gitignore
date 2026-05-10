@@ -69,3 +69,9 @@ next-env.d.ts
 /docs/prd-*.md
 /docs/issues-*.md
 /docs/research-*.md
+
+# Video pipeline generated artifacts
+/data/video-daily.json
+/data/video-narration.mp3
+/public/video-narration.mp3
+/public/video-screenshots/
