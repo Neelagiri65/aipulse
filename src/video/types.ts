@@ -4,6 +4,30 @@ export type VideoScene = {
   narration: string;
 };
 
+export type ContinentData = {
+  name: string;
+  totalEvents: number;
+  topCountries: { country: string; events: number }[];
+  labs: { name: string; eventCount: number }[];
+  topRepos: { owner: string; repo: string; eventCount: number }[];
+};
+
+export type ModelEntry = {
+  rank: number;
+  name: string;
+  shortName: string;
+  previousRank: number | null;
+  isOpenWeight: boolean;
+  promptPrice: number | null;
+  completionPrice: number | null;
+  contextLength: number | null;
+};
+
+export type PanelCount = {
+  label: string;
+  count: number;
+};
+
 export type VideoData = {
   generatedAt: string;
   date: string;
@@ -14,12 +38,8 @@ export type VideoData = {
     type: string;
     sourceName: string;
   }[];
-  topModels: {
-    rank: number;
-    name: string;
-    previousRank: number | null;
-    isOpenWeight: boolean;
-  }[];
+  topModels: ModelEntry[];
+  biggestMovers: ModelEntry[];
   toolHealth: {
     operational: number;
     degraded: number;
@@ -44,6 +64,8 @@ export type VideoData = {
     sources: number;
     crons: number;
     labs: number;
+    totalEvents: number;
+    activeCountries: number;
   };
   modelsFetchedAt: string | null;
   sdkMovers: {
@@ -67,6 +89,8 @@ export type VideoData = {
     eventCount: number;
     language: string;
   }[];
+  continents: ContinentData[];
+  panelCounts: PanelCount[];
   screenshots: {
     map: string;
     mapZoom: string;

@@ -11,7 +11,7 @@ import {
   Easing,
 } from "remotion";
 import { noise2D } from "@remotion/noise";
-import type { VideoData } from "./types";
+import type { VideoData, ContinentData, ModelEntry } from "./types";
 
 declare const __VIDEO_DATA__: VideoData;
 declare const __HAS_AUDIO__: boolean;
@@ -42,6 +42,25 @@ const C = {
   gridLine: "rgba(20, 184, 166, 0.04)",
 };
 
+// --- Continent-specific Ken Burns directions ---
+const CONTINENT_CAMERA: Record<string, { zoomEnd: number; panX: number; panY: number }> = {
+  "north-america": { zoomEnd: 1.45, panX: -80, panY: -20 },
+  "south-america": { zoomEnd: 1.4, panX: -40, panY: 30 },
+  "europe":        { zoomEnd: 1.45, panX: 20, panY: -30 },
+  "asia":          { zoomEnd: 1.4, panX: 80, panY: -15 },
+  "africa":        { zoomEnd: 1.4, panX: 15, panY: 20 },
+  "oceania":       { zoomEnd: 1.45, panX: 100, panY: 30 },
+};
+
+const CONTINENT_COLORS: Record<string, string> = {
+  "North America": C.blue,
+  "South America": C.green,
+  "Europe": C.purple,
+  "Asia": C.pink,
+  "Africa": C.amber,
+  "Oceania": C.cyan,
+};
+
 // --- Terminal grid background ---
 
 function TerminalGrid() {
@@ -49,7 +68,6 @@ function TerminalGrid() {
   const scanY = interpolate(frame % 180, [0, 180], [-5, 105]);
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
-      {/* Grid lines */}
       <div style={{
         position: "absolute", inset: 0,
         backgroundImage: `
@@ -59,13 +77,11 @@ function TerminalGrid() {
         backgroundSize: "60px 60px",
         opacity: 0.8,
       }} />
-      {/* Scanline */}
       <div style={{
         position: "absolute", left: 0, right: 0,
         top: `${scanY}%`, height: 2,
         background: `linear-gradient(90deg, transparent, rgba(20,184,166,0.08), transparent)`,
       }} />
-      {/* Vignette */}
       <div style={{
         position: "absolute", inset: 0,
         background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.4) 100%)",
@@ -142,6 +158,16 @@ function SectionHeader({ text, color = C.accent, delay = 0 }: { text: string; co
   );
 }
 
+function AnimatedBar({ pct, delay, color }: { pct: number; delay: number; color: string }) {
+  const frame = useCurrentFrame();
+  const w = interpolate(frame - delay, [0, 25], [0, pct], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) });
+  return (
+    <div style={{ width: "100%", height: 6, background: "rgba(30,41,59,0.4)", borderRadius: 3, overflow: "hidden" }}>
+      <div style={{ width: `${w}%`, height: "100%", background: `linear-gradient(90deg, ${color}, ${color}88)`, borderRadius: 3, boxShadow: `0 0 8px ${color}44` }} />
+    </div>
+  );
+}
+
 // --- Ken Burns ---
 
 function KenBurns({ src, zoomEnd = 1.12, panX = 15, panY = -8 }: {
@@ -162,7 +188,7 @@ function KenBurns({ src, zoomEnd = 1.12, panX = 15, panY = -8 }: {
   );
 }
 
-// --- Scenes ---
+// ===================== SCENES =====================
 
 function HeroScene({ durationInFrames }: { durationInFrames: number }) {
   const d = __VIDEO_DATA__;
@@ -210,41 +236,124 @@ function CountStat({ label, value, delay }: { label: string; value: number; dela
   );
 }
 
-function MapScene({ durationInFrames }: { durationInFrames: number }) {
+function GlobeOverviewScene({ durationInFrames }: { durationInFrames: number }) {
   const d = __VIDEO_DATA__;
   const hasMap = __HAS_SCREENSHOTS__;
-  if (!hasMap && !d.topRegion) return <SceneWrap durationInFrames={durationInFrames}><EmptyScene text="Awaiting regional data" /></SceneWrap>;
+  const evCount = useCountUp(d.ecosystemStats.totalEvents, 30, 10);
+  const countryCount = useCountUp(d.ecosystemStats.activeCountries, 20, 20);
+  return (
+    <SceneWrap durationInFrames={durationInFrames}>
+      {hasMap && (
+        <>
+          <KenBurns src={staticFile("video-screenshots/map-global.png")} zoomEnd={1.15} panX={-5} panY={-3} />
+          <AbsoluteFill style={{ background: "linear-gradient(to top, rgba(8,12,20,0.85) 0%, rgba(8,12,20,0.3) 30%, rgba(8,12,20,0.3) 70%, rgba(8,12,20,0.7) 100%)" }} />
+        </>
+      )}
+      <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", paddingBottom: 80 }}>
+        <SectionHeader text="GLOBAL ACTIVITY · 24H" delay={4} />
+        <FadeSlideIn delay={8}>
+          <div style={{ display: "flex", gap: 80, alignItems: "baseline" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 72, fontWeight: 700, color: C.accent, fontFamily: "monospace" }}>{evCount}</div>
+              <div style={{ fontSize: 14, color: C.textMuted, letterSpacing: 3, marginTop: 4 }}>EVENTS</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 56, fontWeight: 700, color: C.text, fontFamily: "monospace" }}>{countryCount}</div>
+              <div style={{ fontSize: 14, color: C.textMuted, letterSpacing: 3, marginTop: 4 }}>COUNTRIES</div>
+            </div>
+          </div>
+        </FadeSlideIn>
+      </AbsoluteFill>
+      <SourceTag text="SRC: GITHUB EVENTS API" />
+    </SceneWrap>
+  );
+}
+
+function ContinentZoomScene({ durationInFrames, continent }: { durationInFrames: number; continent: ContinentData }) {
+  const hasMap = __HAS_SCREENSHOTS__;
+  const slug = continent.name.toLowerCase().replace(/\s+/g, "-");
+  const cam = CONTINENT_CAMERA[slug] ?? { zoomEnd: 1.3, panX: 0, panY: 0 };
+  const color = CONTINENT_COLORS[continent.name] ?? C.accent;
+  const evCount = useCountUp(continent.totalEvents, 25, 8);
 
   return (
     <SceneWrap durationInFrames={durationInFrames}>
-      {hasMap ? (
+      {hasMap && (
         <>
-          <KenBurns src={staticFile("video-screenshots/map-global.png")} zoomEnd={1.25} panX={30} panY={-15} />
-          <AbsoluteFill style={{ background: "linear-gradient(to top, rgba(8,12,20,0.9) 0%, transparent 40%, transparent 70%, rgba(8,12,20,0.7) 100%)" }} />
+          <KenBurns src={staticFile("video-screenshots/map-global.png")} zoomEnd={cam.zoomEnd} panX={cam.panX} panY={cam.panY} />
+          <AbsoluteFill style={{ background: "linear-gradient(to right, rgba(8,12,20,0.92) 0%, rgba(8,12,20,0.5) 50%, rgba(8,12,20,0.3) 100%)" }} />
         </>
-      ) : (
-        <AbsoluteFill style={{ background: `radial-gradient(ellipse at 30% 50%, rgba(20,184,166,0.06) 0%, ${C.bg} 60%)` }} />
       )}
-      <AbsoluteFill style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "0 60px 60px" }}>
-        <SectionHeader text="GLOBAL ACTIVITY · 24H" delay={6} />
-        {d.topRegion && (
-          <FadeSlideIn delay={14}>
-            <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
-              <div style={{ background: C.bgCard, backdropFilter: "blur(12px)", border: `1px solid ${C.borderAccent}`, borderRadius: 14, padding: "22px 32px", display: "flex", alignItems: "baseline", gap: 16 }}>
-                <div style={{ fontSize: 42, fontWeight: 700, color: C.text }}>{d.topRegion.country}</div>
-                <div style={{ fontSize: 32, fontWeight: 600, color: C.green }}>↑{Math.round(d.topRegion.deltaPct)}%</div>
-              </div>
-              {d.mostActiveCity && (
-                <div style={{ background: C.bgCard, backdropFilter: "blur(12px)", border: `1px solid ${C.border}`, borderRadius: 12, padding: "18px 24px" }}>
-                  <div style={{ fontSize: 12, color: C.textDim, letterSpacing: 2, textTransform: "uppercase" }}>MOST ACTIVE</div>
-                  <div style={{ fontSize: 24, fontWeight: 600, color: C.text, marginTop: 4 }}>{d.mostActiveCity.city} · {d.mostActiveCity.count}</div>
-                </div>
-              )}
+      <AbsoluteFill style={{ display: "flex", flexDirection: "row", padding: "48px 60px" }}>
+        {/* Left panel: continent info */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", maxWidth: 700 }}>
+          <FadeSlideIn delay={4}>
+            <div style={{ fontSize: 13, color, letterSpacing: 7, textTransform: "uppercase", fontWeight: 500, marginBottom: 12 }}>
+              {continent.name}
             </div>
           </FadeSlideIn>
-        )}
+          <FadeSlideIn delay={8}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 16, marginBottom: 28 }}>
+              <div style={{ fontSize: 56, fontWeight: 700, color: C.text, fontFamily: "monospace" }}>{evCount}</div>
+              <div style={{ fontSize: 18, color: C.textDim }}>events · 24h</div>
+            </div>
+          </FadeSlideIn>
+
+          {/* Top countries */}
+          {continent.topCountries.length > 0 && (
+            <FadeSlideIn delay={14}>
+              <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+                {continent.topCountries.map((tc, i) => (
+                  <div key={tc.country} style={{
+                    background: C.bgCard, border: `1px solid ${i === 0 ? color : C.border}`,
+                    borderRadius: 8, padding: "10px 16px", minWidth: 120,
+                  }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: C.text }}>{tc.country}</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: i === 0 ? color : C.textMuted, fontFamily: "monospace", marginTop: 2 }}>{tc.events}</div>
+                  </div>
+                ))}
+              </div>
+            </FadeSlideIn>
+          )}
+
+          {/* Labs active in this continent */}
+          {continent.labs.length > 0 && (
+            <FadeSlideIn delay={22}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 11, color: C.textDim, letterSpacing: 3, marginBottom: 8 }}>ACTIVE LABS</div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {continent.labs.map((lab) => (
+                    <div key={lab.name} style={{
+                      background: `${color}15`, border: `1px solid ${color}40`,
+                      borderRadius: 6, padding: "6px 14px", fontSize: 14, color: C.text,
+                    }}>
+                      {lab.name} <span style={{ color, fontFamily: "monospace", fontWeight: 600, marginLeft: 6 }}>{lab.eventCount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </FadeSlideIn>
+          )}
+
+          {/* Top repos */}
+          {continent.topRepos.length > 0 && (
+            <FadeSlideIn delay={30}>
+              <div style={{ fontSize: 11, color: C.textDim, letterSpacing: 3, marginBottom: 8 }}>TOP REPOS</div>
+              {continent.topRepos.map((r) => (
+                <div key={`${r.owner}/${r.repo}`} style={{
+                  fontSize: 15, color: C.textMuted, marginBottom: 4, fontFamily: "monospace",
+                }}>
+                  <span style={{ color: C.text }}>{r.owner}</span>
+                  <span style={{ color: C.textDim }}>/</span>
+                  <span style={{ color: C.text }}>{r.repo}</span>
+                  <span style={{ color, marginLeft: 10 }}>{r.eventCount}</span>
+                </div>
+              ))}
+            </FadeSlideIn>
+          )}
+        </div>
       </AbsoluteFill>
-      <SourceTag text="SRC: GITHUB EVENTS API" />
+      <SourceTag text="SRC: GITHUB EVENTS · AI LABS" />
     </SceneWrap>
   );
 }
@@ -291,28 +400,72 @@ function ModelsScene({ durationInFrames }: { durationInFrames: number }) {
   const d = __VIDEO_DATA__;
   return (
     <SceneWrap durationInFrames={durationInFrames}>
-      <AbsoluteFill style={{ display: "flex", flexDirection: "column", padding: "56px 72px" }}>
-        <SectionHeader text="MODEL RANKINGS · OPENROUTER" />
-        {d.topModels.map((m, i) => {
-          const isTop = i === 0;
-          return (
-            <FadeSlideIn key={m.name} delay={8 + i * 8} direction="left">
-              <div style={{
-                display: "flex", alignItems: "center", gap: 16,
-                background: isTop ? "rgba(20,184,166,0.06)" : C.bgCard,
-                border: `1px solid ${isTop ? C.borderAccent : C.border}`,
-                borderRadius: 10, padding: "16px 24px", marginBottom: 8,
-              }}>
-                <div style={{ fontSize: 24, fontWeight: 700, color: isTop ? C.accent : C.textDim, width: 44, textAlign: "center", fontFamily: "monospace" }}>
-                  {m.rank}
+      <AbsoluteFill style={{ display: "flex", flexDirection: "row", padding: "48px 60px", gap: 40 }}>
+        {/* Left: Top 5 rankings */}
+        <div style={{ flex: 1 }}>
+          <SectionHeader text="MODEL RANKINGS · OPENROUTER" />
+          {d.topModels.map((m, i) => {
+            const isTop = i === 0;
+            return (
+              <FadeSlideIn key={m.name} delay={6 + i * 6} direction="left">
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 14,
+                  background: isTop ? "rgba(20,184,166,0.06)" : C.bgCard,
+                  border: `1px solid ${isTop ? C.borderAccent : C.border}`,
+                  borderRadius: 10, padding: "12px 20px", marginBottom: 6,
+                }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: isTop ? C.accent : C.textDim, width: 36, textAlign: "center", fontFamily: "monospace" }}>
+                    {m.rank}
+                  </div>
+                  <div style={{ width: 2, height: 24, background: isTop ? C.accent : C.border, borderRadius: 1 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 17, fontWeight: 600, color: C.text }}>{m.shortName}</div>
+                    {m.promptPrice !== null && (
+                      <div style={{ fontSize: 11, color: C.textDim, fontFamily: "monospace", marginTop: 2 }}>
+                        ${m.promptPrice}/M in · ${m.completionPrice}/M out
+                      </div>
+                    )}
+                  </div>
+                  <ModelDelta current={m.rank} previous={m.previousRank} />
                 </div>
-                <div style={{ width: 2, height: 28, background: isTop ? C.accent : C.border, borderRadius: 1 }} />
-                <div style={{ flex: 1, fontSize: 20, fontWeight: 600, color: C.text }}>{m.name}</div>
-                <ModelDelta current={m.rank} previous={m.previousRank} />
-              </div>
-            </FadeSlideIn>
-          );
-        })}
+              </FadeSlideIn>
+            );
+          })}
+        </div>
+
+        {/* Right: Biggest movers */}
+        {d.biggestMovers.length > 0 && (
+          <div style={{ width: 420 }}>
+            <SectionHeader text="BIGGEST MOVERS" color={C.amber} delay={10} />
+            {d.biggestMovers.map((m, i) => {
+              const delta = (m.previousRank ?? m.rank) - m.rank;
+              const isUp = delta > 0;
+              return (
+                <FadeSlideIn key={m.name} delay={16 + i * 8} direction="left">
+                  <div style={{
+                    background: C.bgCard, border: `1px solid ${isUp ? C.green : C.red}30`,
+                    borderLeft: `3px solid ${isUp ? C.green : C.red}`,
+                    borderRadius: 10, padding: "14px 20px", marginBottom: 8,
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: 16, fontWeight: 600, color: C.text }}>{m.shortName}</div>
+                        <div style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>
+                          #{m.previousRank} → #{m.rank}
+                        </div>
+                      </div>
+                      <div style={{
+                        fontSize: 28, fontWeight: 700, color: isUp ? C.green : C.red, fontFamily: "monospace",
+                      }}>
+                        {isUp ? "↑" : "↓"}{Math.abs(delta)}
+                      </div>
+                    </div>
+                  </div>
+                </FadeSlideIn>
+              );
+            })}
+          </div>
+        )}
       </AbsoluteFill>
       <SourceTag text={`SRC: OPENROUTER${d.modelsFetchedAt ? " · " + new Date(d.modelsFetchedAt).toISOString().slice(0, 16) + "Z" : ""}`} />
     </SceneWrap>
@@ -360,105 +513,70 @@ function SdkScene({ durationInFrames }: { durationInFrames: number }) {
   );
 }
 
-function AnimatedBar({ pct, delay, color }: { pct: number; delay: number; color: string }) {
+function WireOverviewScene({ durationInFrames }: { durationInFrames: number }) {
+  const d = __VIDEO_DATA__;
   const frame = useCurrentFrame();
-  const w = interpolate(frame - delay, [0, 25], [0, pct], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) });
-  return (
-    <div style={{ width: "100%", height: 6, background: "rgba(30,41,59,0.4)", borderRadius: 3, overflow: "hidden" }}>
-      <div style={{ width: `${w}%`, height: "100%", background: `linear-gradient(90deg, ${color}, ${color}88)`, borderRadius: 3, boxShadow: `0 0 8px ${color}44` }} />
-    </div>
-  );
-}
+  const panelColors = [C.accent, C.blue, C.purple, C.pink, C.cyan, C.amber, C.green, C.red];
 
-function AgentsScene({ durationInFrames }: { durationInFrames: number }) {
-  const d = __VIDEO_DATA__;
-  if (d.topAgents.length === 0) return <SceneWrap durationInFrames={durationInFrames}><EmptyScene text="No agent data" /></SceneWrap>;
-  const maxDl = d.topAgents[0]?.weeklyDownloads ?? 1;
   return (
     <SceneWrap durationInFrames={durationInFrames}>
-      <AbsoluteFill style={{ display: "flex", flexDirection: "column", padding: "56px 72px" }}>
-        <SectionHeader text="AGENT FRAMEWORKS · WEEKLY" color={C.purple} />
-        {d.topAgents.map((a, i) => {
-          const barPct = (a.weeklyDownloads / maxDl) * 100;
-          return (
-            <FadeSlideIn key={a.name} delay={8 + i * 10} direction="left">
-              <div style={{ marginBottom: 18 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                    <span style={{ fontSize: 20, fontWeight: 700, color: C.textDim, fontFamily: "monospace" }}>{i + 1}</span>
-                    <span style={{ fontSize: 22, fontWeight: 600, color: C.text }}>{a.name}</span>
+      <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 80px" }}>
+        <SectionHeader text="ECOSYSTEM AT A GLANCE" />
+        <FadeSlideIn delay={6}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center", maxWidth: 1200 }}>
+            {d.panelCounts.map((p, i) => {
+              const color = panelColors[i % panelColors.length];
+              const count = useCountUp(p.count, 20, 10 + i * 4);
+              const glowPulse = interpolate(
+                Math.sin((frame - i * 8) / 12), [-1, 1], [0, 0.15]
+              );
+              return (
+                <ScaleIn key={p.label} delay={8 + i * 4}>
+                  <div style={{
+                    background: C.bgCard, border: `1px solid ${color}40`,
+                    borderRadius: 12, padding: "20px 28px", minWidth: 170, textAlign: "center",
+                    boxShadow: `0 0 ${20 + glowPulse * 40}px ${color}${Math.round(glowPulse * 255).toString(16).padStart(2, "0")}`,
+                  }}>
+                    <div style={{ fontSize: 36, fontWeight: 700, color, fontFamily: "monospace" }}>{count}</div>
+                    <div style={{ fontSize: 12, color: C.textMuted, letterSpacing: 2, marginTop: 6, textTransform: "uppercase" }}>{p.label}</div>
                   </div>
-                  <div style={{ fontSize: 20, color: C.textMuted, fontFamily: "monospace" }}>{fmtNum(a.weeklyDownloads)}/wk</div>
-                </div>
-                <AnimatedBar pct={barPct} delay={12 + i * 10} color={C.purple} />
-              </div>
-            </FadeSlideIn>
-          );
-        })}
+                </ScaleIn>
+              );
+            })}
+          </div>
+        </FadeSlideIn>
       </AbsoluteFill>
-      <SourceTag text="SRC: PYPI · NPM WEEKLY DOWNLOADS" />
+      <SourceTag text="SRC: GAWK.DEV · LIVE DASHBOARD" />
     </SceneWrap>
   );
 }
 
-function LabsScene({ durationInFrames }: { durationInFrames: number }) {
+function FeedScene({ durationInFrames }: { durationInFrames: number }) {
   const d = __VIDEO_DATA__;
-  if (d.topLabs.length === 0) return <SceneWrap durationInFrames={durationInFrames}><EmptyScene text="No lab data" /></SceneWrap>;
-  const maxEv = d.topLabs[0]?.eventCount ?? 1;
+  const cards = d.topCards.slice(0, 3);
   return (
     <SceneWrap durationInFrames={durationInFrames}>
       <AbsoluteFill style={{ display: "flex", flexDirection: "column", padding: "56px 72px" }}>
-        <SectionHeader text="AI LAB ACTIVITY · 24H" color={C.pink} />
-        {d.topLabs.map((l, i) => {
-          const barPct = (l.eventCount / maxEv) * 100;
-          const count = useCountUp(l.eventCount, 28, 14 + i * 8);
-          return (
-            <FadeSlideIn key={l.name} delay={8 + i * 10} direction="left">
-              <div style={{ marginBottom: 18 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                  <span style={{ fontSize: 24, fontWeight: 600, color: C.text }}>{l.name}</span>
-                  <div style={{ fontFamily: "monospace" }}>
-                    <span style={{ fontSize: 24, fontWeight: 700, color: C.accent }}>{count}</span>
-                    <span style={{ fontSize: 14, color: C.textDim, marginLeft: 6 }}>events</span>
-                    <span style={{ fontSize: 14, color: C.textDim, marginLeft: 12 }}>{l.repoCount} repos</span>
-                  </div>
-                </div>
-                <AnimatedBar pct={barPct} delay={14 + i * 10} color={i === 0 ? C.accent : C.blue} />
-              </div>
-            </FadeSlideIn>
-          );
-        })}
-      </AbsoluteFill>
-      <SourceTag text="SRC: GITHUB EVENTS API" />
-    </SceneWrap>
-  );
-}
-
-function ReposScene({ durationInFrames }: { durationInFrames: number }) {
-  const d = __VIDEO_DATA__;
-  if (d.topRepos.length === 0) return <SceneWrap durationInFrames={durationInFrames}><EmptyScene text="No repo data" /></SceneWrap>;
-  return (
-    <SceneWrap durationInFrames={durationInFrames}>
-      <AbsoluteFill style={{ display: "flex", flexDirection: "column", padding: "56px 72px" }}>
-        <SectionHeader text="TOP REPOS · 24H" color={C.cyan} />
-        {d.topRepos.map((r, i) => (
-          <FadeSlideIn key={`${r.owner}/${r.name}`} delay={8 + i * 10} direction="left">
+        <SectionHeader text="TOP SIGNALS" />
+        {cards.map((c, i) => (
+          <FadeSlideIn key={c.headline} delay={8 + i * 12} direction="left">
             <div style={{
+              background: C.bgCard, border: `1px solid ${C.border}`, borderLeft: `3px solid ${cardColor(c.type)}`,
+              borderRadius: 10, padding: "18px 24px", marginBottom: 10,
               display: "flex", alignItems: "center", gap: 14,
-              background: C.bgCard, border: `1px solid ${C.border}`,
-              borderRadius: 10, padding: "16px 24px", marginBottom: 10,
             }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: C.textDim, width: 32, fontFamily: "monospace" }}>{i + 1}</div>
-              <div style={{ width: 2, height: 24, background: C.border, borderRadius: 1 }} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 20, fontWeight: 600, color: C.text }}>{r.owner}<span style={{ color: C.textDim }}>/</span>{r.name}</div>
+                <div style={{ fontSize: 20, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>{c.headline}</div>
+                {c.detail && <div style={{ fontSize: 14, color: C.textMuted, marginTop: 3 }}>{c.detail}</div>}
               </div>
-              <div style={{ fontSize: 18, color: C.accent, fontWeight: 600, fontFamily: "monospace" }}>{r.eventCount} events</div>
+              <div style={{ background: cardColor(c.type), borderRadius: 4, padding: "3px 8px", fontSize: 9, fontWeight: 600, color: "#fff", textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap", fontFamily: "monospace" }}>
+                {c.type.replace(/_/g, " ")}
+              </div>
             </div>
           </FadeSlideIn>
         ))}
       </AbsoluteFill>
-      <SourceTag text="SRC: GITHUB EVENTS API" />
+      <SourceTag text="SRC: GAWK FEED · RANKED BY SEVERITY" />
     </SceneWrap>
   );
 }
@@ -540,15 +658,35 @@ export const DailyBrief: React.FC = () => {
     offset += dur;
   }
 
+  const continentMap = new Map<string, ContinentData>();
+  for (const cont of data.continents) {
+    const slug = cont.name.toLowerCase().replace(/\s+/g, "-");
+    continentMap.set(`continent-${slug}`, cont);
+  }
+
   const components: Record<string, React.FC<{ durationInFrames: number }>> = {
-    hero: HeroScene, region: MapScene, tools: ToolsScene, models: ModelsScene,
-    sdk: SdkScene, agents: AgentsScene, labs: LabsScene, repos: ReposScene,
-    feed: FeedScene, hn: HNScene, outro: OutroScene,
+    hero: HeroScene,
+    "globe-overview": GlobeOverviewScene,
+    tools: ToolsScene,
+    models: ModelsScene,
+    sdk: SdkScene,
+    "wire-overview": WireOverviewScene,
+    feed: FeedScene,
+    hn: HNScene,
+    outro: OutroScene,
   };
 
   return (
     <AbsoluteFill style={{ fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif", background: C.bg }}>
       {seqs.map((s) => {
+        const continentData = continentMap.get(s.id);
+        if (continentData) {
+          return (
+            <Sequence key={s.id} from={s.from} durationInFrames={s.dur}>
+              <ContinentZoomScene durationInFrames={s.dur} continent={continentData} />
+            </Sequence>
+          );
+        }
         const Comp = components[s.id];
         if (!Comp) return null;
         return <Sequence key={s.id} from={s.from} durationInFrames={s.dur}><Comp durationInFrames={s.dur} /></Sequence>;
@@ -557,36 +695,6 @@ export const DailyBrief: React.FC = () => {
     </AbsoluteFill>
   );
 };
-
-function FeedScene({ durationInFrames }: { durationInFrames: number }) {
-  const d = __VIDEO_DATA__;
-  const cards = d.topCards.slice(0, 3);
-  return (
-    <SceneWrap durationInFrames={durationInFrames}>
-      <AbsoluteFill style={{ display: "flex", flexDirection: "column", padding: "56px 72px" }}>
-        <SectionHeader text="TOP SIGNALS" />
-        {cards.map((c, i) => (
-          <FadeSlideIn key={c.headline} delay={8 + i * 12} direction="left">
-            <div style={{
-              background: C.bgCard, border: `1px solid ${C.border}`, borderLeft: `3px solid ${cardColor(c.type)}`,
-              borderRadius: 10, padding: "18px 24px", marginBottom: 10,
-              display: "flex", alignItems: "center", gap: 14,
-            }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 20, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>{c.headline}</div>
-                {c.detail && <div style={{ fontSize: 14, color: C.textMuted, marginTop: 3 }}>{c.detail}</div>}
-              </div>
-              <div style={{ background: cardColor(c.type), borderRadius: 4, padding: "3px 8px", fontSize: 9, fontWeight: 600, color: "#fff", textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap", fontFamily: "monospace" }}>
-                {c.type.replace(/_/g, " ")}
-              </div>
-            </div>
-          </FadeSlideIn>
-        ))}
-      </AbsoluteFill>
-      <SourceTag text="SRC: GAWK FEED · RANKED BY SEVERITY" />
-    </SceneWrap>
-  );
-}
 
 function cardColor(t: string): string {
   const m: Record<string, string> = { TOOL_ALERT: C.red, MODEL_MOVER: C.purple, NEW_RELEASE: C.green, SDK_TREND: C.blue, NEWS: C.amber, RESEARCH: C.cyan, LAB_HIGHLIGHT: C.pink };
