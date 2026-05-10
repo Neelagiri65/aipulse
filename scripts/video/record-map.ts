@@ -323,7 +323,10 @@ async function main() {
   await browser.close();
 
   if (videoPath) {
-    console.log(`\nWalkthrough saved to: ${videoPath}`);
+    const destPath = resolve(OUT_DIR, "walkthrough.webm");
+    const { renameSync } = await import("fs");
+    try { renameSync(videoPath, destPath); } catch { /* cross-device, copy instead */ }
+    console.log(`\nWalkthrough saved to: ${destPath}`);
   } else {
     console.log("\nVideo recording complete (check out/ directory).");
   }
