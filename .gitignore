@@ -72,7 +72,9 @@ next-env.d.ts
 
 # Video pipeline generated artifacts
 /data/video-daily.json
+/data/video-script.txt
 /data/video-narration.mp3
+/data/piper-voices/
 /public/video-narration.mp3
 /public/video-screenshots/
 /public/video-map-walkthrough.webm
