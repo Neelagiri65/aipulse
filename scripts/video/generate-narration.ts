@@ -1,6 +1,10 @@
 /**
  * Generates broadcast narration from curated.json + Edge TTS audio per segment.
  *
+ * Video-first mode (default): reads data/video-manifest-{format}.json (output by
+ * record-walkthrough.ts) and fits narration text + TTS to each segment's measured
+ * duration. Falls back to standalone mode if no manifest exists.
+ *
  * Formats:
  *   --format youtube   (default) ~5 min, all 15-20 items with depth
  *   --format linkedin  90s, top 4-5 stories, landscape
@@ -19,6 +23,16 @@ import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve } from "path";
 import { execSync } from "child_process";
 import type { CurationResult, Narrative, ScoredEvent } from "../../src/lib/curation/types";
+
+type ManifestEntry = {
+  id: string;
+  segment: string;
+  headline: string;
+  scene: SceneDirection;
+  holdSec: number;
+  startSec: number;
+  endSec: number;
+};
 
 const ROOT = process.cwd();
 const CURATED = resolve(ROOT, "data/curated.json");
@@ -303,6 +317,26 @@ function buildBriefNarration(n: Narrative, lead: ScoredEvent): string {
   return `${n.headline}.${lead.summary ? " " + lead.summary : ""}`;
 }
 
+// --- Word budget ---
+
+const WORDS_PER_SEC = 2.5; // ~150 words/min for Edge TTS at normal rate
+const PADDING_SEC = 1.0; // leave breathing room at end of each segment
+
+function wordBudget(availableSec: number): number {
+  return Math.max(5, Math.floor((availableSec - PADDING_SEC) * WORDS_PER_SEC));
+}
+
+function wordCount(text: string): number {
+  return text.split(/\s+/).filter(Boolean).length;
+}
+
+function trimToWordBudget(text: string, budget: number): string {
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length <= budget) return text;
+  const trimmed = words.slice(0, budget).join(" ");
+  return trimmed.replace(/[,\s]+$/, "") + ".";
+}
+
 // --- TTS ---
 
 function generateTTS(text: string, outFile: string): number {
@@ -376,35 +410,94 @@ function main() {
   const curated: CurationResult = JSON.parse(readFileSync(CURATED, "utf-8"));
   const narratives = curated.narratives.slice(0, config.maxItems);
 
+  const manifestPath = resolve(ROOT, `data/video-manifest-${FORMAT}.json`);
+  const hasManifest = existsSync(manifestPath);
+  let manifest: ManifestEntry[] = [];
+
+  if (hasManifest) {
+    manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
+    console.log(`Video-first mode: reading manifest (${manifest.length} segments)`);
+  } else {
+    console.log("Standalone mode: no video manifest found — generating unconstrained narration");
+  }
+
+  function manifestFor(id: string): ManifestEntry | undefined {
+    return manifest.find((m) => m.id === id);
+  }
+
+  function availableSec(id: string, fallback: number): number {
+    const m = manifestFor(id);
+    if (!m) return fallback;
+    return m.endSec - m.startSec;
+  }
+
   console.log(`Format: ${FORMAT} | ${narratives.length} items | depth: ${config.depth}\n`);
 
   const segments: NarrationSegment[] = [];
 
   // Intro
-  const introText = config.introStyle === "full"
+  const introAvail = availableSec("intro", 20);
+  const introBudget = wordBudget(introAvail);
+  let introText = config.introStyle === "full"
     ? `Good ${getTimeOfDay()}. This is Gawk Daily for ${DATE_SPOKEN}... your no-spin briefing on what's actually moving in the AI world. Every number you'll hear today comes from public data — nothing invented, nothing speculated. Let's get into it.`
     : `Gawk Daily, ${DATE_SPOKEN}. Here's what's happening in AI right now.`;
+
+  if (hasManifest) {
+    introText = trimToWordBudget(introText, introBudget);
+    console.log(`[INTRO] Budget: ${introBudget} words (${introAvail.toFixed(1)}s avail)`);
+  }
 
   const introFile = resolve(ROOT, "out/narration-seg-intro.mp3");
   console.log("[INTRO] Generating...");
   const introDur = generateTTS(introText, introFile);
-  segments.push({
-    id: "intro", segment: "intro", headline: "Intro",
-    narration: introText, scene: "globe", audioFile: introFile, durationSec: introDur,
-  });
-  console.log(`  ${introDur.toFixed(1)}s\n`);
+
+  if (hasManifest && introDur > introAvail) {
+    console.warn(`  ⚠ TTS ${introDur.toFixed(1)}s exceeds segment ${introAvail.toFixed(1)}s — trimming`);
+    const tighterBudget = Math.floor(introBudget * (introAvail / introDur));
+    introText = trimToWordBudget(introText, tighterBudget);
+    const retryDur = generateTTS(introText, introFile);
+    segments.push({
+      id: "intro", segment: "intro", headline: "Intro",
+      narration: introText, scene: "globe", audioFile: introFile, durationSec: retryDur,
+    });
+    console.log(`  Retried: ${retryDur.toFixed(1)}s`);
+  } else {
+    segments.push({
+      id: "intro", segment: "intro", headline: "Intro",
+      narration: introText, scene: "globe", audioFile: introFile, durationSec: introDur,
+    });
+    console.log(`  ${introDur.toFixed(1)}s\n`);
+  }
 
   // Content
   for (let idx = 0; idx < narratives.length; idx++) {
     const narrative = narratives[idx];
+    const segAvail = availableSec(narrative.id, 20);
+    const segBudget = wordBudget(segAvail);
+
     const rawNarration = buildNarration(narrative, config.depth);
     const transition = idx > 0 ? `${getTransition(idx)} ` : "";
-    const narration = `${transition}${rawNarration}`;
+    let narration = `${transition}${rawNarration}`;
+
+    if (hasManifest) {
+      narration = trimToWordBudget(narration, segBudget);
+    }
+
     const scene = sourceToPanel(narrative.events[0]?.source ?? "");
     const segFile = resolve(ROOT, `out/narration-seg-${narrative.id}.mp3`);
 
-    console.log(`[${narrative.segment.toUpperCase().padEnd(9)}] ${narrative.headline.slice(0, 70)}`);
-    const dur = generateTTS(narration, segFile);
+    const budgetInfo = hasManifest ? ` [${wordCount(narration)}/${segBudget}w, ${segAvail.toFixed(1)}s]` : "";
+    console.log(`[${narrative.segment.toUpperCase().padEnd(9)}] ${narrative.headline.slice(0, 55)}${budgetInfo}`);
+
+    let dur = generateTTS(narration, segFile);
+
+    if (hasManifest && dur > segAvail) {
+      console.warn(`  ⚠ TTS ${dur.toFixed(1)}s exceeds segment ${segAvail.toFixed(1)}s — trimming`);
+      const tighterBudget = Math.floor(segBudget * (segAvail / dur));
+      narration = trimToWordBudget(narration, tighterBudget);
+      dur = generateTTS(narration, segFile);
+      console.log(`  Retried: ${dur.toFixed(1)}s (${wordCount(narration)} words)`);
+    }
 
     segments.push({
       id: narrative.id, segment: narrative.segment, headline: narrative.headline,
@@ -414,13 +507,29 @@ function main() {
   }
 
   // Outro
-  const outroText = config.outroStyle === "full"
+  const outroAvail = availableSec("outro", 25);
+  const outroBudget = wordBudget(outroAvail);
+  let outroText = config.outroStyle === "full"
     ? `And that's your briefing for ${DATE_SPOKEN}. If any of these stories caught your attention... the full dashboard is live at gawk dot dev — every number links back to its source so you can verify it yourself. If you found this useful, hit subscribe — it helps more people find independent AI coverage. And if you think someone else should see this... share it. This is Gawk Daily. See what the AI world actually sees.`
     : `That's Gawk Daily. Full dashboard at gawk dot dev. Subscribe and share if you found this useful.`;
 
+  if (hasManifest) {
+    outroText = trimToWordBudget(outroText, outroBudget);
+    console.log(`\n[OUTRO] Budget: ${outroBudget} words (${outroAvail.toFixed(1)}s avail)`);
+  }
+
   const outroFile = resolve(ROOT, "out/narration-seg-outro.mp3");
-  console.log(`\n[OUTRO] Generating...`);
-  const outroDur = generateTTS(outroText, outroFile);
+  console.log(`[OUTRO] Generating...`);
+  let outroDur = generateTTS(outroText, outroFile);
+
+  if (hasManifest && outroDur > outroAvail) {
+    console.warn(`  ⚠ TTS ${outroDur.toFixed(1)}s exceeds segment ${outroAvail.toFixed(1)}s — trimming`);
+    const tighterBudget = Math.floor(outroBudget * (outroAvail / outroDur));
+    outroText = trimToWordBudget(outroText, tighterBudget);
+    outroDur = generateTTS(outroText, outroFile);
+    console.log(`  Retried: ${outroDur.toFixed(1)}s`);
+  }
+
   segments.push({
     id: "outro", segment: "outro", headline: "Outro",
     narration: outroText, scene: "globe", audioFile: outroFile, durationSec: outroDur,
@@ -432,6 +541,13 @@ function main() {
   const pauses = (segments.length - 1) * 0.8;
   console.log(`\nTotal: ${totalDur.toFixed(1)}s narration + ${pauses.toFixed(1)}s pauses = ${(totalDur + pauses).toFixed(1)}s`);
 
+  if (hasManifest) {
+    const videoDur = manifest[manifest.length - 1]?.endSec ?? 0;
+    const fit = totalDur + pauses;
+    const delta = videoDur - fit;
+    console.log(`Video duration: ${videoDur.toFixed(1)}s | Narration fit: ${delta > 0 ? "+" : ""}${delta.toFixed(1)}s ${delta >= 0 ? "✓" : "⚠ OVERRUN"}`);
+  }
+
   // Concatenate
   const fullAudio = resolve(ROOT, `data/video-narration-${FORMAT}.mp3`);
   concatenateAudio(segments, fullAudio);
@@ -441,11 +557,15 @@ function main() {
     execSync(`cp "${fullAudio}" "${resolve(ROOT, "data/video-narration.mp3")}"`);
   }
 
-  // Segment data for recording script
-  const segmentData = segments.map(({ audioFile, ...rest }) => ({
-    ...rest,
-    audioFile: audioFile.replace(ROOT + "/", ""),
-  }));
+  // Segment data — include manifest timing for compositor
+  const segmentData = segments.map(({ audioFile, ...rest }) => {
+    const m = manifestFor(rest.id);
+    return {
+      ...rest,
+      audioFile: audioFile.replace(ROOT + "/", ""),
+      ...(m ? { videoStartSec: m.startSec, videoEndSec: m.endSec } : {}),
+    };
+  });
   const outPath = resolve(ROOT, `data/narration-segments-${FORMAT}.json`);
   writeFileSync(outPath, JSON.stringify(segmentData, null, 2));
   console.log(`Segments: ${outPath}`);

@@ -26,11 +26,27 @@ const NO_AUDIO = args.includes("--no-audio");
 const FORMAT = args.includes("--format")
   ? args[args.indexOf("--format") + 1] ?? "landscape"
   : "landscape";
+const VIDEO_FORMAT = args.includes("--video-format")
+  ? args[args.indexOf("--video-format") + 1] ?? "youtube"
+  : "youtube";
 
 const WALKTHROUGH = resolve(ROOT, "out/walkthrough.webm");
-const AUDIO = resolve(ROOT, "data/video-narration.mp3");
+const AUDIO = resolve(ROOT, `data/video-narration-${VIDEO_FORMAT}.mp3`);
+const AUDIO_FALLBACK = resolve(ROOT, "data/video-narration.mp3");
+const NARRATION_SEGMENTS = resolve(ROOT, `data/narration-segments-${VIDEO_FORMAT}.json`);
 const CURATED = resolve(ROOT, "data/curated.json");
 const DATE = new Date().toISOString().slice(0, 10);
+
+type NarrationSegmentData = {
+  id: string;
+  segment: string;
+  headline: string;
+  scene: string;
+  durationSec: number;
+  audioFile: string;
+  videoStartSec?: number;
+  videoEndSec?: number;
+};
 
 const BRAND = {
   bg: "06080a",
@@ -48,11 +64,36 @@ type Overlay = {
   endSec: number;
 };
 
-function buildOverlays(curated: CurationResult): Overlay[] {
+function buildOverlaysFromNarrationSegments(segmentData: NarrationSegmentData[]): Overlay[] {
+  const overlays: Overlay[] = [];
+
+  for (const seg of segmentData) {
+    if (seg.segment === "intro" || seg.segment === "outro") continue;
+    if (seg.videoStartSec === undefined || seg.videoEndSec === undefined) continue;
+
+    const sourceLabel = seg.scene
+      .replace("sdk-adoption", "gawk.dev/sdk")
+      .replace("models", "gawk.dev/models")
+      .replace("tools", "gawk.dev/tools")
+      .replace("wire", "gawk.dev/wire")
+      .replace("labs", "gawk.dev/labs")
+      .replace("globe", "gawk.dev");
+
+    overlays.push({
+      text: seg.headline.slice(0, 80),
+      source: `Source: ${sourceLabel}`,
+      startSec: seg.videoStartSec + 1,
+      endSec: seg.videoEndSec - 1,
+    });
+  }
+
+  return overlays;
+}
+
+function buildOverlaysFromCurated(curated: CurationResult): Overlay[] {
   const overlays: Overlay[] = [];
   const segments = curated.narratives;
 
-  // Broadcast timing (PRD Section 3)
   const timings: { segment: string; startSec: number; endSec: number }[] = [
     { segment: "hook", startSec: 0, endSec: 5 },
     { segment: "lead", startSec: 5, endSec: 15 },
@@ -169,20 +210,26 @@ function buildFilterChain(overlays: Overlay[], format: string): string {
 function main() {
   if (!existsSync(WALKTHROUGH)) {
     console.error(`Missing: ${WALKTHROUGH}`);
-    console.error("Run: npm run video:record-map");
+    console.error("Run: npx tsx scripts/video/record-walkthrough.ts");
     process.exit(1);
   }
 
   let overlays: Overlay[] = [];
-  if (existsSync(CURATED)) {
+
+  if (existsSync(NARRATION_SEGMENTS)) {
+    const segmentData: NarrationSegmentData[] = JSON.parse(readFileSync(NARRATION_SEGMENTS, "utf-8"));
+    overlays = buildOverlaysFromNarrationSegments(segmentData);
+    console.log(`Loaded ${overlays.length} lower-third overlays from narration segments (manifest-timed)`);
+  } else if (existsSync(CURATED)) {
     const curated: CurationResult = JSON.parse(readFileSync(CURATED, "utf-8"));
-    overlays = buildOverlays(curated);
-    console.log(`Loaded ${overlays.length} lower-third overlays from curated.json`);
+    overlays = buildOverlaysFromCurated(curated);
+    console.log(`Loaded ${overlays.length} lower-third overlays from curated.json (hardcoded timing)`);
   } else {
-    console.warn("No curated.json found — compositing without lower-thirds");
+    console.warn("No narration segments or curated.json found — compositing without lower-thirds");
   }
 
-  const hasAudio = !NO_AUDIO && existsSync(AUDIO);
+  const audioPath = existsSync(AUDIO) ? AUDIO : existsSync(AUDIO_FALLBACK) ? AUDIO_FALLBACK : null;
+  const hasAudio = !NO_AUDIO && audioPath !== null;
   const duration = FORMAT === "vertical" ? 60 : 90;
   const outFile = resolve(
     ROOT,
@@ -194,7 +241,7 @@ function main() {
   const cmd = [
     "ffmpeg -y",
     `-i "${WALKTHROUGH}"`,
-    hasAudio ? `-i "${AUDIO}"` : "",
+    hasAudio ? `-i "${audioPath}"` : "",
     `-t ${duration}`,
     `-vf "${filterChain}"`,
     hasAudio ? "-map 0:v -map 1:a" : "-an",
@@ -209,7 +256,7 @@ function main() {
 
   console.log(`\nCompositing (${FORMAT}, ${duration}s)...`);
   console.log(`  Video: ${WALKTHROUGH}`);
-  if (hasAudio) console.log(`  Audio: ${AUDIO}`);
+  if (hasAudio) console.log(`  Audio: ${audioPath}`);
   console.log(`  Overlays: ${overlays.length} lower-thirds`);
   console.log(`  Output: ${outFile}\n`);
 
