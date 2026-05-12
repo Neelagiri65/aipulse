@@ -119,6 +119,28 @@ function buildOverlayCSS(vertical: boolean): string {
   .gawk-data-card__arrow--up { color: #4ade80; }
   .gawk-data-card__arrow--down { color: #f87171; }
 
+  .gawk-headline-card {
+    position: fixed; inset: 0; z-index: 2147483647;
+    background: #06080a;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    pointer-events: none; padding: ${vertical ? "40px 32px" : "0 120px"};
+    animation: gawk-card-in 0.5s ease-out;
+  }
+  .gawk-headline-card__label {
+    font-size: 14px; font-weight: 600; color: rgba(45, 212, 191, 0.7);
+    letter-spacing: 4px; text-transform: uppercase; margin-bottom: 24px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .gawk-headline-card__text {
+    font-size: ${vertical ? "28px" : "36px"}; font-weight: 500; color: #e2e8f0;
+    line-height: 1.4; text-align: center; max-width: ${vertical ? "90%" : "900px"};
+  }
+  .gawk-headline-card__source {
+    font-size: 14px; color: #64748b; margin-top: 24px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
   .gawk-lower-third {
     position: fixed;
     bottom: ${ltBottom}; left: ${ltLeft};
@@ -396,7 +418,7 @@ async function showDataCard(page: Page, opts: {
   source: string;
 }) {
   await page.evaluate((o) => {
-    document.querySelectorAll(".gawk-data-card, .gawk-breathe-wipe").forEach(el => el.remove());
+    document.querySelectorAll(".gawk-data-card, .gawk-headline-card, .gawk-breathe-wipe").forEach(el => el.remove());
     const arrow = o.direction === "up" ? "↑" : o.direction === "down" ? "↓" : "";
     const el = document.createElement("div");
     el.className = "gawk-data-card";
@@ -444,6 +466,20 @@ async function hideLowerThird(page: Page) {
   });
 }
 
+async function showHeadlineCard(page: Page, label: string, headline: string, source: string) {
+  await page.evaluate(({ label, headline, source }) => {
+    document.querySelectorAll(".gawk-headline-card, .gawk-data-card, .gawk-breathe-wipe").forEach(el => el.remove());
+    const el = document.createElement("div");
+    el.className = "gawk-headline-card";
+    el.innerHTML = `
+      <div class="gawk-headline-card__label">${label}</div>
+      <div class="gawk-headline-card__text">${headline}</div>
+      <div class="gawk-headline-card__source">${source}</div>
+    `;
+    document.body.appendChild(el);
+  }, { label, headline, source });
+}
+
 async function showLeaderboard(page: Page, opts: {
   label: string;
   heroName: string;
@@ -452,7 +488,7 @@ async function showLeaderboard(page: Page, opts: {
   source: string;
 }) {
   await page.evaluate(function(o) {
-    document.querySelectorAll(".gawk-leaderboard, .gawk-breathe-wipe").forEach(function(el) { el.remove(); });
+    document.querySelectorAll(".gawk-leaderboard, .gawk-headline-card, .gawk-breathe-wipe").forEach(function(el) { el.remove(); });
     var rowsHtml = o.rows.map(function(r) {
       return '<tr class="gawk-leaderboard__row gawk-leaderboard__row--' + r.rank + '">' +
         '<td>' + r.rank + '</td><td>' + r.name + '</td><td>' + r.value + '</td></tr>';
@@ -483,7 +519,7 @@ async function hideLeaderboard(page: Page) {
 async function showCTA(page: Page) {
   var dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   await page.evaluate(function(d) {
-    document.querySelectorAll(".gawk-data-card, .gawk-leaderboard, .gawk-breathe-wipe").forEach(function(e) { e.remove(); });
+    document.querySelectorAll(".gawk-data-card, .gawk-headline-card, .gawk-leaderboard, .gawk-breathe-wipe").forEach(function(e) { e.remove(); });
     var el = document.createElement("div");
     el.className = "gawk-cta-card";
     el.innerHTML =
@@ -702,8 +738,10 @@ async function main() {
         await showDataCard(page, story.dataCard);
         await page.waitForTimeout(story.holdSec * 1000);
       } else {
-        console.log(`  [${story.segment.toUpperCase().padEnd(9)}] ${story.headline.slice(0, 55)} — ${story.holdSec}s`);
-        await showLowerThird(page, segmentLabel(story.segment), story.headline.slice(0, 80));
+        console.log(`  [${story.segment.toUpperCase().padEnd(9)}] HEADLINE: ${story.headline.slice(0, 50)} — ${story.holdSec}s`);
+        const sceneSource = story.scene === "wire" ? "Community" : story.scene === "models" ? "OpenRouter" : "Source";
+        const dateLabel = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+        await showHeadlineCard(page, segmentLabel(story.segment), story.headline, `${sceneSource} · ${dateLabel}`);
         await page.waitForTimeout(story.holdSec * 1000);
       }
 
