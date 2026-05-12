@@ -36,14 +36,6 @@
     "narration": "GitHub.copilot on vscode: downloads down 29 percent."
   },
   {
-    "id": "repo-whisper",
-    "narration": "whisper by openai: 100 events tracked this week."
-  },
-  {
-    "id": "repo-claude-code",
-    "narration": "claude-code by anthropics: 100 events tracked this week."
-  },
-  {
     "id": "outro",
     "narration": "That's the briefing. Every number links to its source. gawk dot dev."
   }

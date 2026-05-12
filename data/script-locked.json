@@ -109,7 +109,7 @@
     "holdSec": 5,
     "dataCard": {
       "label": "TRENDING",
-      "number": "▲ 383",
+      "number": "▲ 382",
       "direction": "up",
       "title": "Computer build using Intel Optane Persistent Memory - Can run 1 trillion parameter model at over 4 tokens/sec",
       "source": "Source: Reddit · 12 May"
@@ -143,36 +143,6 @@
       "direction": "down",
       "title": "GitHub.copilot · vscode",
       "source": "Source: Package registry · 12 May"
-    }
-  },
-  {
-    "id": "repo-whisper",
-    "segment": "story",
-    "headline": "openai/whisper — 100 events",
-    "type": "data-card",
-    "scene": "wire",
-    "holdSec": 5,
-    "dataCard": {
-      "label": "ACTIVE REPO",
-      "number": "100",
-      "direction": "neutral",
-      "title": "openai/whisper",
-      "source": "Source: GitHub Events · 12 May"
-    }
-  },
-  {
-    "id": "repo-claude-code",
-    "segment": "story",
-    "headline": "anthropics/claude-code — 100 events",
-    "type": "data-card",
-    "scene": "wire",
-    "holdSec": 5,
-    "dataCard": {
-      "label": "ACTIVE REPO",
-      "number": "100",
-      "direction": "neutral",
-      "title": "anthropics/claude-code",
-      "source": "Source: GitHub Events · 12 May"
     }
   }
 ]

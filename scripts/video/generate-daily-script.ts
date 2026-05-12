@@ -503,31 +503,7 @@ async function main() {
       console.log(`  [STORY    ] DATA CARD: ${direction === "up" ? "↑" : "↓"} ${Math.abs(delta)} — ${model.shortName}`);
     }
 
-    // Top active repos
-    for (const repo of vd.topRepos ?? []) {
-      if (storyCount >= maxStories) break;
-      if (repo.eventCount < 10) continue;
-      if (usedHeadlines.has(repo.name.toLowerCase())) continue;
-      const id = `repo-${repo.name}`;
-      const headline = `${repo.owner}/${repo.name} — ${repo.eventCount} events`;
-      stories.push({
-        id, segment: "story", headline, type: "data-card", scene: "wire", holdSec: 5,
-        dataCard: {
-          label: "ACTIVE REPO",
-          number: `${repo.eventCount}`,
-          direction: "neutral" as const,
-          title: `${repo.owner}/${repo.name}`,
-          source: `Source: GitHub Events · ${DATE}`,
-        },
-      });
-      narrations.push({
-        id,
-        narration: trimNarration(`${repo.name} by ${repo.owner}: ${repo.eventCount} events tracked this week.`, 5),
-      });
-      usedHeadlines.add(repo.name.toLowerCase());
-      storyCount++;
-      console.log(`  [STORY    ] DATA CARD: ${repo.eventCount} events — ${repo.owner}/${repo.name}`);
-    }
+    // Top repos — skip; raw event counts aren't insightful without delta context
   }
 
   // Outro narration
