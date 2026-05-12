@@ -295,17 +295,78 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
     };
   }
 
-  // Fallback: lower-third for text-only stories
-  // Headlines from Reddit/HN can be verbose — distil to a broadcast-ready sentence
+  // Parse rank changes from headline text (wire events often have "down N ranks" without metrics)
+  const rankMatch = narrative.headline.match(/\b(up|down)\s+(\d+)\s+ranks?\b/i);
+  if (rankMatch) {
+    const direction = rankMatch[1].toLowerCase() as "up" | "down";
+    const delta = parseInt(rankMatch[2], 10);
+    const name = narrative.headline.split(":")[0].trim() || narrative.headline.split(" ")[0];
+    return {
+      story: {
+        id: narrative.id,
+        segment: "story",
+        headline: narrative.headline,
+        type: "data-card",
+        scene: "models",
+        holdSec: 5,
+        dataCard: {
+          label: direction === "up" ? "RANK UP" : "RANK DOWN",
+          number: `${direction === "up" ? "↑" : "↓"} ${delta}`,
+          direction,
+          title: name,
+          source: `Source: OpenRouter · ${DATE}`,
+        },
+      },
+      narration: {
+        id: narrative.id,
+        narration: trimNarration(`${name} dropped ${delta} ranks on OpenRouter this week.`, 5),
+      },
+    };
+  }
+
+  // High-engagement community posts — show as data card with engagement metric
+  if ((m.points ?? 0) >= 100) {
+    const shortHeadline = distilHeadline(narrative.headline);
+    return {
+      story: {
+        id: narrative.id,
+        segment: "story",
+        headline: narrative.headline,
+        type: "data-card",
+        scene: "wire",
+        holdSec: 5,
+        dataCard: {
+          label: "TRENDING",
+          number: `▲ ${m.points}`,
+          direction: "up" as const,
+          title: shortHeadline.replace(/\.$/, ""),
+          source: `Source: Reddit · ${DATE}`,
+        },
+      },
+      narration: {
+        id: narrative.id,
+        narration: trimNarration(shortHeadline, 5),
+      },
+    };
+  }
+
+  // Fallback: data card with headline (no lower-thirds — every story gets full-screen treatment)
   const shortHeadline = distilHeadline(narrative.headline);
   return {
     story: {
       id: narrative.id,
       segment: "story",
       headline: narrative.headline,
-      type: "lower-third",
+      type: "data-card",
       scene: "wire",
       holdSec: 5,
+      dataCard: {
+        label: "IN FOCUS",
+        number: "—",
+        direction: "neutral" as const,
+        title: shortHeadline.replace(/\.$/, ""),
+        source: `Source: Community · ${DATE}`,
+      },
     },
     narration: {
       id: narrative.id,
@@ -347,7 +408,7 @@ async function main() {
     console.log(`  [HOOK     ] LEADERBOARD: ${leaderboard.story.headline}`);
   }
 
-  // Remaining stories from curated narratives
+  // Remaining stories — only include events with verifiable metrics
   const maxStories = 9;
   let storyCount = 0;
 
@@ -355,6 +416,16 @@ async function main() {
     if (storyCount >= maxStories) break;
     const event = narrative.events[0];
     if (!event) continue;
+
+    const m = event.metrics ?? {};
+    const hasHardMetric = m.rank !== undefined || m.deltaPct !== undefined || m.stars !== undefined;
+    const hasHighEngagement = (m.points ?? 0) >= 100 || (m.comments ?? 0) >= 50;
+    // Wire headlines with rank info ("down N ranks") have verifiable data even if metrics are empty
+    const hasRankInHeadline = /\b(up|down)\s+\d+\s+ranks?\b/i.test(narrative.headline);
+    if (!hasHardMetric && !hasHighEngagement && !hasRankInHeadline) {
+      console.log(`  [SKIP     ] No verifiable metric — ${narrative.headline.slice(0, 50)}`);
+      continue;
+    }
 
     // Skip if it duplicates the leaderboard hook
     if (leaderboard && narrative.headline.toLowerCase().includes(models[0]?.shortName?.toLowerCase() || "___")) {
@@ -368,6 +439,95 @@ async function main() {
 
     const typeLabel = story.type === "data-card" ? `DATA CARD: ${story.dataCard?.number}` : story.type.toUpperCase();
     console.log(`  [${story.segment.toUpperCase().padEnd(9)}] ${typeLabel} — ${story.headline.slice(0, 50)}`);
+  }
+
+  // Supplement with data from video-daily.json if we haven't hit 9 stories
+  const VIDEO_DAILY = resolve(ROOT, "data/video-daily.json");
+  if (storyCount < maxStories && existsSync(VIDEO_DAILY)) {
+    const vd = JSON.parse(readFileSync(VIDEO_DAILY, "utf-8"));
+    const usedHeadlines = new Set(stories.map(s => s.headline.toLowerCase()));
+
+    // SDK movers with significant changes
+    for (const sdk of vd.sdkMovers ?? []) {
+      if (storyCount >= maxStories) break;
+      if (Math.abs(sdk.diffPct) < 5 || Math.abs(sdk.diffPct) > 500) continue;
+      const direction = sdk.diffPct > 0 ? "up" : "down";
+      const id = `sdk-${sdk.name}`;
+      const headline = `${sdk.name} (${sdk.registry}) ${direction} ${Math.abs(sdk.diffPct).toFixed(0)}%`;
+      if (usedHeadlines.has(headline.toLowerCase())) continue;
+      stories.push({
+        id, segment: "story", headline, type: "data-card", scene: "sdk-adoption", holdSec: 5,
+        dataCard: {
+          label: "SDK ADOPTION",
+          number: `${direction === "up" ? "↑" : "↓"} ${Math.abs(sdk.diffPct).toFixed(0)}%`,
+          direction,
+          title: `${sdk.name} · ${sdk.registry}`,
+          source: `Source: Package registry · ${DATE}`,
+        },
+      });
+      narrations.push({
+        id,
+        narration: trimNarration(`${sdk.name} on ${sdk.registry}: downloads ${direction} ${Math.abs(sdk.diffPct).toFixed(0)} percent.`, 5),
+      });
+      usedHeadlines.add(headline.toLowerCase());
+      storyCount++;
+      console.log(`  [STORY    ] DATA CARD: ${direction === "up" ? "↑" : "↓"} ${Math.abs(sdk.diffPct).toFixed(0)}% — ${sdk.name} (${sdk.registry})`);
+    }
+
+    // Additional model movers not already covered
+    for (const model of vd.topModels ?? []) {
+      if (storyCount >= maxStories) break;
+      const delta = (model.previousRank ?? model.rank) - model.rank;
+      if (Math.abs(delta) < 2) continue;
+      const nameKey = model.shortName.toLowerCase();
+      if (usedHeadlines.has(nameKey) || stories.some(s => s.headline.toLowerCase().includes(nameKey))) continue;
+      const direction = delta > 0 ? "up" : "down";
+      const id = `model-${model.shortName.replace(/\s+/g, "-")}`;
+      const headline = `${model.shortName} ${direction} ${Math.abs(delta)} ranks`;
+      stories.push({
+        id, segment: "story", headline, type: "data-card", scene: "models", holdSec: 5,
+        dataCard: {
+          label: direction === "up" ? "RANK UP" : "RANK DOWN",
+          number: `${direction === "up" ? "↑" : "↓"} ${Math.abs(delta)}`,
+          direction,
+          title: `${model.shortName} — Now #${model.rank}, was #${model.previousRank}`,
+          source: `Source: OpenRouter · ${DATE}`,
+        },
+      });
+      narrations.push({
+        id,
+        narration: trimNarration(`${model.shortName} moved ${direction} ${Math.abs(delta)} ranks. Now number ${model.rank}.`, 5),
+      });
+      usedHeadlines.add(model.shortName.toLowerCase());
+      storyCount++;
+      console.log(`  [STORY    ] DATA CARD: ${direction === "up" ? "↑" : "↓"} ${Math.abs(delta)} — ${model.shortName}`);
+    }
+
+    // Top active repos
+    for (const repo of vd.topRepos ?? []) {
+      if (storyCount >= maxStories) break;
+      if (repo.eventCount < 10) continue;
+      if (usedHeadlines.has(repo.name.toLowerCase())) continue;
+      const id = `repo-${repo.name}`;
+      const headline = `${repo.owner}/${repo.name} — ${repo.eventCount} events`;
+      stories.push({
+        id, segment: "story", headline, type: "data-card", scene: "wire", holdSec: 5,
+        dataCard: {
+          label: "ACTIVE REPO",
+          number: `${repo.eventCount}`,
+          direction: "neutral" as const,
+          title: `${repo.owner}/${repo.name}`,
+          source: `Source: GitHub Events · ${DATE}`,
+        },
+      });
+      narrations.push({
+        id,
+        narration: trimNarration(`${repo.name} by ${repo.owner}: ${repo.eventCount} events tracked this week.`, 5),
+      });
+      usedHeadlines.add(repo.name.toLowerCase());
+      storyCount++;
+      console.log(`  [STORY    ] DATA CARD: ${repo.eventCount} events — ${repo.owner}/${repo.name}`);
+    }
   }
 
   // Outro narration

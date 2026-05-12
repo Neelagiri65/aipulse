@@ -89,48 +89,90 @@
     "id": "narrative-3",
     "segment": "story",
     "headline": "OpenAI: gpt-oss-120b (free) down 20 ranks on OpenRouter weekly",
-    "type": "lower-third",
-    "scene": "wire",
-    "holdSec": 5
+    "type": "data-card",
+    "scene": "models",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "RANK DOWN",
+      "number": "↓ 20",
+      "direction": "down",
+      "title": "OpenAI",
+      "source": "Source: OpenRouter · 12 May"
+    }
   },
   {
     "id": "narrative-4",
     "segment": "story",
     "headline": "Computer build using Intel Optane Persistent Memory - Can run 1 trillion parameter model at over 4 tokens/sec",
-    "type": "lower-third",
+    "type": "data-card",
     "scene": "wire",
-    "holdSec": 5
+    "holdSec": 5,
+    "dataCard": {
+      "label": "TRENDING",
+      "number": "▲ 383",
+      "direction": "up",
+      "title": "Computer build using Intel Optane Persistent Memory - Can run 1 trillion parameter model at over 4 tokens/sec",
+      "source": "Source: Reddit · 12 May"
+    }
   },
   {
-    "id": "narrative-5",
+    "id": "sdk-sourcegraph.cody-ai",
     "segment": "story",
-    "headline": "Is Anyone building Useful skills or workflows on Claude?",
-    "type": "lower-third",
-    "scene": "wire",
-    "holdSec": 5
+    "headline": "sourcegraph.cody-ai (vscode) down 32%",
+    "type": "data-card",
+    "scene": "sdk-adoption",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "SDK ADOPTION",
+      "number": "↓ 32%",
+      "direction": "down",
+      "title": "sourcegraph.cody-ai · vscode",
+      "source": "Source: Package registry · 12 May"
+    }
   },
   {
-    "id": "narrative-6",
+    "id": "sdk-GitHub.copilot",
     "segment": "story",
-    "headline": "B9109: preemptive fix for mtp & mmproj fix soon? It appears so",
-    "type": "lower-third",
-    "scene": "wire",
-    "holdSec": 5
+    "headline": "GitHub.copilot (vscode) down 29%",
+    "type": "data-card",
+    "scene": "sdk-adoption",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "SDK ADOPTION",
+      "number": "↓ 29%",
+      "direction": "down",
+      "title": "GitHub.copilot · vscode",
+      "source": "Source: Package registry · 12 May"
+    }
   },
   {
-    "id": "narrative-7",
+    "id": "repo-whisper",
     "segment": "story",
-    "headline": "Vibed up an old shockwave game I used to play in high school 20 years ago",
-    "type": "lower-third",
+    "headline": "openai/whisper — 100 events",
+    "type": "data-card",
     "scene": "wire",
-    "holdSec": 5
+    "holdSec": 5,
+    "dataCard": {
+      "label": "ACTIVE REPO",
+      "number": "100",
+      "direction": "neutral",
+      "title": "openai/whisper",
+      "source": "Source: GitHub Events · 12 May"
+    }
   },
   {
-    "id": "narrative-8",
+    "id": "repo-claude-code",
     "segment": "story",
-    "headline": "I catalogued every way local models break JSON output and built a repair library, here's what I found across 288 model calls",
-    "type": "lower-third",
+    "headline": "anthropics/claude-code — 100 events",
+    "type": "data-card",
     "scene": "wire",
-    "holdSec": 5
+    "holdSec": 5,
+    "dataCard": {
+      "label": "ACTIVE REPO",
+      "number": "100",
+      "direction": "neutral",
+      "title": "anthropics/claude-code",
+      "source": "Source: GitHub Events · 12 May"
+    }
   }
 ]

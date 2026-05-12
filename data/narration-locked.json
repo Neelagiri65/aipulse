@@ -21,27 +21,27 @@
   },
   {
     "id": "narrative-3",
-    "narration": "OpenAI: gpt-oss-120b (free) down 20 ranks on OpenRouter weekly."
+    "narration": "OpenAI dropped 20 ranks on OpenRouter this week."
   },
   {
     "id": "narrative-4",
     "narration": "Computer build using Intel Optane Persistent Memory."
   },
   {
-    "id": "narrative-5",
-    "narration": "Community asks: building Useful skills or workflows on Claude?"
+    "id": "sdk-sourcegraph.cody-ai",
+    "narration": "sourcegraph.cody-ai on vscode: downloads down 32 percent."
   },
   {
-    "id": "narrative-6",
-    "narration": "B9109: preemptive fix for mtp & mmproj fix soon? It appears so."
+    "id": "sdk-GitHub.copilot",
+    "narration": "GitHub.copilot on vscode: downloads down 29 percent."
   },
   {
-    "id": "narrative-7",
-    "narration": "Vibed up an old shockwave game."
+    "id": "repo-whisper",
+    "narration": "whisper by openai: 100 events tracked this week."
   },
   {
-    "id": "narrative-8",
-    "narration": "Study: every way local models break JSON output and built a repair."
+    "id": "repo-claude-code",
+    "narration": "claude-code by anthropics: 100 events tracked this week."
   },
   {
     "id": "outro",

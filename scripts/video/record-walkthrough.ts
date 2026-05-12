@@ -418,7 +418,7 @@ async function showDataCard(page: Page, opts: {
   source: string;
 }) {
   await page.evaluate((o) => {
-    document.querySelectorAll(".gawk-data-card, .gawk-headline-card, .gawk-breathe-wipe").forEach(el => el.remove());
+    document.querySelectorAll(".gawk-data-card, .gawk-headline-card").forEach(el => el.remove());
     const arrow = o.direction === "up" ? "↑" : o.direction === "down" ? "↓" : "";
     const el = document.createElement("div");
     el.className = "gawk-data-card";
@@ -468,7 +468,7 @@ async function hideLowerThird(page: Page) {
 
 async function showHeadlineCard(page: Page, label: string, headline: string, source: string) {
   await page.evaluate(({ label, headline, source }) => {
-    document.querySelectorAll(".gawk-headline-card, .gawk-data-card, .gawk-breathe-wipe").forEach(el => el.remove());
+    document.querySelectorAll(".gawk-headline-card, .gawk-data-card").forEach(el => el.remove());
     const el = document.createElement("div");
     el.className = "gawk-headline-card";
     el.innerHTML = `
@@ -488,7 +488,7 @@ async function showLeaderboard(page: Page, opts: {
   source: string;
 }) {
   await page.evaluate(function(o) {
-    document.querySelectorAll(".gawk-leaderboard, .gawk-headline-card, .gawk-breathe-wipe").forEach(function(el) { el.remove(); });
+    document.querySelectorAll(".gawk-leaderboard, .gawk-headline-card, .gawk-data-card").forEach(function(el) { el.remove(); });
     var rowsHtml = o.rows.map(function(r) {
       return '<tr class="gawk-leaderboard__row gawk-leaderboard__row--' + r.rank + '">' +
         '<td>' + r.rank + '</td><td>' + r.name + '</td><td>' + r.value + '</td></tr>';
@@ -519,7 +519,7 @@ async function hideLeaderboard(page: Page) {
 async function showCTA(page: Page) {
   var dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   await page.evaluate(function(d) {
-    document.querySelectorAll(".gawk-data-card, .gawk-headline-card, .gawk-leaderboard, .gawk-breathe-wipe").forEach(function(e) { e.remove(); });
+    document.querySelectorAll(".gawk-data-card, .gawk-headline-card, .gawk-leaderboard").forEach(function(e) { e.remove(); });
     var el = document.createElement("div");
     el.className = "gawk-cta-card";
     el.innerHTML =
