@@ -10,12 +10,13 @@
  */
 
 import { execSync } from "child_process";
-import { existsSync, renameSync, copyFileSync } from "fs";
+import { existsSync, readFileSync, renameSync, copyFileSync } from "fs";
 import { resolve } from "path";
 
 const ROOT = process.cwd();
 const args = process.argv.slice(2);
 
+const FORCE_DISTRIBUTE = args.includes("--force-distribute");
 const NO_DISTRIBUTE = args.includes("--no-distribute");
 const SKIP_FETCH = args.includes("--skip-fetch");
 const FORMATS = getArg("--formats", "youtube,instagram").split(",").map((f) => f.trim());
@@ -149,14 +150,22 @@ function main() {
 
   // ─── PHASE 4: DISTRIBUTE ───
 
-  if (!NO_DISTRIBUTE) {
+  const uploadLogPath = resolve(ROOT, "data/upload-log.json");
+  const alreadyUploaded = (() => {
+    if (!existsSync(uploadLogPath)) return false;
+    try {
+      const log = JSON.parse(readFileSync(uploadLogPath, "utf-8"));
+      return log.some((e: { date: string }) => e.date === DATE);
+    } catch { return false; }
+  })();
+
+  if (!NO_DISTRIBUTE && (!alreadyUploaded || FORCE_DISTRIBUTE)) {
     const platforms = FORMATS.map((f) => {
       if (f === "youtube") return "youtube";
       if (f === "instagram") return "instagram";
       return f;
     });
 
-    // Also add facebook if we have both formats
     if (FORMATS.includes("youtube")) {
       platforms.push("facebook");
     }
@@ -166,6 +175,9 @@ function main() {
       `npx tsx scripts/video/distribute.ts --platforms ${platforms.join(",")}`,
       { timeout: 300_000, optional: true }
     );
+  } else if (alreadyUploaded && !FORCE_DISTRIBUTE) {
+    console.log(`\n  Skipping distribution (already uploaded for ${DATE} — use --force-distribute to override)`);
+    results.push({ step: "Distribute", status: "skip", durationMs: 0 });
   } else {
     console.log("\n  Skipping distribution (--no-distribute)");
     results.push({ step: "Distribute", status: "skip", durationMs: 0 });
