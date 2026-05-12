@@ -7,14 +7,14 @@
     "scene": "globe",
     "holdSec": 10,
     "leaderboard": {
-      "label": "OPENROUTER RANKING · 11 MAY",
+      "label": "OPENROUTER RANKING · 12 MAY",
       "heroName": "KIMI K2.6",
       "heroSub": "#1 — holds position",
       "rows": [
         {
           "rank": 1,
           "name": "Kimi K2.6",
-          "value": "$0.75/MTok"
+          "value": "$0.74/MTok"
         },
         {
           "rank": 2,
@@ -33,56 +33,56 @@
         },
         {
           "rank": 5,
-          "name": "Gemini 3 Flash Preview",
-          "value": "$0.50/MTok"
+          "name": "Hy3 preview",
+          "value": "$0.07/MTok"
         }
       ],
-      "source": "Source: OpenRouter Top Weekly · 11 May"
+      "source": "Source: OpenRouter Top Weekly · 12 May"
     }
   },
   {
     "id": "narrative-0",
     "segment": "story",
-    "headline": "elebumm/RedditVideoMakerBot trending on GitHub (77 stars today)",
+    "headline": "AUTOMATIC1111/stable-diffusion-webui trending on GitHub (39 stars today)",
     "type": "data-card",
     "scene": "wire",
     "holdSec": 7,
     "dataCard": {
       "label": "TRENDING",
-      "number": "★ 77",
+      "number": "★ 39",
       "direction": "up",
-      "title": "elebumm/RedditVideoMakerBot trending on GitHub (77 stars today)",
-      "source": "Source: GitHub Trending · 11 May"
+      "title": "AUTOMATIC1111/stable-diffusion-webui trending on GitHub (39 stars today)",
+      "source": "Source: GitHub Trending · 12 May"
     }
   },
   {
     "id": "narrative-1",
     "segment": "story",
-    "headline": "Hy3 preview moved from rank 38 to 9",
+    "headline": "Hy3 preview moved from rank 15 to 5",
     "type": "data-card",
     "scene": "models",
     "holdSec": 7,
     "dataCard": {
       "label": "RANK UP",
-      "number": "↑ 29",
+      "number": "↑ 10",
       "direction": "up",
-      "title": "Hy3 preview — Now #9, was #38",
-      "source": "Source: OpenRouter Weekly · 11 May"
+      "title": "Hy3 preview — Now #5, was #15",
+      "source": "Source: OpenRouter Weekly · 12 May"
     }
   },
   {
     "id": "narrative-2",
     "segment": "story",
-    "headline": "@langchain/core downloads up 28.6% on npm",
+    "headline": "huggingface-hub downloads down 21.9% on pypi",
     "type": "data-card",
     "scene": "sdk-adoption",
     "holdSec": 7,
     "dataCard": {
       "label": "DOWNLOADS",
-      "number": "↑ 29%",
-      "direction": "up",
-      "title": "@langchain/core downloads up 28.6% on npm",
-      "source": "Source: Package registry data · 11 May"
+      "number": "↓ 22%",
+      "direction": "down",
+      "title": "huggingface-hub downloads down 21.9% on pypi",
+      "source": "Source: Package registry data · 12 May"
     }
   }
 ]

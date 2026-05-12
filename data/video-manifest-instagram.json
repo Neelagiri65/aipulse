@@ -29,7 +29,7 @@
   {
     "id": "narrative-0",
     "segment": "story",
-    "headline": "elebumm/RedditVideoMakerBot trending on GitHub (77 stars today)",
+    "headline": "AUTOMATIC1111/stable-diffusion-webui trending on GitHub (39 stars today)",
     "scene": "wire",
     "holdSec": 7,
     "startSec": 12,
@@ -47,7 +47,7 @@
   {
     "id": "narrative-1",
     "segment": "story",
-    "headline": "Hy3 preview moved from rank 38 to 9",
+    "headline": "Hy3 preview moved from rank 15 to 5",
     "scene": "models",
     "holdSec": 7,
     "startSec": 20,
@@ -65,7 +65,7 @@
   {
     "id": "narrative-2",
     "segment": "story",
-    "headline": "@langchain/core downloads up 28.6% on npm",
+    "headline": "huggingface-hub downloads down 21.9% on pypi",
     "scene": "sdk-adoption",
     "holdSec": 7,
     "startSec": 28,

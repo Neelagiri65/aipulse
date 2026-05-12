@@ -3,9 +3,9 @@
     "id": "intro",
     "segment": "intro",
     "headline": "intro",
-    "narration": "11 May. Here's what moved.",
+    "narration": "12 May. Here's what moved.",
     "scene": "globe",
-    "durationSec": 1.536,
+    "durationSec": 1.488,
     "audioFile": "out/narration-seg-intro.mp3",
     "videoStartSec": 0,
     "videoEndSec": 1
@@ -14,9 +14,9 @@
     "id": "top-model",
     "segment": "hook",
     "headline": "Kimi K2.6 holds #1 on OpenRouter",
-    "narration": "Kimi K2.6 holds number one on OpenRouter. $0.75 per million tokens. Claude Sonnet 4.6 in second at $3.00.",
+    "narration": "Kimi K2.6 holds number one on OpenRouter. $0.74 per million tokens. Claude Sonnet 4.6 in second at $3.00.",
     "scene": "globe",
-    "durationSec": 9.576,
+    "durationSec": 9.648,
     "audioFile": "out/narration-seg-top-model.mp3",
     "videoStartSec": 1,
     "videoEndSec": 11
@@ -24,10 +24,10 @@
   {
     "id": "narrative-0",
     "segment": "story",
-    "headline": "elebumm/RedditVideoMakerBot trending on GitHub (77 stars today)",
-    "narration": "elebumm/RedditVideoMakerBot is trending on GitHub. 77 stars today.",
+    "headline": "AUTOMATIC1111/stable-diffusion-webui trending on GitHub (39 stars today)",
+    "narration": "AUTOMATIC1111/stable-diffusion-webui is trending on GitHub. 39 stars today.",
     "scene": "wire",
-    "durationSec": 5.52,
+    "durationSec": 6.96,
     "audioFile": "out/narration-seg-narrative-0.mp3",
     "videoStartSec": 12,
     "videoEndSec": 19
@@ -35,10 +35,10 @@
   {
     "id": "narrative-1",
     "segment": "story",
-    "headline": "Hy3 preview moved from rank 38 to 9",
-    "narration": "Hy3 preview climbed 29 ranks — from 38th to 9th. At $0.07 per million tokens.",
+    "headline": "Hy3 preview moved from rank 15 to 5",
+    "narration": "Hy3 preview climbed 10 ranks — from 15th to 5th. At $0.07 per million tokens.",
     "scene": "models",
-    "durationSec": 6.576,
+    "durationSec": 6.312,
     "audioFile": "out/narration-seg-narrative-1.mp3",
     "videoStartSec": 20,
     "videoEndSec": 27
@@ -46,10 +46,10 @@
   {
     "id": "narrative-2",
     "segment": "story",
-    "headline": "@langchain/core downloads up 28.6% on npm",
-    "narration": "@langchain/core downloads up 29 percent this week.",
+    "headline": "huggingface-hub downloads down 21.9% on pypi",
+    "narration": "huggingface-hub downloads down 22 percent this week.",
     "scene": "sdk-adoption",
-    "durationSec": 4.368,
+    "durationSec": 3.48,
     "audioFile": "out/narration-seg-narrative-2.mp3",
     "videoStartSec": 28,
     "videoEndSec": 35
@@ -60,7 +60,7 @@
     "headline": "outro",
     "narration": "That's the briefing. Every number links to its source. gawk dot dev.",
     "scene": "globe",
-    "durationSec": 3.696,
+    "durationSec": 3.528,
     "audioFile": "out/narration-seg-outro.mp3",
     "videoStartSec": 35,
     "videoEndSec": 39
