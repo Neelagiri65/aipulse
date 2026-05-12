@@ -5,7 +5,7 @@
     "headline": "intro",
     "narration": "12 May. Here's what moved.",
     "scene": "globe",
-    "durationSec": 1.512,
+    "durationSec": 1.488,
     "audioFile": "out/narration-seg-intro.mp3",
     "videoStartSec": 0,
     "videoEndSec": 1
@@ -49,7 +49,7 @@
     "headline": "huggingface-hub downloads down 21.9% on pypi",
     "narration": "huggingface-hub downloads down 22 percent this week.",
     "scene": "sdk-adoption",
-    "durationSec": 3.696,
+    "durationSec": 3.48,
     "audioFile": "out/narration-seg-narrative-2.mp3",
     "videoStartSec": 24,
     "videoEndSec": 29
@@ -58,9 +58,9 @@
     "id": "narrative-3",
     "segment": "story",
     "headline": "OpenAI: gpt-oss-120b (free) down 20 ranks on OpenRouter weekly",
-    "narration": "OpenAI: gpt-oss-120b (free) down 20 ranks on OpenRouter weekly.",
-    "scene": "wire",
-    "durationSec": 5.232,
+    "narration": "OpenAI dropped 20 ranks on OpenRouter this week.",
+    "scene": "models",
+    "durationSec": 3.336,
     "audioFile": "out/narration-seg-narrative-3.mp3",
     "videoStartSec": 30,
     "videoEndSec": 35
@@ -77,48 +77,26 @@
     "videoEndSec": 41
   },
   {
-    "id": "narrative-5",
+    "id": "sdk-sourcegraph.cody-ai",
     "segment": "story",
-    "headline": "Is Anyone building Useful skills or workflows on Claude?",
-    "narration": "Community asks: building Useful skills or workflows on Claude?",
-    "scene": "wire",
-    "durationSec": 4.152,
-    "audioFile": "out/narration-seg-narrative-5.mp3",
+    "headline": "sourcegraph.cody-ai (vscode) down 32%",
+    "narration": "sourcegraph.cody-ai on vscode: downloads down 32 percent.",
+    "scene": "sdk-adoption",
+    "durationSec": 4.584,
+    "audioFile": "out/narration-seg-sdk-sourcegraph.cody-ai.mp3",
     "videoStartSec": 42,
     "videoEndSec": 47
   },
   {
-    "id": "narrative-6",
+    "id": "sdk-GitHub.copilot",
     "segment": "story",
-    "headline": "B9109: preemptive fix for mtp & mmproj fix soon? It appears so",
-    "narration": "B9109: preemptive fix for mtp & mmproj fix soon? It appears so.",
-    "scene": "wire",
-    "durationSec": 4.968,
-    "audioFile": "out/narration-seg-narrative-6.mp3",
+    "headline": "GitHub.copilot (vscode) down 29%",
+    "narration": "GitHub.copilot on vscode: downloads down 29 percent.",
+    "scene": "sdk-adoption",
+    "durationSec": 4.488,
+    "audioFile": "out/narration-seg-sdk-GitHub.copilot.mp3",
     "videoStartSec": 48,
     "videoEndSec": 53
-  },
-  {
-    "id": "narrative-7",
-    "segment": "story",
-    "headline": "Vibed up an old shockwave game I used to play in high school 20 years ago",
-    "narration": "Vibed up an old shockwave game.",
-    "scene": "wire",
-    "durationSec": 1.992,
-    "audioFile": "out/narration-seg-narrative-7.mp3",
-    "videoStartSec": 54,
-    "videoEndSec": 59
-  },
-  {
-    "id": "narrative-8",
-    "segment": "story",
-    "headline": "I catalogued every way local models break JSON output and built a repair library, here's what I found across 288 model calls",
-    "narration": "Study: every way local models break JSON output and built a repair.",
-    "scene": "wire",
-    "durationSec": 4.824,
-    "audioFile": "out/narration-seg-narrative-8.mp3",
-    "videoStartSec": 60,
-    "videoEndSec": 65
   },
   {
     "id": "outro",
@@ -128,7 +106,7 @@
     "scene": "globe",
     "durationSec": 3.696,
     "audioFile": "out/narration-seg-outro.mp3",
-    "videoStartSec": 65,
-    "videoEndSec": 69
+    "videoStartSec": 53,
+    "videoEndSec": 57
   }
 ]

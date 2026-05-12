@@ -84,7 +84,7 @@
     "id": "narrative-3",
     "segment": "story",
     "headline": "OpenAI: gpt-oss-120b (free) down 20 ranks on OpenRouter weekly",
-    "scene": "wire",
+    "scene": "models",
     "holdSec": 5,
     "startSec": 30,
     "endSec": 35
@@ -117,10 +117,10 @@
     "endSec": 42
   },
   {
-    "id": "narrative-5",
+    "id": "sdk-sourcegraph.cody-ai",
     "segment": "story",
-    "headline": "Is Anyone building Useful skills or workflows on Claude?",
-    "scene": "wire",
+    "headline": "sourcegraph.cody-ai (vscode) down 32%",
+    "scene": "sdk-adoption",
     "holdSec": 5,
     "startSec": 42,
     "endSec": 47
@@ -135,49 +135,13 @@
     "endSec": 48
   },
   {
-    "id": "narrative-6",
+    "id": "sdk-GitHub.copilot",
     "segment": "story",
-    "headline": "B9109: preemptive fix for mtp & mmproj fix soon? It appears so",
-    "scene": "wire",
+    "headline": "GitHub.copilot (vscode) down 29%",
+    "scene": "sdk-adoption",
     "holdSec": 5,
     "startSec": 48,
     "endSec": 53
-  },
-  {
-    "id": "breathe-7",
-    "segment": "wipe",
-    "headline": "Colour wipe",
-    "scene": "wipe",
-    "holdSec": 1,
-    "startSec": 53,
-    "endSec": 54
-  },
-  {
-    "id": "narrative-7",
-    "segment": "story",
-    "headline": "Vibed up an old shockwave game I used to play in high school 20 years ago",
-    "scene": "wire",
-    "holdSec": 5,
-    "startSec": 54,
-    "endSec": 59
-  },
-  {
-    "id": "breathe-8",
-    "segment": "wipe",
-    "headline": "Colour wipe",
-    "scene": "wipe",
-    "holdSec": 1,
-    "startSec": 59,
-    "endSec": 60
-  },
-  {
-    "id": "narrative-8",
-    "segment": "story",
-    "headline": "I catalogued every way local models break JSON output and built a repair library, here's what I found across 288 model calls",
-    "scene": "wire",
-    "holdSec": 5,
-    "startSec": 60,
-    "endSec": 65
   },
   {
     "id": "outro",
@@ -185,7 +149,7 @@
     "headline": "Outro",
     "scene": "globe",
     "holdSec": 4,
-    "startSec": 65,
-    "endSec": 69
+    "startSec": 53,
+    "endSec": 57
   }
 ]

@@ -109,7 +109,7 @@
     "holdSec": 5,
     "dataCard": {
       "label": "TRENDING",
-      "number": "▲ 382",
+      "number": "▲ 383",
       "direction": "up",
       "title": "Computer build using Intel Optane Persistent Memory - Can run 1 trillion parameter model at over 4 tokens/sec",
       "source": "Source: Reddit · 12 May"
