@@ -77,6 +77,58 @@ function formatPrice(p: number): string {
   return `$${p.toFixed(2)}`;
 }
 
+// ~150 wpm natural speech → 5s ≈ 12 words. Condense to fit without speed-racing TTS.
+function trimNarration(text: string, holdSec: number): string {
+  const maxWords = Math.floor(holdSec * 2.5);
+  const words = text.split(/\s+/);
+  if (words.length <= maxWords) return text;
+
+  // Try splitting on sentence boundaries first — keep complete sentences that fit
+  const sentences = text.split(/(?<=[.!?])\s+/);
+  let result = "";
+  for (const s of sentences) {
+    const candidate = result ? `${result} ${s}` : s;
+    if (candidate.split(/\s+/).length <= maxWords) {
+      result = candidate;
+    } else break;
+  }
+  if (result && result.split(/\s+/).length >= 4) {
+    return result.endsWith(".") || result.endsWith("!") || result.endsWith("?") ? result : `${result}.`;
+  }
+
+  // Fallback: cut at a clause boundary (comma, dash, semicolon)
+  let trimmed = words.slice(0, maxWords).join(" ");
+  const clauseEnd = Math.max(trimmed.lastIndexOf(","), trimmed.lastIndexOf(" —"), trimmed.lastIndexOf(" -"), trimmed.lastIndexOf(";"));
+  if (clauseEnd > trimmed.length * 0.4) {
+    trimmed = trimmed.slice(0, clauseEnd);
+  }
+  trimmed = trimmed.replace(/\s+(and|but|or|the|a|an|in|on|at|for|of|with|from|to|is|was|that|this)$/i, "");
+  if (!trimmed.endsWith(".") && !trimmed.endsWith("!") && !trimmed.endsWith("?")) trimmed += ".";
+  return trimmed;
+}
+
+// Distil verbose headlines (Reddit/HN style) into broadcast-friendly sentences
+function distilHeadline(headline: string): string {
+  let h = headline;
+  // Strip personal framing ("I built...", "I catalogued...", "Is anyone...")
+  h = h.replace(/^I('ve)?\s+(built|made|created|catalogued|wrote|found|discovered|vibed)\s+(up\s+)?/i, (_, _ve, verb) => {
+    const past: Record<string, string> = {
+      built: "New tool:", made: "New tool:", created: "New tool:", vibed: "Recreation:",
+      catalogued: "Study:", wrote: "New:", found: "Finding:", discovered: "Discovery:",
+    };
+    return past[verb.toLowerCase()] + " ";
+  });
+  h = h.replace(/^Is\s+Anyone\s+/i, "Community asks: ");
+  // Strip trailing commentary after comma/dash ("here's what I found", "it's been fun")
+  h = h.replace(/[,\s]+here'?s?\s+what.*$/i, ".");
+  h = h.replace(/[,\s]+and\s+(?:here|it).*$/i, ".");
+  // Strip personal relative clauses
+  h = h.replace(/\s+I\s+used\s+to\s+.*$/i, ".");
+  h = h.replace(/\s+\d+\s+years?\s+ago$/i, ".");
+  if (!h.endsWith(".") && !h.endsWith("!") && !h.endsWith("?")) h += ".";
+  return h;
+}
+
 function numberToWords(n: number): string {
   const words: Record<number, string> = {
     1: "one", 2: "two", 3: "three", 4: "four", 5: "five",
@@ -149,7 +201,7 @@ function buildLeaderboardStory(models: ModelRow[]): { story: LockedStory; narrat
         source: `Source: OpenRouter Top Weekly · ${DATE}`,
       },
     },
-    narration: { id: "top-model", narration: narrationText },
+    narration: { id: "top-model", narration: trimNarration(narrationText, 10) },
   };
 }
 
@@ -170,7 +222,7 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
         headline: narrative.headline,
         type: "data-card",
         scene: "models",
-        holdSec: 7,
+        holdSec: 5,
         dataCard: {
           label: direction === "up" ? "RANK UP" : "RANK DOWN",
           number: `${direction === "up" ? "↑" : "↓"} ${delta}`,
@@ -181,9 +233,12 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
       },
       narration: {
         id: narrative.id,
-        narration: direction === "up"
-          ? `${name} climbed ${delta} ranks — from ${ordinal(m.previousRank)} to ${ordinal(m.rank)}.${price ? ` At ${price} per million tokens.` : ""}`
-          : `${name} dropped ${delta} ranks. Now ${ordinal(m.rank)}, was ${ordinal(m.previousRank)}.${price ? ` At ${price} per million.` : ""}`,
+        narration: trimNarration(
+          direction === "up"
+            ? `${name} climbed ${delta} ranks — from ${ordinal(m.previousRank)} to ${ordinal(m.rank)}.${price ? ` At ${price} per million tokens.` : ""}`
+            : `${name} dropped ${delta} ranks. Now ${ordinal(m.rank)}, was ${ordinal(m.previousRank)}.${price ? ` At ${price} per million.` : ""}`,
+          5,
+        ),
       },
     };
   }
@@ -200,7 +255,7 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
         headline: narrative.headline,
         type: "data-card",
         scene: "sdk-adoption",
-        holdSec: 7,
+        holdSec: 5,
         dataCard: {
           label,
           number: `${direction === "up" ? "↑" : "↓"} ${absPct.toFixed(0)}%`,
@@ -211,7 +266,7 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
       },
       narration: {
         id: narrative.id,
-        narration: `${narrative.headline.split(" downloads")[0]} downloads ${direction} ${absPct.toFixed(0)} percent this week.`,
+        narration: trimNarration(`${narrative.headline.split(" downloads")[0]} downloads ${direction} ${absPct.toFixed(0)} percent this week.`, 5),
       },
     };
   }
@@ -224,7 +279,7 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
         headline: narrative.headline,
         type: "data-card",
         scene: "wire",
-        holdSec: 7,
+        holdSec: 5,
         dataCard: {
           label: "TRENDING",
           number: `★ ${m.stars}`,
@@ -235,12 +290,14 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
       },
       narration: {
         id: narrative.id,
-        narration: `${narrative.headline.split(" trending")[0]} is trending on GitHub. ${m.stars} stars today.`,
+        narration: trimNarration(`${narrative.headline.split(" trending")[0]} is trending on GitHub. ${m.stars} stars today.`, 5),
       },
     };
   }
 
   // Fallback: lower-third for text-only stories
+  // Headlines from Reddit/HN can be verbose — distil to a broadcast-ready sentence
+  const shortHeadline = distilHeadline(narrative.headline);
   return {
     story: {
       id: narrative.id,
@@ -248,11 +305,11 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
       headline: narrative.headline,
       type: "lower-third",
       scene: "wire",
-      holdSec: 7,
+      holdSec: 5,
     },
     narration: {
       id: narrative.id,
-      narration: narrative.headline.endsWith(".") ? narrative.headline : `${narrative.headline}.`,
+      narration: trimNarration(shortHeadline, 5),
     },
   };
 }
@@ -291,7 +348,7 @@ async function main() {
   }
 
   // Remaining stories from curated narratives
-  const maxStories = 3;
+  const maxStories = 9;
   let storyCount = 0;
 
   for (const narrative of narratives) {

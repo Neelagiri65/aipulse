@@ -13,11 +13,35 @@
   },
   {
     "id": "narrative-1",
-    "narration": "Hy3 preview climbed 10 ranks — from 15th to 5th. At $0.07 per million tokens."
+    "narration": "Hy3 preview climbed 10 ranks — from 15th to 5th."
   },
   {
     "id": "narrative-2",
     "narration": "huggingface-hub downloads down 22 percent this week."
+  },
+  {
+    "id": "narrative-3",
+    "narration": "OpenAI: gpt-oss-120b (free) down 20 ranks on OpenRouter weekly."
+  },
+  {
+    "id": "narrative-4",
+    "narration": "Computer build using Intel Optane Persistent Memory."
+  },
+  {
+    "id": "narrative-5",
+    "narration": "Community asks: building Useful skills or workflows on Claude?"
+  },
+  {
+    "id": "narrative-6",
+    "narration": "B9109: preemptive fix for mtp & mmproj fix soon? It appears so."
+  },
+  {
+    "id": "narrative-7",
+    "narration": "Vibed up an old shockwave game."
+  },
+  {
+    "id": "narrative-8",
+    "narration": "Study: every way local models break JSON output and built a repair."
   },
   {
     "id": "outro",

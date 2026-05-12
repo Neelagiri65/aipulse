@@ -522,7 +522,7 @@ type FormatConfig = {
 const FORMAT_CONFIGS: Record<string, FormatConfig> = {
   youtube: { maxItems: 20, depth: "full", introStyle: "full", outroStyle: "full" },
   linkedin: { maxItems: 5, depth: "brief", introStyle: "short", outroStyle: "short" },
-  instagram: { maxItems: 4, depth: "brief", introStyle: "short", outroStyle: "short" },
+  instagram: { maxItems: 10, depth: "brief", introStyle: "short", outroStyle: "short" },
 };
 
 function main() {

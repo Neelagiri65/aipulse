@@ -84,7 +84,7 @@ function main() {
   }
 
   // Curate stories (generates data/curated.json)
-  if (!run("Curate stories", "npx tsx scripts/video/curate-stories.ts --max 4")) {
+  if (!run("Curate stories", "npx tsx scripts/video/curate-stories.ts --max 10")) {
     abort("Cannot proceed without curated stories");
   }
 

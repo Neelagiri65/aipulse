@@ -46,7 +46,7 @@
     "headline": "AUTOMATIC1111/stable-diffusion-webui trending on GitHub (39 stars today)",
     "type": "data-card",
     "scene": "wire",
-    "holdSec": 7,
+    "holdSec": 5,
     "dataCard": {
       "label": "TRENDING",
       "number": "★ 39",
@@ -61,7 +61,7 @@
     "headline": "Hy3 preview moved from rank 15 to 5",
     "type": "data-card",
     "scene": "models",
-    "holdSec": 7,
+    "holdSec": 5,
     "dataCard": {
       "label": "RANK UP",
       "number": "↑ 10",
@@ -76,7 +76,7 @@
     "headline": "huggingface-hub downloads down 21.9% on pypi",
     "type": "data-card",
     "scene": "sdk-adoption",
-    "holdSec": 7,
+    "holdSec": 5,
     "dataCard": {
       "label": "DOWNLOADS",
       "number": "↓ 22%",
@@ -84,5 +84,53 @@
       "title": "huggingface-hub downloads down 21.9% on pypi",
       "source": "Source: Package registry data · 12 May"
     }
+  },
+  {
+    "id": "narrative-3",
+    "segment": "story",
+    "headline": "OpenAI: gpt-oss-120b (free) down 20 ranks on OpenRouter weekly",
+    "type": "lower-third",
+    "scene": "wire",
+    "holdSec": 5
+  },
+  {
+    "id": "narrative-4",
+    "segment": "story",
+    "headline": "Computer build using Intel Optane Persistent Memory - Can run 1 trillion parameter model at over 4 tokens/sec",
+    "type": "lower-third",
+    "scene": "wire",
+    "holdSec": 5
+  },
+  {
+    "id": "narrative-5",
+    "segment": "story",
+    "headline": "Is Anyone building Useful skills or workflows on Claude?",
+    "type": "lower-third",
+    "scene": "wire",
+    "holdSec": 5
+  },
+  {
+    "id": "narrative-6",
+    "segment": "story",
+    "headline": "B9109: preemptive fix for mtp & mmproj fix soon? It appears so",
+    "type": "lower-third",
+    "scene": "wire",
+    "holdSec": 5
+  },
+  {
+    "id": "narrative-7",
+    "segment": "story",
+    "headline": "Vibed up an old shockwave game I used to play in high school 20 years ago",
+    "type": "lower-third",
+    "scene": "wire",
+    "holdSec": 5
+  },
+  {
+    "id": "narrative-8",
+    "segment": "story",
+    "headline": "I catalogued every way local models break JSON output and built a repair library, here's what I found across 288 model calls",
+    "type": "lower-third",
+    "scene": "wire",
+    "holdSec": 5
   }
 ]

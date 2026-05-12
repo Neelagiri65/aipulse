@@ -50,7 +50,7 @@ type ManifestEntry = SegmentPlan & {
 const FORMAT_CONFIGS: Record<string, { maxItems: number; width: number; height: number }> = {
   youtube: { maxItems: 12, width: 1920, height: 1080 },
   linkedin: { maxItems: 5, width: 1920, height: 1080 },
-  instagram: { maxItems: 4, width: 1080, height: 1920 },
+  instagram: { maxItems: 10, width: 1080, height: 1920 },
 };
 
 const IS_VERTICAL = (FORMAT_CONFIGS[FORMAT]?.height ?? 1080) > (FORMAT_CONFIGS[FORMAT]?.width ?? 1920);
