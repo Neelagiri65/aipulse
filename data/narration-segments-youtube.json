@@ -5,7 +5,7 @@
     "headline": "intro",
     "narration": "12 May. Here's what moved.",
     "scene": "globe",
-    "durationSec": 1.488,
+    "durationSec": 1.512,
     "audioFile": "out/narration-seg-intro.mp3",
     "videoStartSec": 0,
     "videoEndSec": 1
@@ -16,7 +16,7 @@
     "headline": "Kimi K2.6 holds #1 on OpenRouter",
     "narration": "Kimi K2.6 holds number one on OpenRouter. $0.74 per million tokens. Claude Sonnet 4.6 in second at $3.00.",
     "scene": "globe",
-    "durationSec": 9.648,
+    "durationSec": 9.336,
     "audioFile": "out/narration-seg-top-model.mp3",
     "videoStartSec": 1,
     "videoEndSec": 11
@@ -27,21 +27,21 @@
     "headline": "AUTOMATIC1111/stable-diffusion-webui trending on GitHub (39 stars today)",
     "narration": "AUTOMATIC1111/stable-diffusion-webui is trending on GitHub. 39 stars today.",
     "scene": "wire",
-    "durationSec": 6.96,
+    "durationSec": 5.184,
     "audioFile": "out/narration-seg-narrative-0.mp3",
     "videoStartSec": 12,
-    "videoEndSec": 19
+    "videoEndSec": 17
   },
   {
     "id": "narrative-1",
     "segment": "story",
     "headline": "Hy3 preview moved from rank 15 to 5",
-    "narration": "Hy3 preview climbed 10 ranks — from 15th to 5th. At $0.07 per million tokens.",
+    "narration": "Hy3 preview climbed 10 ranks — from 15th to 5th.",
     "scene": "models",
-    "durationSec": 6.312,
+    "durationSec": 4.2,
     "audioFile": "out/narration-seg-narrative-1.mp3",
-    "videoStartSec": 20,
-    "videoEndSec": 27
+    "videoStartSec": 18,
+    "videoEndSec": 23
   },
   {
     "id": "narrative-2",
@@ -49,10 +49,76 @@
     "headline": "huggingface-hub downloads down 21.9% on pypi",
     "narration": "huggingface-hub downloads down 22 percent this week.",
     "scene": "sdk-adoption",
-    "durationSec": 3.48,
+    "durationSec": 3.696,
     "audioFile": "out/narration-seg-narrative-2.mp3",
-    "videoStartSec": 28,
+    "videoStartSec": 24,
+    "videoEndSec": 29
+  },
+  {
+    "id": "narrative-3",
+    "segment": "story",
+    "headline": "OpenAI: gpt-oss-120b (free) down 20 ranks on OpenRouter weekly",
+    "narration": "OpenAI: gpt-oss-120b (free) down 20 ranks on OpenRouter weekly.",
+    "scene": "wire",
+    "durationSec": 5.232,
+    "audioFile": "out/narration-seg-narrative-3.mp3",
+    "videoStartSec": 30,
     "videoEndSec": 35
+  },
+  {
+    "id": "narrative-4",
+    "segment": "story",
+    "headline": "Computer build using Intel Optane Persistent Memory - Can run 1 trillion parameter model at over 4 tokens/sec",
+    "narration": "Computer build using Intel Optane Persistent Memory.",
+    "scene": "wire",
+    "durationSec": 3.408,
+    "audioFile": "out/narration-seg-narrative-4.mp3",
+    "videoStartSec": 36,
+    "videoEndSec": 41
+  },
+  {
+    "id": "narrative-5",
+    "segment": "story",
+    "headline": "Is Anyone building Useful skills or workflows on Claude?",
+    "narration": "Community asks: building Useful skills or workflows on Claude?",
+    "scene": "wire",
+    "durationSec": 4.152,
+    "audioFile": "out/narration-seg-narrative-5.mp3",
+    "videoStartSec": 42,
+    "videoEndSec": 47
+  },
+  {
+    "id": "narrative-6",
+    "segment": "story",
+    "headline": "B9109: preemptive fix for mtp & mmproj fix soon? It appears so",
+    "narration": "B9109: preemptive fix for mtp & mmproj fix soon? It appears so.",
+    "scene": "wire",
+    "durationSec": 4.968,
+    "audioFile": "out/narration-seg-narrative-6.mp3",
+    "videoStartSec": 48,
+    "videoEndSec": 53
+  },
+  {
+    "id": "narrative-7",
+    "segment": "story",
+    "headline": "Vibed up an old shockwave game I used to play in high school 20 years ago",
+    "narration": "Vibed up an old shockwave game.",
+    "scene": "wire",
+    "durationSec": 1.992,
+    "audioFile": "out/narration-seg-narrative-7.mp3",
+    "videoStartSec": 54,
+    "videoEndSec": 59
+  },
+  {
+    "id": "narrative-8",
+    "segment": "story",
+    "headline": "I catalogued every way local models break JSON output and built a repair library, here's what I found across 288 model calls",
+    "narration": "Study: every way local models break JSON output and built a repair.",
+    "scene": "wire",
+    "durationSec": 4.824,
+    "audioFile": "out/narration-seg-narrative-8.mp3",
+    "videoStartSec": 60,
+    "videoEndSec": 65
   },
   {
     "id": "outro",
@@ -60,9 +126,9 @@
     "headline": "outro",
     "narration": "That's the briefing. Every number links to its source. gawk dot dev.",
     "scene": "globe",
-    "durationSec": 3.528,
+    "durationSec": 3.696,
     "audioFile": "out/narration-seg-outro.mp3",
-    "videoStartSec": 35,
-    "videoEndSec": 39
+    "videoStartSec": 65,
+    "videoEndSec": 69
   }
 ]

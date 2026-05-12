@@ -31,9 +31,9 @@
     "segment": "story",
     "headline": "AUTOMATIC1111/stable-diffusion-webui trending on GitHub (39 stars today)",
     "scene": "wire",
-    "holdSec": 7,
+    "holdSec": 5,
     "startSec": 12,
-    "endSec": 19
+    "endSec": 17
   },
   {
     "id": "breathe-1",
@@ -41,17 +41,17 @@
     "headline": "Colour wipe",
     "scene": "wipe",
     "holdSec": 1,
-    "startSec": 19,
-    "endSec": 20
+    "startSec": 17,
+    "endSec": 18
   },
   {
     "id": "narrative-1",
     "segment": "story",
     "headline": "Hy3 preview moved from rank 15 to 5",
     "scene": "models",
-    "holdSec": 7,
-    "startSec": 20,
-    "endSec": 27
+    "holdSec": 5,
+    "startSec": 18,
+    "endSec": 23
   },
   {
     "id": "breathe-2",
@@ -59,17 +59,125 @@
     "headline": "Colour wipe",
     "scene": "wipe",
     "holdSec": 1,
-    "startSec": 27,
-    "endSec": 28
+    "startSec": 23,
+    "endSec": 24
   },
   {
     "id": "narrative-2",
     "segment": "story",
     "headline": "huggingface-hub downloads down 21.9% on pypi",
     "scene": "sdk-adoption",
-    "holdSec": 7,
-    "startSec": 28,
+    "holdSec": 5,
+    "startSec": 24,
+    "endSec": 29
+  },
+  {
+    "id": "breathe-3",
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
+    "startSec": 29,
+    "endSec": 30
+  },
+  {
+    "id": "narrative-3",
+    "segment": "story",
+    "headline": "OpenAI: gpt-oss-120b (free) down 20 ranks on OpenRouter weekly",
+    "scene": "wire",
+    "holdSec": 5,
+    "startSec": 30,
     "endSec": 35
+  },
+  {
+    "id": "breathe-4",
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
+    "startSec": 35,
+    "endSec": 36
+  },
+  {
+    "id": "narrative-4",
+    "segment": "story",
+    "headline": "Computer build using Intel Optane Persistent Memory - Can run 1 trillion parameter model at over 4 tokens/sec",
+    "scene": "wire",
+    "holdSec": 5,
+    "startSec": 36,
+    "endSec": 41
+  },
+  {
+    "id": "breathe-5",
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
+    "startSec": 41,
+    "endSec": 42
+  },
+  {
+    "id": "narrative-5",
+    "segment": "story",
+    "headline": "Is Anyone building Useful skills or workflows on Claude?",
+    "scene": "wire",
+    "holdSec": 5,
+    "startSec": 42,
+    "endSec": 47
+  },
+  {
+    "id": "breathe-6",
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
+    "startSec": 47,
+    "endSec": 48
+  },
+  {
+    "id": "narrative-6",
+    "segment": "story",
+    "headline": "B9109: preemptive fix for mtp & mmproj fix soon? It appears so",
+    "scene": "wire",
+    "holdSec": 5,
+    "startSec": 48,
+    "endSec": 53
+  },
+  {
+    "id": "breathe-7",
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
+    "startSec": 53,
+    "endSec": 54
+  },
+  {
+    "id": "narrative-7",
+    "segment": "story",
+    "headline": "Vibed up an old shockwave game I used to play in high school 20 years ago",
+    "scene": "wire",
+    "holdSec": 5,
+    "startSec": 54,
+    "endSec": 59
+  },
+  {
+    "id": "breathe-8",
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
+    "startSec": 59,
+    "endSec": 60
+  },
+  {
+    "id": "narrative-8",
+    "segment": "story",
+    "headline": "I catalogued every way local models break JSON output and built a repair library, here's what I found across 288 model calls",
+    "scene": "wire",
+    "holdSec": 5,
+    "startSec": 60,
+    "endSec": 65
   },
   {
     "id": "outro",
@@ -77,7 +185,7 @@
     "headline": "Outro",
     "scene": "globe",
     "holdSec": 4,
-    "startSec": 35,
-    "endSec": 39
+    "startSec": 65,
+    "endSec": 69
   }
 ]
