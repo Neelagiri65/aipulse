@@ -1,19 +1,15 @@
 [
   {
     "id": "intro",
-    "narration": "12 May. Here's what moved."
+    "narration": "13 May. Here's what moved."
   },
   {
     "id": "top-model",
-    "narration": "Kimi K2.6 holds number one on OpenRouter. $0.74 per million tokens. Claude Sonnet 4.6 in second at $3.00."
-  },
-  {
-    "id": "narrative-0",
-    "narration": "AUTOMATIC1111/stable-diffusion-webui is trending on GitHub. 39 stars today."
+    "narration": "Hy3 preview just took number one on OpenRouter. $0.07 per million tokens. Claude Sonnet 4.6 drops to second."
   },
   {
     "id": "narrative-1",
-    "narration": "Hy3 preview climbed 10 ranks — from 15th to 5th."
+    "narration": "codecrafters-io/build-your-own-x is trending on GitHub. 329 stars today."
   },
   {
     "id": "narrative-2",
@@ -21,19 +17,31 @@
   },
   {
     "id": "narrative-3",
-    "narration": "OpenAI dropped 20 ranks on OpenRouter this week."
+    "narration": "Ring-2.6-1T (free) climbed 7 ranks — from 27th to 20th."
   },
   {
-    "id": "narrative-4",
-    "narration": "Computer build using Intel Optane Persistent Memory."
+    "id": "narrative-5",
+    "narration": "I asked ChatGPT to clear his mind and show me what he."
   },
   {
-    "id": "sdk-sourcegraph.cody-ai",
-    "narration": "sourcegraph.cody-ai on vscode: downloads down 32 percent."
+    "id": "narrative-6",
+    "narration": "huggingface/transformers is trending on GitHub. 48 stars today."
   },
   {
-    "id": "sdk-GitHub.copilot",
-    "narration": "GitHub.copilot on vscode: downloads down 29 percent."
+    "id": "narrative-7",
+    "narration": "FreeRTOS/FreeRTOS-Kernel is trending on GitHub. 8 stars today."
+  },
+  {
+    "id": "narrative-8",
+    "narration": "sponsors/coollabsio is trending on GitHub. 53 stars today."
+  },
+  {
+    "id": "sdk-llamaindex",
+    "narration": "llamaindex on npm: downloads down 43 percent."
+  },
+  {
+    "id": "sdk-burn",
+    "narration": "burn on crates: downloads up 23 percent."
   },
   {
     "id": "outro",

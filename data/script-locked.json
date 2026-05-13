@@ -2,19 +2,19 @@
   {
     "id": "top-model",
     "segment": "hook",
-    "headline": "Kimi K2.6 holds #1 on OpenRouter",
+    "headline": "Hy3 preview takes #1 on OpenRouter",
     "type": "leaderboard",
     "scene": "globe",
     "holdSec": 10,
     "leaderboard": {
-      "label": "OPENROUTER RANKING · 12 MAY",
-      "heroName": "KIMI K2.6",
-      "heroSub": "#1 — holds position",
+      "label": "OPENROUTER RANKING · 13 MAY",
+      "heroName": "HY3 PREVIEW",
+      "heroSub": "#1 — up from #3",
       "rows": [
         {
           "rank": 1,
-          "name": "Kimi K2.6",
-          "value": "$0.74/MTok"
+          "name": "Hy3 preview",
+          "value": "$0.07/MTok"
         },
         {
           "rank": 2,
@@ -28,46 +28,31 @@
         },
         {
           "rank": 4,
-          "name": "DeepSeek V4 Flash",
-          "value": "$0.14/MTok"
+          "name": "Kimi K2.6",
+          "value": "$0.74/MTok"
         },
         {
           "rank": 5,
-          "name": "Hy3 preview",
-          "value": "$0.07/MTok"
+          "name": "DeepSeek V4 Flash",
+          "value": "$0.14/MTok"
         }
       ],
-      "source": "Source: OpenRouter Top Weekly · 12 May"
-    }
-  },
-  {
-    "id": "narrative-0",
-    "segment": "story",
-    "headline": "AUTOMATIC1111/stable-diffusion-webui trending on GitHub (39 stars today)",
-    "type": "data-card",
-    "scene": "wire",
-    "holdSec": 5,
-    "dataCard": {
-      "label": "TRENDING",
-      "number": "★ 39",
-      "direction": "up",
-      "title": "AUTOMATIC1111/stable-diffusion-webui trending on GitHub (39 stars today)",
-      "source": "Source: GitHub Trending · 12 May"
+      "source": "Source: OpenRouter Top Weekly · 13 May"
     }
   },
   {
     "id": "narrative-1",
     "segment": "story",
-    "headline": "Hy3 preview moved from rank 15 to 5",
+    "headline": "codecrafters-io/build-your-own-x trending on GitHub (329 stars today)",
     "type": "data-card",
-    "scene": "models",
+    "scene": "wire",
     "holdSec": 5,
     "dataCard": {
-      "label": "RANK UP",
-      "number": "↑ 10",
+      "label": "TRENDING",
+      "number": "★ 329",
       "direction": "up",
-      "title": "Hy3 preview — Now #5, was #15",
-      "source": "Source: OpenRouter Weekly · 12 May"
+      "title": "codecrafters-io/build-your-own-x trending on GitHub (329 stars today)",
+      "source": "Source: GitHub Trending · 13 May"
     }
   },
   {
@@ -82,67 +67,112 @@
       "number": "↓ 22%",
       "direction": "down",
       "title": "huggingface-hub downloads down 21.9% on pypi",
-      "source": "Source: Package registry data · 12 May"
+      "source": "Source: Package registry data · 13 May"
     }
   },
   {
     "id": "narrative-3",
     "segment": "story",
-    "headline": "OpenAI: gpt-oss-120b (free) down 20 ranks on OpenRouter weekly",
+    "headline": "Ring-2.6-1T (free) moved from rank 27 to 20",
     "type": "data-card",
     "scene": "models",
     "holdSec": 5,
     "dataCard": {
-      "label": "RANK DOWN",
-      "number": "↓ 20",
-      "direction": "down",
-      "title": "OpenAI",
-      "source": "Source: OpenRouter · 12 May"
+      "label": "RANK UP",
+      "number": "↑ 7",
+      "direction": "up",
+      "title": "Ring-2.6-1T (free) — Now #20, was #27",
+      "source": "Source: OpenRouter Weekly · 13 May"
     }
   },
   {
-    "id": "narrative-4",
+    "id": "narrative-5",
     "segment": "story",
-    "headline": "Computer build using Intel Optane Persistent Memory - Can run 1 trillion parameter model at over 4 tokens/sec",
+    "headline": "I asked ChatGPT to clear his mind and show me what he sees",
     "type": "data-card",
     "scene": "wire",
     "holdSec": 5,
     "dataCard": {
       "label": "TRENDING",
-      "number": "▲ 383",
+      "number": "▲ 100",
       "direction": "up",
-      "title": "Computer build using Intel Optane Persistent Memory - Can run 1 trillion parameter model at over 4 tokens/sec",
-      "source": "Source: Reddit · 12 May"
+      "title": "I asked ChatGPT to clear his mind and show me what he sees",
+      "source": "Source: Reddit · 13 May"
     }
   },
   {
-    "id": "sdk-sourcegraph.cody-ai",
+    "id": "narrative-6",
     "segment": "story",
-    "headline": "sourcegraph.cody-ai (vscode) down 32%",
+    "headline": "huggingface/transformers trending on GitHub (48 stars today)",
+    "type": "data-card",
+    "scene": "wire",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "TRENDING",
+      "number": "★ 48",
+      "direction": "up",
+      "title": "huggingface/transformers trending on GitHub (48 stars today)",
+      "source": "Source: GitHub Trending · 13 May"
+    }
+  },
+  {
+    "id": "narrative-7",
+    "segment": "story",
+    "headline": "FreeRTOS/FreeRTOS-Kernel trending on GitHub (8 stars today)",
+    "type": "data-card",
+    "scene": "wire",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "TRENDING",
+      "number": "★ 8",
+      "direction": "up",
+      "title": "FreeRTOS/FreeRTOS-Kernel trending on GitHub (8 stars today)",
+      "source": "Source: GitHub Trending · 13 May"
+    }
+  },
+  {
+    "id": "narrative-8",
+    "segment": "story",
+    "headline": "sponsors/coollabsio trending on GitHub (53 stars today)",
+    "type": "data-card",
+    "scene": "wire",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "TRENDING",
+      "number": "★ 53",
+      "direction": "up",
+      "title": "sponsors/coollabsio trending on GitHub (53 stars today)",
+      "source": "Source: GitHub Trending · 13 May"
+    }
+  },
+  {
+    "id": "sdk-llamaindex",
+    "segment": "story",
+    "headline": "llamaindex (npm) down 43%",
     "type": "data-card",
     "scene": "sdk-adoption",
     "holdSec": 5,
     "dataCard": {
       "label": "SDK ADOPTION",
-      "number": "↓ 32%",
+      "number": "↓ 43%",
       "direction": "down",
-      "title": "sourcegraph.cody-ai · vscode",
-      "source": "Source: Package registry · 12 May"
+      "title": "llamaindex · npm",
+      "source": "Source: Package registry · 13 May"
     }
   },
   {
-    "id": "sdk-GitHub.copilot",
+    "id": "sdk-burn",
     "segment": "story",
-    "headline": "GitHub.copilot (vscode) down 29%",
+    "headline": "burn (crates) up 23%",
     "type": "data-card",
     "scene": "sdk-adoption",
     "holdSec": 5,
     "dataCard": {
       "label": "SDK ADOPTION",
-      "number": "↓ 29%",
-      "direction": "down",
-      "title": "GitHub.copilot · vscode",
-      "source": "Source: Package registry · 12 May"
+      "number": "↑ 23%",
+      "direction": "up",
+      "title": "burn · crates",
+      "source": "Source: Package registry · 13 May"
     }
   }
 ]

@@ -11,7 +11,7 @@
   {
     "id": "top-model",
     "segment": "hook",
-    "headline": "Kimi K2.6 holds #1 on OpenRouter",
+    "headline": "Hy3 preview takes #1 on OpenRouter",
     "scene": "globe",
     "holdSec": 10,
     "startSec": 1,
@@ -27,9 +27,9 @@
     "endSec": 12
   },
   {
-    "id": "narrative-0",
+    "id": "narrative-1",
     "segment": "story",
-    "headline": "AUTOMATIC1111/stable-diffusion-webui trending on GitHub (39 stars today)",
+    "headline": "codecrafters-io/build-your-own-x trending on GitHub (329 stars today)",
     "scene": "wire",
     "holdSec": 5,
     "startSec": 12,
@@ -45,10 +45,10 @@
     "endSec": 18
   },
   {
-    "id": "narrative-1",
+    "id": "narrative-2",
     "segment": "story",
-    "headline": "Hy3 preview moved from rank 15 to 5",
-    "scene": "models",
+    "headline": "huggingface-hub downloads down 21.9% on pypi",
+    "scene": "sdk-adoption",
     "holdSec": 5,
     "startSec": 18,
     "endSec": 23
@@ -63,10 +63,10 @@
     "endSec": 24
   },
   {
-    "id": "narrative-2",
+    "id": "narrative-3",
     "segment": "story",
-    "headline": "huggingface-hub downloads down 21.9% on pypi",
-    "scene": "sdk-adoption",
+    "headline": "Ring-2.6-1T (free) moved from rank 27 to 20",
+    "scene": "models",
     "holdSec": 5,
     "startSec": 24,
     "endSec": 29
@@ -81,10 +81,10 @@
     "endSec": 30
   },
   {
-    "id": "narrative-3",
+    "id": "narrative-5",
     "segment": "story",
-    "headline": "OpenAI: gpt-oss-120b (free) down 20 ranks on OpenRouter weekly",
-    "scene": "models",
+    "headline": "I asked ChatGPT to clear his mind and show me what he sees",
+    "scene": "wire",
     "holdSec": 5,
     "startSec": 30,
     "endSec": 35
@@ -99,9 +99,9 @@
     "endSec": 36
   },
   {
-    "id": "narrative-4",
+    "id": "narrative-6",
     "segment": "story",
-    "headline": "Computer build using Intel Optane Persistent Memory - Can run 1 trillion parameter model at over 4 tokens/sec",
+    "headline": "huggingface/transformers trending on GitHub (48 stars today)",
     "scene": "wire",
     "holdSec": 5,
     "startSec": 36,
@@ -117,10 +117,10 @@
     "endSec": 42
   },
   {
-    "id": "sdk-sourcegraph.cody-ai",
+    "id": "narrative-7",
     "segment": "story",
-    "headline": "sourcegraph.cody-ai (vscode) down 32%",
-    "scene": "sdk-adoption",
+    "headline": "FreeRTOS/FreeRTOS-Kernel trending on GitHub (8 stars today)",
+    "scene": "wire",
     "holdSec": 5,
     "startSec": 42,
     "endSec": 47
@@ -135,13 +135,49 @@
     "endSec": 48
   },
   {
-    "id": "sdk-GitHub.copilot",
+    "id": "narrative-8",
     "segment": "story",
-    "headline": "GitHub.copilot (vscode) down 29%",
-    "scene": "sdk-adoption",
+    "headline": "sponsors/coollabsio trending on GitHub (53 stars today)",
+    "scene": "wire",
     "holdSec": 5,
     "startSec": 48,
     "endSec": 53
+  },
+  {
+    "id": "breathe-7",
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
+    "startSec": 53,
+    "endSec": 54
+  },
+  {
+    "id": "sdk-llamaindex",
+    "segment": "story",
+    "headline": "llamaindex (npm) down 43%",
+    "scene": "sdk-adoption",
+    "holdSec": 5,
+    "startSec": 54,
+    "endSec": 59
+  },
+  {
+    "id": "breathe-8",
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
+    "startSec": 59,
+    "endSec": 60
+  },
+  {
+    "id": "sdk-burn",
+    "segment": "story",
+    "headline": "burn (crates) up 23%",
+    "scene": "sdk-adoption",
+    "holdSec": 5,
+    "startSec": 60,
+    "endSec": 65
   },
   {
     "id": "outro",
@@ -149,7 +185,7 @@
     "headline": "Outro",
     "scene": "globe",
     "holdSec": 4,
-    "startSec": 53,
-    "endSec": 57
+    "startSec": 65,
+    "endSec": 69
   }
 ]

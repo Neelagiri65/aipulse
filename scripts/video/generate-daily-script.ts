@@ -408,6 +408,14 @@ async function main() {
     console.log(`  [HOOK     ] LEADERBOARD: ${leaderboard.story.headline}`);
   }
 
+  // Build set of model names already shown in leaderboard (all top-5, not just #1)
+  const leaderboardModelNames = new Set(
+    (leaderboard?.story.leaderboard?.rows ?? []).map((r: any) => r.name.toLowerCase()),
+  );
+
+  // Track used package names (normalised) to prevent SDK duplication
+  const usedPackageNames = new Set<string>();
+
   // Remaining stories — only include events with verifiable metrics
   const maxStories = 9;
   let storyCount = 0;
@@ -427,9 +435,24 @@ async function main() {
       continue;
     }
 
-    // Skip if it duplicates the leaderboard hook
-    if (leaderboard && narrative.headline.toLowerCase().includes(models[0]?.shortName?.toLowerCase() || "___")) {
-      continue;
+    // Skip if any model in the leaderboard top-5 is mentioned
+    const headlineLower = narrative.headline.toLowerCase();
+    if (leaderboardModelNames.size > 0) {
+      const duplicatesLeaderboard = [...leaderboardModelNames].some(name => headlineLower.includes(name));
+      if (duplicatesLeaderboard) {
+        console.log(`  [SKIP     ] Already in leaderboard — ${narrative.headline.slice(0, 50)}`);
+        continue;
+      }
+    }
+
+    // Skip duplicate SDK packages (normalise: strip registry suffix, lowercase)
+    if (m.deltaPct !== undefined && event.tags?.includes("sdk")) {
+      const pkgName = headlineLower.split(/\s+/)[0].replace(/-/g, "");
+      if (usedPackageNames.has(pkgName)) {
+        console.log(`  [SKIP     ] Duplicate SDK package — ${narrative.headline.slice(0, 50)}`);
+        continue;
+      }
+      usedPackageNames.add(pkgName);
     }
 
     const { story, narration } = buildMoverStory(event, narrative, models);
@@ -451,6 +474,11 @@ async function main() {
     for (const sdk of vd.sdkMovers ?? []) {
       if (storyCount >= maxStories) break;
       if (Math.abs(sdk.diffPct) < 5 || Math.abs(sdk.diffPct) > 500) continue;
+      const pkgNorm = sdk.name.toLowerCase().replace(/-/g, "");
+      if (usedPackageNames.has(pkgNorm)) {
+        console.log(`  [SKIP     ] Duplicate SDK — ${sdk.name} already covered`);
+        continue;
+      }
       const direction = sdk.diffPct > 0 ? "up" : "down";
       const id = `sdk-${sdk.name}`;
       const headline = `${sdk.name} (${sdk.registry}) ${direction} ${Math.abs(sdk.diffPct).toFixed(0)}%`;
@@ -480,6 +508,10 @@ async function main() {
       const delta = (model.previousRank ?? model.rank) - model.rank;
       if (Math.abs(delta) < 2) continue;
       const nameKey = model.shortName.toLowerCase();
+      if (leaderboardModelNames.has(nameKey)) {
+        console.log(`  [SKIP     ] Already in leaderboard — ${model.shortName}`);
+        continue;
+      }
       if (usedHeadlines.has(nameKey) || stories.some(s => s.headline.toLowerCase().includes(nameKey))) continue;
       const direction = delta > 0 ? "up" : "down";
       const id = `model-${model.shortName.replace(/\s+/g, "-")}`;

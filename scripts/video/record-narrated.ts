@@ -104,6 +104,18 @@ const OVERLAY_CSS = `
     from { opacity: 1; }
     to { opacity: 0; transform: translateY(-10px); }
   }
+  .gawk-map-wipe {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483640;
+    background: #06080a;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease-in-out;
+  }
+  .gawk-map-wipe--visible {
+    opacity: 1;
+  }
   .gawk-intro-overlay {
     position: fixed;
     inset: 0;
@@ -436,13 +448,31 @@ async function main() {
       `${seg.durationSec.toFixed(1)}s → ${seg.scene}`
     );
 
-    // Navigate to the right panel if scene changed
+    // Navigate to the right panel if scene changed — show map as transition wipe
     if (seg.scene !== lastScene) {
+      // Map transition: briefly show the live map between scenes
+      if (i > 0 && mapReady && lastScene !== "globe") {
+        await navigateToPanel(page, "globe");
+        await page.waitForTimeout(300);
+        const regions = [
+          { lat: 50, lng: 15 },
+          { lat: 40, lng: -95 },
+          { lat: 30, lng: 105 },
+          { lat: -20, lng: 135 },
+          { lat: 35, lng: 75 },
+        ];
+        const region = regions[i % regions.length];
+        await page.evaluate(({ lat, lng }) => {
+          if ((window as any).__map) {
+            (window as any).__map.flyTo([lat, lng], 3, { duration: 1.2 });
+          }
+        }, region);
+        await page.waitForTimeout(1500);
+      }
+
       if (seg.scene === "globe" && mapReady) {
         await navigateToPanel(page, "globe");
         await page.waitForTimeout(500);
-
-        // Pick a random continent for variety
         if (i > 0) {
           const regions = [
             { lat: 50, lng: 15 },
