@@ -300,7 +300,7 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
   if (rankMatch) {
     const direction = rankMatch[1].toLowerCase() as "up" | "down";
     const delta = parseInt(rankMatch[2], 10);
-    const name = narrative.headline.split(":")[0].trim() || narrative.headline.split(" ")[0];
+    const name = narrative.headline.replace(/\s+(up|down)\s+\d+\s+ranks?\b.*/i, "").replace(/^.*:\s*/, "").trim() || narrative.headline.split(" ")[0];
     return {
       story: {
         id: narrative.id,
@@ -319,7 +319,12 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
       },
       narration: {
         id: narrative.id,
-        narration: trimNarration(`${name} dropped ${delta} ranks on OpenRouter this week.`, 5),
+        narration: trimNarration(
+          direction === "up"
+            ? `${name} climbed ${delta} ranks on OpenRouter this week.`
+            : `${name} dropped ${delta} ranks on OpenRouter this week.`,
+          5,
+        ),
       },
     };
   }
@@ -346,6 +351,31 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
       narration: {
         id: narrative.id,
         narration: trimNarration(shortHeadline, 5),
+      },
+    };
+  }
+
+  if (event.source === "arxiv") {
+    const title = narrative.headline.replace(/\s+/g, " ").trim();
+    return {
+      story: {
+        id: narrative.id,
+        segment: "story",
+        headline: narrative.headline,
+        type: "data-card",
+        scene: "wire",
+        holdSec: 5,
+        dataCard: {
+          label: "NEW RESEARCH",
+          number: "arxiv",
+          direction: "neutral" as const,
+          title,
+          source: `Source: arXiv · ${DATE}`,
+        },
+      },
+      narration: {
+        id: narrative.id,
+        narration: trimNarration(`New research: ${title}.`, 5),
       },
     };
   }
@@ -428,10 +458,20 @@ async function main() {
     const m = event.metrics ?? {};
     const hasHardMetric = m.rank !== undefined || m.deltaPct !== undefined || m.stars !== undefined;
     const hasHighEngagement = (m.points ?? 0) >= 100 || (m.comments ?? 0) >= 50;
-    // Wire headlines with rank info ("down N ranks") have verifiable data even if metrics are empty
     const hasRankInHeadline = /\b(up|down)\s+\d+\s+ranks?\b/i.test(narrative.headline);
-    if (!hasHardMetric && !hasHighEngagement && !hasRankInHeadline) {
+    const isResearch = event.source === "arxiv";
+    if (!hasHardMetric && !hasHighEngagement && !hasRankInHeadline && !isResearch) {
       console.log(`  [SKIP     ] No verifiable metric — ${narrative.headline.slice(0, 50)}`);
+      continue;
+    }
+
+    // Skip personal complaints and anecdotes — engagement without insight
+    if (/^(Tell HN|Ask HN):/i.test(narrative.headline) && !hasHardMetric) {
+      console.log(`  [SKIP     ] Personal/complaint — ${narrative.headline.slice(0, 50)}`);
+      continue;
+    }
+    if (/^(I built|I made|I created|My |Am I )/i.test(narrative.headline) && !hasHardMetric) {
+      console.log(`  [SKIP     ] Personal project — ${narrative.headline.slice(0, 50)}`);
       continue;
     }
 

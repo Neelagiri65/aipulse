@@ -42,6 +42,7 @@ export type AttentionScore = {
   controversy: number;
   recency: number;
   concreteNumber: number;
+  credibility: number;
   total: number;
 };
 

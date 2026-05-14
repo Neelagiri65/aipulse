@@ -93,14 +93,29 @@ export function buildNarratives(
   const deduped = deduplicate(events);
   const clusters = clusterEvents(deduped);
 
-  const ranked = clusters
+  const scored = clusters
     .map((cluster) => {
       const rawScore = cluster.reduce((s, e) => s + e.attention.total, 0);
       const decay = narrativeDecay(cluster);
       return { cluster, score: Math.round(rawScore * decay * 100) / 100 };
     })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, maxNarratives);
+    .sort((a, b) => b.score - a.score);
+
+  const ranked: typeof scored = [];
+  let researchSlotFilled = false;
+
+  for (const entry of scored) {
+    if (ranked.length >= maxNarratives) break;
+    ranked.push(entry);
+  }
+
+  if (!ranked.some(r => r.cluster[0].source === "arxiv")) {
+    const bestResearch = scored.find(r => r.cluster[0].source === "arxiv");
+    if (bestResearch && ranked.length > 0) {
+      ranked[ranked.length - 1] = bestResearch;
+      ranked.sort((a, b) => b.score - a.score);
+    }
+  }
 
   return ranked.map(({ cluster, score }, i) => {
     const lead = cluster[0];

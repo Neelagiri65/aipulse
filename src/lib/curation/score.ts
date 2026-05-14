@@ -65,6 +65,15 @@ function controversyScore(e: CurationEvent): number {
 // Signal, intent, and attention decay are applied as a multiplier on the
 // raw attention score. Information decay runs post-cluster in cluster.ts.
 
+function sourceCredibilityScore(e: CurationEvent): number {
+  if (e.source === "arxiv") return 5;
+  if (e.source === "gawk-models" || e.source === "gawk-sdk") return 4;
+  if (e.source === "github-trending") return 3;
+  if (/^(Tell HN|Ask HN|Show HN):/i.test(e.title)) return 1;
+  if (/^(I built|I made|I created|My |Am I )/i.test(e.title)) return 1;
+  return 2;
+}
+
 function concreteNumberScore(e: CurationEvent): number {
   const m = e.metrics;
   if (m.deltaPct && Math.abs(m.deltaPct) > 20) return 5;
@@ -73,6 +82,7 @@ function concreteNumberScore(e: CurationEvent): number {
   if (m.stars && m.stars > 50) return 3;
   const hasNumber = /\d+%|\$[\d.]+|\d+ (stars|points|downloads)/.test(e.title);
   if (hasNumber) return 3;
+  if (e.source === "arxiv") return 3;
   return 1;
 }
 
@@ -82,13 +92,15 @@ export function scoreEvent(e: CurationEvent, allEvents: CurationEvent[]): Scored
   const userImpact = userImpactScore(e);
   const controversy = controversyScore(e);
   const concreteNumber = concreteNumberScore(e);
+  const credibility = sourceCredibilityScore(e);
 
   const rawTotal =
     surprise * 3 +
     crossSource * 2 +
     userImpact * 2 +
-    controversy * 2 +
-    concreteNumber * 1;
+    controversy * 1 +
+    concreteNumber * 1 +
+    credibility * 2;
 
   const scored: ScoredEvent = {
     ...e,
@@ -99,6 +111,7 @@ export function scoreEvent(e: CurationEvent, allEvents: CurationEvent[]): Scored
       controversy,
       recency: 0,
       concreteNumber,
+      credibility,
       total: rawTotal,
     },
   };

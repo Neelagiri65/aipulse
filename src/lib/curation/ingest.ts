@@ -219,7 +219,7 @@ export async function ingestArxiv(): Promise<CurationEvent[]> {
   const query = encodeURIComponent("cat:cs.AI OR cat:cs.CL OR cat:cs.CV");
   try {
     const res = await fetch(
-      `http://export.arxiv.org/api/query?search_query=${query}&sortBy=submittedDate&sortOrder=descending&max_results=15`
+      `https://export.arxiv.org/api/query?search_query=${query}&sortBy=submittedDate&sortOrder=descending&max_results=15`
     );
     if (!res.ok) return [];
     const text = await res.text();
