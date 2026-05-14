@@ -17,8 +17,8 @@ function makeSnapshot(date: string, packages: SnapshotPackages): DailySnapshot {
     tools: [],
     benchmarks: null,
     packages,
-    labs: null,
     labs24h: null,
+    failures: [],
   };
 }
 

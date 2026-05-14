@@ -3,6 +3,7 @@ import { handleSubscribe } from "@/app/api/subscribe/route";
 import type { UserRouteContext } from "@/app/api/_lib/userRoute";
 import { MockRedis } from "@/lib/data/__tests__/helpers/mock-redis";
 import type { SubscriberClient } from "@/lib/data/subscribers";
+import type { RateLimitClient } from "@/lib/data/rate-limit";
 import type { EmailSender, SendResult } from "@/lib/email/resend";
 import { hashEmail } from "@/lib/email/hash";
 import {
@@ -109,7 +110,7 @@ describe("handleSubscribe — happy path", () => {
       }),
       {
         subscriberClient,
-        rateLimitClient: redis as unknown as SubscriberClient,
+        rateLimitClient: redis as unknown as RateLimitClient,
         sender,
         verifyFetch: turnstilePass(),
         tokenSecret: SECRET,
@@ -363,7 +364,7 @@ describe("handleSubscribe — validation + gating", () => {
         makeCtx({ email: `a${i}@b.com`, turnstileToken: "tkn" }, headers),
         {
           subscriberClient,
-          rateLimitClient: redis as unknown as SubscriberClient,
+          rateLimitClient: redis as unknown as RateLimitClient,
           sender,
           verifyFetch: turnstilePass(),
           tokenSecret: SECRET,
@@ -376,7 +377,7 @@ describe("handleSubscribe — validation + gating", () => {
       makeCtx({ email: "a6@b.com", turnstileToken: "tkn" }, headers),
       {
         subscriberClient,
-        rateLimitClient: redis as unknown as SubscriberClient,
+        rateLimitClient: redis as unknown as RateLimitClient,
         sender,
         verifyFetch: turnstilePass(),
         tokenSecret: SECRET,

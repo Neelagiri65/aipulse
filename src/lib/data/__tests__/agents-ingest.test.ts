@@ -76,7 +76,9 @@ describe("runAgentsIngest", () => {
     expect(result.snapshotDate).toBe("2026-05-03");
     expect(writeLatest).toHaveBeenCalledTimes(1);
     expect(writeSnapshot).toHaveBeenCalledTimes(1);
-    const [date, blob] = writeSnapshot.mock.calls[0];
+    const call = writeSnapshot.mock.calls[0] as unknown[];
+    const date = call[0];
+    const blob = call[1] as { frameworks: { id: string; weeklyDownloads: number }[] };
     expect(date).toBe("2026-05-03");
     expect(blob.frameworks[0].id).toBe("crewai");
     expect(blob.frameworks[0].weeklyDownloads).toBe(1_762_851);
@@ -173,7 +175,7 @@ describe("runAgentsIngest", () => {
       writeSnapshot,
     });
 
-    const written = writeLatest.mock.calls[0][0] as {
+    const written = (writeLatest.mock.calls[0] as unknown[])[0] as {
       frameworks: AgentFrameworkSnapshot[];
     };
     const crew = written.frameworks[0];

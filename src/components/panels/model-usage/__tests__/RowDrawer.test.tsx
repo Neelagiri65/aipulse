@@ -10,6 +10,7 @@ import type { ModelUsageRow } from "@/lib/data/openrouter-types";
 function mkRow(overrides: Partial<ModelUsageRow> = {}): ModelUsageRow {
   return {
     rank: 3,
+    previousRank: 3,
     slug: "anthropic/claude-sonnet-4.6",
     permaslug: "anthropic/claude-sonnet-4.6-20260301",
     name: "Claude Sonnet 4.6",

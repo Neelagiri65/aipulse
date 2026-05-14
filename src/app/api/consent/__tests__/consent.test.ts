@@ -12,6 +12,7 @@ import {
   type ConsentClient,
   type ConsentState,
 } from "@/lib/data/consent";
+import type { RateLimitClient } from "@/lib/data/rate-limit";
 import { VISITOR_COOKIE, CONSENT_COOKIE } from "@/lib/consent-cookies";
 
 function ctx(
@@ -178,7 +179,7 @@ describe("handleConsentPost", () => {
       }),
       {
         consentClient: client,
-        rateLimitClient: redis as unknown as ConsentClient,
+        rateLimitClient: redis as unknown as RateLimitClient,
       },
     );
     expect(resp.status).toBe(200);
@@ -202,7 +203,7 @@ describe("handleConsentPost", () => {
       }),
       {
         consentClient: client,
-        rateLimitClient: redis as unknown as ConsentClient,
+        rateLimitClient: redis as unknown as RateLimitClient,
         mintId: () => "v-fresh",
       },
     );
@@ -220,7 +221,7 @@ describe("handleConsentPost", () => {
       }),
       {
         consentClient: client,
-        rateLimitClient: redis as unknown as ConsentClient,
+        rateLimitClient: redis as unknown as RateLimitClient,
       },
     );
     expect(setCookieSubs(resp)).toContain(CONSENT_COOKIE);
@@ -236,7 +237,7 @@ describe("handleConsentPost", () => {
       }),
       {
         consentClient: client,
-        rateLimitClient: redis as unknown as ConsentClient,
+        rateLimitClient: redis as unknown as RateLimitClient,
       },
     );
     const body = await resp.json();
@@ -261,7 +262,7 @@ describe("handleConsentPost", () => {
       }),
       {
         consentClient: client,
-        rateLimitClient: redis as unknown as ConsentClient,
+        rateLimitClient: redis as unknown as RateLimitClient,
       },
     );
     expect(resp.status).toBe(400);
@@ -278,7 +279,7 @@ describe("handleConsentPost", () => {
       }),
       {
         consentClient: client,
-        rateLimitClient: redis as unknown as ConsentClient,
+        rateLimitClient: redis as unknown as RateLimitClient,
       },
     );
     expect(resp.status).toBe(400);
@@ -295,7 +296,7 @@ describe("handleConsentPost", () => {
         }),
         {
           consentClient: client,
-          rateLimitClient: redis as unknown as ConsentClient,
+          rateLimitClient: redis as unknown as RateLimitClient,
         },
       );
       expect(resp.status).toBe(200);
@@ -308,7 +309,7 @@ describe("handleConsentPost", () => {
       }),
       {
         consentClient: client,
-        rateLimitClient: redis as unknown as ConsentClient,
+        rateLimitClient: redis as unknown as RateLimitClient,
       },
     );
     expect(tooMany.status).toBe(429);
@@ -327,7 +328,7 @@ describe("handleConsentDelete", () => {
   it("returns 400 NO_VISITOR when no aip_visitor cookie is set", async () => {
     const resp = await handleConsentDelete(ctx({ method: "POST" }), {
       consentClient: client,
-      rateLimitClient: redis as unknown as ConsentClient,
+      rateLimitClient: redis as unknown as RateLimitClient,
     });
     expect(resp.status).toBe(400);
     const body = await resp.json();
@@ -352,7 +353,7 @@ describe("handleConsentDelete", () => {
       }),
       {
         consentClient: client,
-        rateLimitClient: redis as unknown as ConsentClient,
+        rateLimitClient: redis as unknown as RateLimitClient,
       },
     );
     expect(resp.status).toBe(200);
@@ -367,7 +368,7 @@ describe("handleConsentDelete", () => {
       ctx({ method: "POST", cookie: `${VISITOR_COOKIE}=v-x` }),
       {
         consentClient: client,
-        rateLimitClient: redis as unknown as ConsentClient,
+        rateLimitClient: redis as unknown as RateLimitClient,
       },
     );
     expect(setCookieSubs(resp).toLowerCase()).toMatch(/max-age=0/);
@@ -380,14 +381,14 @@ describe("handleConsentDelete", () => {
         ctx({ method: "POST", cookie }),
         {
           consentClient: client,
-          rateLimitClient: redis as unknown as ConsentClient,
+          rateLimitClient: redis as unknown as RateLimitClient,
         },
       );
       expect(resp.status).toBe(200);
     }
     const blocked = await handleConsentDelete(ctx({ method: "POST", cookie }), {
       consentClient: client,
-      rateLimitClient: redis as unknown as ConsentClient,
+      rateLimitClient: redis as unknown as RateLimitClient,
     });
     expect(blocked.status).toBe(429);
   });

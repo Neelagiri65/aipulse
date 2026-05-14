@@ -268,7 +268,7 @@ describe("fetchAgentSnapshots", () => {
         }),
     });
     await fetchAgentSnapshots([FW_GH_ONLY], baseOpts(fetchImpl));
-    const call = fetchImpl.mock.calls[0];
+    const call = fetchImpl.mock.calls[0] as unknown[];
     const init = call[1] as RequestInit | undefined;
     const headers = init?.headers as Record<string, string> | undefined;
     expect(headers?.Authorization).toBe("Bearer test-token");

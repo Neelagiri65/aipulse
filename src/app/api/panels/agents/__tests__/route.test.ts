@@ -39,6 +39,9 @@ function fetchResult(
       openIssues: 10,
       pushedAt: r.pushed ?? "2026-05-10T00:00:00Z",
       archived: r.archived ?? false,
+      pypiStaleSince: null,
+      npmStaleSince: null,
+      githubStaleSince: null,
       fetchErrors: [],
     })),
   };

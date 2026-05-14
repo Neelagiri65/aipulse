@@ -10,6 +10,7 @@ function mkRow(slug: string, rank: number) {
   const author = slug.split("/")[0]!;
   return {
     rank,
+    previousRank: rank,
     slug,
     permaslug: `${slug}-1`,
     name: slug,

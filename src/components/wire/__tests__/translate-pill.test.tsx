@@ -61,6 +61,7 @@ function mkSource(overrides: Partial<RssSourcePanel> = {}): RssSourcePanel {
     itemsLast24h: 5,
     itemsLast7d: 30,
     lastFetchOkTs: "2026-05-03T10:00:00Z",
+    lastError: null,
     staleHours: 0,
     stale: false,
     recentItems: [

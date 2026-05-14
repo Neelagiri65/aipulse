@@ -53,6 +53,10 @@ const baseProps = {
   modelUsageLoading: false,
   modelUsageError: null,
   cronHealth: undefined,
+  agents: undefined,
+  agentsLoading: false,
+  agentsError: null,
+  regionalDeltas: undefined,
 };
 
 describe("MobileDashboard — shell", () => {
