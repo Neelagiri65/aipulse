@@ -2,14 +2,14 @@
   {
     "id": "top-model",
     "segment": "hook",
-    "headline": "Hy3 preview takes #1 on OpenRouter",
+    "headline": "Hy3 preview holds #1 on OpenRouter",
     "type": "leaderboard",
     "scene": "globe",
     "holdSec": 10,
     "leaderboard": {
-      "label": "OPENROUTER RANKING · 13 MAY",
+      "label": "OPENROUTER RANKING · 14 MAY",
       "heroName": "HY3 PREVIEW",
-      "heroSub": "#1 — up from #3",
+      "heroSub": "#1 — holds position",
       "rows": [
         {
           "rank": 1,
@@ -18,161 +18,131 @@
         },
         {
           "rank": 2,
-          "name": "Claude Sonnet 4.6",
-          "value": "$3.00/MTok"
-        },
-        {
-          "rank": 3,
           "name": "Claude Opus 4.7",
           "value": "$5.00/MTok"
         },
         {
+          "rank": 3,
+          "name": "Claude Sonnet 4.6",
+          "value": "$3.00/MTok"
+        },
+        {
           "rank": 4,
-          "name": "Kimi K2.6",
-          "value": "$0.74/MTok"
+          "name": "DeepSeek V4 Flash",
+          "value": "$0.13/MTok"
         },
         {
           "rank": 5,
-          "name": "DeepSeek V4 Flash",
-          "value": "$0.14/MTok"
+          "name": "Kimi K2.6",
+          "value": "$0.74/MTok"
         }
       ],
-      "source": "Source: OpenRouter Top Weekly · 13 May"
+      "source": "Source: OpenRouter Top Weekly · 14 May"
+    }
+  },
+  {
+    "id": "narrative-0",
+    "segment": "story",
+    "headline": "elebumm/RedditVideoMakerBot trending on GitHub (134 stars today)",
+    "type": "data-card",
+    "scene": "wire",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "TRENDING",
+      "number": "★ 134",
+      "direction": "up",
+      "title": "elebumm/RedditVideoMakerBot trending on GitHub (134 stars today)",
+      "source": "Source: GitHub Trending · 14 May"
     }
   },
   {
     "id": "narrative-1",
     "segment": "story",
-    "headline": "codecrafters-io/build-your-own-x trending on GitHub (329 stars today)",
+    "headline": "Tell HN: Dont use Claude Design, lost access to my projects after unsubscribing",
     "type": "data-card",
     "scene": "wire",
     "holdSec": 5,
     "dataCard": {
       "label": "TRENDING",
-      "number": "★ 329",
+      "number": "▲ 148",
       "direction": "up",
-      "title": "codecrafters-io/build-your-own-x trending on GitHub (329 stars today)",
-      "source": "Source: GitHub Trending · 13 May"
-    }
-  },
-  {
-    "id": "narrative-2",
-    "segment": "story",
-    "headline": "huggingface-hub downloads down 21.9% on pypi",
-    "type": "data-card",
-    "scene": "sdk-adoption",
-    "holdSec": 5,
-    "dataCard": {
-      "label": "DOWNLOADS",
-      "number": "↓ 22%",
-      "direction": "down",
-      "title": "huggingface-hub downloads down 21.9% on pypi",
-      "source": "Source: Package registry data · 13 May"
+      "title": "Tell HN: Dont use Claude Design, lost access to my projects after unsubscribing",
+      "source": "Source: Reddit · 14 May"
     }
   },
   {
     "id": "narrative-3",
     "segment": "story",
-    "headline": "Ring-2.6-1T (free) moved from rank 27 to 20",
+    "headline": "burn downloads up 38.2% on crates",
+    "type": "data-card",
+    "scene": "sdk-adoption",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "DOWNLOADS",
+      "number": "↑ 38%",
+      "direction": "up",
+      "title": "burn downloads up 38.2% on crates",
+      "source": "Source: Package registry data · 14 May"
+    }
+  },
+  {
+    "id": "narrative-4",
+    "segment": "story",
+    "headline": "Google: Gemini 3.1 Flash Lite up 4 ranks on OpenRouter weekly",
     "type": "data-card",
     "scene": "models",
     "holdSec": 5,
     "dataCard": {
       "label": "RANK UP",
-      "number": "↑ 7",
+      "number": "↑ 4",
       "direction": "up",
-      "title": "Ring-2.6-1T (free) — Now #20, was #27",
-      "source": "Source: OpenRouter Weekly · 13 May"
+      "title": "Google",
+      "source": "Source: OpenRouter · 14 May"
     }
   },
   {
     "id": "narrative-5",
     "segment": "story",
-    "headline": "I asked ChatGPT to clear his mind and show me what he sees",
+    "headline": "Owl Alpha moved from rank 16 to 13",
     "type": "data-card",
-    "scene": "wire",
+    "scene": "models",
     "holdSec": 5,
     "dataCard": {
-      "label": "TRENDING",
-      "number": "▲ 100",
+      "label": "RANK UP",
+      "number": "↑ 3",
       "direction": "up",
-      "title": "I asked ChatGPT to clear his mind and show me what he sees",
-      "source": "Source: Reddit · 13 May"
+      "title": "Owl Alpha — Now #13, was #16",
+      "source": "Source: OpenRouter Weekly · 14 May"
     }
   },
   {
-    "id": "narrative-6",
+    "id": "sdk-GitHub.copilot",
     "segment": "story",
-    "headline": "huggingface/transformers trending on GitHub (48 stars today)",
-    "type": "data-card",
-    "scene": "wire",
-    "holdSec": 5,
-    "dataCard": {
-      "label": "TRENDING",
-      "number": "★ 48",
-      "direction": "up",
-      "title": "huggingface/transformers trending on GitHub (48 stars today)",
-      "source": "Source: GitHub Trending · 13 May"
-    }
-  },
-  {
-    "id": "narrative-7",
-    "segment": "story",
-    "headline": "FreeRTOS/FreeRTOS-Kernel trending on GitHub (8 stars today)",
-    "type": "data-card",
-    "scene": "wire",
-    "holdSec": 5,
-    "dataCard": {
-      "label": "TRENDING",
-      "number": "★ 8",
-      "direction": "up",
-      "title": "FreeRTOS/FreeRTOS-Kernel trending on GitHub (8 stars today)",
-      "source": "Source: GitHub Trending · 13 May"
-    }
-  },
-  {
-    "id": "narrative-8",
-    "segment": "story",
-    "headline": "sponsors/coollabsio trending on GitHub (53 stars today)",
-    "type": "data-card",
-    "scene": "wire",
-    "holdSec": 5,
-    "dataCard": {
-      "label": "TRENDING",
-      "number": "★ 53",
-      "direction": "up",
-      "title": "sponsors/coollabsio trending on GitHub (53 stars today)",
-      "source": "Source: GitHub Trending · 13 May"
-    }
-  },
-  {
-    "id": "sdk-llamaindex",
-    "segment": "story",
-    "headline": "llamaindex (npm) down 43%",
+    "headline": "GitHub.copilot (vscode) up 27%",
     "type": "data-card",
     "scene": "sdk-adoption",
     "holdSec": 5,
     "dataCard": {
       "label": "SDK ADOPTION",
-      "number": "↓ 43%",
+      "number": "↑ 27%",
+      "direction": "up",
+      "title": "GitHub.copilot · vscode",
+      "source": "Source: Package registry · 14 May"
+    }
+  },
+  {
+    "id": "sdk-huggingface-hub",
+    "segment": "story",
+    "headline": "huggingface-hub (pypi) down 18%",
+    "type": "data-card",
+    "scene": "sdk-adoption",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "SDK ADOPTION",
+      "number": "↓ 18%",
       "direction": "down",
-      "title": "llamaindex · npm",
-      "source": "Source: Package registry · 13 May"
-    }
-  },
-  {
-    "id": "sdk-burn",
-    "segment": "story",
-    "headline": "burn (crates) up 23%",
-    "type": "data-card",
-    "scene": "sdk-adoption",
-    "holdSec": 5,
-    "dataCard": {
-      "label": "SDK ADOPTION",
-      "number": "↑ 23%",
-      "direction": "up",
-      "title": "burn · crates",
-      "source": "Source: Package registry · 13 May"
+      "title": "huggingface-hub · pypi",
+      "source": "Source: Package registry · 14 May"
     }
   }
 ]

@@ -1,47 +1,39 @@
 [
   {
     "id": "intro",
-    "narration": "13 May. Here's what moved."
+    "narration": "14 May. Here's what moved."
   },
   {
     "id": "top-model",
-    "narration": "Hy3 preview just took number one on OpenRouter. $0.07 per million tokens. Claude Sonnet 4.6 drops to second."
+    "narration": "Hy3 preview holds number one on OpenRouter. $0.07 per million tokens. Claude Opus 4.7 in second at $5.00."
+  },
+  {
+    "id": "narrative-0",
+    "narration": "elebumm/RedditVideoMakerBot is trending on GitHub. 134 stars today."
   },
   {
     "id": "narrative-1",
-    "narration": "codecrafters-io/build-your-own-x is trending on GitHub. 329 stars today."
-  },
-  {
-    "id": "narrative-2",
-    "narration": "huggingface-hub downloads down 22 percent this week."
+    "narration": "Tell HN: Dont use Claude Design."
   },
   {
     "id": "narrative-3",
-    "narration": "Ring-2.6-1T (free) climbed 7 ranks — from 27th to 20th."
+    "narration": "burn downloads up 38 percent this week."
+  },
+  {
+    "id": "narrative-4",
+    "narration": "Google dropped 4 ranks on OpenRouter this week."
   },
   {
     "id": "narrative-5",
-    "narration": "I asked ChatGPT to clear his mind and show me what he."
+    "narration": "Owl Alpha climbed 3 ranks — from 16th to 13th."
   },
   {
-    "id": "narrative-6",
-    "narration": "huggingface/transformers is trending on GitHub. 48 stars today."
+    "id": "sdk-GitHub.copilot",
+    "narration": "GitHub.copilot on vscode: downloads up 27 percent."
   },
   {
-    "id": "narrative-7",
-    "narration": "FreeRTOS/FreeRTOS-Kernel is trending on GitHub. 8 stars today."
-  },
-  {
-    "id": "narrative-8",
-    "narration": "sponsors/coollabsio is trending on GitHub. 53 stars today."
-  },
-  {
-    "id": "sdk-llamaindex",
-    "narration": "llamaindex on npm: downloads down 43 percent."
-  },
-  {
-    "id": "sdk-burn",
-    "narration": "burn on crates: downloads up 23 percent."
+    "id": "sdk-huggingface-hub",
+    "narration": "huggingface-hub on pypi: downloads down 18 percent."
   },
   {
     "id": "outro",

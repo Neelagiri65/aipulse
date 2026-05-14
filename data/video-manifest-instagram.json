@@ -11,7 +11,7 @@
   {
     "id": "top-model",
     "segment": "hook",
-    "headline": "Hy3 preview takes #1 on OpenRouter",
+    "headline": "Hy3 preview holds #1 on OpenRouter",
     "scene": "globe",
     "holdSec": 10,
     "startSec": 1,
@@ -29,7 +29,7 @@
   {
     "id": "narrative-0",
     "segment": "story",
-    "headline": "codecrafters-io/build-your-own-x trending on GitHub (329 stars today)",
+    "headline": "sponsors/tiann trending on GitHub (21 stars today)",
     "scene": "wire",
     "holdSec": 5,
     "startSec": 12,
@@ -45,9 +45,9 @@
     "endSec": 18
   },
   {
-    "id": "narrative-2",
+    "id": "narrative-1",
     "segment": "story",
-    "headline": "huggingface-hub downloads down 21.9% on pypi",
+    "headline": "ollama downloads up 734% on brew",
     "scene": "sdk-adoption",
     "holdSec": 5,
     "startSec": 18,
@@ -63,10 +63,10 @@
     "endSec": 24
   },
   {
-    "id": "narrative-3",
+    "id": "narrative-2",
     "segment": "story",
-    "headline": "Ring-2.6-1T (free) moved from rank 27 to 20",
-    "scene": "models",
+    "headline": "Tell HN: Dont use Claude Design, lost access to my projects after unsubscribing",
+    "scene": "wire",
     "holdSec": 5,
     "startSec": 24,
     "endSec": 29
@@ -81,10 +81,10 @@
     "endSec": 30
   },
   {
-    "id": "narrative-5",
+    "id": "narrative-3",
     "segment": "story",
-    "headline": "I asked ChatGPT to clear his mind and show me what he sees",
-    "scene": "wire",
+    "headline": "Google: Gemini 3.1 Flash Lite up 4 ranks on OpenRouter weekly",
+    "scene": "models",
     "holdSec": 5,
     "startSec": 30,
     "endSec": 35
@@ -99,10 +99,10 @@
     "endSec": 36
   },
   {
-    "id": "narrative-6",
+    "id": "narrative-4",
     "segment": "story",
-    "headline": "huggingface/transformers trending on GitHub (48 stars today)",
-    "scene": "wire",
+    "headline": "Nemotron 3 Super (free) moved from rank 13 to 10",
+    "scene": "models",
     "holdSec": 5,
     "startSec": 36,
     "endSec": 41
@@ -117,10 +117,10 @@
     "endSec": 42
   },
   {
-    "id": "narrative-7",
+    "id": "sdk-burn",
     "segment": "story",
-    "headline": "FreeRTOS/FreeRTOS-Kernel trending on GitHub (8 stars today)",
-    "scene": "wire",
+    "headline": "burn (crates) up 38%",
+    "scene": "sdk-adoption",
     "holdSec": 5,
     "startSec": 42,
     "endSec": 47
@@ -135,49 +135,13 @@
     "endSec": 48
   },
   {
-    "id": "narrative-8",
+    "id": "sdk-GitHub.copilot",
     "segment": "story",
-    "headline": "sponsors/coollabsio trending on GitHub (53 stars today)",
-    "scene": "wire",
+    "headline": "GitHub.copilot (vscode) up 27%",
+    "scene": "sdk-adoption",
     "holdSec": 5,
     "startSec": 48,
     "endSec": 53
-  },
-  {
-    "id": "breathe-7",
-    "segment": "wipe",
-    "headline": "Colour wipe",
-    "scene": "wipe",
-    "holdSec": 1,
-    "startSec": 53,
-    "endSec": 54
-  },
-  {
-    "id": "sdk-llamaindex",
-    "segment": "story",
-    "headline": "llamaindex (npm) down 43%",
-    "scene": "sdk-adoption",
-    "holdSec": 5,
-    "startSec": 54,
-    "endSec": 59
-  },
-  {
-    "id": "breathe-8",
-    "segment": "wipe",
-    "headline": "Colour wipe",
-    "scene": "wipe",
-    "holdSec": 1,
-    "startSec": 59,
-    "endSec": 60
-  },
-  {
-    "id": "sdk-burn",
-    "segment": "story",
-    "headline": "burn (crates) up 23%",
-    "scene": "sdk-adoption",
-    "holdSec": 5,
-    "startSec": 60,
-    "endSec": 65
   },
   {
     "id": "outro",
@@ -185,7 +149,7 @@
     "headline": "Outro",
     "scene": "globe",
     "holdSec": 4,
-    "startSec": 65,
-    "endSec": 69
+    "startSec": 53,
+    "endSec": 57
   }
 ]
