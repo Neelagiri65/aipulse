@@ -56,21 +56,6 @@
     }
   },
   {
-    "id": "narrative-1",
-    "segment": "story",
-    "headline": "Tell HN: Dont use Claude Design, lost access to my projects after unsubscribing",
-    "type": "data-card",
-    "scene": "wire",
-    "holdSec": 5,
-    "dataCard": {
-      "label": "TRENDING",
-      "number": "▲ 148",
-      "direction": "up",
-      "title": "Tell HN: Dont use Claude Design, lost access to my projects after unsubscribing",
-      "source": "Source: Reddit · 14 May"
-    }
-  },
-  {
     "id": "narrative-3",
     "segment": "story",
     "headline": "burn downloads up 38.2% on crates",
@@ -96,7 +81,7 @@
       "label": "RANK UP",
       "number": "↑ 4",
       "direction": "up",
-      "title": "Google",
+      "title": "Gemini 3.1 Flash Lite",
       "source": "Source: OpenRouter · 14 May"
     }
   },
@@ -113,6 +98,21 @@
       "direction": "up",
       "title": "Owl Alpha — Now #13, was #16",
       "source": "Source: OpenRouter Weekly · 14 May"
+    }
+  },
+  {
+    "id": "narrative-7",
+    "segment": "story",
+    "headline": "WARDEN: Endangered Indigenous Language Transcription and Translation with 6 Hours of Training Data",
+    "type": "data-card",
+    "scene": "wire",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "NEW RESEARCH",
+      "number": "arxiv",
+      "direction": "neutral",
+      "title": "WARDEN: Endangered Indigenous Language Transcription and Translation with 6 Hours of Training Data",
+      "source": "Source: arXiv · 14 May"
     }
   },
   {
