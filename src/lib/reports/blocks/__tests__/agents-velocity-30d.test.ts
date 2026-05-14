@@ -10,7 +10,7 @@ function row(
   return {
     id,
     name: id,
-    category: "framework",
+    category: "alive",
     languages: ["python"],
     pypiPackage: id,
     npmPackage: null,
@@ -34,7 +34,6 @@ function view(...rows: AgentRowView[]): AgentsViewDto {
   return {
     rows,
     generatedAt: "2026-05-04T00:00:00Z",
-    metadata: { sevenDaysAgoBaseline: "2026-04-27T00:00:00Z", mode: "diff" },
   };
 }
 

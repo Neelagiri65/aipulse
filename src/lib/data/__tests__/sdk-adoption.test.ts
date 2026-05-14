@@ -26,8 +26,8 @@ function makeSnapshot(
     tools: [],
     benchmarks: null,
     packages,
-    labs: null,
     labs24h: null,
+    failures: [],
   };
 }
 

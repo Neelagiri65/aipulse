@@ -59,7 +59,7 @@ describe("writeSentMarker → readSentMarker round-trip", () => {
     client.set = set as unknown as SentMarkerClient["set"];
     await writeSentMarker("2026-05-04", MARKER, { client });
     expect(set).toHaveBeenCalledTimes(1);
-    const [, , opts] = set.mock.calls[0];
+    const [, , opts] = set.mock.calls[0] as unknown as [unknown, unknown, unknown];
     expect(opts).toEqual({ ex: 30 * 24 * 60 * 60 });
   });
 });

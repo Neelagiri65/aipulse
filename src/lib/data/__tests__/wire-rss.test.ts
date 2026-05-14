@@ -10,6 +10,7 @@ import {
   parseRss20,
   runRssIngest,
   type RssRawItem,
+  type RssStoreSink,
 } from "@/lib/data/wire-rss";
 import type { RssSource } from "@/lib/data/rss-sources";
 
@@ -193,14 +194,14 @@ describe("normaliseItem", () => {
 
   it("builds an item with sha-based id and source tag", () => {
     const item = normaliseItem(raw, SRC_EN, "2026-04-20T00:00:00.000Z");
-    expect(item.sourceId).toBe("src-en");
-    expect(item.title).toBe("Claude 4 release");
-    expect(item.url).toBe("https://example.com/claude4");
-    expect(item.publishedTs).toBe(
+    expect(item!.sourceId).toBe("src-en");
+    expect(item!.title).toBe("Claude 4 release");
+    expect(item!.url).toBe("https://example.com/claude4");
+    expect(item!.publishedTs).toBe(
       Math.floor(Date.parse("2026-04-19T15:00:00Z") / 1000),
     );
-    expect(item.firstSeenTs).toBe("2026-04-20T00:00:00.000Z");
-    expect(item.id.length).toBeGreaterThan(0);
+    expect(item!.firstSeenTs).toBe("2026-04-20T00:00:00.000Z");
+    expect(item!.id.length).toBeGreaterThan(0);
   });
 
   it("returns null on unparseable pubDate", () => {
@@ -269,7 +270,7 @@ describe("isRssAiRelevant", () => {
 // runRssIngest — orchestration
 // ---------------------------------------------------------------------------
 
-type StoreSpy = {
+type StoreSpy = RssStoreSink & {
   writeItem: ReturnType<typeof vi.fn>;
   readItem: ReturnType<typeof vi.fn>;
   zaddWire: ReturnType<typeof vi.fn>;

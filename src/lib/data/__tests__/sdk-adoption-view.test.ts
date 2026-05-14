@@ -230,7 +230,7 @@ describe("groupByRegistry", () => {
       const d = dto([
         pkg(
           "pypi:no-data",
-          [{ date: "d1", count: 5000, delta: null }], // <2 days, delta is null
+          [{ date: "d1", count: 5000 }], // <2 days, delta is null
           { latest: { count: 5000, fetchedAt: null } },
         ),
         pkg(

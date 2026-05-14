@@ -195,7 +195,7 @@ describe("sendDigestForDate — happy path", () => {
     const result = await sendDigestForDate(input);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok || result.skipped) return;
     expect(result.recipientCount).toBe(2);
     expect(result.send.sent).toBe(2);
     expect(sendBatch).toHaveBeenCalledTimes(1);
@@ -275,7 +275,7 @@ describe("sendDigestForDate — empty subscribers", () => {
     const result = await sendDigestForDate(input);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok || result.skipped) return;
     expect(result.recipientCount).toBe(0);
     expect(result.send.sent).toBe(0);
     expect(result.send.attemptedChunks).toBe(0);
@@ -309,7 +309,7 @@ describe("sendDigestForDate — per-recipient bounce handling", () => {
     const result = await sendDigestForDate(input);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok || result.skipped) return;
     expect(result.send.sent).toBe(2);
     expect(result.send.bounced).toEqual(["h2"]);
     expect(capture.bouncedHashes).toEqual(["h2"]);
@@ -411,12 +411,12 @@ describe("sendDigestForDate — idempotency (S62 bug fix: duplicate digest fires
 
     expect(result.ok).toBe(true);
     expect(markSent).toHaveBeenCalledTimes(1);
-    const [date, marker] = markSent.mock.calls[0];
+    const [date, marker] = markSent.mock.calls[0] as unknown as [string, Record<string, unknown>];
     expect(date).toBe("2026-04-22");
-    expect(marker.recipientCount).toBe(2);
-    expect(marker.deliveredCount).toBe(2);
-    expect(marker.subject).toMatch(/Gawk/);
-    expect(typeof marker.sentAt).toBe("string");
+    expect(marker!.recipientCount).toBe(2);
+    expect(marker!.deliveredCount).toBe(2);
+    expect(marker!.subject).toMatch(/Gawk/);
+    expect(typeof marker!.sentAt).toBe("string");
   });
 
   it("does NOT write the sent-marker when nothing delivered (subscribers=0)", async () => {
@@ -493,7 +493,7 @@ describe("sendDigestForDate — chunk 5xx without retry (maxRetries=0)", () => {
     const result = await sendDigestForDate(input);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok || result.skipped) return;
     expect(result.send.sent).toBe(0);
     expect(result.send.failedChunks).toBe(1);
     expect(capture.archived).toHaveLength(0);

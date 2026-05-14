@@ -15,7 +15,7 @@ function lab(
     repo: `r${i}`,
     sourceUrl: `https://github.com/${id}/r${i}`,
     total: i === 0 ? total : 0,
-    byType: i === 0 ? { PushEvent: total } : {},
+    byType: i === 0 ? { PushEvent: total } : ({} as Record<string, number>),
     stale: i < staleRepos,
   }));
   return {

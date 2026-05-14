@@ -104,6 +104,7 @@ async function uploadVideoToHosting(videoPath: string): Promise<string> {
   const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
   if (blobToken) {
     console.log("Uploading to Vercel Blob...");
+    // @ts-expect-error deploy-only dependency, not available locally
     const { put } = await import("@vercel/blob");
     const filename = `gawk-daily-${DATE}-vertical.mp4`;
     const stream = createReadStream(videoPath);
