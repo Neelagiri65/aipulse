@@ -12,7 +12,7 @@ const FIXED_NOW = new Date("2026-04-20T12:00:00Z");
 const labA: LabEntry = {
   id: "lab-a",
   displayName: "Lab A",
-  kind: "industry",
+  kind: "labs",
   city: "Testville",
   country: "US",
   lat: 37.77,
@@ -29,7 +29,7 @@ const labA: LabEntry = {
 const labB: LabEntry = {
   id: "lab-b",
   displayName: "Lab B",
-  kind: "academic",
+  kind: "labs",
   city: "Cambridge",
   country: "GB",
   lat: 52.2,
@@ -236,7 +236,7 @@ describe("fetchLabActivity", () => {
     const result = await fetchLabActivity(runOpts(fetchImpl));
     const a = result.labs.find((l) => l.id === "lab-a")!;
     expect(a.displayName).toBe("Lab A");
-    expect(a.kind).toBe("industry");
+    expect(a.kind).toBe("labs");
     expect(a.city).toBe("Testville");
     expect(a.country).toBe("US");
     expect(a.lat).toBe(37.77);

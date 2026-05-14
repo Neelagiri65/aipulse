@@ -6,7 +6,7 @@ function lab(overrides: Partial<SnapshotLabEntry>): SnapshotLabEntry {
   return {
     id: "lab",
     displayName: "Lab",
-    kind: "industry",
+    kind: "labs",
     city: "SF",
     country: "USA",
     total: 0,

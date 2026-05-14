@@ -15,6 +15,7 @@
 
 import type { GlobePoint } from "@/components/globe/Globe";
 import type { LabActivity } from "@/lib/data/fetch-labs";
+import { CATEGORY_META } from "@/lib/data/labs-registry";
 
 export const LABS_VIOLET = "#a855f7";
 export const LABS_MIN_SIZE = 0.3;
@@ -45,7 +46,7 @@ export function labsToGlobePoints(labs: LabActivity[]): GlobePoint[] {
   return labs.map((lab) => ({
     lat: lab.lat,
     lng: lab.lng,
-    color: LABS_VIOLET,
+    color: CATEGORY_META[lab.kind]?.color ?? LABS_VIOLET,
     size: sizeFor(lab.total),
     meta: {
       kind: "lab",

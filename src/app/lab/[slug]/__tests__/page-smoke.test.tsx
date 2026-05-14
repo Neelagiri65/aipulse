@@ -41,7 +41,7 @@ function makeLab(
   const base: LabActivity = {
     id,
     displayName: id === "anthropic" ? "Anthropic" : id,
-    kind: "industry",
+    kind: "labs",
     city: "San Francisco",
     country: "US",
     lat: 37.7749,

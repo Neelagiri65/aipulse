@@ -8,7 +8,7 @@ function lab(
   return {
     id: partial.id,
     displayName: partial.displayName,
-    kind: partial.kind ?? "industry",
+    kind: partial.kind ?? "labs",
     city: partial.city ?? "San Francisco",
     country: partial.country ?? "United States",
     lat: partial.lat ?? 37.78,

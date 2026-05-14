@@ -57,7 +57,7 @@ export type EventMeta = {
   /** AI Lab fields (kind === "lab"). */
   labId?: string;
   displayName?: string;
-  labKind?: "industry" | "academic" | "non-profit";
+  labKind?: "labs" | "infra" | "cloud" | "silicon" | "tooling";
   labCity?: string;
   labCountry?: string;
   labTotal?: number;

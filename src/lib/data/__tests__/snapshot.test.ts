@@ -162,7 +162,7 @@ function mkLab(overrides: Partial<LabActivity> = {}): LabActivity {
   return {
     id: "lab-x",
     displayName: "Lab X",
-    kind: "industry",
+    kind: "labs",
     city: "Testville",
     country: "US",
     lat: 0,

@@ -3,6 +3,7 @@
 import { forwardRef } from "react";
 import type { EventMeta } from "@/components/globe/event-detail";
 import { shortEventType } from "@/components/globe/event-detail";
+import { CATEGORY_META, type LabKind } from "@/lib/data/labs-registry";
 
 /**
  * Full detail card for a single AI-Lab dot (or a cluster that only
@@ -240,16 +241,14 @@ function LabBody({ lab }: { lab: EventMeta }) {
   );
 }
 
-function KindPill({ kind }: { kind: "industry" | "academic" | "non-profit" }) {
-  const label =
-    kind === "industry"
-      ? "INDUSTRY"
-      : kind === "academic"
-        ? "ACADEMIC"
-        : "NON-PROFIT";
-  const cls =
-    kind === "industry"
-      ? "ap-sev-pill ap-sev-pill--info"
-      : "ap-sev-pill ap-sev-pill--pending";
-  return <span className={cls}>{label}</span>;
+function KindPill({ kind }: { kind: LabKind }) {
+  const meta = CATEGORY_META[kind];
+  return (
+    <span
+      className="ap-sev-pill"
+      style={{ backgroundColor: meta.color + "22", color: meta.color, borderColor: meta.color + "44" }}
+    >
+      {meta.label}
+    </span>
+  );
 }

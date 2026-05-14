@@ -1,6 +1,7 @@
 "use client";
 
 import type { LabActivity, LabsPayload } from "@/lib/data/fetch-labs";
+import { CATEGORY_META, type LabKind } from "@/lib/data/labs-registry";
 
 /**
  * AI Labs panel — lists every tracked lab from data/ai-labs.json sorted
@@ -126,15 +127,17 @@ function LabRow({
 function KindPill({
   kind,
 }: {
-  kind: "industry" | "academic" | "non-profit";
+  kind: LabKind;
 }) {
-  const label =
-    kind === "industry" ? "IND" : kind === "academic" ? "ACA" : "NGO";
-  const cls =
-    kind === "industry"
-      ? "ap-sev-pill ap-sev-pill--info"
-      : "ap-sev-pill ap-sev-pill--pending";
-  return <span className={cls}>{label}</span>;
+  const meta = CATEGORY_META[kind];
+  return (
+    <span
+      className="ap-sev-pill"
+      style={{ backgroundColor: meta.color + "22", color: meta.color, borderColor: meta.color + "44" }}
+    >
+      {meta.short}
+    </span>
+  );
 }
 
 function SourceFooter({

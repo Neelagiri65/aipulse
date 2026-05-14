@@ -12,7 +12,7 @@ function makeLab(id: string, total: number): LabActivity {
   return {
     id,
     displayName: id,
-    kind: "industry",
+    kind: "labs",
     city: "City",
     country: "US",
     lat: 0,

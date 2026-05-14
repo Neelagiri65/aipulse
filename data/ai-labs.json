@@ -2,7 +2,7 @@
   {
     "id": "openai-sf",
     "displayName": "OpenAI",
-    "kind": "industry",
+    "kind": "labs",
     "city": "San Francisco",
     "country": "US",
     "lat": 37.7640,
@@ -18,7 +18,7 @@
   {
     "id": "anthropic-sf",
     "displayName": "Anthropic",
-    "kind": "industry",
+    "kind": "labs",
     "city": "San Francisco",
     "country": "US",
     "lat": 37.7890,
@@ -34,7 +34,7 @@
   {
     "id": "google-research-mv",
     "displayName": "Google Research",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Mountain View",
     "country": "US",
     "lat": 37.4220,
@@ -50,7 +50,7 @@
   {
     "id": "deepmind-london",
     "displayName": "Google DeepMind",
-    "kind": "industry",
+    "kind": "labs",
     "city": "London",
     "country": "GB",
     "lat": 51.5327,
@@ -66,7 +66,7 @@
   {
     "id": "fair-menlo-park",
     "displayName": "Meta FAIR",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Menlo Park",
     "country": "US",
     "lat": 37.4849,
@@ -82,7 +82,7 @@
   {
     "id": "microsoft-research-redmond",
     "displayName": "Microsoft Research",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Redmond",
     "country": "US",
     "lat": 47.6396,
@@ -97,14 +97,14 @@
   },
   {
     "id": "nvidia-research",
-    "displayName": "NVIDIA Research",
-    "kind": "industry",
+    "displayName": "NVIDIA",
+    "kind": "silicon",
     "city": "Santa Clara",
     "country": "US",
     "lat": 37.3702,
     "lng": -121.9654,
     "url": "https://www.nvidia.com/en-us/research/",
-    "hqSourceUrl": "https://www.nvidia.com/en-us/research/",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Nvidia",
     "orgs": ["NVlabs"],
     "repos": [
       { "owner": "NVlabs", "repo": "instant-ngp", "sourceUrl": "https://github.com/NVlabs/instant-ngp" },
@@ -114,7 +114,7 @@
   {
     "id": "cohere-toronto",
     "displayName": "Cohere",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Toronto",
     "country": "CA",
     "lat": 43.6462,
@@ -129,7 +129,7 @@
   {
     "id": "mit-han-lab",
     "displayName": "MIT HAN Lab",
-    "kind": "academic",
+    "kind": "labs",
     "city": "Cambridge",
     "country": "US",
     "lat": 42.3617,
@@ -145,7 +145,7 @@
   {
     "id": "stanford-crfm",
     "displayName": "Stanford CRFM",
-    "kind": "academic",
+    "kind": "labs",
     "city": "Stanford",
     "country": "US",
     "lat": 37.4307,
@@ -160,7 +160,7 @@
   {
     "id": "cmu-neulab",
     "displayName": "CMU NeuLab",
-    "kind": "academic",
+    "kind": "labs",
     "city": "Pittsburgh",
     "country": "US",
     "lat": 40.4437,
@@ -175,7 +175,7 @@
   {
     "id": "lmsys-berkeley",
     "displayName": "LMSYS (UC Berkeley)",
-    "kind": "academic",
+    "kind": "labs",
     "city": "Berkeley",
     "country": "US",
     "lat": 37.8756,
@@ -190,7 +190,7 @@
   {
     "id": "vector-toronto",
     "displayName": "Vector Institute",
-    "kind": "non-profit",
+    "kind": "labs",
     "city": "Toronto",
     "country": "CA",
     "lat": 43.6595,
@@ -205,7 +205,7 @@
   {
     "id": "mila-montreal",
     "displayName": "Mila",
-    "kind": "academic",
+    "kind": "labs",
     "city": "Montréal",
     "country": "CA",
     "lat": 45.5311,
@@ -220,7 +220,7 @@
   {
     "id": "tsinghua-thudm",
     "displayName": "Tsinghua THUDM",
-    "kind": "academic",
+    "kind": "labs",
     "city": "Beijing",
     "country": "CN",
     "lat": 40.0035,
@@ -236,7 +236,7 @@
   {
     "id": "pku-alignment",
     "displayName": "Peking University (PKU-Alignment)",
-    "kind": "academic",
+    "kind": "labs",
     "city": "Beijing",
     "country": "CN",
     "lat": 39.9938,
@@ -251,7 +251,7 @@
   {
     "id": "matsuolab-tokyo",
     "displayName": "University of Tokyo Matsuo Lab",
-    "kind": "academic",
+    "kind": "labs",
     "city": "Tokyo",
     "country": "JP",
     "lat": 35.7127,
@@ -266,7 +266,7 @@
   {
     "id": "inria-paris",
     "displayName": "INRIA",
-    "kind": "non-profit",
+    "kind": "labs",
     "city": "Paris",
     "country": "FR",
     "lat": 48.8346,
@@ -281,7 +281,7 @@
   {
     "id": "mpi-is-tubingen",
     "displayName": "Max Planck Institute for Intelligent Systems",
-    "kind": "non-profit",
+    "kind": "labs",
     "city": "Tübingen",
     "country": "DE",
     "lat": 48.5381,
@@ -296,7 +296,7 @@
   {
     "id": "eth-sri-zurich",
     "displayName": "ETH Zurich (SRI Lab)",
-    "kind": "academic",
+    "kind": "labs",
     "city": "Zürich",
     "country": "CH",
     "lat": 47.3763,
@@ -311,7 +311,7 @@
   {
     "id": "mistral-paris",
     "displayName": "Mistral AI",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Paris",
     "country": "FR",
     "lat": 48.8600,
@@ -327,7 +327,7 @@
   {
     "id": "deepseek-hangzhou",
     "displayName": "DeepSeek",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Hangzhou",
     "country": "CN",
     "lat": 30.2741,
@@ -343,7 +343,7 @@
   {
     "id": "qwen-hangzhou",
     "displayName": "Alibaba Qwen",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Hangzhou",
     "country": "CN",
     "lat": 30.2787,
@@ -359,7 +359,7 @@
   {
     "id": "stability-london",
     "displayName": "Stability AI",
-    "kind": "industry",
+    "kind": "labs",
     "city": "London",
     "country": "GB",
     "lat": 51.5175,
@@ -374,7 +374,7 @@
   {
     "id": "sakana-tokyo",
     "displayName": "Sakana AI",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Tokyo",
     "country": "JP",
     "lat": 35.6588,
@@ -389,7 +389,7 @@
   {
     "id": "ai21-telaviv",
     "displayName": "AI21 Labs",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Tel Aviv",
     "country": "IL",
     "lat": 32.0678,
@@ -404,7 +404,7 @@
   {
     "id": "huggingface-nyc",
     "displayName": "Hugging Face",
-    "kind": "industry",
+    "kind": "tooling",
     "city": "New York",
     "country": "US",
     "lat": 40.7257,
@@ -420,7 +420,7 @@
   {
     "id": "allenai-seattle",
     "displayName": "Allen Institute for AI (AI2)",
-    "kind": "non-profit",
+    "kind": "labs",
     "city": "Seattle",
     "country": "US",
     "lat": 47.6412,
@@ -436,7 +436,7 @@
   {
     "id": "baai-beijing",
     "displayName": "BAAI (Beijing Academy of AI)",
-    "kind": "non-profit",
+    "kind": "labs",
     "city": "Beijing",
     "country": "CN",
     "lat": 39.9773,
@@ -451,7 +451,7 @@
   {
     "id": "ai4bharat-chennai",
     "displayName": "AI4Bharat (IIT Madras)",
-    "kind": "academic",
+    "kind": "labs",
     "city": "Chennai",
     "country": "IN",
     "lat": 12.9916,
@@ -466,7 +466,7 @@
   {
     "id": "xai-paloalto",
     "displayName": "xAI",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Palo Alto",
     "country": "US",
     "lat": 37.4250,
@@ -481,13 +481,13 @@
   {
     "id": "together-sf",
     "displayName": "Together AI",
-    "kind": "industry",
+    "kind": "cloud",
     "city": "San Francisco",
     "country": "US",
     "lat": 37.7923,
     "lng": -122.3942,
     "url": "https://www.together.ai/",
-    "hqSourceUrl": "https://www.together.ai/",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Together_AI",
     "orgs": ["togethercomputer"],
     "repos": [
       { "owner": "togethercomputer", "repo": "RedPajama-Data", "sourceUrl": "https://github.com/togethercomputer/RedPajama-Data" }
@@ -496,7 +496,7 @@
   {
     "id": "moonshot-beijing",
     "displayName": "Moonshot AI",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Beijing",
     "country": "CN",
     "lat": 39.9833,
@@ -512,7 +512,7 @@
   {
     "id": "minimax-shanghai",
     "displayName": "MiniMax",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Shanghai",
     "country": "CN",
     "lat": 31.2304,
@@ -528,7 +528,7 @@
   {
     "id": "zhipu-beijing",
     "displayName": "Zhipu AI",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Beijing",
     "country": "CN",
     "lat": 40.0099,
@@ -544,7 +544,7 @@
   {
     "id": "bytedance-seed-beijing",
     "displayName": "ByteDance Seed",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Beijing",
     "country": "CN",
     "lat": 39.9905,
@@ -560,7 +560,7 @@
   {
     "id": "sarvam-bengaluru",
     "displayName": "Sarvam AI",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Bengaluru",
     "country": "IN",
     "lat": 12.9789,
@@ -576,7 +576,7 @@
   {
     "id": "krutrim-bengaluru",
     "displayName": "Krutrim AI Labs",
-    "kind": "industry",
+    "kind": "labs",
     "city": "Bengaluru",
     "country": "IN",
     "lat": 12.9789,
@@ -587,6 +587,217 @@
     "repos": [
       { "owner": "ola-krutrim", "repo": "Dhwani", "sourceUrl": "https://github.com/ola-krutrim/Dhwani" },
       { "owner": "ola-krutrim", "repo": "Vyakyarth", "sourceUrl": "https://github.com/ola-krutrim/Vyakyarth" }
+    ]
+  },
+  {
+    "id": "01ai-beijing",
+    "displayName": "01.AI",
+    "kind": "labs",
+    "city": "Beijing",
+    "country": "CN",
+    "lat": 39.9042,
+    "lng": 116.4074,
+    "url": "https://www.01.ai",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/01.AI",
+    "orgs": ["01-ai"],
+    "repos": [
+      { "owner": "01-ai", "repo": "Yi", "sourceUrl": "https://github.com/01-ai/Yi" }
+    ]
+  },
+  {
+    "id": "reka-london",
+    "displayName": "Reka AI",
+    "kind": "labs",
+    "city": "London",
+    "country": "GB",
+    "lat": 51.5074,
+    "lng": -0.1278,
+    "url": "https://www.reka.ai",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Reka_AI",
+    "orgs": ["reka-ai"],
+    "repos": [
+      { "owner": "reka-ai", "repo": "reka-vibe-eval", "sourceUrl": "https://github.com/reka-ai/reka-vibe-eval" }
+    ]
+  },
+  {
+    "id": "amd-santaclara",
+    "displayName": "AMD",
+    "kind": "silicon",
+    "city": "Santa Clara",
+    "country": "US",
+    "lat": 37.3776,
+    "lng": -121.9596,
+    "url": "https://www.amd.com/en/products/software/rocm.html",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/AMD",
+    "orgs": ["ROCm"],
+    "repos": [
+      { "owner": "ROCm", "repo": "ROCm", "sourceUrl": "https://github.com/ROCm/ROCm" }
+    ]
+  },
+  {
+    "id": "cerebras-sunnyvale",
+    "displayName": "Cerebras",
+    "kind": "silicon",
+    "city": "Sunnyvale",
+    "country": "US",
+    "lat": 37.3688,
+    "lng": -122.0363,
+    "url": "https://www.cerebras.ai",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Cerebras_Systems",
+    "orgs": ["Cerebras"],
+    "repos": [
+      { "owner": "Cerebras", "repo": "modelzoo", "sourceUrl": "https://github.com/Cerebras/modelzoo" }
+    ]
+  },
+  {
+    "id": "intel-ai-santaclara",
+    "displayName": "Intel AI",
+    "kind": "silicon",
+    "city": "Santa Clara",
+    "country": "US",
+    "lat": 37.3875,
+    "lng": -121.9637,
+    "url": "https://www.intel.com/content/www/us/en/artificial-intelligence/overview.html",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Intel",
+    "orgs": ["intel"],
+    "repos": [
+      { "owner": "intel", "repo": "neural-compressor", "sourceUrl": "https://github.com/intel/neural-compressor" }
+    ]
+  },
+  {
+    "id": "groq-mountainview",
+    "displayName": "Groq",
+    "kind": "cloud",
+    "city": "Mountain View",
+    "country": "US",
+    "lat": 37.3861,
+    "lng": -122.0839,
+    "url": "https://groq.com",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Groq",
+    "orgs": ["groq"],
+    "repos": [
+      { "owner": "groq", "repo": "groq-python", "sourceUrl": "https://github.com/groq/groq-python" }
+    ]
+  },
+  {
+    "id": "replicate-sf",
+    "displayName": "Replicate",
+    "kind": "cloud",
+    "city": "San Francisco",
+    "country": "US",
+    "lat": 37.7749,
+    "lng": -122.4194,
+    "url": "https://replicate.com",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Replicate_(company)",
+    "orgs": ["replicate"],
+    "repos": [
+      { "owner": "replicate", "repo": "cog", "sourceUrl": "https://github.com/replicate/cog" }
+    ]
+  },
+  {
+    "id": "fireworks-sf",
+    "displayName": "Fireworks AI",
+    "kind": "cloud",
+    "city": "San Francisco",
+    "country": "US",
+    "lat": 37.7849,
+    "lng": -122.4094,
+    "url": "https://fireworks.ai",
+    "hqSourceUrl": "https://fireworks.ai/about",
+    "orgs": ["fw-ai"],
+    "repos": [
+      { "owner": "fw-ai", "repo": "firectl", "sourceUrl": "https://github.com/fw-ai/firectl" }
+    ]
+  },
+  {
+    "id": "langchain-sf",
+    "displayName": "LangChain",
+    "kind": "tooling",
+    "city": "San Francisco",
+    "country": "US",
+    "lat": 37.7749,
+    "lng": -122.4294,
+    "url": "https://www.langchain.com",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/LangChain",
+    "orgs": ["langchain-ai"],
+    "repos": [
+      { "owner": "langchain-ai", "repo": "langchain", "sourceUrl": "https://github.com/langchain-ai/langchain" },
+      { "owner": "langchain-ai", "repo": "langgraph", "sourceUrl": "https://github.com/langchain-ai/langgraph" }
+    ]
+  },
+  {
+    "id": "wandb-sf",
+    "displayName": "Weights & Biases",
+    "kind": "tooling",
+    "city": "San Francisco",
+    "country": "US",
+    "lat": 37.7849,
+    "lng": -122.3994,
+    "url": "https://wandb.ai",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Weights_%26_Biases",
+    "orgs": ["wandb"],
+    "repos": [
+      { "owner": "wandb", "repo": "wandb", "sourceUrl": "https://github.com/wandb/wandb" }
+    ]
+  },
+  {
+    "id": "ollama-sf",
+    "displayName": "Ollama",
+    "kind": "tooling",
+    "city": "San Francisco",
+    "country": "US",
+    "lat": 37.7899,
+    "lng": -122.3894,
+    "url": "https://ollama.com",
+    "hqSourceUrl": "https://ollama.com/about",
+    "orgs": ["ollama"],
+    "repos": [
+      { "owner": "ollama", "repo": "ollama", "sourceUrl": "https://github.com/ollama/ollama" }
+    ]
+  },
+  {
+    "id": "databricks-sf",
+    "displayName": "Databricks",
+    "kind": "infra",
+    "city": "San Francisco",
+    "country": "US",
+    "lat": 37.7904,
+    "lng": -122.3927,
+    "url": "https://www.databricks.com",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Databricks",
+    "orgs": ["databricks"],
+    "repos": [
+      { "owner": "databricks", "repo": "dbrx", "sourceUrl": "https://github.com/databricks/dbrx" }
+    ]
+  },
+  {
+    "id": "lambda-sf",
+    "displayName": "Lambda",
+    "kind": "infra",
+    "city": "San Francisco",
+    "country": "US",
+    "lat": 37.7949,
+    "lng": -122.4027,
+    "url": "https://lambdalabs.com",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/Lambda_(company)",
+    "orgs": ["lambdalabs"],
+    "repos": [
+      { "owner": "lambdalabs", "repo": "lambda-stack-dockerfiles", "sourceUrl": "https://github.com/lambdalabs/lambda-stack-dockerfiles" }
+    ]
+  },
+  {
+    "id": "coreweave-nj",
+    "displayName": "CoreWeave",
+    "kind": "infra",
+    "city": "Livingston",
+    "country": "US",
+    "lat": 40.7901,
+    "lng": -74.3152,
+    "url": "https://www.coreweave.com",
+    "hqSourceUrl": "https://en.wikipedia.org/wiki/CoreWeave",
+    "orgs": ["coreweave"],
+    "repos": [
+      { "owner": "coreweave", "repo": "kubernetes-cloud", "sourceUrl": "https://github.com/coreweave/kubernetes-cloud" }
     ]
   }
 ]

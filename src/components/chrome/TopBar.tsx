@@ -15,7 +15,7 @@ export type FreshnessState = {
   error?: string;
 };
 
-export type ViewTabId = "map" | "wire" | "globe";
+export type ViewTabId = "map" | "wire" | "globe" | "ecosystem";
 
 export type TopBarProps = {
   status?: StatusResult;
@@ -60,6 +60,12 @@ export function TopBar({
             id="map"
             label="The Map"
             active={activeTab === "map"}
+            onSelect={handleTab}
+          />
+          <TabButton
+            id="ecosystem"
+            label="Ecosystem"
+            active={activeTab === "ecosystem"}
             onSelect={handleTab}
           />
           <TabButton

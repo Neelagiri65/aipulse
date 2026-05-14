@@ -12,7 +12,7 @@
  * describing to reviewers of any PR that edits it.
  */
 
-export type LabKind = "industry" | "academic" | "non-profit";
+export type LabKind = "labs" | "infra" | "cloud" | "silicon" | "tooling";
 
 export type LabRepo = {
   /** GitHub org/user slug, exactly as it appears in the URL path. */
@@ -58,10 +58,23 @@ export type ValidationResult =
   | { ok: true; entries: LabEntry[] }
   | { ok: false; error: string };
 
+export const CATEGORY_META: Record<
+  LabKind,
+  { label: string; short: string; color: string }
+> = {
+  labs: { label: "LABS", short: "LAB", color: "#a855f7" },
+  infra: { label: "INFRA", short: "INF", color: "#3b82f6" },
+  cloud: { label: "CLOUD", short: "CLD", color: "#06b6d4" },
+  silicon: { label: "SILICON", short: "SIL", color: "#f59e0b" },
+  tooling: { label: "TOOLING", short: "TLG", color: "#22c55e" },
+};
+
 const KIND_SET: ReadonlySet<LabKind> = new Set([
-  "industry",
-  "academic",
-  "non-profit",
+  "labs",
+  "infra",
+  "cloud",
+  "silicon",
+  "tooling",
 ]);
 
 function isString(v: unknown): v is string {

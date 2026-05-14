@@ -8,7 +8,7 @@ import {
 const base: LabEntry = {
   id: "test-lab",
   displayName: "Test Lab",
-  kind: "industry",
+  kind: "labs",
   city: "Testville",
   country: "US",
   lat: 37.77,
@@ -31,7 +31,7 @@ describe("validateLabsRegistry", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.entries.length).toBeGreaterThanOrEqual(30);
-    expect(result.entries.length).toBeLessThanOrEqual(40);
+    expect(result.entries.length).toBeLessThanOrEqual(60);
   });
 
   it("rejects a non-array input", () => {

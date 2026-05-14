@@ -33,6 +33,17 @@ const FlatMap = dynamic(
     ),
   },
 );
+const EcosystemMap = dynamic(
+  () => import("@/components/map/EcosystemMap").then((m) => m.EcosystemMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full w-full items-center justify-center font-mono text-xs text-muted-foreground">
+        Loading ecosystem…
+      </div>
+    ),
+  },
+);
 import { Win } from "@/components/chrome/Win";
 import { LeftNav, type NavItem } from "@/components/chrome/LeftNav";
 import {
@@ -978,6 +989,9 @@ export function Dashboard({
             {aiConfigStranded && <AiConfigStrandedNote />}
           </div>
         )}
+        {activeTab === "ecosystem" && (
+          <EcosystemMap labs={labs.data?.labs ?? []} />
+        )}
         {activeTab === "globe" && (
           <div className="relative h-full w-full">
             <Globe points={points} lastUpdatedAt={lastUpdatedAt} />
@@ -1010,7 +1024,7 @@ export function Dashboard({
 
       {/* Right-edge filter panel — renders on both map + globe (they share
           the filtered point set). Wire view has its own filter semantics. */}
-      {(activeTab === "map" || activeTab === "globe") && (
+      {(activeTab === "map" || activeTab === "globe" || activeTab === "ecosystem") && (
         <FilterPanel
           filters={filters}
           onToggle={toggleFilter}
@@ -1021,7 +1035,7 @@ export function Dashboard({
       {/* Floating panels — renders on map + globe (geospatial views where
           side panels add context). Wire is its own full-screen feed, so
           floating panels would be redundant. */}
-      {(activeTab === "map" || activeTab === "globe") && (
+      {(activeTab === "map" || activeTab === "globe" || activeTab === "ecosystem") && (
         <>
           {initialPos && panels.wire.open && (
             <Win

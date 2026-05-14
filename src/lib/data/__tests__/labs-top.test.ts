@@ -21,7 +21,7 @@ function lab(
   return {
     id,
     displayName: id,
-    kind: "industry",
+    kind: "labs",
     city: "Anywhere",
     country: "US",
     lat: 0,

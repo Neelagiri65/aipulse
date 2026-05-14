@@ -10,7 +10,7 @@ function lab(
   return {
     id,
     displayName: id,
-    kind: "industry",
+    kind: "labs",
     city: "San Francisco",
     country: "US",
     lat: 37.7749,

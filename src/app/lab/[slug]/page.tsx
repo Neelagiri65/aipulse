@@ -38,6 +38,7 @@ import {
 } from "@/lib/data/labs-top";
 import { shortEventType } from "@/components/globe/event-types";
 import { formatProvenanceTooltip } from "@/lib/provenance";
+import { CATEGORY_META } from "@/lib/data/labs-registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -257,15 +258,13 @@ export default async function LabEntityPage({
 }
 
 function KindPill({ kind }: { kind: LabActivity["kind"] }) {
-  const label =
-    kind === "industry"
-      ? "INDUSTRY"
-      : kind === "academic"
-        ? "ACADEMIC"
-        : "NON-PROFIT";
-  const cls =
-    kind === "industry"
-      ? "ap-sev-pill ap-sev-pill--info"
-      : "ap-sev-pill ap-sev-pill--pending";
-  return <span className={cls}>{label}</span>;
+  const meta = CATEGORY_META[kind] ?? { label: kind.toUpperCase(), color: "#a855f7" };
+  return (
+    <span
+      className="ap-sev-pill"
+      style={{ backgroundColor: meta.color + "22", color: meta.color, borderColor: meta.color + "44" }}
+    >
+      {meta.label}
+    </span>
+  );
 }
