@@ -21,10 +21,13 @@ const TILE_URL =
 const TILE_ATTR =
   '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>';
 
+const BASE_RADIUS = 8;
+const MAX_RADIUS = 18;
+
 export function EcosystemMap({ labs }: EcosystemMapProps) {
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<L.CircleMarker[]>([]);
+  const markersRef = useRef<L.Layer[]>([]);
   const leafletRef = useRef<typeof L | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [activeCategories, setActiveCategories] = useState<Set<LabKind>>(
@@ -41,8 +44,8 @@ export function EcosystemMap({ labs }: EcosystemMapProps) {
       leafletRef.current = Leaflet;
 
       const map = Leaflet.map(mapDivRef.current, {
-        center: [20, 0],
-        zoom: 2,
+        center: [30, 0],
+        zoom: 3,
         minZoom: 2,
         maxZoom: 12,
         zoomControl: false,
@@ -77,11 +80,11 @@ export function EcosystemMap({ labs }: EcosystemMapProps) {
   }, []);
 
   useEffect(() => {
-    const L = leafletRef.current;
+    const Lf = leafletRef.current;
     const map = mapRef.current;
-    if (!L || !map) return;
+    if (!Lf || !map) return;
     clearMarkers();
-    addMarkers(L, map, labs, activeCategories);
+    addMarkers(Lf, map, labs, activeCategories);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [labs, activeCategories]);
 
@@ -96,18 +99,22 @@ export function EcosystemMap({ labs }: EcosystemMapProps) {
     data: LabActivity[],
     active: Set<LabKind>,
   ) {
-    const maxTotal = Math.max(1, ...data.map((l) => l.total));
+    const maxTotal = Math.max(1, ...data.filter((l) => l.total > 0).map((l) => l.total), 1);
 
     for (const lab of data) {
       if (!active.has(lab.kind)) continue;
       const meta = CATEGORY_META[lab.kind];
-      const radius = 4 + 10 * Math.min(1, Math.log(1 + lab.total) / Math.log(1 + maxTotal));
+      const hasActivity = lab.total > 0;
+      const radius = hasActivity
+        ? BASE_RADIUS + (MAX_RADIUS - BASE_RADIUS) * Math.min(1, Math.log(1 + lab.total) / Math.log(1 + maxTotal))
+        : BASE_RADIUS;
+
       const marker = Leaflet.circleMarker([lab.lat, lab.lng], {
         radius,
         fillColor: meta.color,
-        fillOpacity: lab.total === 0 ? 0.3 : 0.75,
+        fillOpacity: hasActivity ? 0.7 : 0.5,
         color: meta.color,
-        weight: 1.5,
+        weight: 2,
         opacity: 0.9,
       }).addTo(map);
 
@@ -125,6 +132,17 @@ export function EcosystemMap({ labs }: EcosystemMapProps) {
       });
 
       markersRef.current.push(marker);
+
+      const label = Leaflet.marker([lab.lat, lab.lng], {
+        icon: Leaflet.divIcon({
+          className: "ap-eco-label",
+          html: `<span style="color:${meta.color}">${lab.displayName}</span>`,
+          iconSize: [0, 0],
+          iconAnchor: [-radius - 4, 5],
+        }),
+        interactive: false,
+      }).addTo(map);
+      markersRef.current.push(label);
     }
   }
 
@@ -154,38 +172,42 @@ export function EcosystemMap({ labs }: EcosystemMapProps) {
     <div className="relative h-full w-full">
       <div ref={mapDivRef} className="h-full w-full" />
 
-      {/* Category legend / filter */}
-      <div className="absolute left-3 top-3 z-[1000] flex flex-col gap-1 rounded-md border border-border/40 bg-background/80 p-2 backdrop-blur-md">
-        <span className="mb-0.5 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-          AI Ecosystem
+      {/* Category legend / filter — offset right to clear the 44px LeftNav rail */}
+      <div
+        className="absolute z-[1000] flex flex-col gap-1.5 rounded-lg border border-border/50 bg-background/90 px-3 py-2.5 shadow-lg backdrop-blur-md"
+        style={{ left: 56, top: 12 }}
+      >
+        <span className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-widest text-foreground/70">
+          AI Ecosystem · {labs.length} companies
         </span>
         {(Object.keys(CATEGORY_META) as LabKind[]).map((kind) => {
           const meta = CATEGORY_META[kind];
           const active = activeCategories.has(kind);
+          const count = categoryCounts[kind] ?? 0;
           return (
             <button
               key={kind}
               type="button"
-              className="flex items-center gap-2 rounded px-1.5 py-0.5 text-left transition-opacity hover:bg-white/5"
-              style={{ opacity: active ? 1 : 0.35 }}
+              className="flex items-center gap-2.5 rounded-md px-2 py-1 text-left transition-all hover:bg-white/5"
+              style={{ opacity: active ? 1 : 0.3 }}
               onClick={() => toggleCategory(kind)}
             >
               <span
-                className="inline-block h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: meta.color }}
+                className="inline-block h-3 w-3 rounded-full border"
+                style={{
+                  backgroundColor: meta.color + (active ? "cc" : "44"),
+                  borderColor: meta.color,
+                }}
               />
-              <span className="font-mono text-[10px] text-foreground/90">
+              <span className="min-w-[52px] font-mono text-[11px] font-medium text-foreground">
                 {meta.label}
               </span>
-              <span className="font-mono text-[9px] text-muted-foreground">
-                {categoryCounts[kind] ?? 0}
+              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                {count}
               </span>
             </button>
           );
         })}
-        <span className="mt-1 font-mono text-[8px] text-muted-foreground/60">
-          {labs.length} companies tracked
-        </span>
       </div>
 
       {/* Detail card */}

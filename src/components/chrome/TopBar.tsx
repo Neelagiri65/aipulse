@@ -83,9 +83,11 @@ export function TopBar({
           verified={VERIFIED_SOURCES.length}
           pending={PENDING_SOURCES.length}
         />
-        <span className="hidden font-mono text-[11px] tracking-wider text-teal-300 sm:inline">
-          {now}
-        </span>
+        {now && (
+          <span className="hidden font-mono text-[11px] tracking-wider text-teal-300 sm:inline">
+            {now}
+          </span>
+        )}
       </div>
     </header>
   );
@@ -276,8 +278,9 @@ function deriveSeverity(status?: StatusResult) {
 }
 
 function useUtcClock(): string {
-  const [now, setNow] = useState(() => fmtUtc(new Date()));
+  const [now, setNow] = useState("");
   useEffect(() => {
+    setNow(fmtUtc(new Date()));
     const t = setInterval(() => setNow(fmtUtc(new Date())), 1000);
     return () => clearInterval(t);
   }, []);
