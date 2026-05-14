@@ -56,22 +56,7 @@
     }
   },
   {
-    "id": "narrative-3",
-    "segment": "story",
-    "headline": "burn downloads up 38.2% on crates",
-    "type": "data-card",
-    "scene": "sdk-adoption",
-    "holdSec": 5,
-    "dataCard": {
-      "label": "DOWNLOADS",
-      "number": "↑ 38%",
-      "direction": "up",
-      "title": "burn downloads up 38.2% on crates",
-      "source": "Source: Package registry data · 14 May"
-    }
-  },
-  {
-    "id": "narrative-4",
+    "id": "narrative-2",
     "segment": "story",
     "headline": "Google: Gemini 3.1 Flash Lite up 4 ranks on OpenRouter weekly",
     "type": "data-card",
@@ -86,7 +71,37 @@
     }
   },
   {
+    "id": "narrative-4",
+    "segment": "story",
+    "headline": "Average day in the life of ChatGPT user",
+    "type": "data-card",
+    "scene": "wire",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "TRENDING",
+      "number": "▲ 1589",
+      "direction": "up",
+      "title": "Average day in the life of ChatGPT user",
+      "source": "Source: Reddit · 14 May"
+    }
+  },
+  {
     "id": "narrative-5",
+    "segment": "story",
+    "headline": "burn downloads up 38.2% on crates",
+    "type": "data-card",
+    "scene": "sdk-adoption",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "DOWNLOADS",
+      "number": "↑ 38%",
+      "direction": "up",
+      "title": "burn downloads up 38.2% on crates",
+      "source": "Source: Package registry data · 14 May"
+    }
+  },
+  {
+    "id": "narrative-6",
     "segment": "story",
     "headline": "Owl Alpha moved from rank 16 to 13",
     "type": "data-card",
@@ -101,7 +116,7 @@
     }
   },
   {
-    "id": "narrative-7",
+    "id": "narrative-9",
     "segment": "story",
     "headline": "WARDEN: Endangered Indigenous Language Transcription and Translation with 6 Hours of Training Data",
     "type": "data-card",

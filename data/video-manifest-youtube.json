@@ -29,7 +29,7 @@
   {
     "id": "narrative-0",
     "segment": "story",
-    "headline": "sponsors/tiann trending on GitHub (21 stars today)",
+    "headline": "elebumm/RedditVideoMakerBot trending on GitHub (134 stars today)",
     "scene": "wire",
     "holdSec": 5,
     "startSec": 12,
@@ -45,10 +45,10 @@
     "endSec": 18
   },
   {
-    "id": "narrative-1",
+    "id": "narrative-2",
     "segment": "story",
-    "headline": "ollama downloads up 734% on brew",
-    "scene": "sdk-adoption",
+    "headline": "Google: Gemini 3.1 Flash Lite up 4 ranks on OpenRouter weekly",
+    "scene": "models",
     "holdSec": 5,
     "startSec": 18,
     "endSec": 23
@@ -63,9 +63,9 @@
     "endSec": 24
   },
   {
-    "id": "narrative-2",
+    "id": "narrative-4",
     "segment": "story",
-    "headline": "Tell HN: Dont use Claude Design, lost access to my projects after unsubscribing",
+    "headline": "Average day in the life of ChatGPT user",
     "scene": "wire",
     "holdSec": 5,
     "startSec": 24,
@@ -81,10 +81,10 @@
     "endSec": 30
   },
   {
-    "id": "narrative-3",
+    "id": "narrative-5",
     "segment": "story",
-    "headline": "Google: Gemini 3.1 Flash Lite up 4 ranks on OpenRouter weekly",
-    "scene": "models",
+    "headline": "burn downloads up 38.2% on crates",
+    "scene": "sdk-adoption",
     "holdSec": 5,
     "startSec": 30,
     "endSec": 35
@@ -99,9 +99,9 @@
     "endSec": 36
   },
   {
-    "id": "narrative-4",
+    "id": "narrative-6",
     "segment": "story",
-    "headline": "Nemotron 3 Super (free) moved from rank 13 to 10",
+    "headline": "Owl Alpha moved from rank 16 to 13",
     "scene": "models",
     "holdSec": 5,
     "startSec": 36,
@@ -117,10 +117,10 @@
     "endSec": 42
   },
   {
-    "id": "sdk-burn",
+    "id": "narrative-9",
     "segment": "story",
-    "headline": "burn (crates) up 38%",
-    "scene": "sdk-adoption",
+    "headline": "WARDEN: Endangered Indigenous Language Transcription and Translation with 6 Hours of Training Data",
+    "scene": "wire",
     "holdSec": 5,
     "startSec": 42,
     "endSec": 47
@@ -144,12 +144,30 @@
     "endSec": 53
   },
   {
+    "id": "breathe-7",
+    "segment": "wipe",
+    "headline": "Colour wipe",
+    "scene": "wipe",
+    "holdSec": 1,
+    "startSec": 53,
+    "endSec": 54
+  },
+  {
+    "id": "sdk-huggingface-hub",
+    "segment": "story",
+    "headline": "huggingface-hub (pypi) down 18%",
+    "scene": "sdk-adoption",
+    "holdSec": 5,
+    "startSec": 54,
+    "endSec": 59
+  },
+  {
     "id": "outro",
     "segment": "outro",
     "headline": "Outro",
     "scene": "globe",
     "holdSec": 4,
-    "startSec": 53,
-    "endSec": 57
+    "startSec": 59,
+    "endSec": 63
   }
 ]
