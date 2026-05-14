@@ -473,7 +473,7 @@ async function main() {
     // SDK movers with significant changes
     for (const sdk of vd.sdkMovers ?? []) {
       if (storyCount >= maxStories) break;
-      if (Math.abs(sdk.diffPct) < 5 || Math.abs(sdk.diffPct) > 500) continue;
+      if (Math.abs(sdk.diffPct) < 5) continue;
       const pkgNorm = sdk.name.toLowerCase().replace(/-/g, "");
       if (usedPackageNames.has(pkgNorm)) {
         console.log(`  [SKIP     ] Duplicate SDK — ${sdk.name} already covered`);

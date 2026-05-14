@@ -45,6 +45,7 @@ export function deriveSdkTrendCards(dto: SdkAdoptionDto): Card[] {
     const latest = pkg.days[pkg.days.length - 1];
     if (latest.delta === null) continue;
     if (Math.abs(latest.delta) <= TRIGGER) continue;
+    if (Math.abs(latest.delta) > 5) continue;
     if (!pkg.latest.fetchedAt) continue;
 
     const source = REGISTRY_SOURCE[pkg.registry];

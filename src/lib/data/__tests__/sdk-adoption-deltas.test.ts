@@ -120,4 +120,38 @@ describe("deltasFromCounts", () => {
     expect(out).toHaveLength(2);
     expect(out.every((d) => d.delta === null)).toBe(true);
   });
+
+  it("returns null delta when baseline is near zero (|baseline| < 1)", () => {
+    const input: CountByDate[] = [
+      { date: "d1", count: 0.5 },
+      { date: "d2", count: 0.3 },
+      { date: "d3", count: 100 },
+    ];
+    const out = deltasFromCounts(input);
+    expect(out[2].delta).toBeNull();
+  });
+
+  it("nulls explosive deltas (|delta| > 5) from unstable brew-style diffs", () => {
+    const input: CountByDate[] = [
+      { date: "d1", count: -1996 },
+      { date: "d2", count: -1231 },
+      { date: "d3", count: -1640 },
+      { date: "d4", count: -973 },
+      { date: "d5", count: -836 },
+      { date: "d6", count: -508 },
+    ];
+    const out = deltasFromCounts(input);
+    for (const d of out.filter((o) => o.delta !== null)) {
+      expect(Math.abs(d.delta!)).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it("caps at 500% — legitimate growth still passes", () => {
+    const input: CountByDate[] = [
+      { date: "d1", count: 100 },
+      { date: "d2", count: 500 },
+    ];
+    const out = deltasFromCounts(input);
+    expect(out[1].delta).toBeCloseTo(4.0, 6);
+  });
 });

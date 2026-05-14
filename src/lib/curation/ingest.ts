@@ -75,7 +75,7 @@ export async function ingestGawkModels(): Promise<CurationEvent[]> {
         summary: `Price: $${m.pricing?.promptPerMTok ?? "?"}/M prompt tokens`,
         url: null,
         timestamp: new Date().toISOString(),
-        metrics: { rank: m.rank, previousRank: m.previousRank ?? undefined, deltaPct: m.pricing?.promptPerMTok ?? undefined },
+        metrics: { rank: m.rank, previousRank: m.previousRank ?? undefined },
         geo: null,
         tags: ["models", "ranking"],
       }));
@@ -116,11 +116,9 @@ export async function ingestGawkSDK(): Promise<CurationEvent[]> {
       const recent = pkg.days.filter(d => d.delta !== null).slice(-3);
       if (recent.length === 0) continue;
       const avg = recent.reduce((s, d) => s + (d.delta ?? 0), 0) / recent.length;
-      const rawPct = Math.round(avg * 1000) / 10;
-      if (Math.abs(rawPct) < 10) continue;
-      // Clamp to sane range — matches SDK report block bounds
-      const pct = Math.max(-90, Math.min(1000, rawPct));
-      if (Math.abs(rawPct) > 1000 || rawPct < -90) continue;
+      if (Math.abs(avg) > 5) continue;
+      const pct = Math.round(avg * 1000) / 10;
+      if (Math.abs(pct) < 10) continue;
       events.push({
         id: eventId("gawk-sdk", pkg.id),
         source: "gawk-sdk" as const,

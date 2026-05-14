@@ -58,11 +58,16 @@ export function deltasFromCounts(
       continue;
     }
     const baseline = sum / n;
-    if (baseline === 0) {
+    if (Math.abs(baseline) < 1) {
       out.push({ date, count, delta: null });
       continue;
     }
-    out.push({ date, count, delta: (count - baseline) / baseline });
+    const delta = (count - baseline) / baseline;
+    if (Math.abs(delta) > 5) {
+      out.push({ date, count, delta: null });
+      continue;
+    }
+    out.push({ date, count, delta });
   }
   return out;
 }

@@ -240,6 +240,7 @@ function deriveSdkMovers(
     const recentDays = pkg.days.filter((d) => d.delta !== null).slice(-3);
     if (recentDays.length === 0) continue;
     const avgDelta = recentDays.reduce((s, d) => s + (d.delta ?? 0), 0) / recentDays.length;
+    if (Math.abs(avgDelta) > 5) continue;
     withDelta.push({ name: pkg.label, registry: pkg.registry, diffPct: Math.round(avgDelta * 1000) / 10 });
   }
   withDelta.sort((a, b) => Math.abs(b.diffPct) - Math.abs(a.diffPct));
