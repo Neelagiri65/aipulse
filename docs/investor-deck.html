@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gawk — Investor Deck</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; background: #0a0a0a; color: #f5f5f5; overflow: hidden; }
+
+  .slide { display: none; width: 100vw; height: 100vh; padding: 80px 120px; flex-direction: column; justify-content: center; position: relative; }
+  .slide.active { display: flex; }
+
+  h1 { font-size: 56px; font-weight: 700; line-height: 1.15; letter-spacing: -1.5px; margin-bottom: 32px; }
+  h2 { font-size: 42px; font-weight: 600; line-height: 1.2; letter-spacing: -1px; margin-bottom: 28px; }
+  h3 { font-size: 28px; font-weight: 600; line-height: 1.3; margin-bottom: 20px; color: #a78bfa; }
+  p { font-size: 24px; line-height: 1.6; color: #d4d4d4; max-width: 900px; }
+  .subtitle { font-size: 28px; color: #a78bfa; margin-bottom: 16px; font-weight: 500; }
+  .small { font-size: 18px; color: #737373; margin-top: 24px; }
+  .highlight { color: #a78bfa; }
+  .green { color: #4ade80; }
+  .amber { color: #fbbf24; }
+  .red { color: #f87171; }
+
+  .stat-row { display: flex; gap: 60px; margin: 40px 0; flex-wrap: wrap; }
+  .stat { text-align: left; }
+  .stat .number { font-size: 56px; font-weight: 700; color: #a78bfa; line-height: 1; }
+  .stat .label { font-size: 18px; color: #737373; margin-top: 8px; }
+
+  .grid { display: grid; gap: 24px; margin: 32px 0; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .card { background: #171717; border: 1px solid #262626; border-radius: 12px; padding: 28px; }
+  .card h3 { font-size: 22px; margin-bottom: 12px; }
+  .card p { font-size: 18px; line-height: 1.5; }
+  .card .tag { display: inline-block; font-size: 13px; background: #1e1b4b; color: #a78bfa; padding: 4px 10px; border-radius: 6px; margin-bottom: 12px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 24px 0; max-width: 1000px; }
+  th { text-align: left; font-size: 16px; color: #737373; padding: 12px 16px; border-bottom: 1px solid #262626; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+  td { font-size: 18px; padding: 14px 16px; border-bottom: 1px solid #1a1a1a; color: #d4d4d4; }
+  td:first-child { color: #f5f5f5; font-weight: 500; }
+  .check { color: #4ade80; }
+  .cross { color: #f87171; }
+
+  .nav { position: fixed; bottom: 32px; right: 40px; display: flex; gap: 12px; z-index: 100; }
+  .nav button { width: 48px; height: 48px; border-radius: 50%; border: 1px solid #333; background: #171717; color: #f5f5f5; font-size: 20px; cursor: pointer; transition: all 0.2s; }
+  .nav button:hover { background: #262626; border-color: #a78bfa; }
+  .progress { position: fixed; bottom: 0; left: 0; height: 3px; background: #a78bfa; transition: width 0.3s ease; }
+  .slide-num { position: fixed; bottom: 40px; left: 40px; font-size: 14px; color: #525252; }
+
+  .logo { font-size: 20px; font-weight: 700; letter-spacing: 2px; color: #a78bfa; position: fixed; top: 32px; left: 40px; z-index: 100; }
+
+  ul { list-style: none; margin: 16px 0; }
+  ul li { font-size: 20px; line-height: 1.8; color: #d4d4d4; padding-left: 24px; position: relative; }
+  ul li::before { content: "→"; position: absolute; left: 0; color: #a78bfa; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start; }
+
+  .quote { font-size: 32px; font-style: italic; line-height: 1.5; color: #e5e5e5; border-left: 3px solid #a78bfa; padding-left: 28px; max-width: 800px; }
+
+  .pill { display: inline-block; font-size: 14px; padding: 6px 14px; border-radius: 20px; margin: 4px; }
+  .pill-live { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+  .pill-built { background: #1e1b4b; color: #a78bfa; border: 1px solid #3730a3; }
+  .pill-pending { background: #1c1917; color: #a8a29e; border: 1px solid #44403c; }
+
+  @media (max-width: 768px) {
+    .slide { padding: 40px 24px; }
+    h1 { font-size: 36px; }
+    h2 { font-size: 28px; }
+    p { font-size: 18px; }
+    .stat .number { font-size: 40px; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .stat-row { gap: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="logo">GAWK</div>
+
+<!-- SLIDE 1: Title -->
+<div class="slide active" id="s1">
+  <h1>The real-time intelligence layer<br>for the AI ecosystem</h1>
+  <p style="font-size: 28px; color: #e5e5e5; margin-bottom: 24px;">
+    Gawk aggregates 38 live data sources — model rankings, tool outages, SDK downloads, research papers, community signals — into one dashboard where <span class="highlight">every number links to its public source</span>.
+  </p>
+  <p>We ship a daily video briefing, email digest, and open API<br>so teams stop checking 38 different dashboards.</p>
+  <p class="small">gawk.dev &nbsp;·&nbsp; Live since April 2026</p>
+</div>
+
+<!-- SLIDE 2: The Problem -->
+<div class="slide" id="s2">
+  <h3>THE PROBLEM</h3>
+  <h2>The AI ecosystem moves hourly.<br>Nobody has a single source of truth.</h2>
+  <div class="grid grid-3" style="margin-top: 40px;">
+    <div class="card">
+      <h3>Scattered signals</h3>
+      <p>Model rankings on HuggingFace. Status on 6 different pages. SDK downloads across PyPI, npm, crates, Docker. Research on arXiv. Community on Reddit, HN. No single view.</p>
+    </div>
+    <div class="card">
+      <h3>No citations</h3>
+      <p>Existing dashboards show numbers without linking to the upstream source. You see "GPT-4o: #3" but can't verify it. Trust is assumed, not earned.</p>
+    </div>
+    <div class="card">
+      <h3>No distribution</h3>
+      <p>Every competitor requires you to visit their site. Nobody pushes the signal to where you already are — your inbox, your feed, your API.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 3: What We Built -->
+<div class="slide" id="s3">
+  <h3>THE PRODUCT</h3>
+  <h2>Live dashboard. Daily briefing. Open API.</h2>
+  <p style="margin-bottom: 32px;">Every number on gawk.dev traces to a clickable public source. If we can't cite it, we don't ship it.</p>
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="tag">DASHBOARD</div>
+      <h3>7 live data layers</h3>
+      <p>Tool health grid &middot; Model rankings with weekly deltas &middot; SDK adoption heatmap across 6 registries &middot; Community wire from 5 countries &middot; Research feed &middot; AI agents tracker &middot; Interactive map with 32 labs</p>
+    </div>
+    <div class="card">
+      <div class="tag">DISTRIBUTION</div>
+      <h3>7 channels</h3>
+      <p>Daily video (YouTube) &middot; Email digest &middot; Web push alerts &middot; Discord webhooks &middot; Public API (7 endpoints) &middot; RSS feed &middot; Social (Instagram, Facebook, TikTok)</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 4: Product Velocity / Traction -->
+<div class="slide" id="s4">
+  <h3>TRACTION</h3>
+  <h2>Built in 25 days, solo.</h2>
+  <div class="stat-row">
+    <div class="stat">
+      <div class="number">391</div>
+      <div class="label">commits in 25 days</div>
+    </div>
+    <div class="stat">
+      <div class="number">38</div>
+      <div class="label">verified data sources</div>
+    </div>
+    <div class="stat">
+      <div class="number">23</div>
+      <div class="label">automated cron workflows</div>
+    </div>
+    <div class="stat">
+      <div class="number">7</div>
+      <div class="label">public API endpoints</div>
+    </div>
+  </div>
+  <ul style="margin-top: 32px;">
+    <li>Daily video pipeline: data fetch, script, TTS narration, screenshot capture, composite, upload — fully automated</li>
+    <li>Source health watchdog: Hermes 3 8B agent monitors all 38 endpoints every 6 hours</li>
+    <li>Every source has a typed registry entry with sanity ranges, verification date, and caveats</li>
+  </ul>
+  <p class="small"><!-- ADD YOUR REAL NUMBERS HERE: YouTube views in X days, email subscribers in Y days, website visitors --></p>
+</div>
+
+<!-- SLIDE 5: Non-Obvious Insight -->
+<div class="slide" id="s5">
+  <h3>INSIGHT</h3>
+  <div class="quote">
+    "AI teams don't need another dashboard.<br><br>
+    They need a feed they trust enough to stop checking the original sources.<br><br>
+    Trust requires per-number citation — and that's an editorial discipline, not a feature. Nobody else enforces it because it's operationally painful."
+  </div>
+  <p style="margin-top: 40px;">38 sources. Each with sanity ranges, verification dates, graceful degradation.<br>That operational pain is the moat.</p>
+</div>
+
+<!-- SLIDE 6: How It Works -->
+<div class="slide" id="s6">
+  <h3>THE TRUST CONTRACT</h3>
+  <h2>What makes Gawk different</h2>
+  <div class="grid grid-2" style="margin-top: 24px;">
+    <div>
+      <ul>
+        <li>Every number links to its public source</li>
+        <li>No invented scores, no LLM-generated rankings</li>
+        <li>Zero LLM calls in the production data pipeline</li>
+        <li>Sanity ranges pre-committed before data ships</li>
+        <li>Source down = grey card + last known value + timestamp</li>
+        <li>Public transparency page lists every source by name</li>
+      </ul>
+    </div>
+    <div>
+      <div class="card" style="border-color: #3730a3;">
+        <h3>This is a compliance-grade data product</h3>
+        <p>Most AI dashboards explain methodology at the dashboard level. Gawk cites at the cell level. Every number, every time, every source.</p>
+        <p style="margin-top: 16px; color: #737373; font-size: 16px;">Typed source registry: 1,200 lines of source contracts in data-sources.ts — sanity checks, rate limits, caveats, verification dates</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 7: Data Sources -->
+<div class="slide" id="s7">
+  <h3>DATA LAYER</h3>
+  <h2>38 verified sources across 8 categories</h2>
+  <table>
+    <tr><th>Category</th><th>Sources</th><th>Signal</th></tr>
+    <tr><td>GitHub Activity</td><td>10</td><td>Events API, GH Archive, Code Search, Lab events, Repo meta</td></tr>
+    <tr><td>Status Pages</td><td>9</td><td>Anthropic, OpenAI, Windsurf, GitHub/Copilot, + 4 infra</td></tr>
+    <tr><td>Press / RSS</td><td>7</td><td>The Register, Heise, MIT Tech Review, Synced Review, + 3 more</td></tr>
+    <tr><td>Package Adoption</td><td>6</td><td>PyPI, npm, crates.io, Docker Hub, VS Code, Homebrew</td></tr>
+    <tr><td>Community</td><td>3</td><td>r/LocalLLaMA, r/ClaudeAI, Hacker News</td></tr>
+    <tr><td>Research</td><td>1</td><td>arXiv cs.AI + cs.LG</td></tr>
+    <tr><td>Model Distribution</td><td>1</td><td>HuggingFace Models API</td></tr>
+    <tr><td>Model Benchmark</td><td>1</td><td>Chatbot Arena (LMArena) Elo leaderboard</td></tr>
+  </table>
+</div>
+
+<!-- SLIDE 8: Distribution -->
+<div class="slide" id="s8">
+  <h3>DISTRIBUTION</h3>
+  <h2>No competitor ships distribution rails</h2>
+  <p style="margin-bottom: 32px;">Every AI dashboard requires you to visit their site. Gawk pushes the signal to where you already are.</p>
+  <div class="grid grid-3">
+    <div class="card">
+      <div class="tag">AUTOMATED DAILY</div>
+      <h3>Video Briefing</h3>
+      <p>Fully automated: data fetch, script generation, TTS narration, Playwright screenshots, ffmpeg composite, YouTube upload. Runs at 8am daily.</p>
+      <div style="margin-top: 12px;">
+        <span class="pill pill-live">YouTube</span>
+        <span class="pill pill-built">Instagram</span>
+        <span class="pill pill-built">Facebook</span>
+        <span class="pill pill-pending">TikTok</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tag">PUSH</div>
+      <h3>Alerts + Digest</h3>
+      <p>Daily email digest (double-opt-in, SPF/DKIM/DMARC). Web push notifications for tool health transitions. Discord webhooks for status changes.</p>
+      <div style="margin-top: 12px;">
+        <span class="pill pill-live">Email</span>
+        <span class="pill pill-live">Push</span>
+        <span class="pill pill-live">Discord</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tag">PROGRAMMATIC</div>
+      <h3>Open API + RSS</h3>
+      <p>7 versioned endpoints: feed, models, SDK, agents, labs, sources, status. RSS feed for power users. Documented at /docs/api.</p>
+      <div style="margin-top: 12px;">
+        <span class="pill pill-live">API</span>
+        <span class="pill pill-live">RSS</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 9: Competitive Landscape -->
+<div class="slide" id="s9">
+  <h3>LANDSCAPE</h3>
+  <h2>Who else is here</h2>
+  <table>
+    <tr><th>Product</th><th>Live data</th><th>Per-number citation</th><th>Cross-layer</th><th>Distribution</th><th>API</th></tr>
+    <tr><td>Artificial Analysis</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td><td class="cross">No</td><td class="cross">No</td></tr>
+    <tr><td>LM Market Cap</td><td class="cross">No</td><td class="cross">No</td><td class="cross">No</td><td class="cross">No</td><td>Partial</td></tr>
+    <tr><td>AI News / smol.ai</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td><td>Newsletter</td><td class="cross">No</td></tr>
+    <tr><td style="color: #a78bfa; font-weight: 700;">Gawk</td><td class="check">Yes</td><td class="check">Yes</td><td class="check">Yes</td><td class="check">7 channels</td><td class="check">7 endpoints</td></tr>
+  </table>
+  <p style="margin-top: 24px;">
+    <span class="amber">Honest threat:</span> HuggingFace (180M dev reach) or GitHub could build a competing view in one sprint.
+    The moat is not the data — it's the trust contract plus the distribution rails.
+  </p>
+</div>
+
+<!-- SLIDE 10: Market -->
+<div class="slide" id="s10">
+  <h3>MARKET</h3>
+  <h2>Who pays for AI ecosystem intelligence?</h2>
+  <div class="two-col">
+    <div>
+      <h3 style="color: #e5e5e5;">Bottom-up</h3>
+      <ul>
+        <li>~50,000 AI-first startups globally</li>
+        <li>~500 AI-focused investment firms</li>
+        <li>~10,000 DevRel / developer advocate teams</li>
+        <li>Growing at 40%+ YoY with AI adoption</li>
+      </ul>
+      <p class="small" style="margin-top: 24px;"><!-- REFINE THESE NUMBERS WITH YOUR OWN RESEARCH --></p>
+    </div>
+    <div>
+      <div class="card">
+        <h3>Example calculation</h3>
+        <p style="font-size: 20px;">
+          5,000 teams &times; $49/mo API tier<br>
+          = <span class="highlight" style="font-size: 28px; font-weight: 700;">$2.9M ARR</span><br><br>
+          500 enterprise &times; $199/mo premium<br>
+          = <span class="highlight" style="font-size: 28px; font-weight: 700;">$1.2M ARR</span><br><br>
+          <span style="color: #737373;">Initial addressable: $4.1M ARR</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 11: Business Model -->
+<div class="slide" id="s11">
+  <h3>BUSINESS MODEL</h3>
+  <h2>Freemium API</h2>
+  <div class="grid grid-3" style="margin-top: 32px;">
+    <div class="card" style="border-color: #262626;">
+      <h3 style="color: #737373;">Free</h3>
+      <p style="font-size: 36px; font-weight: 700; color: #f5f5f5; margin-bottom: 16px;">$0</p>
+      <ul>
+        <li>Dashboard access</li>
+        <li>Daily video + email digest</li>
+        <li>API: 100 calls/day</li>
+        <li>Push alerts</li>
+      </ul>
+    </div>
+    <div class="card" style="border-color: #a78bfa;">
+      <h3>Pro</h3>
+      <p style="font-size: 36px; font-weight: 700; color: #a78bfa; margin-bottom: 16px;">$49<span style="font-size: 18px; color: #737373;">/mo</span></p>
+      <ul>
+        <li>API: 10,000 calls/day</li>
+        <li>Historical data (30 days)</li>
+        <li>Webhook alerts</li>
+        <li>Stack-specific filtering</li>
+      </ul>
+    </div>
+    <div class="card" style="border-color: #4ade80;">
+      <h3 style="color: #4ade80;">Enterprise</h3>
+      <p style="font-size: 36px; font-weight: 700; color: #4ade80; margin-bottom: 16px;">$199<span style="font-size: 18px; color: #737373;">/mo</span></p>
+      <ul>
+        <li>Unlimited API</li>
+        <li>90-day historical</li>
+        <li>Correlated degradation alerts</li>
+        <li>Custom data feeds</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 12: Team -->
+<div class="slide" id="s12">
+  <h3>FOUNDER</h3>
+  <h2>Neelagiri</h2>
+  <div class="two-col" style="margin-top: 32px;">
+    <div>
+      <p style="font-size: 22px; margin-bottom: 24px;">Enterprise sales professional. Based in London. Built Gawk solo — 391 commits in 25 days.</p>
+      <ul>
+        <li>Enterprise sales background — understands the buyer</li>
+        <li>Built the entire stack: Next.js, Three.js globe, 23 cron workflows, automated video pipeline, Hermes 3 watchdog agent</li>
+        <li>Shipped 5 products: SheetPortal, ContextKey (App Store), CashlessNow, DeepShort, Gawk</li>
+        <li>Full-stack: frontend, backend, infra, video production, API design</li>
+      </ul>
+    </div>
+    <div>
+      <div class="card">
+        <h3>Why me</h3>
+        <p>The AI ecosystem intelligence problem sits at the intersection of data engineering, editorial discipline, and distribution — three things I've been building simultaneously for the past month. The trust contract (per-number citation) is an operational choice most teams wouldn't make because it slows you down. I chose it anyway because trust is the only moat in data products.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 13: The Ask -->
+<div class="slide" id="s13">
+  <h3>THE ASK</h3>
+  <h1 style="margin-bottom: 40px;"><!-- FILL IN: Raising $X --></h1>
+  <div class="grid grid-2" style="max-width: 800px;">
+    <div>
+      <h3 style="color: #e5e5e5;">18-month milestones</h3>
+      <ul>
+        <li><!-- FILL IN: e.g. 1,000 email subscribers --></li>
+        <li><!-- FILL IN: e.g. 500 API Pro customers --></li>
+        <li><!-- FILL IN: e.g. $X MRR --></li>
+        <li><!-- FILL IN: e.g. 50 enterprise accounts --></li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color: #e5e5e5;">Use of funds</h3>
+      <ul>
+        <li><!-- FILL IN: e.g. Hire 1 engineer --></li>
+        <li><!-- FILL IN: e.g. Infrastructure scaling --></li>
+        <li><!-- FILL IN: e.g. Go-to-market --></li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top: 60px; font-size: 32px; color: #e5e5e5;">
+    gawk.dev &nbsp;&middot;&nbsp; Live now &nbsp;&middot;&nbsp; <span class="highlight">Every number has a source</span>
+  </p>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="slide-num" id="slideNum">1 / 13</div>
+<div class="nav">
+  <button onclick="prev()" id="btnPrev">←</button>
+  <button onclick="next()" id="btnNext">→</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let current = 0;
+
+  function show(n) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(n, slides.length - 1));
+    slides[current].classList.add('active');
+    document.getElementById('progress').style.width = ((current + 1) / slides.length * 100) + '%';
+    document.getElementById('slideNum').textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function next() { show(current + 1); }
+  function prev() { show(current - 1); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+    if (e.key === 'Home') { e.preventDefault(); show(0); }
+    if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? next() : prev(); }
+  });
+
+  show(0);
+</script>
+</body>
+</html>
