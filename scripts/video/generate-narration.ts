@@ -354,7 +354,7 @@ function buildGenericNarration(n: Narrative, lead: ScoredEvent): string {
     if (moved > 5) return `${h.split(":")[0] || h} climbing ${positions} spots. Worth watching.`;
   }
 
-  if (m.eventCount && m.eventCount > 100) {
+  if ((m as any).eventCount && (m as any).eventCount > 100) {
     return `${h}. That level of activity stands out.`;
   }
 

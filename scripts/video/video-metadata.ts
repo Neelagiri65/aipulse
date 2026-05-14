@@ -27,7 +27,7 @@ function dateFormatted(): string {
   });
 }
 
-const HASHTAGS = {
+const HASHTAGS: Record<string, string[]> = {
   core: ["#AI", "#AITools", "#DeveloperTools", "#OpenRouter", "#GawkDaily"],
   instagram: ["#AINews", "#TechNews", "#MachineLearning", "#AIInfrastructure", "#Reels", "#TechReels"],
   tiktok: ["#AINews", "#TechTok", "#LearnOnTikTok", "#MachineLearning", "#AITools"],

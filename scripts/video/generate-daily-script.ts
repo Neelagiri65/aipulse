@@ -478,7 +478,7 @@ async function main() {
     // Skip if any model in the leaderboard top-5 is mentioned
     const headlineLower = narrative.headline.toLowerCase();
     if (leaderboardModelNames.size > 0) {
-      const duplicatesLeaderboard = [...leaderboardModelNames].some(name => headlineLower.includes(name));
+      const duplicatesLeaderboard = [...leaderboardModelNames].some(name => headlineLower.includes(name as string));
       if (duplicatesLeaderboard) {
         console.log(`  [SKIP     ] Already in leaderboard — ${narrative.headline.slice(0, 50)}`);
         continue;

@@ -96,6 +96,11 @@ function main() {
     abort("Cannot proceed without a script");
   }
 
+  // Content validation — catch contradictions before rendering
+  if (!run("Validate content", "npx tsx scripts/video/validate-content.ts")) {
+    abort("Content validation failed — contradictions in script");
+  }
+
   // ─── PHASE 3: RECORD + COMPOSITE PER FORMAT ───
 
   for (const format of FORMATS) {

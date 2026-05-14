@@ -32,7 +32,7 @@ const FORMAT = args.includes("--format")
   ? (args[args.indexOf("--format") + 1] ?? "youtube")
   : "youtube";
 
-type SceneDirection = "globe" | "tools" | "models" | "wire" | "sdk-adoption" | "labs";
+type SceneDirection = "globe" | "tools" | "models" | "wire" | "sdk-adoption" | "labs" | "wipe";
 
 type SegmentPlan = {
   id: string;
