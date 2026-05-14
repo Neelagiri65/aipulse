@@ -216,9 +216,37 @@ export async function fetchLabActivity(
   const fetchImpl = opts.fetchImpl ?? fetch;
   const token = opts.token ?? process.env.GH_TOKEN;
   if (!token) {
-    throw new Error(
-      "GH_TOKEN is not set. Set it in .env.local locally or in Vercel env vars.",
+    console.warn(
+      "[fetch-labs] GH_TOKEN is not set — returning empty labs. Set it in .env.local locally or in Vercel env vars.",
     );
+    return {
+      labs: registry.map((entry) => ({
+        id: entry.id,
+        displayName: entry.displayName,
+        kind: entry.kind,
+        city: entry.city,
+        country: entry.country,
+        lat: entry.lat,
+        lng: entry.lng,
+        hqSourceUrl: entry.hqSourceUrl,
+        url: entry.url,
+        orgs: entry.orgs,
+        notes: entry.notes,
+        repos: entry.repos.map((r) => ({
+          owner: r.owner,
+          repo: r.repo,
+          sourceUrl: r.sourceUrl,
+          total: 0,
+          byType: {},
+          stale: true,
+        })),
+        total: 0,
+        byType: {},
+        stale: true,
+      })),
+      generatedAt: now.toISOString(),
+      failures: [{ step: "auth", message: "GH_TOKEN not set" }],
+    };
   }
 
   const failures: LabsPayload["failures"] = [];
