@@ -125,7 +125,20 @@ function main() {
         console.error(`  Skipping ${format} — recording failed`);
         continue;
       }
-      console.warn(`  DEGRADED: Recording failed — composite will fail, raw fallback will be attempted`);
+      // Fallback: capture screenshots → stitch into a slideshow webm composite can ingest
+      console.warn(`  DEGRADED: Recording failed — attempting screenshot → slideshow fallback`);
+      const screenshotOk = run(
+        `Screenshot fallback (${format})`,
+        `npx tsx scripts/video/capture-screenshots.ts --format ${recorderFormat}`,
+        { optional: true, timeout: 60_000 }
+      );
+      if (screenshotOk && existsSync(resolve(ROOT, "public/video-screenshots/map-global.png"))) {
+        run(
+          `Stitch screenshots → webm (${format})`,
+          `ffmpeg -y -framerate 1/5 -pattern_type glob -i "public/video-screenshots/*.png" -c:v libvpx -pix_fmt yuva420p -auto-alt-ref 0 out/walkthrough.webm`,
+          { optional: true, timeout: 30_000 }
+        );
+      }
     }
 
     // Preserve walkthrough per format (recorder always writes to out/walkthrough.webm)
