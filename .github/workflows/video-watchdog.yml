@@ -10,7 +10,7 @@ name: video-watchdog
 #
 # Required repo secrets:
 #   DISCORD_DAILY_WEBHOOK_URL — for alerts
-#   VIDEO_WATCHDOG_PAT        — PAT with actions:write to dispatch workflows
+#   GH_TOKEN                  — PAT with workflow scope to dispatch retries
 #                                (GITHUB_TOKEN can't dispatch in the same repo)
 
 on:
@@ -58,7 +58,7 @@ jobs:
         if: steps.check.outputs.missing == 'true'
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.VIDEO_WATCHDOG_PAT || github.token }}
+          github-token: ${{ secrets.GH_TOKEN }}
           script: |
             console.log('Dispatching daily-video retry...');
             try {
