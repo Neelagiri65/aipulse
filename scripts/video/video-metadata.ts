@@ -41,7 +41,7 @@ export type PlatformMetadata = {
   stories: Story[];
 };
 
-export function buildMetadata(platform: "youtube" | "instagram" | "facebook" | "tiktok", format?: string): PlatformMetadata {
+export function buildMetadata(platform: "youtube" | "instagram" | "facebook" | "tiktok" | "discord", format?: string): PlatformMetadata {
   const fmt = format ?? (platform === "instagram" || platform === "tiktok" ? "instagram" : "youtube");
   const stories = loadStories(fmt);
   const lead = stories[0]?.headline || "AI Infrastructure Daily Brief";
@@ -112,6 +112,22 @@ export function buildMetadata(platform: "youtube" | "instagram" | "facebook" | "
           platformHashtags.join(" "),
         ].join("\n"),
         hashtags: platformHashtags,
+        stories,
+      };
+
+    case "discord":
+      return {
+        title: `Gawk Daily — ${date}`,
+        caption: [
+          `**${lead}**`,
+          "",
+          `${storyCount} stories today — here's the quick version:`,
+          "",
+          ...stories.slice(0, 6).map((s) => `→ ${s.headline}`),
+          "",
+          `Every number traces to a public source. Full dashboard: <https://gawk.dev>`,
+        ].join("\n"),
+        hashtags: [],
         stories,
       };
   }

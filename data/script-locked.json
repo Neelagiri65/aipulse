@@ -2,123 +2,123 @@
   {
     "id": "top-model",
     "segment": "hook",
-    "headline": "Hy3 preview holds #1 on OpenRouter",
+    "headline": "DeepSeek V4 Flash holds #1 on OpenRouter",
     "type": "leaderboard",
     "scene": "globe",
     "holdSec": 10,
     "leaderboard": {
-      "label": "OPENROUTER RANKING · 14 MAY",
-      "heroName": "HY3 PREVIEW",
+      "label": "OPENROUTER RANKING · 9 JUNE",
+      "heroName": "DEEPSEEK V4 FLASH",
       "heroSub": "#1 — holds position",
       "rows": [
         {
           "rank": 1,
-          "name": "Hy3 preview",
-          "value": "$0.07/MTok"
+          "name": "DeepSeek V4 Flash",
+          "value": "$0.10/MTok"
         },
         {
           "rank": 2,
-          "name": "Claude Opus 4.7",
-          "value": "$5.00/MTok"
+          "name": "Hy3 preview",
+          "value": "$0.06/MTok"
         },
         {
           "rank": 3,
-          "name": "Claude Sonnet 4.6",
-          "value": "$3.00/MTok"
+          "name": "MiniMax M3",
+          "value": "$0.30/MTok"
         },
         {
           "rank": 4,
-          "name": "DeepSeek V4 Flash",
-          "value": "$0.13/MTok"
+          "name": "MiMo-V2.5",
+          "value": "$0.14/MTok"
         },
         {
           "rank": 5,
-          "name": "Kimi K2.6",
-          "value": "$0.74/MTok"
+          "name": "Owl Alpha",
+          "value": "$0.000/MTok"
         }
       ],
-      "source": "Source: OpenRouter Top Weekly · 14 May"
+      "source": "Source: OpenRouter Top Weekly · 9 June"
     }
   },
   {
     "id": "narrative-0",
     "segment": "story",
-    "headline": "elebumm/RedditVideoMakerBot trending on GitHub (134 stars today)",
+    "headline": "yt-dlp/yt-dlp trending on GitHub (338 stars today)",
     "type": "data-card",
     "scene": "wire",
     "holdSec": 5,
     "dataCard": {
       "label": "TRENDING",
-      "number": "★ 134",
+      "number": "★ 338",
       "direction": "up",
-      "title": "elebumm/RedditVideoMakerBot trending on GitHub (134 stars today)",
-      "source": "Source: GitHub Trending · 14 May"
+      "title": "yt-dlp/yt-dlp trending on GitHub (338 stars today)",
+      "source": "Source: GitHub Trending · 9 June"
     }
   },
   {
-    "id": "narrative-2",
+    "id": "narrative-1",
     "segment": "story",
-    "headline": "Google: Gemini 3.1 Flash Lite up 4 ranks on OpenRouter weekly",
-    "type": "data-card",
-    "scene": "models",
-    "holdSec": 5,
-    "dataCard": {
-      "label": "RANK UP",
-      "number": "↑ 4",
-      "direction": "up",
-      "title": "Gemini 3.1 Flash Lite",
-      "source": "Source: OpenRouter · 14 May"
-    }
-  },
-  {
-    "id": "narrative-4",
-    "segment": "story",
-    "headline": "Average day in the life of ChatGPT user",
+    "headline": "OpenAI Submits S-1 Draft to SEC",
     "type": "data-card",
     "scene": "wire",
     "holdSec": 5,
     "dataCard": {
       "label": "TRENDING",
-      "number": "▲ 1589",
+      "number": "▲ 149",
       "direction": "up",
-      "title": "Average day in the life of ChatGPT user",
-      "source": "Source: Reddit · 14 May"
+      "title": "OpenAI Submits S-1 Draft to SEC",
+      "source": "Source: Reddit · 9 June"
     }
   },
   {
-    "id": "narrative-5",
+    "id": "narrative-3",
     "segment": "story",
-    "headline": "burn downloads up 38.2% on crates",
+    "headline": "ollama downloads down 164.4% on brew",
     "type": "data-card",
     "scene": "sdk-adoption",
     "holdSec": 5,
     "dataCard": {
       "label": "DOWNLOADS",
-      "number": "↑ 38%",
-      "direction": "up",
-      "title": "burn downloads up 38.2% on crates",
-      "source": "Source: Package registry data · 14 May"
+      "number": "↓ 164%",
+      "direction": "down",
+      "title": "ollama downloads down 164.4% on brew",
+      "source": "Source: Package registry data · 9 June"
     }
   },
   {
-    "id": "narrative-6",
+    "id": "narrative-5",
     "segment": "story",
-    "headline": "Owl Alpha moved from rank 16 to 13",
+    "headline": "NVIDIA: Nemotron 3 Ultra (free) up 11 ranks on OpenRouter weekly",
     "type": "data-card",
     "scene": "models",
     "holdSec": 5,
     "dataCard": {
       "label": "RANK UP",
-      "number": "↑ 3",
+      "number": "↑ 11",
       "direction": "up",
-      "title": "Owl Alpha — Now #13, was #16",
-      "source": "Source: OpenRouter Weekly · 14 May"
+      "title": "Nemotron 3 Ultra (free)",
+      "source": "Source: OpenRouter · 9 June"
+    }
+  },
+  {
+    "id": "narrative-6",
+    "segment": "story",
+    "headline": "Claude Opus 4.8 moved from rank 10 to 9",
+    "type": "data-card",
+    "scene": "models",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "RANK UP",
+      "number": "↑ 1",
+      "direction": "up",
+      "title": "Claude Opus 4.8 — Now #9, was #10",
+      "source": "Source: OpenRouter Weekly · 9 June"
     }
   },
   {
     "id": "narrative-9",
     "segment": "story",
-    "headline": "WARDEN: Endangered Indigenous Language Transcription and Translation with 6 Hours of Training Data",
+    "headline": "SoccerNet 2026 Player-Centric Ball-Action Spotting:Retraining and Post-Processing Extensions to the FOOTPASS Baselines",
     "type": "data-card",
     "scene": "wire",
     "holdSec": 5,
@@ -126,38 +126,38 @@
       "label": "NEW RESEARCH",
       "number": "arxiv",
       "direction": "neutral",
-      "title": "WARDEN: Endangered Indigenous Language Transcription and Translation with 6 Hours of Training Data",
-      "source": "Source: arXiv · 14 May"
+      "title": "SoccerNet 2026 Player-Centric Ball-Action Spotting:Retraining and Post-Processing Extensions to the FOOTPASS Baselines",
+      "source": "Source: arXiv · 9 June"
     }
   },
   {
     "id": "sdk-GitHub.copilot",
     "segment": "story",
-    "headline": "GitHub.copilot (vscode) up 27%",
+    "headline": "GitHub.copilot (vscode) down 41%",
     "type": "data-card",
     "scene": "sdk-adoption",
     "holdSec": 5,
     "dataCard": {
       "label": "SDK ADOPTION",
-      "number": "↑ 27%",
-      "direction": "up",
+      "number": "↓ 41%",
+      "direction": "down",
       "title": "GitHub.copilot · vscode",
-      "source": "Source: Package registry · 14 May"
+      "source": "Source: Package registry · 9 June"
     }
   },
   {
-    "id": "sdk-huggingface-hub",
+    "id": "sdk-llamaindex",
     "segment": "story",
-    "headline": "huggingface-hub (pypi) down 18%",
+    "headline": "llamaindex (npm) up 39%",
     "type": "data-card",
     "scene": "sdk-adoption",
     "holdSec": 5,
     "dataCard": {
       "label": "SDK ADOPTION",
-      "number": "↓ 18%",
-      "direction": "down",
-      "title": "huggingface-hub · pypi",
-      "source": "Source: Package registry · 14 May"
+      "number": "↑ 39%",
+      "direction": "up",
+      "title": "llamaindex · npm",
+      "source": "Source: Package registry · 9 June"
     }
   }
 ]

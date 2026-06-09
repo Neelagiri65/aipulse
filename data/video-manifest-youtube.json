@@ -11,7 +11,7 @@
   {
     "id": "top-model",
     "segment": "hook",
-    "headline": "Hy3 preview holds #1 on OpenRouter",
+    "headline": "DeepSeek V4 Flash holds #1 on OpenRouter",
     "scene": "globe",
     "holdSec": 10,
     "startSec": 1,
@@ -29,7 +29,7 @@
   {
     "id": "narrative-0",
     "segment": "story",
-    "headline": "elebumm/RedditVideoMakerBot trending on GitHub (134 stars today)",
+    "headline": "yt-dlp/yt-dlp trending on GitHub (338 stars today)",
     "scene": "wire",
     "holdSec": 5,
     "startSec": 12,
@@ -45,10 +45,10 @@
     "endSec": 18
   },
   {
-    "id": "narrative-2",
+    "id": "narrative-1",
     "segment": "story",
-    "headline": "Google: Gemini 3.1 Flash Lite up 4 ranks on OpenRouter weekly",
-    "scene": "models",
+    "headline": "OpenAI Submits S-1 Draft to SEC",
+    "scene": "wire",
     "holdSec": 5,
     "startSec": 18,
     "endSec": 23
@@ -63,10 +63,10 @@
     "endSec": 24
   },
   {
-    "id": "narrative-4",
+    "id": "narrative-3",
     "segment": "story",
-    "headline": "Average day in the life of ChatGPT user",
-    "scene": "wire",
+    "headline": "ollama downloads down 164.4% on brew",
+    "scene": "sdk-adoption",
     "holdSec": 5,
     "startSec": 24,
     "endSec": 29
@@ -83,8 +83,8 @@
   {
     "id": "narrative-5",
     "segment": "story",
-    "headline": "burn downloads up 38.2% on crates",
-    "scene": "sdk-adoption",
+    "headline": "NVIDIA: Nemotron 3 Ultra (free) up 11 ranks on OpenRouter weekly",
+    "scene": "models",
     "holdSec": 5,
     "startSec": 30,
     "endSec": 35
@@ -101,7 +101,7 @@
   {
     "id": "narrative-6",
     "segment": "story",
-    "headline": "Owl Alpha moved from rank 16 to 13",
+    "headline": "Claude Opus 4.8 moved from rank 10 to 9",
     "scene": "models",
     "holdSec": 5,
     "startSec": 36,
@@ -119,7 +119,7 @@
   {
     "id": "narrative-9",
     "segment": "story",
-    "headline": "WARDEN: Endangered Indigenous Language Transcription and Translation with 6 Hours of Training Data",
+    "headline": "SoccerNet 2026 Player-Centric Ball-Action Spotting:Retraining and Post-Processing Extensions to the FOOTPASS Baselines",
     "scene": "wire",
     "holdSec": 5,
     "startSec": 42,
@@ -137,7 +137,7 @@
   {
     "id": "sdk-GitHub.copilot",
     "segment": "story",
-    "headline": "GitHub.copilot (vscode) up 27%",
+    "headline": "GitHub.copilot (vscode) down 41%",
     "scene": "sdk-adoption",
     "holdSec": 5,
     "startSec": 48,
@@ -153,9 +153,9 @@
     "endSec": 54
   },
   {
-    "id": "sdk-huggingface-hub",
+    "id": "sdk-llamaindex",
     "segment": "story",
-    "headline": "huggingface-hub (pypi) down 18%",
+    "headline": "llamaindex (npm) up 39%",
     "scene": "sdk-adoption",
     "holdSec": 5,
     "startSec": 54,

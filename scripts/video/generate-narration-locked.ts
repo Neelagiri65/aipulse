@@ -11,7 +11,7 @@ import { execSync } from "child_process";
 const ROOT = process.cwd();
 const VOICE = "en-US-AndrewMultilingualNeural";
 const BASE_RATE = 12;
-const EDGE_TTS = "/tmp/edge-tts-venv/bin/edge-tts";
+const EDGE_TTS = `${process.env.HOME}/.local/share/edge-tts-venv/bin/edge-tts`;
 
 type LockedNarration = { id: string; narration: string };
 type LockedStory = { id: string; segment: string; headline: string; scene: string; holdSec: number };
@@ -72,6 +72,10 @@ function main() {
     console.log(`[${(story?.segment ?? n.id).toUpperCase().padEnd(9)}] ${n.narration.slice(0, 60)}`);
 
     let dur = generateTTS(n.narration, outFile);
+    if (dur === 0) {
+      console.error(`\n  FATAL: TTS produced no audio for segment "${n.id}". Aborting.`);
+      process.exit(1);
+    }
 
     // Speed up if narration is longer than available video time
     if (mEntry) {
@@ -80,6 +84,10 @@ function main() {
         const speedUp = Math.min(40, Math.round(((dur / avail) - 1) * 100) + 10);
         console.log(`  ⚠ ${dur.toFixed(1)}s > ${avail.toFixed(1)}s — retrying at +${speedUp}%`);
         dur = generateTTS(n.narration, outFile, speedUp);
+        if (dur === 0) {
+          console.error(`\n  FATAL: TTS retry also failed for segment "${n.id}". Aborting.`);
+          process.exit(1);
+        }
       }
     }
 

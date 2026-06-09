@@ -18,7 +18,7 @@ const ROOT = process.cwd();
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes("--dry-run");
 
-const ALL_PLATFORMS = ["youtube", "instagram", "facebook", "tiktok"] as const;
+const ALL_PLATFORMS = ["youtube", "instagram", "facebook", "tiktok", "discord"] as const;
 type Platform = typeof ALL_PLATFORMS[number];
 
 function getArg(flag: string, fallback: string): string {
@@ -73,6 +73,13 @@ const PLATFORM_CONFIGS: PlatformConfig[] = [
     extraArgs: [],
     configCheck: () =>
       existsSync(resolve(process.env.HOME || "~", ".secrets/tiktok-config.json")),
+  },
+  {
+    platform: "discord",
+    script: "scripts/video/upload-discord.ts",
+    videoFile: `out/gawk-daily-${DATE}.mp4`,
+    extraArgs: [],
+    configCheck: () => Boolean(process.env.DISCORD_DAILY_WEBHOOK_URL),
   },
 ];
 

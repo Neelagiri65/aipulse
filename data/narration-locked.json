@@ -1,43 +1,43 @@
 [
   {
     "id": "intro",
-    "narration": "14 May. Here's what moved."
+    "narration": "9 June. Here's what moved."
   },
   {
     "id": "top-model",
-    "narration": "Hy3 preview holds number one on OpenRouter. $0.07 per million tokens. Claude Opus 4.7 in second at $5.00."
+    "narration": "DeepSeek V4 Flash holds number one on OpenRouter. $0.10 per million tokens. Hy3 preview in second at $0.06."
   },
   {
     "id": "narrative-0",
-    "narration": "elebumm/RedditVideoMakerBot is trending on GitHub. 134 stars today."
+    "narration": "yt-dlp/yt-dlp is trending on GitHub. 338 stars today."
   },
   {
-    "id": "narrative-2",
-    "narration": "Gemini 3.1 Flash Lite climbed 4 ranks on OpenRouter this week."
+    "id": "narrative-1",
+    "narration": "OpenAI Submits S-1 Draft to SEC."
   },
   {
-    "id": "narrative-4",
-    "narration": "Average day in the life of ChatGPT user."
+    "id": "narrative-3",
+    "narration": "ollama downloads down 164 percent this week."
   },
   {
     "id": "narrative-5",
-    "narration": "burn downloads up 38 percent this week."
+    "narration": "Nemotron 3 Ultra (free) climbed 11 ranks on OpenRouter this week."
   },
   {
     "id": "narrative-6",
-    "narration": "Owl Alpha climbed 3 ranks — from 16th to 13th."
+    "narration": "Claude Opus 4.8 climbed 1 ranks — from 10th to 9th."
   },
   {
     "id": "narrative-9",
-    "narration": "New research: WARDEN: Endangered Indigenous Language Transcription and Translation with 6 Hours."
+    "narration": "New research: SoccerNet 2026 Player-Centric Ball-Action Spotting:Retraining and Post-Processing Extensions to."
   },
   {
     "id": "sdk-GitHub.copilot",
-    "narration": "GitHub.copilot on vscode: downloads up 27 percent."
+    "narration": "GitHub.copilot on vscode: downloads down 41 percent."
   },
   {
-    "id": "sdk-huggingface-hub",
-    "narration": "huggingface-hub on pypi: downloads down 18 percent."
+    "id": "sdk-llamaindex",
+    "narration": "llamaindex on npm: downloads up 39 percent."
   },
   {
     "id": "outro",

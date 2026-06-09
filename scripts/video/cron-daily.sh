@@ -23,6 +23,14 @@ TIMEOUT_SEC=600
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export HOME="/Users/srinathprasannancs"
 
+# ── Load .env.local (Discord webhook, etc.) ──
+ENV_LOCAL="${PROJECT_DIR}/.env.local"
+if [ -f "$ENV_LOCAL" ]; then
+    set -a
+    source "$ENV_LOCAL"
+    set +a
+fi
+
 # ── Owner-only file creation ──
 umask 077
 
@@ -47,6 +55,13 @@ DATE=$(date +%Y-%m-%d)
 LOG="${LOG_DIR}/daily-${DATE}.log"
 
 echo "$(date -Iseconds) START" >> "$LOG"
+
+# ── Pre-flight: verify edge-tts is callable ──
+EDGE_TTS="${HOME}/.local/share/edge-tts-venv/bin/edge-tts"
+if [ ! -x "$EDGE_TTS" ]; then
+    echo "$(date -Iseconds) ABORT: edge-tts not found at $EDGE_TTS — rebuild with: python3 -m venv ~/.local/share/edge-tts-venv && ~/.local/share/edge-tts-venv/bin/pip install edge-tts" >> "$LOG"
+    exit 1
+fi
 
 # ── Run pipeline with timeout ──
 cd "$PROJECT_DIR"

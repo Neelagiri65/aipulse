@@ -132,11 +132,13 @@ function main() {
     }
 
     // Generate narration from locked script (always present after generate-daily-script)
-    run(
+    if (!run(
       `Generate narration (${format})`,
       "npx tsx scripts/video/generate-narration-locked.ts",
-      { optional: true }
-    );
+    )) {
+      console.error(`  Skipping ${format} — narration generation failed`);
+      continue;
+    }
 
     // Composite
     if (!run(
@@ -172,7 +174,7 @@ function main() {
     });
 
     if (FORMATS.includes("youtube")) {
-      platforms.push("facebook");
+      platforms.push("facebook", "discord");
     }
 
     run(
