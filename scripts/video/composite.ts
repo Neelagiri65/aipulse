@@ -50,13 +50,21 @@ type NarrationSegmentData = {
   videoEndSec?: number;
 };
 
+function resolveFont(): string {
+  if (process.env.FFMPEG_FONTFILE) return `fontfile=${process.env.FFMPEG_FONTFILE}`;
+  const ciFont = "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf";
+  if (existsSync(ciFont)) return `fontfile=${ciFont}`;
+  return "font='Courier New'";
+}
+
+const FONT_SPEC = resolveFont();
+
 const BRAND = {
   bg: "06080a",
   bgAlpha: "06080aCC",
   fg: "d8e2e6",
   fgMuted: "7a8a90",
   accent: "2dd4bf",
-  fontFamily: "Courier New",
 };
 
 type Overlay = {
@@ -154,13 +162,13 @@ function buildFilterChain(overlays: Overlay[], format: string, videoDuration?: n
   if (format === "vertical" && !sourceIsVertical) {
     filters.push(
       `drawtext=text='LIVE \\: gawk.dev':` +
-        `font='${BRAND.fontFamily}':fontsize=20:fontcolor=0x${BRAND.accent}:` +
+        `${FONT_SPEC}:fontsize=20:fontcolor=0x${BRAND.accent}:` +
         `x=w-tw-30:y=25:` +
         `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=8`
     );
     filters.push(
       `drawtext=text='${DATE}':` +
-        `font='${BRAND.fontFamily}':fontsize=18:fontcolor=0x${BRAND.fgMuted}:` +
+        `${FONT_SPEC}:fontsize=18:fontcolor=0x${BRAND.fgMuted}:` +
         `x=30:y=28:` +
         `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=6`
     );
@@ -174,7 +182,7 @@ function buildFilterChain(overlays: Overlay[], format: string, videoDuration?: n
 
       filters.push(
         `drawtext=text='${headline}':` +
-          `font='${BRAND.fontFamily}':fontsize=28:fontcolor=0x${BRAND.fg}:` +
+          `${FONT_SPEC}:fontsize=28:fontcolor=0x${BRAND.fg}:` +
           `x=40:y=${yBase}:` +
           `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=12:` +
           `enable='between(t,${o.startSec},${o.endSec})'`
@@ -182,7 +190,7 @@ function buildFilterChain(overlays: Overlay[], format: string, videoDuration?: n
 
       filters.push(
         `drawtext=text='${source}':` +
-          `font='${BRAND.fontFamily}':fontsize=18:fontcolor=0x${BRAND.accent}:` +
+          `${FONT_SPEC}:fontsize=18:fontcolor=0x${BRAND.accent}:` +
           `x=40:y=${yBase}+42:` +
           `box=1:boxcolor=0x${BRAND.bgAlpha}:boxborderw=6:` +
           `enable='between(t,${o.startSec},${o.endSec})'`
@@ -195,13 +203,13 @@ function buildFilterChain(overlays: Overlay[], format: string, videoDuration?: n
     const ctaStart = ctaEnd - 5;
     filters.push(
       `drawtext=text='gawk.dev':` +
-        `font='${BRAND.fontFamily}':fontsize=48:fontcolor=0x${BRAND.accent}:` +
+        `${FONT_SPEC}:fontsize=48:fontcolor=0x${BRAND.accent}:` +
         `x=(w-tw)/2:y=(h-th)/2-20:` +
         `enable='between(t,${ctaStart},${ctaEnd})'`
     );
     filters.push(
       `drawtext=text='See what the AI world actually sees.':` +
-        `font='${BRAND.fontFamily}':fontsize=22:fontcolor=0x${BRAND.fgMuted}:` +
+        `${FONT_SPEC}:fontsize=22:fontcolor=0x${BRAND.fgMuted}:` +
         `x=(w-tw)/2:y=(h-th)/2+30:` +
         `enable='between(t,${ctaStart},${ctaEnd})'`
     );

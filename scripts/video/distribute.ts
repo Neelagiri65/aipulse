@@ -46,7 +46,9 @@ const PLATFORM_CONFIGS: PlatformConfig[] = [
     script: "scripts/video/upload-youtube.ts",
     videoFile: `out/gawk-daily-${DATE}.mp4`,
     extraArgs: ["--visibility", "public"],
-    configCheck: () => existsSync(resolve(process.env.HOME || "~", ".secrets/youtube-client-secret.json")),
+    configCheck: () =>
+      Boolean(process.env.YOUTUBE_CLIENT_SECRET && process.env.YOUTUBE_REFRESH_TOKEN) ||
+      existsSync(resolve(process.env.HOME || "~", ".secrets/youtube-client-secret.json")),
   },
   {
     platform: "instagram",
@@ -54,8 +56,9 @@ const PLATFORM_CONFIGS: PlatformConfig[] = [
     videoFile: `out/gawk-daily-${DATE}-vertical.mp4`,
     extraArgs: [],
     configCheck: () =>
-      existsSync(resolve(process.env.HOME || "~", ".secrets/meta-config.json")) &&
-      existsSync(resolve(process.env.HOME || "~", ".secrets/meta-token.json")),
+      Boolean(process.env.META_CONFIG && process.env.META_TOKEN) ||
+      (existsSync(resolve(process.env.HOME || "~", ".secrets/meta-config.json")) &&
+       existsSync(resolve(process.env.HOME || "~", ".secrets/meta-token.json"))),
   },
   {
     platform: "facebook",
@@ -63,8 +66,9 @@ const PLATFORM_CONFIGS: PlatformConfig[] = [
     videoFile: `out/gawk-daily-${DATE}.mp4`,
     extraArgs: [],
     configCheck: () =>
-      existsSync(resolve(process.env.HOME || "~", ".secrets/meta-config.json")) &&
-      existsSync(resolve(process.env.HOME || "~", ".secrets/meta-token.json")),
+      Boolean(process.env.META_CONFIG && process.env.META_TOKEN) ||
+      (existsSync(resolve(process.env.HOME || "~", ".secrets/meta-config.json")) &&
+       existsSync(resolve(process.env.HOME || "~", ".secrets/meta-token.json"))),
   },
   {
     platform: "tiktok",

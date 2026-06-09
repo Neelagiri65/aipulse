@@ -1,0 +1,157 @@
+name: daily-video
+
+# Self-healing daily video pipeline.
+# Replaces the fragile launchd job that died silently for 11 days.
+#
+# Architecture:
+#   1. Fetch → Curate → Script → Validate (hard stops — trust gate never bends)
+#   2. Record → Narrate → Composite (fail-forward — degrade, never die)
+#   3. Distribute (partial failure OK — ship to whatever succeeds)
+#   4. Commit upload log back to repo (dedup authority)
+#
+# Required repo secrets:
+#   YOUTUBE_CLIENT_SECRET   — Google OAuth client secret JSON
+#   YOUTUBE_REFRESH_TOKEN   — Long-lived refresh token (OAuth must be "In production")
+#   DISCORD_DAILY_WEBHOOK_URL — Discord webhook for daily video channel
+#   META_CONFIG             — Meta app config JSON (optional, for Instagram/Facebook)
+#   META_TOKEN              — Meta long-lived token JSON (optional)
+#
+# Manual trigger: workflow_dispatch (also used by watchdog for retry)
+
+on:
+  schedule:
+    - cron: "0 7 * * *" # 07:00 UTC daily
+  workflow_dispatch:
+    inputs:
+      formats:
+        description: "Video formats to produce (comma-separated)"
+        default: "youtube"
+        type: string
+      force_distribute:
+        description: "Force distribute even if already uploaded today"
+        default: false
+        type: boolean
+
+concurrency:
+  group: daily-video
+  cancel-in-progress: false
+
+permissions:
+  contents: write # needed to commit upload-log.json back
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GAWK_BASE_URL: https://gawk.dev
+      YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+      YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+      DISCORD_DAILY_WEBHOOK_URL: ${{ secrets.DISCORD_DAILY_WEBHOOK_URL }}
+      META_CONFIG: ${{ secrets.META_CONFIG }}
+      META_TOKEN: ${{ secrets.META_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-liberation
+          pip install edge-tts
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify edge-tts
+        run: edge-tts --version
+
+      - name: Set edge-tts path for pipeline
+        run: echo "EDGE_TTS_PATH=$(which edge-tts)" >> "$GITHUB_ENV"
+
+      - name: Run daily pipeline (fail-forward)
+        id: pipeline
+        run: |
+          mkdir -p out/logs
+
+          FORMATS="${{ inputs.formats || 'youtube' }}"
+          EXTRA_FLAGS="--fail-forward"
+          if [ "${{ inputs.force_distribute }}" = "true" ]; then
+            EXTRA_FLAGS="$EXTRA_FLAGS --force-distribute"
+          fi
+
+          npx tsx scripts/video/daily.ts \
+            --formats "$FORMATS" \
+            $EXTRA_FLAGS \
+            2>&1 | tee out/logs/pipeline-$(date +%Y-%m-%d).log
+
+          # Record which formats produced output
+          for fmt in $(echo "$FORMATS" | tr ',' ' '); do
+            suffix=""
+            [ "$fmt" = "instagram" ] && suffix="-vertical"
+            if [ -f "out/gawk-daily-$(date +%Y-%m-%d)${suffix}.mp4" ]; then
+              echo "has_output=true" >> "$GITHUB_OUTPUT"
+              echo "Output produced for $fmt"
+            fi
+          done
+        env:
+          EDGE_TTS: ${{ env.EDGE_TTS_PATH }}
+        continue-on-error: true
+
+      - name: Check pipeline produced output
+        if: steps.pipeline.outputs.has_output != 'true'
+        run: |
+          echo "::error::Pipeline produced no output for any format"
+          exit 1
+
+      - name: Upload video artifacts
+        if: steps.pipeline.outputs.has_output == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-video-${{ github.run_id }}
+          path: out/gawk-daily-*.mp4
+          retention-days: 7
+
+      - name: Upload pipeline log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-log-${{ github.run_id }}
+          path: out/logs/pipeline-*.log
+          retention-days: 30
+
+      - name: Commit upload log
+        if: steps.pipeline.outputs.has_output == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/upload-log.json
+          if git diff --cached --quiet; then
+            echo "No upload log changes to commit"
+          else
+            git commit -m "chore(video): update upload log — $(date +%Y-%m-%d) [skip ci]"
+            git pull --rebase origin main
+            git push
+          fi
+
+      - name: Alert on total failure
+        if: failure()
+        run: |
+          if [ -n "$DISCORD_DAILY_WEBHOOK_URL" ]; then
+            curl -s -X POST "$DISCORD_DAILY_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"content\": \"**PIPELINE FAILURE** — Daily video failed on $(date +%Y-%m-%d).\\nNo output produced. Check: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\\n\\nThe watchdog will retry at 09:30 UTC.\",
+                \"username\": \"Gawk Watchdog\"
+              }"
+          fi

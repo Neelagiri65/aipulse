@@ -19,6 +19,7 @@ const args = process.argv.slice(2);
 const FORCE_DISTRIBUTE = args.includes("--force-distribute");
 const NO_DISTRIBUTE = args.includes("--no-distribute");
 const SKIP_FETCH = args.includes("--skip-fetch");
+const FAIL_FORWARD = args.includes("--fail-forward");
 const FORMATS = getArg("--formats", "youtube,instagram").split(",").map((f) => f.trim());
 const DATE = new Date().toISOString().slice(0, 10);
 
@@ -96,7 +97,7 @@ function main() {
     abort("Cannot proceed without a script");
   }
 
-  // Content validation — catch contradictions before rendering
+  // Content validation — NEVER degraded, even in fail-forward mode
   if (!run("Validate content", "npx tsx scripts/video/validate-content.ts")) {
     abort("Content validation failed — contradictions in script");
   }
@@ -120,8 +121,11 @@ function main() {
       `npx tsx scripts/video/record-walkthrough.ts --format ${recorderFormat}`,
       { timeout: 180_000 }
     )) {
-      console.error(`  Skipping ${format} — recording failed`);
-      continue;
+      if (!FAIL_FORWARD) {
+        console.error(`  Skipping ${format} — recording failed`);
+        continue;
+      }
+      console.warn(`  DEGRADED: Recording failed — composite will fail, raw fallback will be attempted`);
     }
 
     // Preserve walkthrough per format (recorder always writes to out/walkthrough.webm)
@@ -136,18 +140,34 @@ function main() {
       `Generate narration (${format})`,
       "npx tsx scripts/video/generate-narration-locked.ts",
     )) {
-      console.error(`  Skipping ${format} — narration generation failed`);
-      continue;
+      if (!FAIL_FORWARD) {
+        console.error(`  Skipping ${format} — narration generation failed`);
+        continue;
+      }
+      console.warn(`  DEGRADED: TTS failed — compositing without narration (silent mode)`);
     }
 
-    // Composite
+    // Composite (fall back to --no-audio if narration failed in fail-forward)
+    const narrationExists = existsSync(resolve(ROOT, `data/video-narration-${recorderFormat}.mp3`));
+    const compositeArgs = FAIL_FORWARD && !narrationExists ? " --no-audio" : "";
     if (!run(
       `Composite (${format})`,
-      `npx tsx scripts/video/composite.ts --format ${compositorFormat} --video-format ${recorderFormat}`,
+      `npx tsx scripts/video/composite.ts --format ${compositorFormat} --video-format ${recorderFormat}${compositeArgs}`,
       { timeout: 120_000 }
     )) {
-      console.error(`  Skipping ${format} — compositing failed`);
-      continue;
+      if (FAIL_FORWARD) {
+        console.warn(`  DEGRADED: Composite failed — shipping raw walkthrough if available`);
+        const rawWalkthrough = resolve(ROOT, `out/walkthrough-${format}.webm`);
+        const degradedOut = resolve(ROOT, outFile);
+        if (existsSync(rawWalkthrough)) {
+          try {
+            execSync(`ffmpeg -y -i "${rawWalkthrough}" -c:v libx264 -preset fast -an "${degradedOut}"`, { timeout: 60_000 });
+          } catch { /* last resort failed */ }
+        }
+      } else {
+        console.error(`  Skipping ${format} — compositing failed`);
+        continue;
+      }
     }
 
     if (fileExists(outFile)) {
@@ -220,8 +240,23 @@ function main() {
 
   console.log();
 
-  if (failed.length > 0) {
+  if (failed.length > 0 && !FAIL_FORWARD) {
     process.exit(1);
+  }
+
+  // In fail-forward mode, exit 0 if ANY format produced output
+  if (FAIL_FORWARD) {
+    const anyOutput = FORMATS.some((format) => {
+      const suffix = format === "instagram" ? "-vertical" : "";
+      return fileExists(`out/gawk-daily-${DATE}${suffix}.mp4`);
+    });
+    if (!anyOutput) {
+      console.error("\n  FAIL-FORWARD: No output produced for any format. Exiting with error.");
+      process.exit(1);
+    }
+    if (failed.length > 0) {
+      console.warn(`\n  FAIL-FORWARD: ${failed.length} steps failed but output was produced (degraded).`);
+    }
   }
 }
 

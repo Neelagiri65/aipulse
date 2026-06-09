@@ -57,20 +57,20 @@ type MetaToken = {
 };
 
 function loadConfig(): MetaConfig {
+  if (process.env.META_CONFIG) return JSON.parse(process.env.META_CONFIG);
   if (!existsSync(META_CONFIG_PATH)) {
     console.error(`Missing Meta config: ${META_CONFIG_PATH}`);
-    console.error("Create it with: { ig_user_id, page_id, app_id, app_secret }");
+    console.error("Set META_CONFIG env var or create the file with: { ig_user_id, page_id, app_id, app_secret }");
     process.exit(1);
   }
   return JSON.parse(readFileSync(META_CONFIG_PATH, "utf-8"));
 }
 
 function loadToken(): MetaToken {
+  if (process.env.META_TOKEN) return JSON.parse(process.env.META_TOKEN);
   if (!existsSync(META_TOKEN_PATH)) {
     console.error(`Missing Meta token: ${META_TOKEN_PATH}`);
-    console.error("Generate a long-lived token via the Meta Graph API Explorer:");
-    console.error("  1. Get short-lived token from Graph API Explorer");
-    console.error("  2. Exchange for long-lived: GET /oauth/access_token?grant_type=fb_exchange_token&client_id={app_id}&client_secret={app_secret}&fb_exchange_token={short_token}");
+    console.error("Set META_TOKEN env var or generate a long-lived token via the Meta Graph API Explorer");
     process.exit(1);
   }
   return JSON.parse(readFileSync(META_TOKEN_PATH, "utf-8"));

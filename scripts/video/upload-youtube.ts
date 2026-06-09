@@ -95,9 +95,29 @@ Subscribe for daily briefs: https://gawk.dev/subscribe
 }
 
 async function authenticate(): Promise<ReturnType<typeof google.youtube>> {
+  // CI path: env vars take precedence over local files
+  const envSecret = process.env.YOUTUBE_CLIENT_SECRET;
+  const envRefreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
+
+  if (envSecret && envRefreshToken) {
+    const credentials = JSON.parse(envSecret);
+    const { client_id, client_secret } = credentials.installed || credentials.web;
+
+    const oauth2Client = new google.auth.OAuth2(client_id, client_secret);
+    oauth2Client.setCredentials({ refresh_token: envRefreshToken });
+
+    // Force a fresh access token (refresh_token itself doesn't change)
+    const { credentials: refreshed } = await oauth2Client.refreshAccessToken();
+    oauth2Client.setCredentials(refreshed);
+    console.log("Authenticated via env vars (CI mode)");
+
+    return google.youtube({ version: "v3", auth: oauth2Client });
+  }
+
+  // Local path: file-based credentials
   if (!existsSync(CLIENT_SECRET_PATH)) {
     console.error(`Missing OAuth credentials: ${CLIENT_SECRET_PATH}`);
-    console.error("Download from Google Cloud Console → Credentials → OAuth 2.0 Client ID");
+    console.error("Set YOUTUBE_CLIENT_SECRET + YOUTUBE_REFRESH_TOKEN env vars, or download from Google Cloud Console");
     process.exit(1);
   }
 
@@ -114,7 +134,6 @@ async function authenticate(): Promise<ReturnType<typeof google.youtube>> {
     const token = JSON.parse(readFileSync(TOKEN_PATH, "utf-8"));
     oauth2Client.setCredentials(token);
 
-    // Refresh if expired
     if (token.expiry_date && token.expiry_date < Date.now()) {
       console.log("Refreshing expired token...");
       const { credentials: refreshed } = await oauth2Client.refreshAccessToken();
@@ -122,7 +141,6 @@ async function authenticate(): Promise<ReturnType<typeof google.youtube>> {
       writeFileSync(TOKEN_PATH, JSON.stringify(refreshed, null, 2));
     }
   } else {
-    // First-time auth: open browser
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: "offline",
       scope: ["https://www.googleapis.com/auth/youtube.upload"],

@@ -62,16 +62,20 @@ type MetaToken = {
 };
 
 function loadConfig(): MetaConfig {
+  if (process.env.META_CONFIG) return JSON.parse(process.env.META_CONFIG);
   if (!existsSync(META_CONFIG_PATH)) {
     console.error(`Missing Meta config: ${META_CONFIG_PATH}`);
+    console.error("Set META_CONFIG env var or create the file");
     process.exit(1);
   }
   return JSON.parse(readFileSync(META_CONFIG_PATH, "utf-8"));
 }
 
 function loadToken(): MetaToken {
+  if (process.env.META_TOKEN) return JSON.parse(process.env.META_TOKEN);
   if (!existsSync(META_TOKEN_PATH)) {
     console.error(`Missing Meta token: ${META_TOKEN_PATH}`);
+    console.error("Set META_TOKEN env var or create the file");
     process.exit(1);
   }
   return JSON.parse(readFileSync(META_TOKEN_PATH, "utf-8"));

@@ -11,7 +11,13 @@ import { execSync } from "child_process";
 const ROOT = process.cwd();
 const VOICE = "en-US-AndrewMultilingualNeural";
 const BASE_RATE = 12;
-const EDGE_TTS = `${process.env.HOME}/.local/share/edge-tts-venv/bin/edge-tts`;
+function resolveEdgeTTS(): string {
+  if (process.env.EDGE_TTS) return process.env.EDGE_TTS;
+  const local = `${process.env.HOME}/.local/share/edge-tts-venv/bin/edge-tts`;
+  if (existsSync(local)) return local;
+  return "edge-tts"; // fall back to PATH (CI)
+}
+const EDGE_TTS = resolveEdgeTTS();
 
 type LockedNarration = { id: string; narration: string };
 type LockedStory = { id: string; segment: string; headline: string; scene: string; holdSec: number };

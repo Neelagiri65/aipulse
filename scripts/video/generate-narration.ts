@@ -38,7 +38,10 @@ const ROOT = process.cwd();
 const CURATED = resolve(ROOT, "data/curated.json");
 const VOICE = "en-US-ChristopherNeural";
 const BASE_RATE = 12; // baseline speed boost (percent) — punchier delivery
-const EDGE_TTS = `${process.env.HOME}/.local/share/edge-tts-venv/bin/edge-tts`;
+const EDGE_TTS = process.env.EDGE_TTS
+  || (existsSync(`${process.env.HOME}/.local/share/edge-tts-venv/bin/edge-tts`)
+    ? `${process.env.HOME}/.local/share/edge-tts-venv/bin/edge-tts`
+    : "edge-tts");
 const DATE_SPOKEN = new Date().toLocaleDateString("en-GB", {
   day: "numeric",
   month: "long",
