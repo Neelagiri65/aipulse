@@ -140,8 +140,10 @@ jobs:
             echo "No upload log changes to commit"
           else
             git commit -m "chore(video): update upload log — $(date +%Y-%m-%d) [skip ci]"
+            git stash --include-untracked
             git pull --rebase origin main
             git push
+            git stash drop || true
           fi
 
       - name: Alert on total failure
