@@ -7,7 +7,7 @@
     "scene": "globe",
     "holdSec": 10,
     "leaderboard": {
-      "label": "OPENROUTER RANKING · 9 JUNE",
+      "label": "OPENROUTER RANKING · 14 JUNE",
       "heroName": "DEEPSEEK V4 FLASH",
       "heroSub": "#1 — holds position",
       "rows": [
@@ -37,88 +37,103 @@
           "value": "$0.000/MTok"
         }
       ],
-      "source": "Source: OpenRouter Top Weekly · 9 June"
+      "source": "Source: OpenRouter Top Weekly · 14 June"
     }
   },
   {
     "id": "narrative-0",
     "segment": "story",
-    "headline": "yt-dlp/yt-dlp trending on GitHub (338 stars today)",
+    "headline": "microsoft/PowerToys trending on GitHub (370 stars today)",
     "type": "data-card",
     "scene": "wire",
     "holdSec": 5,
     "dataCard": {
       "label": "TRENDING",
-      "number": "★ 338",
+      "number": "★ 370",
       "direction": "up",
-      "title": "yt-dlp/yt-dlp trending on GitHub (338 stars today)",
-      "source": "Source: GitHub Trending · 9 June"
+      "title": "microsoft/PowerToys trending on GitHub (370 stars today)",
+      "source": "Source: GitHub Trending · 14 June"
     }
   },
   {
     "id": "narrative-1",
     "segment": "story",
-    "headline": "OpenAI Submits S-1 Draft to SEC",
-    "type": "data-card",
-    "scene": "wire",
-    "holdSec": 5,
-    "dataCard": {
-      "label": "TRENDING",
-      "number": "▲ 149",
-      "direction": "up",
-      "title": "OpenAI Submits S-1 Draft to SEC",
-      "source": "Source: Reddit · 9 June"
-    }
-  },
-  {
-    "id": "narrative-3",
-    "segment": "story",
-    "headline": "ollama downloads down 164.4% on brew",
+    "headline": "tch downloads up 64.1% on crates",
     "type": "data-card",
     "scene": "sdk-adoption",
     "holdSec": 5,
     "dataCard": {
       "label": "DOWNLOADS",
-      "number": "↓ 164%",
-      "direction": "down",
-      "title": "ollama downloads down 164.4% on brew",
-      "source": "Source: Package registry data · 9 June"
+      "number": "↑ 64%",
+      "direction": "up",
+      "title": "tch downloads up 64.1% on crates",
+      "source": "Source: Package registry data · 14 June"
     }
   },
   {
-    "id": "narrative-5",
+    "id": "narrative-3",
     "segment": "story",
-    "headline": "NVIDIA: Nemotron 3 Ultra (free) up 11 ranks on OpenRouter weekly",
+    "headline": "Claude Sonnet 4.6 moved from rank 6 to 7",
+    "type": "data-card",
+    "scene": "models",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "RANK DOWN",
+      "number": "↓ 1",
+      "direction": "down",
+      "title": "Claude Sonnet 4.6 — Now #7, was #6",
+      "source": "Source: OpenRouter Weekly · 14 June"
+    }
+  },
+  {
+    "id": "narrative-4",
+    "segment": "story",
+    "headline": "NVIDIA: Nemotron 3 Ultra (free) up 4 ranks on OpenRouter weekly",
     "type": "data-card",
     "scene": "models",
     "holdSec": 5,
     "dataCard": {
       "label": "RANK UP",
-      "number": "↑ 11",
+      "number": "↑ 4",
       "direction": "up",
       "title": "Nemotron 3 Ultra (free)",
-      "source": "Source: OpenRouter · 9 June"
+      "source": "Source: OpenRouter · 14 June"
     }
   },
   {
     "id": "narrative-6",
     "segment": "story",
-    "headline": "Claude Opus 4.8 moved from rank 10 to 9",
+    "headline": "We've suspended access to Claude Mythos 5 and Claude Fable 5",
     "type": "data-card",
-    "scene": "models",
+    "scene": "wire",
     "holdSec": 5,
     "dataCard": {
-      "label": "RANK UP",
-      "number": "↑ 1",
+      "label": "TRENDING",
+      "number": "▲ 219",
       "direction": "up",
-      "title": "Claude Opus 4.8 — Now #9, was #10",
-      "source": "Source: OpenRouter Weekly · 9 June"
+      "title": "We've suspended access to Claude Mythos 5 and Claude Fable 5",
+      "source": "Source: Reddit · 14 June"
+    }
+  },
+  {
+    "id": "narrative-7",
+    "segment": "story",
+    "headline": "Amazon CEO's Talks with U.S. Officials Triggered Crackdown on Anthropic Models",
+    "type": "data-card",
+    "scene": "wire",
+    "holdSec": 5,
+    "dataCard": {
+      "label": "TRENDING",
+      "number": "▲ 146",
+      "direction": "up",
+      "title": "Amazon CEO's Talks with U.S. Officials Triggered Crackdown on Anthropic Models",
+      "source": "Source: Reddit · 14 June"
     }
   },
   {
     "id": "narrative-9",
     "segment": "story",
-    "headline": "SoccerNet 2026 Player-Centric Ball-Action Spotting:Retraining and Post-Processing Extensions to the FOOTPASS Baselines",
+    "headline": "EvoArena: Tracking Memory Evolution for Robust LLM Agents in Dynamic Environments",
     "type": "data-card",
     "scene": "wire",
     "holdSec": 5,
@@ -126,38 +141,38 @@
       "label": "NEW RESEARCH",
       "number": "arxiv",
       "direction": "neutral",
-      "title": "SoccerNet 2026 Player-Centric Ball-Action Spotting:Retraining and Post-Processing Extensions to the FOOTPASS Baselines",
-      "source": "Source: arXiv · 9 June"
+      "title": "EvoArena: Tracking Memory Evolution for Robust LLM Agents in Dynamic Environments",
+      "source": "Source: arXiv · 14 June"
     }
   },
   {
-    "id": "sdk-GitHub.copilot",
+    "id": "sdk-ollama",
     "segment": "story",
-    "headline": "GitHub.copilot (vscode) down 41%",
+    "headline": "ollama (brew) down 224%",
     "type": "data-card",
     "scene": "sdk-adoption",
     "holdSec": 5,
     "dataCard": {
       "label": "SDK ADOPTION",
-      "number": "↓ 41%",
+      "number": "↓ 224%",
       "direction": "down",
-      "title": "GitHub.copilot · vscode",
-      "source": "Source: Package registry · 9 June"
+      "title": "ollama · brew",
+      "source": "Source: Package registry · 14 June"
     }
   },
   {
-    "id": "sdk-llamaindex",
+    "id": "sdk-ort",
     "segment": "story",
-    "headline": "llamaindex (npm) up 39%",
+    "headline": "ort (crates) up 40%",
     "type": "data-card",
     "scene": "sdk-adoption",
     "holdSec": 5,
     "dataCard": {
       "label": "SDK ADOPTION",
-      "number": "↑ 39%",
+      "number": "↑ 40%",
       "direction": "up",
-      "title": "llamaindex · npm",
-      "source": "Source: Package registry · 9 June"
+      "title": "ort · crates",
+      "source": "Source: Package registry · 14 June"
     }
   }
 ]

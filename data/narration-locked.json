@@ -1,7 +1,7 @@
 [
   {
     "id": "intro",
-    "narration": "9 June. Here's what moved."
+    "narration": "14 June. Here's what moved."
   },
   {
     "id": "top-model",
@@ -9,35 +9,39 @@
   },
   {
     "id": "narrative-0",
-    "narration": "yt-dlp/yt-dlp is trending on GitHub. 338 stars today."
+    "narration": "microsoft/PowerToys is trending on GitHub. 370 stars today."
   },
   {
     "id": "narrative-1",
-    "narration": "OpenAI Submits S-1 Draft to SEC."
+    "narration": "tch downloads up 64 percent this week."
   },
   {
     "id": "narrative-3",
-    "narration": "ollama downloads down 164 percent this week."
+    "narration": "Claude Sonnet 4.6 dropped 1 ranks. Now 7th, was 6th."
   },
   {
-    "id": "narrative-5",
-    "narration": "Nemotron 3 Ultra (free) climbed 11 ranks on OpenRouter this week."
+    "id": "narrative-4",
+    "narration": "Nemotron 3 Ultra (free) climbed 4 ranks on OpenRouter this week."
   },
   {
     "id": "narrative-6",
-    "narration": "Claude Opus 4.8 climbed 1 ranks — from 10th to 9th."
+    "narration": "We've suspended access to Claude Mythos 5 and Claude Fable 5."
+  },
+  {
+    "id": "narrative-7",
+    "narration": "Amazon CEO's Talks with U.S. Officials Triggered Crackdown on Anthropic Models."
   },
   {
     "id": "narrative-9",
-    "narration": "New research: SoccerNet 2026 Player-Centric Ball-Action Spotting:Retraining and Post-Processing Extensions to."
+    "narration": "New research: EvoArena: Tracking Memory Evolution for Robust LLM Agents in Dynamic."
   },
   {
-    "id": "sdk-GitHub.copilot",
-    "narration": "GitHub.copilot on vscode: downloads down 41 percent."
+    "id": "sdk-ollama",
+    "narration": "ollama on brew: downloads down 224 percent."
   },
   {
-    "id": "sdk-llamaindex",
-    "narration": "llamaindex on npm: downloads up 39 percent."
+    "id": "sdk-ort",
+    "narration": "ort on crates: downloads up 40 percent."
   },
   {
     "id": "outro",
