@@ -10,7 +10,7 @@
  *   npx tsx scripts/video/distribute.ts --dry-run
  */
 
-import { execSync } from "child_process";
+import { execSync, execFileSync } from "child_process";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 
@@ -24,6 +24,51 @@ type Platform = typeof ALL_PLATFORMS[number];
 function getArg(flag: string, fallback: string): string {
   const idx = args.indexOf(flag);
   return idx >= 0 && args[idx + 1] ? args[idx + 1] : fallback;
+}
+
+/**
+ * Verify a video file carries a usable audio track before it can be uploaded.
+ * Defence-in-depth against the 15-Jun silent-video incident: even if an upstream
+ * gate regresses, no audio-less (or implausibly short) file leaves this step.
+ *
+ * Fail-closed — a missing ffprobe binary, any probe error, an absent audio
+ * stream, or a sub-floor duration all return { ok: false }. Pure read; uses
+ * execFileSync (argument array, no shell).
+ */
+function hasUsableAudio(
+  videoPath: string,
+  minDurationSec: number,
+): { ok: boolean; reason?: string } {
+  let codec = "";
+  try {
+    codec = execFileSync(
+      "ffprobe",
+      ["-v", "error", "-select_streams", "a:0", "-show_entries",
+        "stream=codec_type", "-of", "default=nw=1:nk=1", videoPath],
+      { encoding: "utf-8", timeout: 30_000 },
+    ).trim();
+  } catch (e: any) {
+    return { ok: false, reason: `ffprobe audio probe failed: ${e.message?.slice(0, 120) ?? "error"}` };
+  }
+  if (codec !== "audio") return { ok: false, reason: "no audio stream present" };
+
+  let durationStr = "";
+  try {
+    durationStr = execFileSync(
+      "ffprobe",
+      ["-v", "error", "-show_entries", "format=duration", "-of",
+        "default=nw=1:nk=1", videoPath],
+      { encoding: "utf-8", timeout: 30_000 },
+    ).trim();
+  } catch (e: any) {
+    return { ok: false, reason: `ffprobe duration probe failed: ${e.message?.slice(0, 120) ?? "error"}` };
+  }
+  const duration = parseFloat(durationStr);
+  if (!Number.isFinite(duration) || duration < minDurationSec) {
+    const got = Number.isFinite(duration) ? `${duration.toFixed(1)}s` : "unknown";
+    return { ok: false, reason: `duration ${got} below ${minDurationSec}s floor` };
+  }
+  return { ok: true };
 }
 
 const requestedPlatforms = getArg("--platforms", ALL_PLATFORMS.join(","))
@@ -112,6 +157,17 @@ function main() {
     if (!existsSync(videoPath)) {
       console.log(`  [${config.platform.toUpperCase().padEnd(10)}] SKIP — video not found: ${config.videoFile}`);
       results.push({ platform: config.platform, status: "skipped", error: `Missing ${config.videoFile}` });
+      continue;
+    }
+
+    // Audio + duration pre-flight (defence-in-depth — never ship a silent video).
+    // Recorded as FAILED (not skipped) so the run exits non-zero and the
+    // alert/watchdog fire; the broken file is never uploaded to this platform.
+    const minDurationSec = config.videoFile.includes("-vertical") ? 20 : 30;
+    const audio = hasUsableAudio(videoPath, minDurationSec);
+    if (!audio.ok) {
+      console.error(`  [${config.platform.toUpperCase().padEnd(10)}] FAIL — refusing silent/degraded video: ${audio.reason}`);
+      results.push({ platform: config.platform, status: "failed", error: `Audio pre-flight: ${audio.reason}` });
       continue;
     }
 

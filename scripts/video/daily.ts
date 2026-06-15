@@ -148,39 +148,27 @@ function main() {
       copyFileSync(walkthroughSrc, walkthroughDest);
     }
 
-    // Generate narration from locked script (always present after generate-daily-script)
+    // Generate narration from locked script. Narration IS the product — never
+    // optional, even in --fail-forward. A TTS failure is a HARD STOP: shipping
+    // a silent daily video to a public channel is worse than shipping nothing.
+    // (Visual degradation is allowed above; audio degradation is not.)
     if (!run(
       `Generate narration (${format})`,
       "npx tsx scripts/video/generate-narration-locked.ts",
     )) {
-      if (!FAIL_FORWARD) {
-        console.error(`  Skipping ${format} — narration generation failed`);
-        continue;
-      }
-      console.warn(`  DEGRADED: TTS failed — compositing without narration (silent mode)`);
+      abort(`Narration (TTS) failed for ${format} — refusing to ship a silent video`);
     }
 
-    // Composite (fall back to --no-audio if narration failed in fail-forward)
-    const narrationExists = existsSync(resolve(ROOT, `data/video-narration-${recorderFormat}.mp3`));
-    const compositeArgs = FAIL_FORWARD && !narrationExists ? " --no-audio" : "";
+    // Composite the walkthrough WITH narration audio. No silent fallback: if
+    // compositing fails we hard-stop rather than ship a raw, audio-less
+    // walkthrough. The downstream distribute step independently re-verifies the
+    // audio track (defence-in-depth) before any upload.
     if (!run(
       `Composite (${format})`,
-      `npx tsx scripts/video/composite.ts --format ${compositorFormat} --video-format ${recorderFormat}${compositeArgs}`,
+      `npx tsx scripts/video/composite.ts --format ${compositorFormat} --video-format ${recorderFormat}`,
       { timeout: 120_000 }
     )) {
-      if (FAIL_FORWARD) {
-        console.warn(`  DEGRADED: Composite failed — shipping raw walkthrough if available`);
-        const rawWalkthrough = resolve(ROOT, `out/walkthrough-${format}.webm`);
-        const degradedOut = resolve(ROOT, outFile);
-        if (existsSync(rawWalkthrough)) {
-          try {
-            execSync(`ffmpeg -y -i "${rawWalkthrough}" -c:v libx264 -preset fast -an "${degradedOut}"`, { timeout: 60_000 });
-          } catch { /* last resort failed */ }
-        }
-      } else {
-        console.error(`  Skipping ${format} — compositing failed`);
-        continue;
-      }
+      abort(`Composite failed for ${format} — refusing to ship a degraded video`);
     }
 
     if (fileExists(outFile)) {

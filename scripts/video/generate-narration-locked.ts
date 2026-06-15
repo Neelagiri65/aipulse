@@ -6,11 +6,18 @@
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve } from "path";
-import { execSync } from "child_process";
+import { execSync, execFileSync } from "child_process";
 
 const ROOT = process.cwd();
 const VOICE = "en-US-AndrewMultilingualNeural";
 const BASE_RATE = 12;
+const MAX_TTS_ATTEMPTS = 3;
+
+/** Block the (sequential CLI) thread without spawning a process. Used for
+ *  retry backoff between edge-tts attempts. */
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Math.max(0, Math.round(ms)));
+}
 function resolveEdgeTTS(): string {
   if (process.env.EDGE_TTS) return process.env.EDGE_TTS;
   const local = `${process.env.HOME}/.local/share/edge-tts-venv/bin/edge-tts`;
@@ -23,22 +30,44 @@ type LockedNarration = { id: string; narration: string };
 type LockedStory = { id: string; segment: string; headline: string; scene: string; holdSec: number };
 
 function generateTTS(text: string, outFile: string, ratePercent = 0): number {
-  const escaped = text.replace(/"/g, '\\"').replace(/`/g, "");
+  // execFileSync with an argument array (NOT a shell string): narration text
+  // passes through verbatim, so "$0.10", backticks, etc. are never mangled or
+  // dropped by the shell. This replaces the old fragile string-escaping path.
   const effectiveRate = ratePercent + BASE_RATE;
-  const rateFlag = effectiveRate !== 0 ? ` --rate="+${effectiveRate}%"` : "";
-  try {
-    execSync(
-      `${EDGE_TTS} --voice "${VOICE}" --text "${escaped}"${rateFlag} --write-media "${outFile}" 2>&1`,
-      { timeout: 60_000 }
-    );
-  } catch (e) {
-    console.error(`TTS failed for ${outFile}:`, e);
+  const ttsArgs = ["--voice", VOICE, "--text", text];
+  if (effectiveRate !== 0) ttsArgs.push("--rate", `+${effectiveRate}%`);
+  ttsArgs.push("--write-media", outFile);
+
+  // Retry with exponential backoff + jitter on ANY edge-tts failure. The
+  // engine hits an undocumented Microsoft endpoint that intermittently 403s
+  // CI datacenter IPs; most failures are transient and recover on retry.
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= MAX_TTS_ATTEMPTS; attempt++) {
+    try {
+      execFileSync(EDGE_TTS, ttsArgs, { timeout: 60_000, stdio: ["ignore", "pipe", "pipe"] });
+      lastErr = null;
+      break;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < MAX_TTS_ATTEMPTS) {
+        const backoffMs = 1000 * 2 ** (attempt - 1) + Math.floor(Math.random() * 400);
+        console.warn(
+          `  ⚠ edge-tts attempt ${attempt}/${MAX_TTS_ATTEMPTS} failed — retrying in ${(backoffMs / 1000).toFixed(1)}s`,
+        );
+        sleepSync(backoffMs);
+      }
+    }
+  }
+  if (lastErr) {
+    console.error(`TTS failed for ${outFile} after ${MAX_TTS_ATTEMPTS} attempts:`, lastErr);
     return 0;
   }
 
-  const probe = execSync(
-    `ffprobe -v error -show_entries format=duration -of csv=p=0 "${outFile}" 2>&1`
-  ).toString().trim();
+  const probe = execFileSync(
+    "ffprobe",
+    ["-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", outFile],
+    { encoding: "utf-8" },
+  ).trim();
   return parseFloat(probe) || 0;
 }
 
