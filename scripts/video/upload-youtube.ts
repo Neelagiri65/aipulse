@@ -221,19 +221,28 @@ async function upload() {
   console.log(`Video ID: ${videoId}`);
   console.log(`Status: ${res.data.status?.uploadStatus}`);
 
-  // Save upload record
+  // Save upload record. Replace any existing entry for the same date rather
+  // than blindly appending, so a re-publish (e.g. correcting a bad video) is
+  // idempotent and never leaves two rows for one day in the dedup authority.
   const uploadLog = resolve(ROOT, "data/upload-log.json");
-  const log = existsSync(uploadLog)
+  const log: Array<{ date: string }> = existsSync(uploadLog)
     ? JSON.parse(readFileSync(uploadLog, "utf-8"))
     : [];
-  log.push({
+  const entry = {
     date: DATE,
     videoId,
     url,
     title,
     visibility: VISIBILITY,
     uploadedAt: new Date().toISOString(),
-  });
+  };
+  const existingIdx = log.findIndex((e) => e.date === DATE);
+  if (existingIdx >= 0) {
+    console.log(`  Replacing existing upload-log entry for ${DATE}`);
+    log[existingIdx] = entry;
+  } else {
+    log.push(entry);
+  }
   writeFileSync(uploadLog, JSON.stringify(log, null, 2));
 
   return url;
