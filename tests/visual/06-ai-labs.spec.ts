@@ -96,7 +96,10 @@ test.describe("AI Labs layer", () => {
     // Kind pill ("IND" / "ACA" / "NGO") is in the first row; confirms
     // the row rendered the full LabRow body, not a bare placeholder.
     const firstRow = rows.first();
-    await expect(firstRow).toContainText(/IND|ACA|NGO/);
+    // KindPill renders CATEGORY_META[kind].short — the labs-registry
+    // taxonomy: LAB / INF / CLD / SIL / TLG (industry-lab, infra, cloud,
+    // silicon, tooling). Confirms the row rendered a full LabRow body.
+    await expect(firstRow).toContainText(/LAB|INF|CLD|SIL|TLG/);
     // The 7d total token ("7d") appears in every row's rank cap.
     await expect(firstRow).toContainText(/7d/);
     await shot(page, "labs-panel-rows");
