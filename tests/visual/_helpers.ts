@@ -62,8 +62,14 @@ export async function switchTab(
 ) {
   const tab = page.getByRole("tab", { name: label, exact: true });
   await expect(tab).toBeVisible();
-  await tab.click({ force: true });
-  await expect(tab).toHaveClass(/ap-tabs__item--active/, { timeout: 15_000 });
+  // A single click can land before React wires the tab's onClick during
+  // the hydration window — likelier under full-suite load, where it
+  // surfaced as a flaky "class never flipped" failure. Re-click until the
+  // active class actually flips rather than betting on one click.
+  await expect(async () => {
+    await tab.click({ force: true });
+    await expect(tab).toHaveClass(/ap-tabs__item--active/, { timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
 }
 
 /**
@@ -143,6 +149,24 @@ export function panelByTitle(page: Page, titleFragment: string | RegExp) {
     hasText: titleFragment,
   });
   return page.locator(".ap-win").filter({ has: titleLocator });
+}
+
+/**
+ * The FilterPanel ("Globe filters") collapses to a "Show filters" trigger
+ * by default — the labelled `complementary` aside only mounts once opened.
+ * Click the trigger (if present) and return the visible panel. Idempotent:
+ * if it's already open the trigger is absent and we resolve the panel
+ * directly. At ≥1440px the full 220px variant renders; the icon-rail
+ * sibling is `display:none` so `getByRole` resolves to a single node.
+ */
+export async function openFilters(page: Page): Promise<Locator> {
+  const trigger = page.getByRole("button", { name: "Show filters" });
+  if ((await trigger.count()) > 0) {
+    await trigger.first().click({ force: true });
+  }
+  const panel = page.getByRole("complementary", { name: "Globe filters" });
+  await expect(panel).toBeVisible({ timeout: 15_000 });
+  return panel;
 }
 
 /**

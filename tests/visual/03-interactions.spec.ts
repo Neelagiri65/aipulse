@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   closePanel,
   openDashboard,
+  openFilters,
   shot,
   switchTab,
   waitForMapReady,
@@ -70,27 +71,34 @@ test.describe("interactions", () => {
     await waitForMapReady(page);
     const metrics = page.locator('[aria-label="Headline metrics"]').first();
     await expect(metrics).toBeVisible();
-    // Four cards per MetricsRow.tsx.
+    // Three cards per MetricsRow.tsx (AI-cfg events, AI-cfg share,
+    // events/window). The MetricTicker 6-tile diagnostics row is hidden
+    // from the default view, so these headline cards are the only metrics.
     const count = await metrics.locator("> div").count();
-    expect(count).toBeGreaterThanOrEqual(4);
+    expect(count).toBe(3);
     await shot(page, "interaction-metric-cards");
   });
 
-  test("Bottom MetricTicker is visible", async ({ page }) => {
+  test("Bottom live event ticker is visible", async ({ page }) => {
     await openDashboard(page);
     await switchTab(page, "The Map");
     await waitForMapReady(page);
-    const ticker = page.locator('[aria-label="Dashboard metric ticker"]');
+    // The bottom-pinned strip on map/globe views is the LiveTicker
+    // ("Live event ticker"). The older MetricTicker ("Dashboard metric
+    // ticker") is intentionally hidden from the default view — its data
+    // now lives on /sources + /api/cron-health.
+    const ticker = page.getByRole("status", { name: "Live event ticker" });
     await expect(ticker).toBeVisible();
-    await shot(page, "interaction-metric-ticker");
+    await shot(page, "interaction-live-ticker");
   });
 
-  test("Globe filters panel is present on Map view", async ({ page }) => {
+  test("Globe filters panel opens on Map view", async ({ page }) => {
     await openDashboard(page);
     await switchTab(page, "The Map");
     await waitForMapReady(page);
-    // FilterPanel renders with aria-label "Globe filters" on map + globe.
-    const filter = page.getByRole("complementary", { name: "Globe filters" });
+    // FilterPanel collapses to a "Show filters" trigger by default;
+    // opening it mounts the labelled "Globe filters" complementary.
+    const filter = await openFilters(page);
     await expect(filter).toBeVisible();
     await shot(page, "interaction-filter-panel");
   });
@@ -107,13 +115,14 @@ test.describe("interactions", () => {
     await switchTab(page, "The Map");
     await waitForMapReady(page);
 
-    // FilterPanel renders two sibling DOM nodes (full panel at ≥1440px,
-    // icon rail below). Playwright's `Desktop Chrome` preset runs at
-    // 1280px → icon rail is the visible variant, but both are in the
-    // DOM. Scope to the visible complementary and toggle via whichever
-    // role the rendered variant uses (checkbox for full, pressed button
-    // for icon rail). Same contract applies to both.
-    const panel = page.getByRole("complementary", { name: "Globe filters" });
+    // FilterPanel collapses to a "Show filters" trigger by default — open
+    // it first. It then renders two sibling DOM nodes (full panel at
+    // ≥1440px, icon rail below); the suite viewport is 1440px so the full
+    // panel is the visible variant, but `display:none` keeps the other out
+    // of the a11y tree. Scope to the visible complementary and toggle via
+    // whichever role the rendered variant uses (checkbox for full, pressed
+    // button for icon rail). Same contract applies to both.
+    const panel = await openFilters(page);
     const on = panel.locator(
       '[role="checkbox"][aria-checked="true"], button[aria-pressed="true"]',
     );
