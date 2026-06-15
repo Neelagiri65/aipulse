@@ -2293,6 +2293,11 @@
 :root { --ap-strip-h: 0px; }
 body[data-highlights="1"] { --ap-strip-h: 36px; }
 
+/* Width of the left icon nav. LeftNav overwrites this on toggle (44px
+   collapsed / 176px expanded). Default matches LeftNav's defaultExpanded
+   so the first paint already clears the rail before JS hydrates. */
+:root { --ap-nav-w: 176px; }
+
 .ap-highlights-strip--desktop {
   position: fixed;
   left: 0;
