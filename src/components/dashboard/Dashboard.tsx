@@ -45,6 +45,12 @@ const EcosystemMap = dynamic(
   },
 );
 import { Win } from "@/components/chrome/Win";
+import { InsightLine } from "@/components/chrome/InsightLine";
+import {
+  wireInsight,
+  modelsInsight,
+  benchmarksInsight,
+} from "@/lib/panels/insights";
 import { LeftNav, type NavItem } from "@/components/chrome/LeftNav";
 import {
   FilterPanel,
@@ -754,6 +760,27 @@ export function Dashboard({
     );
   })();
 
+  // Per-panel insight lines (S85 slice). One deterministic, source-traced
+  // sentence per panel, derived from that panel's own polled payload — never
+  // an LLM, never a re-ranking (CLAUDE.md trust contract). Rendered in the
+  // Win.insight slot under the StatBar. Three-panel slice: wire, models,
+  // benchmarks. Each deriver returns null on empty/error → no line shown.
+  const wireInsightNode = (
+    <InsightLine
+      insight={
+        events.data
+          ? wireInsight(events.data.points, events.data.coverage.windowMinutes)
+          : null
+      }
+    />
+  );
+  const modelsInsightNode = (
+    <InsightLine insight={modelsInsight(models.data)} />
+  );
+  const benchmarksInsightNode = (
+    <InsightLine insight={benchmarksInsight(benchmarks.data)} />
+  );
+
   // Topmost open panel — the one at the end of zorder that's also open
   // and not minimized. Drives the ap-win--topmost vs --behind treatment
   // so a stack of open panels reads as a legible z-order rather than
@@ -1043,6 +1070,7 @@ export function Dashboard({
               title="Live feed · gh-events"
               accent="teal"
               statBar={wireStatBar}
+              insight={wireInsightNode}
               initial={initialPos.wire}
               zIndex={z("wire")}
               minimized={panels.wire.min}
@@ -1112,6 +1140,7 @@ export function Dashboard({
               title="Top models · hf-downloads"
               accent="teal"
               statBar={modelsStatBar}
+              insight={modelsInsightNode}
               initial={initialPos.models}
               zIndex={z("models")}
               minimized={panels.models.min}
@@ -1179,6 +1208,7 @@ export function Dashboard({
               title="Chatbot Arena · top 20 · lmarena-leaderboard"
               accent="amber"
               statBar={benchmarksStatBar}
+              insight={benchmarksInsightNode}
               initial={initialPos.benchmarks}
               zIndex={z("benchmarks")}
               minimized={panels.benchmarks.min}

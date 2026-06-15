@@ -43,6 +43,12 @@ export type WinProps = {
    * Data derivation lives in Dashboard, not here — this slot is pure UI.
    */
   statBar?: React.ReactNode;
+  /**
+   * Optional deterministic insight line rendered under the stat bar. One
+   * source-traced sentence derived from the panel's own payload (see
+   * `@/lib/panels/insights`). Leave undefined to render no row.
+   */
+  insight?: React.ReactNode;
   onFocus?: (id: string) => void;
   onClose?: (id: string) => void;
   onMinimize?: (id: string) => void;
@@ -66,6 +72,7 @@ export function Win({
   accent = "teal",
   maximizedLayout = "default",
   statBar,
+  insight,
   onFocus,
   onClose,
   onMinimize,
@@ -236,6 +243,7 @@ export function Win({
       {!minimized && (
         <>
           {statBar && <div className="ap-win__statbar">{statBar}</div>}
+          {insight}
           <div className="ap-win__body">{children}</div>
           <div className="ap-win__resize" onMouseDown={onResizeDown} />
         </>
