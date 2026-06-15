@@ -77,7 +77,14 @@ jobs:
         run: edge-tts --version
 
       - name: Set edge-tts path for pipeline
-        run: echo "EDGE_TTS_PATH=$(which edge-tts)" >> "$GITHUB_ENV"
+        run: |
+          EDGE_TTS_BIN="$(which edge-tts || true)"
+          if [ -z "$EDGE_TTS_BIN" ]; then
+            echo "::error::edge-tts not found on PATH after install — narration (the product) would fail"
+            exit 1
+          fi
+          echo "EDGE_TTS_PATH=$EDGE_TTS_BIN" >> "$GITHUB_ENV"
+          echo "edge-tts resolved to: $EDGE_TTS_BIN"
 
       - name: Run daily pipeline (fail-forward)
         id: pipeline
