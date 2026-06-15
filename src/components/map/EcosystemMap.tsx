@@ -272,7 +272,7 @@ export function EcosystemMap({ labs }: EcosystemMapProps) {
       {/* Category filter — floating card */}
       <div
         className="absolute z-[1000] flex flex-col gap-1 rounded-xl border border-slate-200 bg-white/95 px-3 py-3 shadow-lg backdrop-blur-sm"
-        style={{ left: 56, top: 12 }}
+        style={{ left: "calc(var(--ap-nav-w, 176px) + 12px)", top: 12 }}
       >
         <span className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
           {labs.length} Companies

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export type NavItem = {
   id: string;
@@ -32,6 +32,17 @@ export function LeftNav({
   defaultExpanded = true,
 }: LeftNavProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+
+  // Publish the rail's current width as a CSS var so floating map chrome
+  // (FlatMap's legend + status chip) can offset itself and stop sitting
+  // behind the rail. The rail is a separate stacking context (z-50) above
+  // the full-bleed map (z-3), so a horizontal offset — not a z-index bump —
+  // is what clears the overlap. Default lives in globals.css for SSR.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--ap-nav-w", expanded ? "176px" : "44px");
+  }, [expanded]);
+
   return (
     <nav
       className={`ap-icon-nav ${expanded ? "ap-icon-nav--expanded" : "ap-icon-nav--collapsed"}`}

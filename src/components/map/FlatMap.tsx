@@ -822,8 +822,8 @@ function MapLegend() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Show map legend"
-        className="absolute bottom-3 left-3 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/80 font-mono text-[14px] text-foreground/80 backdrop-blur-sm"
-        style={{ zIndex: 1000 }}
+        className="absolute bottom-3 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/80 font-mono text-[14px] text-foreground/80 backdrop-blur-sm"
+        style={{ zIndex: 1000, left: "calc(var(--ap-nav-w, 176px) + 12px)" }}
       >
         <span aria-hidden="true">ⓘ</span>
       </button>
@@ -862,8 +862,8 @@ function MapLegend() {
       </>
     ) : (
       <div
-        className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border/40 bg-background/70 p-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground backdrop-blur-sm"
-        style={{ zIndex: 1000 }}
+        className="pointer-events-none absolute bottom-3 rounded-md border border-border/40 bg-background/70 p-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground backdrop-blur-sm"
+        style={{ zIndex: 1000, left: "calc(var(--ap-nav-w, 176px) + 12px)" }}
       >
         {children}
       </div>
