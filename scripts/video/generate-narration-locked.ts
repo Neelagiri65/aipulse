@@ -5,7 +5,7 @@
  */
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
-import { resolve } from "path";
+import { resolve, dirname } from "path";
 import { execSync, execFileSync } from "child_process";
 import { segAudioPath, segSilencePath } from "../../src/lib/video/seg-path";
 
@@ -31,6 +31,16 @@ type LockedNarration = { id: string; narration: string };
 type LockedStory = { id: string; segment: string; headline: string; scene: string; holdSec: number };
 
 function generateTTS(text: string, outFile: string, ratePercent = 0): number {
+  // Pre-flight stub mode (STUB_TTS=1): exercise the REAL path construction
+  // without the network or ffprobe. writeFileSync throws ENOENT if outFile
+  // resolved into a phantom subdirectory (the 2026-06-16 "/" bug), so the
+  // dry-run pre-flight catches that class even if a future edit bypasses the
+  // seg-path helper. Returns a fixed dummy duration.
+  if (process.env.STUB_TTS === "1") {
+    writeFileSync(outFile, "");
+    return 2.0;
+  }
+
   // execFileSync with an argument array (NOT a shell string): narration text
   // passes through verbatim, so "$0.10", backticks, etc. are never mangled or
   // dropped by the shell. This replaces the old fragile string-escaping path.
@@ -140,6 +150,28 @@ function main() {
       audioFile: audioRel,
       ...(mEntry ? { videoStartSec: mEntry.startSec, videoEndSec: mEntry.endSec } : {}),
     });
+  }
+
+  // Pre-flight (STUB_TTS): every segment path above resolved and was writable.
+  // Assert each filename is flat under out/ (no phantom subdirectory) and the
+  // narration ids match the script, then exit before the real ffmpeg concat.
+  if (process.env.STUB_TTS === "1") {
+    const OUT_DIR = resolve(ROOT, "out");
+    for (const seg of segments) {
+      for (const rel of [seg.audioFile, segSilencePath(seg.id)]) {
+        if (dirname(resolve(ROOT, rel)) !== OUT_DIR) {
+          console.error(`\n  FATAL: segment "${seg.id}" path escapes out/: ${rel}`);
+          console.error(`         An id containing "/" (scoped npm pkg or HF org/model) was not slugged.`);
+          process.exit(1);
+        }
+      }
+      if (stories.length && seg.id !== "intro" && seg.id !== "outro" && !stories.find(s => s.id === seg.id)) {
+        console.error(`\n  FATAL: narration id "${seg.id}" has no matching story in script-locked.json`);
+        process.exit(1);
+      }
+    }
+    console.log(`\n  ✓ Pre-flight OK: ${segments.length} segment paths resolve flat under out/, ids match script`);
+    process.exit(0);
   }
 
   // Concatenate with silence gaps matching manifest timing

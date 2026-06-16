@@ -102,6 +102,18 @@ function main() {
     abort("Content validation failed — contradictions in script");
   }
 
+  // Narration pre-flight — runs the REAL narration generator in stub mode (no
+  // network, no ffmpeg) to prove every segment audio path resolves flat under
+  // out/ and ids match the script. Catches the "/"-in-id class (scoped npm
+  // packages, HF org/model ids) in ~1s, BEFORE the expensive recording step,
+  // instead of detonating in production at 07:00 UTC. NEVER degraded.
+  if (!run(
+    "Narration pre-flight (stub)",
+    "STUB_TTS=1 npx tsx scripts/video/generate-narration-locked.ts",
+  )) {
+    abort("Narration pre-flight failed — a segment path/id is unsafe; fix before recording");
+  }
+
   // ─── PHASE 3: RECORD + COMPOSITE PER FORMAT ───
 
   for (const format of FORMATS) {
