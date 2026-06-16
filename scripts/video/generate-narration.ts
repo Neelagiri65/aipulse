@@ -23,6 +23,7 @@ import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve } from "path";
 import { execSync } from "child_process";
 import type { CurationResult, Narrative, ScoredEvent } from "../../src/lib/curation/types";
+import { segAudioPath, segSilencePath } from "../../src/lib/video/seg-path";
 
 type ManifestEntry = {
   id: string;
@@ -475,7 +476,7 @@ function concatenateAudio(segments: NarrationSegment[], outFile: string, manifes
 
       const gap = targetStart - cursor;
       if (gap > 0.05) {
-        const gapFile = resolve(ROOT, `out/silence-${seg.id}.mp3`);
+        const gapFile = resolve(ROOT, segSilencePath(seg.id));
         execSync(
           `ffmpeg -y -f lavfi -i anullsrc=r=24000:cl=mono -t ${gap.toFixed(3)} -c:a libmp3lame -b:a 192k "${gapFile}" 2>&1`
         );
@@ -617,7 +618,7 @@ function main() {
     }
 
     const scene = sourceToPanel(narrative.events[0]?.source ?? "");
-    const segFile = resolve(ROOT, `out/narration-seg-${narrative.id}.mp3`);
+    const segFile = resolve(ROOT, segAudioPath(narrative.id));
 
     const info = hasManifest ? ` [${wordCount(narration)}w, ${segAvail.toFixed(1)}s]` : "";
     console.log(`[${narrative.segment.toUpperCase().padEnd(9)}] ${narrative.headline.slice(0, 55)}${info}`);

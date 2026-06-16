@@ -7,6 +7,7 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve } from "path";
 import { execSync, execFileSync } from "child_process";
+import { segAudioPath, segSilencePath } from "../../src/lib/video/seg-path";
 
 const ROOT = process.cwd();
 const VOICE = "en-US-AndrewMultilingualNeural";
@@ -102,7 +103,8 @@ function main() {
   for (const n of narrations) {
     const story = stories.find(s => s.id === n.id);
     const mEntry = manifest.find(m => m.id === n.id);
-    const outFile = resolve(ROOT, `out/narration-seg-${n.id}.mp3`);
+    const audioRel = segAudioPath(n.id);
+    const outFile = resolve(ROOT, audioRel);
 
     console.log(`[${(story?.segment ?? n.id).toUpperCase().padEnd(9)}] ${n.narration.slice(0, 60)}`);
 
@@ -135,7 +137,7 @@ function main() {
       narration: n.narration,
       scene: story?.scene ?? "globe",
       durationSec: dur,
-      audioFile: `out/narration-seg-${n.id}.mp3`,
+      audioFile: audioRel,
       ...(mEntry ? { videoStartSec: mEntry.startSec, videoEndSec: mEntry.endSec } : {}),
     });
   }
@@ -150,7 +152,7 @@ function main() {
     const gap = targetStart - cursor;
 
     if (gap > 0.05) {
-      const gapFile = resolve(ROOT, `out/silence-${seg.id}.mp3`);
+      const gapFile = resolve(ROOT, segSilencePath(seg.id));
       execSync(
         `ffmpeg -y -f lavfi -i anullsrc=r=24000:cl=mono -t ${gap.toFixed(3)} -c:a libmp3lame -b:a 192k "${gapFile}" 2>&1`
       );
