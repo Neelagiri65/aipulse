@@ -9,8 +9,10 @@ import type { MetadataRoute } from "next";
  * search. Listing them documents intent and survives any future default change.
  */
 
+// .trim() guards against a stray newline/space in the env var.
 const SITE_ORIGIN =
-  process.env.NEXT_PUBLIC_SITE_ORIGIN?.replace(/\/$/, "") ?? "https://gawk.dev";
+  process.env.NEXT_PUBLIC_SITE_ORIGIN?.trim().replace(/\/$/, "") ??
+  "https://gawk.dev";
 
 const AI_CRAWLERS = [
   "GPTBot",

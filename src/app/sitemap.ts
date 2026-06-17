@@ -15,8 +15,11 @@ import { listReportSlugs } from "@/lib/reports/registry";
  * Cached for 6h (`revalidate`) so crawler hits don't SCAN Redis on every fetch.
  */
 
+// .trim() guards against a stray newline/space in the env var — without it the
+// origin concatenates into malformed URLs ("https://gawk.dev\n/sources").
 const SITE_ORIGIN =
-  process.env.NEXT_PUBLIC_SITE_ORIGIN?.replace(/\/$/, "") ?? "https://gawk.dev";
+  process.env.NEXT_PUBLIC_SITE_ORIGIN?.trim().replace(/\/$/, "") ??
+  "https://gawk.dev";
 
 export const revalidate = 21600;
 
