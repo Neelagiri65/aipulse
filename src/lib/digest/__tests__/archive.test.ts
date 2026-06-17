@@ -132,6 +132,17 @@ describe("listDigestDates", () => {
     const dates = await listDigestDates({ client: scanClient([["0", []]]) });
     expect(dates).toEqual([]);
   });
+
+  it("filters out non-date keys so the sitemap can't build an Invalid Date", async () => {
+    // A stray `digest:index` / `digest:meta` key would otherwise reach
+    // new Date(...).toISOString() in the sitemap and 500 the route.
+    const client = scanClient([
+      ["0", ["digest:2026-06-17", "digest:index", "digest:latest", "digest:2026-06-16"]],
+    ]);
+    const dates = await listDigestDates({ client });
+    expect(dates).toEqual(["2026-06-17", "2026-06-16"]);
+    expect(dates.every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))).toBe(true);
+  });
 });
 
 describe("fail-soft behaviour", () => {
