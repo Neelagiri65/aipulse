@@ -24,8 +24,11 @@ const jetbrainsMono = JetBrains_Mono({
  * for prod (https://gawk.dev) and dev (http://localhost:3000); fall back
  * to gawk.dev to keep prod-shape unfurls in any preview that omits it.
  */
+// .trim() guards against a stray newline/space in the env var, which would
+// otherwise corrupt JSON-LD @id/url fields and the canonical origin.
 const SITE_ORIGIN =
-  process.env.NEXT_PUBLIC_SITE_ORIGIN?.replace(/\/$/, "") ?? "https://gawk.dev";
+  process.env.NEXT_PUBLIC_SITE_ORIGIN?.trim().replace(/\/$/, "") ??
+  "https://gawk.dev";
 
 const SITE_DESCRIPTION =
   "Real-time observatory for the global AI ecosystem. Every number cites its public source.";
