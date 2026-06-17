@@ -94,4 +94,30 @@ describe("runDepsDiscovery wall-clock budget", () => {
     expect(pathExists).toHaveBeenCalled();
     expect(result.failures.some((f) => f.step === "time-budget")).toBe(false);
   });
+
+  it("stops the SWEEP early (reserving budget for verification) when the sweep deadline passes", async () => {
+    // 2026-06-17 follow-up: a slow sweep must not consume the whole budget and
+    // leave 0 verifications. Clock: deadline + sweepDeadline seeded at t=0
+    // (sweepDeadline = 0 + 40%·1000 = 400); package 0 check at t=0 proceeds;
+    // package 1 check at t=500 > 400 → sweep stops; verify still runs (t=500 <
+    // deadline 1000) on what package 0 gathered.
+    const ticks = [0, 0, 0, 500, 500];
+    let i = 0;
+    const now = () => ticks[Math.min(i++, ticks.length - 1)];
+
+    const result = await runDepsDiscovery({
+      source: "test",
+      packages: ["openai", "ai"],
+      pagesPerPackage: 1,
+      timeBudgetMs: 1000,
+      now,
+    });
+
+    expect(result.packagesSwept).toBe(1); // stopped before the 2nd package
+    expect(result.failures.some((f) => f.step === "sweep-budget")).toBe(true);
+    expect(result.candidatesFound).toBeGreaterThan(0); // package 0 still gathered
+    // The reserved budget let verification run on the gathered candidate.
+    expect(result.verifiesAttempted).toBe(1);
+    expect(pathExists).toHaveBeenCalled();
+  });
 });
