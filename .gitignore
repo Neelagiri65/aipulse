@@ -76,6 +76,15 @@ next-env.d.ts
 /data/curated.json
 /data/video-narration.mp3
 /data/piper-voices/
+# Per-run locked script + narration + manifest/trim. Regenerated every pipeline
+# run (generate-daily-script + record-walkthrough); only the video scripts read
+# them, never the website build. Tracking them left the working tree perpetually
+# dirty. Wildcards cover the youtube + instagram (vertical) format variants.
+/data/narration-locked.json
+/data/script-locked.json
+/data/narration-segments-*.json
+/data/video-manifest-*.json
+/data/video-trim-*.json
 /public/video-narration.mp3
 /public/video-screenshots/
 /public/video-map-walkthrough.webm
