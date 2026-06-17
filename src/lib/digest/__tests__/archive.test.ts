@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   digestArchiveKey,
+  listDigestDates,
   readDigestBody,
   writeDigestBody,
   type DigestArchiveClient,
+  type DigestArchiveScanClient,
 } from "@/lib/digest/archive";
 import type { DigestBody } from "@/lib/digest/types";
 import { MockRedis } from "@/lib/data/__tests__/helpers/mock-redis";
@@ -99,6 +101,36 @@ describe("writeDigestBody — no TTL", () => {
     const entry = setSpy.get("digest:2026-04-22");
     expect(entry).toBeDefined();
     expect(entry!.opts).toBeUndefined();
+  });
+});
+
+describe("listDigestDates", () => {
+  function scanClient(pages: Array<[string | number, string[]]>): DigestArchiveScanClient {
+    let i = 0;
+    return {
+      scan: (async () => pages[Math.min(i++, pages.length - 1)]) as DigestArchiveScanClient["scan"],
+    };
+  }
+
+  it("enumerates keys across paginated scans, stripping the prefix, newest first", async () => {
+    const client = scanClient([
+      ["7", ["digest:2026-06-10", "digest:2026-06-11"]],
+      ["0", ["digest:2026-06-09"]],
+    ]);
+    const dates = await listDigestDates({ client });
+    expect(dates).toEqual(["2026-06-11", "2026-06-10", "2026-06-09"]);
+  });
+
+  it("returns [] (fail-soft) when scan throws", async () => {
+    const throwing: DigestArchiveScanClient = {
+      scan: (async () => { throw new Error("boom"); }) as DigestArchiveScanClient["scan"],
+    };
+    expect(await listDigestDates({ client: throwing })).toEqual([]);
+  });
+
+  it("returns [] when the archive is empty", async () => {
+    const dates = await listDigestDates({ client: scanClient([["0", []]]) });
+    expect(dates).toEqual([]);
   });
 });
 
