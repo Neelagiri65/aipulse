@@ -72,6 +72,44 @@ describe("assembleModelUsage", () => {
     expect(dto.sourceCaveat).toBe(OPENROUTER_SOURCE_CAVEAT);
   });
 
+  // Regression — 2026-06-09 incident. The v1 catalogue identifies models by
+  // `id` (not the frontend `slug`) and nests modalities under `architecture`.
+  // When OpenRouter's frontend endpoint started 404ing, the never-exercised
+  // catalogue-fallback path fed `slug: undefined` into normaliseRow and the
+  // route 500'd on every run for 10 days. These entries mirror the REAL v1
+  // shape (no `slug` key at all).
+  it("handles real v1 catalogue entries (id, no slug, architecture-nested modalities) without throwing", () => {
+    const catalogueEntry = {
+      id: "z-ai/glm-5.2",
+      canonical_slug: "z-ai/glm-5.2-20260616",
+      name: "Z.ai: GLM 5.2",
+      created: 1781631930,
+      context_length: 1048576,
+      architecture: { input_modalities: ["text"], output_modalities: ["text"] },
+      pricing: { prompt: "0.0000014", completion: "0.0000044" },
+    } as unknown as RawFrontendModel;
+    const padding = Array.from({ length: 110 }, (_, i) =>
+      ({ id: `acme/model-${i}`, name: `m${i}`, created: 1700000000 + i } as unknown as RawFrontendModel),
+    );
+
+    const dto = assembleModelUsage({
+      primary: null,
+      catalogue: { data: [catalogueEntry, ...padding] } as RawCatalogueResponse,
+      frontendErrored: true,
+      primaryOrdering: "top-weekly",
+      now: fixedClock,
+    });
+
+    expect(dto.ordering).toBe("catalogue-fallback");
+    expect(dto.rows.length).toBeGreaterThan(0);
+    expect(dto.rows.every((r) => r.slug.length > 0)).toBe(true);
+    const glm = dto.rows.find((r) => r.slug === "z-ai/glm-5.2");
+    expect(glm).toBeDefined();
+    expect(glm?.author).toBe("z-ai");
+    expect(glm?.hubUrl).toBe("https://openrouter.ai/z-ai/glm-5.2");
+    expect(glm?.modalitiesIn).toEqual(["text"]);
+  });
+
   it("returns top-weekly ordering when frontend OK", () => {
     const dto = assembleModelUsage({
       primary: mkPaddedResp([
