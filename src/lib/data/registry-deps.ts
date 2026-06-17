@@ -98,6 +98,20 @@ export type DepsDiscoverOptions = {
   pagesPerPackage?: number;
   /** Max verifications per run. Default 60, hard cap 200. */
   cap?: number;
+  /**
+   * Wall-clock budget for the sequential verification pass, in ms. The route
+   * runs on a Vercel Hobby function whose execution ceiling is well below the
+   * 300s `maxDuration` the crawl could otherwise consume; without a budget the
+   * function is killed mid-pass and the cron's curl times out with 0 bytes (the
+   * 2026-06 registry-discover-deps failures). When the budget is exhausted the
+   * loop stops and returns the partial progress with `ok=true`, so the route
+   * responds 200 and the deferred candidates are picked up on the next run.
+   * Default 40_000 (40s) — comfortably under both the function ceiling and the
+   * cron's 150s client timeout.
+   */
+  timeBudgetMs?: number;
+  /** Injectable epoch-ms clock for the time budget. Defaults to Date.now. */
+  now?: () => number;
   /** Label written to RegistryMeta.lastDiscoverySource. */
   source: string;
 };
@@ -109,6 +123,8 @@ export type DepsDiscoverResult = {
   candidatesAfterSkipKnown: number;
   verifiesAttempted: number;
   written: number;
+  /** True when the wall-clock budget cut the verification pass short. */
+  stoppedEarly: boolean;
   failures: Failure[];
 };
 
@@ -129,6 +145,9 @@ export async function runDepsDiscovery(
   const packages = opts.packages ?? TARGET_PACKAGES;
   const pagesPerPackage = Math.max(1, Math.min(10, opts.pagesPerPackage ?? 2));
   const cap = Math.max(1, Math.min(200, opts.cap ?? 60));
+  const timeBudgetMs = Math.max(1000, opts.timeBudgetMs ?? 40_000);
+  const clock = opts.now ?? (() => Date.now());
+  const deadline = clock() + timeBudgetMs;
 
   if (!isRegistryAvailable()) {
     failures.push({
@@ -204,9 +223,22 @@ export async function runDepsDiscovery(
   const nowIso = new Date().toISOString();
   const verifiedEntries: RegistryEntry[] = [];
   let verifiesAttempted = 0;
+  let stoppedEarly = false;
 
   for (const cand of fresh) {
     if (verifiesAttempted >= cap) break;
+    // Stop before the platform/client kills the function mid-pass. Checked
+    // between candidates (a single candidate's GitHub probes can't be
+    // interrupted), so the actual finish overshoots the budget by at most one
+    // candidate — still comfortably under the function ceiling.
+    if (clock() >= deadline) {
+      stoppedEarly = true;
+      failures.push({
+        step: "time-budget",
+        message: `stopped after ${verifiesAttempted} verifies (${timeBudgetMs}ms budget); ${fresh.length - verifiesAttempted} candidates deferred to next run`,
+      });
+      break;
+    }
     verifiesAttempted++;
 
     const { owner, name } = cand;
@@ -292,6 +324,7 @@ export async function runDepsDiscovery(
     candidatesAfterSkipKnown: fresh.length,
     verifiesAttempted,
     written: verifiedEntries.length,
+    stoppedEarly,
     failures,
   };
 }
@@ -439,6 +472,7 @@ function emptyResult(failures: Failure[]): DepsDiscoverResult {
     candidatesAfterSkipKnown: 0,
     verifiesAttempted: 0,
     written: 0,
+    stoppedEarly: false,
     failures,
   };
 }
