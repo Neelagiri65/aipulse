@@ -53,10 +53,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: "npm"
@@ -123,7 +123,7 @@ jobs:
 
       - name: Upload video artifacts
         if: steps.pipeline.outputs.has_output == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: daily-video-${{ github.run_id }}
           path: out/gawk-daily-*.mp4
@@ -131,7 +131,7 @@ jobs:
 
       - name: Upload pipeline log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: pipeline-log-${{ github.run_id }}
           path: out/logs/pipeline-*.log
