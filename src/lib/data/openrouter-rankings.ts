@@ -28,6 +28,19 @@ import {
  */
 export type RawFrontendModel = {
   slug: string;
+  /**
+   * v1 catalogue entries identify the model by `id` (e.g. "z-ai/glm-5.2")
+   * and a versioned `canonical_slug`, NOT the frontend `slug`. The catalogue
+   * fallback normalises these into `slug` before assembly — see
+   * `normaliseCatalogueEntry`. Optional so both shapes type-check.
+   */
+  id?: string;
+  canonical_slug?: string;
+  /** v1 catalogue nests modalities here; the frontend inlines them. */
+  architecture?: {
+    input_modalities?: string[];
+    output_modalities?: string[];
+  } | null;
   permaslug?: string;
   name?: string;
   short_name?: string;
@@ -162,7 +175,27 @@ function readFrontendModels(raw: RawFrontendResponse): RawFrontendModel[] {
 
 function readCatalogueModels(raw: RawCatalogueResponse): RawFrontendModel[] {
   if (!raw || !Array.isArray(raw.data)) return [];
-  return raw.data;
+  return raw.data.map(normaliseCatalogueEntry).filter((m) => m.slug.length > 0);
+}
+
+/**
+ * The v1 catalogue uses a different field shape than the frontend ranking
+ * endpoint: the model is keyed by `id` (not `slug`) and modalities live under
+ * `architecture`. Normalise into the frontend shape so the shared
+ * `normaliseRow` assembler works unchanged. `id` (unversioned, e.g.
+ * "z-ai/glm-5.2") is preferred over `canonical_slug` (versioned) because it
+ * matches the `https://openrouter.ai/{slug}` hub URL. Without this, the
+ * catalogue-fallback path fed `slug: undefined` into `normaliseRow` and the
+ * whole route 500'd (the 2026-06-09 incident: frontend endpoint started
+ * 404ing, first activation of this never-exercised fallback).
+ */
+function normaliseCatalogueEntry(m: RawFrontendModel): RawFrontendModel {
+  return {
+    ...m,
+    slug: m.slug ?? m.id ?? m.canonical_slug ?? "",
+    input_modalities: m.input_modalities ?? m.architecture?.input_modalities,
+    output_modalities: m.output_modalities ?? m.architecture?.output_modalities,
+  };
 }
 
 /**
@@ -193,7 +226,10 @@ function normaliseRow(
   rank: number,
   previousRankBySlug: Map<string, number>,
 ): ModelUsageRow {
-  const slug = m.slug;
+  // Defensive: a missing slug must never crash the route again. Even if a
+  // future shape change bypasses normaliseCatalogueEntry, fall back to id /
+  // canonical_slug / "unknown" rather than throwing on `undefined.split`.
+  const slug = m.slug ?? m.id ?? m.canonical_slug ?? "unknown";
   const author = m.author ?? slug.split("/")[0] ?? "unknown";
   const previousRank = previousRankBySlug.get(slug) ?? null;
   return {
