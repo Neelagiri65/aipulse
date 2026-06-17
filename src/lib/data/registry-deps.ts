@@ -91,6 +91,10 @@ const ALL_KINDS: ConfigKind[] = Object.keys(CONFIG_PATHS) as ConfigKind[];
 const ECOSYSTEMS_BASE =
   "https://packages.ecosyste.ms/api/v1/registries/npmjs.org/packages";
 
+/** Per-request ceiling for every outbound fetch in this module, so a single
+ *  hanging upstream (ecosyste.ms or GitHub) can't consume the run's budget. */
+const FETCH_TIMEOUT_MS = 8_000;
+
 export type DepsDiscoverOptions = {
   /** Packages to sweep this run. Defaults to TARGET_PACKAGES. */
   packages?: readonly string[];
@@ -148,6 +152,12 @@ export async function runDepsDiscovery(
   const timeBudgetMs = Math.max(1000, opts.timeBudgetMs ?? 40_000);
   const clock = opts.now ?? (() => Date.now());
   const deadline = clock() + timeBudgetMs;
+  // Reserve the majority of the budget for the verification pass (the useful
+  // work). Cap the sweep at ~40% of the budget (≤15s) so a slow or hanging
+  // ecosyste.ms can't starve verification: the 2026-06-17 verify run did 0
+  // verifications because the sweep alone consumed the whole 40s. Candidates
+  // gathered before the sweep deadline still proceed to verification.
+  const sweepDeadline = clock() + Math.min(Math.floor(timeBudgetMs * 0.4), 15_000);
 
   if (!isRegistryAvailable()) {
     failures.push({
@@ -171,9 +181,18 @@ export async function runDepsDiscovery(
   //    exists only to avoid hammering the API as a polite neighbour.
   const byName = new Map<string, DepCandidate>();
   let candidatesFound = 0;
+  let packagesActuallySwept = 0;
   for (let i = 0; i < packages.length; i++) {
+    if (clock() >= sweepDeadline) {
+      failures.push({
+        step: "sweep-budget",
+        message: `sweep stopped after ${i}/${packages.length} packages; verifying ${byName.size} candidates gathered so far`,
+      });
+      break;
+    }
     const pkg = packages[i];
     if (i > 0) await delay(500);
+    packagesActuallySwept++;
     try {
       const found = await fetchDependents(pkg, pagesPerPackage, failures);
       candidatesFound += found.length;
@@ -318,7 +337,7 @@ export async function runDepsDiscovery(
   await writeMeta(finalMeta);
 
   return {
-    packagesSwept: packages.length,
+    packagesSwept: packagesActuallySwept,
     candidatesFound,
     candidatesAfterDedupe,
     candidatesAfterSkipKnown: fresh.length,
@@ -359,6 +378,10 @@ async function fetchDependents(
         "User-Agent": "aipulse-registry-discovery (+https://gawk.dev)",
       },
       cache: "no-store",
+      // Per-request ceiling so one hanging ecosyste.ms request can't consume
+      // the whole run's budget (the 2026-06-17 starvation). The caller's
+      // try/catch records the abort and the sweep moves on.
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     if (res.status === 404) break;
     if (res.status === 429) {
@@ -453,6 +476,7 @@ async function fetchRepoMeta(
         "X-GitHub-Api-Version": "2022-11-28",
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     },
   );
   if (res.status === 404) return null;
