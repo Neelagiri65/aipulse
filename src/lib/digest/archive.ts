@@ -73,7 +73,13 @@ export async function listDigestDates(opts: {
         count: 100,
       });
       cursor = String(next);
-      for (const k of keys) dates.push(k.slice(KEY_PREFIX.length));
+      for (const k of keys) {
+        const date = k.slice(KEY_PREFIX.length);
+        // Only return clean ISO dates. A stray non-date `digest:*` key would
+        // otherwise reach `new Date(...).toISOString()` in the sitemap and
+        // throw (RangeError: Invalid time value) → a 500 on /sitemap.xml.
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) dates.push(date);
+      }
     } while (cursor !== "0");
     return dates.sort().reverse();
   } catch {

@@ -50,14 +50,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
   }
 
-  // Fail-soft: listDigestDates returns [] if Redis is unavailable.
-  for (const date of await listDigestDates()) {
-    entries.push({
-      url: `${SITE_ORIGIN}/digest/${date}`,
-      lastModified: new Date(`${date}T00:00:00Z`),
-      changeFrequency: "yearly", // a past day's digest is immutable
-      priority: 0.5,
-    });
+  // Digest enrichment must never 500 the sitemap. listDigestDates is fail-soft
+  // (returns [] on Redis error) and only yields YYYY-MM-DD dates, but we also
+  // guard the Date here and wrap the whole block: a sitemap that throws takes
+  // down crawl discovery entirely, so degrade to static+reports instead.
+  try {
+    for (const date of await listDigestDates()) {
+      const lastModified = new Date(`${date}T00:00:00Z`);
+      if (Number.isNaN(lastModified.getTime())) continue;
+      entries.push({
+        url: `${SITE_ORIGIN}/digest/${date}`,
+        lastModified,
+        changeFrequency: "yearly", // a past day's digest is immutable
+        priority: 0.5,
+      });
+    }
+  } catch {
+    // keep the static + report entries; skip digests this generation
   }
 
   return entries;
