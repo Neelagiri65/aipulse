@@ -24,6 +24,8 @@ import type { DigestBody } from "@/lib/digest/types";
 const KEY_PREFIX = "digest:";
 
 export type DigestArchiveClient = Pick<Redis, "get" | "set" | "del">;
+/** Client surface for enumerating archived digests (sitemap). */
+export type DigestArchiveScanClient = Pick<Redis, "scan">;
 
 let cached: Redis | null | undefined;
 
@@ -49,6 +51,34 @@ export function isDigestArchiveAvailable(): boolean {
 
 export function digestArchiveKey(date: string): string {
   return `${KEY_PREFIX}${date}`;
+}
+
+/**
+ * Enumerate the dates (newest first) that have an archived digest. Used by the
+ * sitemap to expose `/digest/<date>` pages for crawling. Fail-soft: returns []
+ * if Redis is unavailable or scan errors — a sitemap must never throw. SCANs
+ * `digest:*` with pagination so it works regardless of archive size.
+ */
+export async function listDigestDates(opts: {
+  client?: DigestArchiveScanClient;
+} = {}): Promise<string[]> {
+  const r = opts.client ?? (defaultClient() as DigestArchiveScanClient | null);
+  if (!r) return [];
+  try {
+    const dates: string[] = [];
+    let cursor = "0";
+    do {
+      const [next, keys] = await r.scan(cursor, {
+        match: `${KEY_PREFIX}*`,
+        count: 100,
+      });
+      cursor = String(next);
+      for (const k of keys) dates.push(k.slice(KEY_PREFIX.length));
+    } while (cursor !== "0");
+    return dates.sort().reverse();
+  } catch {
+    return [];
+  }
 }
 
 type Opts = { client?: DigestArchiveClient };

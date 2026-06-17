@@ -30,10 +30,44 @@ const SITE_ORIGIN =
 const SITE_DESCRIPTION =
   "Real-time observatory for the global AI ecosystem. Every number cites its public source.";
 
+/**
+ * JSON-LD for Organization + WebSite. The description leads with "AI coding
+ * tools / AI ecosystem" to disambiguate from GNU gawk (the AWK language tool)
+ * that otherwise owns the "gawk" namespace.
+ */
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_ORIGIN}/#org`,
+      name: "Gawk",
+      url: SITE_ORIGIN,
+      logo: `${SITE_ORIGIN}/icon-512.png`,
+      description:
+        "Gawk is a real-time observatory for the global AI ecosystem — live status and activity for AI coding tools and AI labs, where every number cites its public source.",
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_ORIGIN}/#website`,
+      name: "Gawk",
+      alternateName: "Gawk — AI ecosystem observatory",
+      url: SITE_ORIGIN,
+      description: SITE_DESCRIPTION,
+      publisher: { "@id": `${SITE_ORIGIN}/#org` },
+      inLanguage: "en",
+    },
+  ],
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),
   title: "Gawk — live status & activity monitor for AI coding tools",
   description: SITE_DESCRIPTION,
+  // Self-canonical to the apex origin so the apex/www split doesn't fragment
+  // ranking signals (pair with the host redirect in Vercel).
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -84,6 +118,13 @@ export default function RootLayout({
       className={`${dmSans.variable} ${jetbrainsMono.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-hidden">
+        {/* Structured data — helps Google rich results + AI answer engines
+            understand what Gawk is and disambiguate it from GNU gawk (awk). */}
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+        />
         <div className="ap-stage-bg" aria-hidden />
         <CursorGlow />
         <div className="relative z-10 flex flex-1 flex-col">{children}</div>
