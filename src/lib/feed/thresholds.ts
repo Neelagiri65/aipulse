@@ -17,6 +17,7 @@ import type { CardType, Severity } from "@/lib/feed/types";
 export const FEED_SEVERITIES: Readonly<Record<CardType, Severity>> =
   Object.freeze({
     TOOL_ALERT: 100,
+    AUDIT_FINDING: 90,
     MODEL_MOVER: 80,
     NEW_RELEASE: 70,
     SDK_TREND: 60,

@@ -23,6 +23,8 @@ export const metadata = {
 const CARD_TYPE_DESCRIPTION: Record<CardType, string> = {
   TOOL_ALERT:
     "Any tracked tool (Claude Code, Claude API, OpenAI API, Codex, Copilot, Windsurf) reporting a status that is not 'operational' on its public status page, OR an active incident on a status page that still reads green overall.",
+  AUDIT_FINDING:
+    "An independent Nativerse reproduction of a published model or benchmark claim: the model is re-run on the cited benchmark and the measured figure is compared with the claimed one. Sourced from the Nativerse Claims Audit ledger, never invented.",
   MODEL_MOVER:
     "An OpenRouter top-30 model whose week-over-week rank delta exceeds the threshold (strictly greater than).",
   NEW_RELEASE:
@@ -39,6 +41,7 @@ const CARD_TYPE_DESCRIPTION: Record<CardType, string> = {
 
 const ORDERED: CardType[] = [
   "TOOL_ALERT",
+  "AUDIT_FINDING",
   "MODEL_MOVER",
   "NEW_RELEASE",
   "SDK_TREND",

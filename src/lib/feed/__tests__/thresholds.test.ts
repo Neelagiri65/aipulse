@@ -5,6 +5,7 @@ import type { CardType } from "@/lib/feed/types";
 describe("FEED_SEVERITIES", () => {
   it("matches the locked formula exactly", () => {
     expect(FEED_SEVERITIES.TOOL_ALERT).toBe(100);
+    expect(FEED_SEVERITIES.AUDIT_FINDING).toBe(90);
     expect(FEED_SEVERITIES.MODEL_MOVER).toBe(80);
     expect(FEED_SEVERITIES.NEW_RELEASE).toBe(70);
     expect(FEED_SEVERITIES.SDK_TREND).toBe(60);
@@ -17,9 +18,10 @@ describe("FEED_SEVERITIES", () => {
     expect(Object.isFrozen(FEED_SEVERITIES)).toBe(true);
   });
 
-  it("covers all seven card types and nothing else", () => {
+  it("covers all eight card types and nothing else", () => {
     const expected: CardType[] = [
       "TOOL_ALERT",
+      "AUDIT_FINDING",
       "MODEL_MOVER",
       "NEW_RELEASE",
       "SDK_TREND",
@@ -32,7 +34,7 @@ describe("FEED_SEVERITIES", () => {
 
   it("severities sort cleanly into a strict descending order", () => {
     const values = Object.values(FEED_SEVERITIES).sort((a, b) => b - a);
-    expect(values).toEqual([100, 80, 70, 60, 40, 20, 10]);
+    expect(values).toEqual([100, 90, 80, 70, 60, 40, 20, 10]);
   });
 });
 

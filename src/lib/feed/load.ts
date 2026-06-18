@@ -31,6 +31,7 @@ import {
 } from "@/lib/data/fetch-models";
 import { fetchLabActivity } from "@/lib/data/fetch-labs";
 import { readRecentRedditItems } from "@/lib/data/reddit-feed";
+import { fetchAuditFindings } from "@/lib/data/fetch-audits";
 import { OPENROUTER_SOURCE_CAVEAT } from "@/lib/data/openrouter-types";
 import type { ResearchResult } from "@/lib/data/fetch-research";
 import type { LabsPayload } from "@/lib/data/fetch-labs";
@@ -62,7 +63,7 @@ export async function loadSnapshots(
 ): Promise<LoadedSnapshots> {
   const nowIso = new Date(nowMs).toISOString();
 
-  const [status, models, sdk, hn, research, labs, hfRecent, reddit] = await Promise.all([
+  const [status, models, sdk, hn, research, labs, hfRecent, reddit, audits] = await Promise.all([
     withLastKnown<StatusResult>(
       "status",
       () => fetchAllStatus(),
@@ -142,6 +143,10 @@ export async function loadSnapshots(
       console.error("[feed] readRecentRedditItems failed", err);
       return [] as Awaited<ReturnType<typeof readRecentRedditItems>>;
     }),
+    fetchAuditFindings().catch((err) => {
+      console.error("[feed] fetchAuditFindings failed", err);
+      return { ok: false as const, findings: [], generatedAt: nowIso };
+    }),
   ]);
 
   const snapshots: FeedSnapshots = {
@@ -153,6 +158,7 @@ export async function loadSnapshots(
     labs: labs.data,
     hfRecent: hfRecent.data,
     reddit,
+    audits,
   };
 
   const staleSources = collectStale(

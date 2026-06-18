@@ -31,6 +31,7 @@ type Phase = "idle" | "copied" | "error";
 
 const TYPE_LABEL: Record<Card["type"], string> = {
   TOOL_ALERT: "Tool alert",
+  AUDIT_FINDING: "Audit finding",
   MODEL_MOVER: "Model mover",
   NEW_RELEASE: "New release",
   SDK_TREND: "SDK trend",

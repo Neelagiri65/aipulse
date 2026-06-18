@@ -21,8 +21,10 @@ import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
 import type { HnWireResult } from "@/lib/data/wire-hn";
 import type { ResearchResult } from "@/lib/data/fetch-research";
 import type { LabsPayload } from "@/lib/data/fetch-labs";
+import type { AuditsResult } from "@/lib/data/fetch-audits";
 
 import { deriveToolAlertCards } from "@/lib/feed/derivers/tool-alert";
+import { deriveAuditFindingCards } from "@/lib/feed/derivers/audit-finding";
 import { deriveModelMoverCards } from "@/lib/feed/derivers/model-mover";
 import { deriveNewReleaseCards } from "@/lib/feed/derivers/new-release";
 import { deriveSdkTrendCards } from "@/lib/feed/derivers/sdk-trend";
@@ -54,6 +56,9 @@ export type FeedSnapshots = {
    *  first. Empty array when the Redis store is unreachable or hasn't
    *  been populated yet — deriver emits zero cards in that case. */
   reddit: RedditItem[];
+  /** Nativerse Claims Audit findings. Empty when AUDIT_FEED_URL is unset or
+   *  the fetch failed — deriver emits zero cards in that case. */
+  audits: AuditsResult;
 };
 
 export function composeFeed(
@@ -62,6 +67,7 @@ export function composeFeed(
 ): FeedResponse {
   const cards = [
     ...deriveToolAlertCards(snapshots.status),
+    ...deriveAuditFindingCards(snapshots.audits),
     ...deriveModelMoverCards(snapshots.models),
     ...deriveNewReleaseCards(snapshots.hfRecent, nowMs),
     ...deriveSdkTrendCards(snapshots.sdk),
