@@ -29,6 +29,8 @@ const CARD_TYPE_DESCRIPTION: Record<CardType, string> = {
     "A HuggingFace text-generation model published in the last 48h by an org in the major-lab allowlist (Anthropic, OpenAI, Google, DeepSeek, Moonshot AI, Meta-Llama, Mistral AI, Qwen, xAI, Cohere, Alibaba, Microsoft, NVIDIA, Perplexity, Amazon) with at least 5 likes — likes are first-paint social proof; the rolling 30d download counter starts at 0 for brand-new repos.",
   SDK_TREND:
     "A tracked package (PyPI / npm / crates / Docker / Brew / VS Code Marketplace) whose week-over-week download delta absolute value exceeds the threshold.",
+  PRODUCT_LAUNCH:
+    "A top launch in Product Hunt's Artificial Intelligence topic for the day, read from the Product Hunt API. Cites the public launch page.",
   NEWS:
     "A Hacker News AI-filtered story whose points exceed the threshold within the configured time window.",
   RESEARCH:
@@ -42,6 +44,7 @@ const ORDERED: CardType[] = [
   "MODEL_MOVER",
   "NEW_RELEASE",
   "SDK_TREND",
+  "PRODUCT_LAUNCH",
   "NEWS",
   "RESEARCH",
   "LAB_HIGHLIGHT",

@@ -30,6 +30,7 @@ import { fetchRecentPapers } from "@/lib/data/fetch-research";
 import { fetchLabActivity } from "@/lib/data/fetch-labs";
 import { fetchRecentModels } from "@/lib/data/fetch-models";
 import { readRecentRedditItems } from "@/lib/data/reddit-feed";
+import { fetchProductHuntLaunches } from "@/lib/data/fetch-producthunt";
 import { OPENROUTER_SOURCE_CAVEAT } from "@/lib/data/openrouter-types";
 
 import { composeFeed, type FeedSnapshots } from "@/lib/feed/compose";
@@ -180,7 +181,7 @@ async function findCardById(cardId: string): Promise<Card | null> {
 
 async function loadSnapshots(): Promise<FeedSnapshots> {
   const nowIso = new Date().toISOString();
-  const [status, models, sdk, hn, research, labs, hfRecent, reddit] = await Promise.all([
+  const [status, models, sdk, hn, research, labs, hfRecent, reddit, productHunt] = await Promise.all([
     fetchAllStatus().catch(() => ({
       data: {},
       polledAt: nowIso,
@@ -237,8 +238,13 @@ async function loadSnapshots(): Promise<FeedSnapshots> {
     readRecentRedditItems(50).catch(
       () => [] as Awaited<ReturnType<typeof readRecentRedditItems>>,
     ),
+    fetchProductHuntLaunches().catch(() => ({
+      ok: false as const,
+      posts: [],
+      generatedAt: nowIso,
+    })),
   ]);
-  return { status, models, sdk, hn, research, labs, hfRecent, reddit };
+  return { status, models, sdk, hn, research, labs, hfRecent, reddit, productHunt };
 }
 
 async function loadSdk(nowIso: string) {

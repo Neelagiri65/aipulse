@@ -8,6 +8,7 @@ describe("FEED_SEVERITIES", () => {
     expect(FEED_SEVERITIES.MODEL_MOVER).toBe(80);
     expect(FEED_SEVERITIES.NEW_RELEASE).toBe(70);
     expect(FEED_SEVERITIES.SDK_TREND).toBe(60);
+    expect(FEED_SEVERITIES.PRODUCT_LAUNCH).toBe(50);
     expect(FEED_SEVERITIES.NEWS).toBe(40);
     expect(FEED_SEVERITIES.RESEARCH).toBe(20);
     expect(FEED_SEVERITIES.LAB_HIGHLIGHT).toBe(10);
@@ -17,12 +18,13 @@ describe("FEED_SEVERITIES", () => {
     expect(Object.isFrozen(FEED_SEVERITIES)).toBe(true);
   });
 
-  it("covers all seven card types and nothing else", () => {
+  it("covers all eight card types and nothing else", () => {
     const expected: CardType[] = [
       "TOOL_ALERT",
       "MODEL_MOVER",
       "NEW_RELEASE",
       "SDK_TREND",
+      "PRODUCT_LAUNCH",
       "NEWS",
       "RESEARCH",
       "LAB_HIGHLIGHT",
@@ -32,7 +34,7 @@ describe("FEED_SEVERITIES", () => {
 
   it("severities sort cleanly into a strict descending order", () => {
     const values = Object.values(FEED_SEVERITIES).sort((a, b) => b - a);
-    expect(values).toEqual([100, 80, 70, 60, 40, 20, 10]);
+    expect(values).toEqual([100, 80, 70, 60, 50, 40, 20, 10]);
   });
 });
 

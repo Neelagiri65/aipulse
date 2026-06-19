@@ -21,8 +21,10 @@ import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
 import type { HnWireResult } from "@/lib/data/wire-hn";
 import type { ResearchResult } from "@/lib/data/fetch-research";
 import type { LabsPayload } from "@/lib/data/fetch-labs";
+import type { ProductHuntResult } from "@/lib/data/fetch-producthunt";
 
 import { deriveToolAlertCards } from "@/lib/feed/derivers/tool-alert";
+import { deriveProductLaunchCards } from "@/lib/feed/derivers/product-launch";
 import { deriveModelMoverCards } from "@/lib/feed/derivers/model-mover";
 import { deriveNewReleaseCards } from "@/lib/feed/derivers/new-release";
 import { deriveSdkTrendCards } from "@/lib/feed/derivers/sdk-trend";
@@ -54,6 +56,10 @@ export type FeedSnapshots = {
    *  first. Empty array when the Redis store is unreachable or hasn't
    *  been populated yet — deriver emits zero cards in that case. */
   reddit: RedditItem[];
+  /** Product Hunt "Artificial Intelligence" topic top launches. Empty when
+   *  PRODUCT_HUNT_TOKEN is unset or the fetch failed — deriver emits zero
+   *  cards in that case. */
+  productHunt: ProductHuntResult;
 };
 
 export function composeFeed(
@@ -69,6 +75,7 @@ export function composeFeed(
     ...deriveRedditCards(snapshots.reddit, nowMs),
     ...deriveResearchCards(snapshots.research),
     ...deriveLabHighlightCards(snapshots.labs),
+    ...deriveProductLaunchCards(snapshots.productHunt),
   ];
 
   // Rank by severity, then dedupe same-sourceUrl within a 4h sliding
