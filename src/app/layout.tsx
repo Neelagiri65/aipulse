@@ -71,6 +71,7 @@ export const metadata: Metadata = {
   // ranking signals (pair with the host redirect in Vercel).
   alternates: { canonical: "/" },
   robots: { index: true, follow: true },
+  verification: { google: "VGOiZtYerTvyrJmA9ah20FzezWkTv-7GofMebrT2mhE" },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
