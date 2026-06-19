@@ -20,6 +20,7 @@ export const FEED_SEVERITIES: Readonly<Record<CardType, Severity>> =
     MODEL_MOVER: 80,
     NEW_RELEASE: 70,
     SDK_TREND: 60,
+    PRODUCT_LAUNCH: 50,
     NEWS: 40,
     RESEARCH: 20,
     LAB_HIGHLIGHT: 10,

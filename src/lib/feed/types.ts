@@ -18,9 +18,10 @@ export type CardType =
   | "SDK_TREND"
   | "NEWS"
   | "RESEARCH"
-  | "LAB_HIGHLIGHT";
+  | "LAB_HIGHLIGHT"
+  | "PRODUCT_LAUNCH";
 
-export type Severity = 100 | 80 | 70 | 60 | 40 | 20 | 10;
+export type Severity = 100 | 80 | 70 | 60 | 50 | 40 | 20 | 10;
 
 export type Card = {
   /** Stable hash of (type, primaryKey, hour-bucket). Used as the share-URL slug. */

@@ -34,6 +34,7 @@ const TYPE_LABEL: Record<Card["type"], string> = {
   MODEL_MOVER: "Model mover",
   NEW_RELEASE: "New release",
   SDK_TREND: "SDK trend",
+  PRODUCT_LAUNCH: "Product launch",
   NEWS: "News",
   RESEARCH: "Research",
   LAB_HIGHLIGHT: "Lab highlight",

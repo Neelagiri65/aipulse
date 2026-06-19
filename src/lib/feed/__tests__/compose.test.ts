@@ -6,6 +6,7 @@ import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
 import type { HnWireResult } from "@/lib/data/wire-hn";
 import type { ResearchResult } from "@/lib/data/fetch-research";
 import type { LabsPayload } from "@/lib/data/fetch-labs";
+import type { ProductHuntResult } from "@/lib/data/fetch-producthunt";
 
 const NOW = new Date("2026-04-27T12:00:00.000Z").getTime();
 
@@ -43,6 +44,9 @@ function emptyResearch(): ResearchResult {
 function emptyLabs(): LabsPayload {
   return { labs: [], generatedAt: "2026-04-27T12:00:00.000Z", failures: [] };
 }
+function emptyProductHunt(): ProductHuntResult {
+  return { ok: true, posts: [], generatedAt: "2026-04-27T12:00:00.000Z" };
+}
 
 describe("composeFeed", () => {
   it("returns quietDay=true and zero cards when every snapshot is empty", () => {
@@ -56,6 +60,7 @@ describe("composeFeed", () => {
         labs: emptyLabs(),
         hfRecent: [],
         reddit: [],
+        productHunt: emptyProductHunt(),
       },
       NOW,
     );
@@ -85,6 +90,7 @@ describe("composeFeed", () => {
         labs: emptyLabs(),
         hfRecent: [],
         reddit: [],
+        productHunt: emptyProductHunt(),
       },
       NOW,
     );
@@ -129,6 +135,7 @@ describe("composeFeed", () => {
         labs: emptyLabs(),
         hfRecent: [],
         reddit: [],
+        productHunt: emptyProductHunt(),
       },
       NOW,
     );
@@ -146,6 +153,7 @@ describe("composeFeed", () => {
         labs: emptyLabs(),
         hfRecent: [],
         reddit: [],
+        productHunt: emptyProductHunt(),
       },
       NOW,
     );
@@ -169,6 +177,7 @@ describe("composeFeed", () => {
         labs: emptyLabs(),
         hfRecent: [],
         reddit: [],
+        productHunt: emptyProductHunt(),
       },
       NOW,
     );
