@@ -95,6 +95,8 @@ import { ModelUsagePanel } from "@/components/panels/model-usage/ModelUsagePanel
 import type { ModelUsageDto } from "@/lib/data/openrouter-types";
 import { AgentsPanel } from "@/components/panels/agents/AgentsPanel";
 import type { AgentsViewDto } from "@/lib/data/agents-view";
+import { LaunchesPanel } from "@/components/panels/launches/LaunchesPanel";
+import type { ProductHuntResult } from "@/lib/data/fetch-producthunt";
 import type { FeedResponse } from "@/lib/feed/types";
 import { track } from "@/lib/analytics";
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
@@ -133,6 +135,7 @@ const BENCHMARKS_POLL_MS = 30 * 60 * 1000;
 // every 6h. 10-min client poll sits above the CDN TTL so each real
 // upstream flip is picked up once, without churning the edge.
 const LABS_POLL_MS = 10 * 60 * 1000;
+const PRODUCTHUNT_POLL_MS = 10 * 60 * 1000;
 // Regional RSS: upstream cron runs every 30min; /api/rss CDN-cached for
 // 60s. 10-min client poll sits well above the CDN TTL so we catch every
 // real upstream refresh without churning the edge layer — publisher
@@ -194,7 +197,8 @@ type PanelId =
   | "regional-wire"
   | "sdk-adoption"
   | "model-usage"
-  | "agents";
+  | "agents"
+  | "launches";
 
 export type DashboardProps = {
   /**
@@ -255,6 +259,10 @@ export function Dashboard({
   const agents = usePolledEndpoint<AgentsViewDto>(
     "/api/panels/agents",
     AGENTS_POLL_MS,
+  );
+  const productHunt = usePolledEndpoint<ProductHuntResult>(
+    "/api/panels/producthunt",
+    PRODUCTHUNT_POLL_MS,
   );
   const regionalDeltas = usePolledEndpoint<RegionalDeltasDto>(
     "/api/globe-events/regional-deltas",
@@ -447,6 +455,7 @@ export function Dashboard({
       "sdk-adoption": { open: false, min: false },
       "model-usage": { open: false, min: false },
       agents: { open: false, min: false },
+      launches: { open: false, min: false },
     },
   );
   const [zorder, setZorder] = useState<PanelId[]>([
@@ -460,6 +469,7 @@ export function Dashboard({
     "sdk-adoption",
     "model-usage",
     "agents",
+    "launches",
   ]);
   const [maxId, setMaxId] = useState<PanelId | null>(null);
 
@@ -476,6 +486,7 @@ export function Dashboard({
     "sdk-adoption": { x: number; y: number; w: number; h: number };
     "model-usage": { x: number; y: number; w: number; h: number };
     agents: { x: number; y: number; w: number; h: number };
+    launches: { x: number; y: number; w: number; h: number };
   } | null>(null);
   useEffect(() => {
     const W = typeof window !== "undefined" ? window.innerWidth : 1440;
@@ -550,6 +561,14 @@ export function Dashboard({
         w: 480,
         h: 540,
       },
+      // Launches is a compact ranked list (≤8 PH AI launches); 440 wide,
+      // centred and staggered below Agents so it doesn't stack on first open.
+      launches: {
+        x: Math.max(120, Math.floor((W - 440) / 2)),
+        y: dy(232),
+        w: 440,
+        h: 520,
+      },
     });
   }, []);
 
@@ -578,6 +597,12 @@ export function Dashboard({
       label: "Agents",
       icon: "agents",
       count: agents.data?.rows.length ?? null,
+    },
+    {
+      id: "launches",
+      label: "Launches",
+      icon: "launches",
+      count: productHunt.data?.posts.length ?? null,
     },
     {
       id: "research",
@@ -635,7 +660,8 @@ export function Dashboard({
       id !== "regional-wire" &&
       id !== "sdk-adoption" &&
       id !== "model-usage" &&
-      id !== "agents"
+      id !== "agents" &&
+      id !== "launches"
     )
       return;
     const pid = id as PanelId;
@@ -1425,6 +1451,41 @@ export function Dashboard({
                 data={agents.data ?? undefined}
                 error={agents.error ?? undefined}
                 isInitialLoading={agents.isInitialLoading}
+              />
+            </Win>
+          )}
+
+          {initialPos && panels.launches.open && (
+            <Win
+              id="launches"
+              title="Launches · top Product Hunt AI launches today"
+              accent="teal"
+              initial={initialPos.launches}
+              zIndex={z("launches")}
+              minimized={panels.launches.min}
+              maximized={maxId === "launches"}
+              topmost={topmostOpenId === "launches"}
+              onFocus={() => focus("launches")}
+              onClose={() =>
+                setPanels((p) => ({
+                  ...p,
+                  launches: { open: false, min: false },
+                }))
+              }
+              onMinimize={() =>
+                setPanels((p) => ({
+                  ...p,
+                  launches: { ...p.launches, min: !p.launches.min },
+                }))
+              }
+              onMaximize={() =>
+                setMaxId((m) => (m === "launches" ? null : "launches"))
+              }
+            >
+              <LaunchesPanel
+                data={productHunt.data ?? undefined}
+                error={productHunt.error ?? undefined}
+                isInitialLoading={productHunt.isInitialLoading}
               />
             </Win>
           )}
