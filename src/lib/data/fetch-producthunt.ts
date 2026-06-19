@@ -29,11 +29,24 @@ export type ProductHuntResult = {
   generatedAt: string;
 };
 
-const QUERY = `query {
-  posts(first: 10, order: RANKING, topic: "artificial-intelligence") {
+// Curated, not a raw dump: the week's most-upvoted launches in the AI topic,
+// ordered by community upvotes. A rolling 7-day window means it's always
+// populated (today's 0-vote just-launched filler is excluded), and the
+// vote floor drops the long tail of noise.
+const WINDOW_DAYS = 7;
+const FETCH_N = 25;
+const MIN_VOTES = 20;
+
+function buildQuery(): string {
+  const postedAfter = new Date(
+    Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  return `query {
+  posts(first: ${FETCH_N}, order: VOTES, postedAfter: "${postedAfter}", topic: "artificial-intelligence") {
     edges { node { id name tagline url votesCount createdAt } }
   }
 }`;
+}
 
 export async function fetchProductHuntLaunches(): Promise<ProductHuntResult> {
   const generatedAt = new Date().toISOString();
@@ -46,14 +59,16 @@ export async function fetchProductHuntLaunches(): Promise<ProductHuntResult> {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({ query: QUERY }),
+      body: JSON.stringify({ query: buildQuery() }),
     });
     if (!r.ok) return { ok: false, posts: [], generatedAt };
     const json = await r.json();
     const edges = json?.data?.posts?.edges ?? [];
     const posts: ProductHuntPost[] = edges
       .map((e: { node?: ProductHuntPost }) => e.node)
-      .filter((n: ProductHuntPost | undefined): n is ProductHuntPost => !!n && !!n.id && !!n.url);
+      .filter((n: ProductHuntPost | undefined): n is ProductHuntPost => !!n && !!n.id && !!n.url)
+      .filter((n: ProductHuntPost) => (n.votesCount ?? 0) >= MIN_VOTES)
+      .sort((a: ProductHuntPost, b: ProductHuntPost) => (b.votesCount ?? 0) - (a.votesCount ?? 0));
     return { ok: true, posts, generatedAt };
   } catch {
     return { ok: false, posts: [], generatedAt };
