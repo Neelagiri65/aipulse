@@ -30,7 +30,7 @@ const CARD_TYPE_DESCRIPTION: Record<CardType, string> = {
   SDK_TREND:
     "A tracked package (PyPI / npm / crates / Docker / Brew / VS Code Marketplace) whose week-over-week download delta absolute value exceeds the threshold.",
   PRODUCT_LAUNCH:
-    "A top launch in Product Hunt's Artificial Intelligence topic for the day, read from the Product Hunt API. Cites the public launch page.",
+    "A most-upvoted launch in Product Hunt's Artificial Intelligence topic over the last 7 days (ordered by community upvotes, above a vote floor), read from the Product Hunt API. Cites the public launch page.",
   NEWS:
     "A Hacker News AI-filtered story whose points exceed the threshold within the configured time window.",
   RESEARCH:

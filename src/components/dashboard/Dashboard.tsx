@@ -1458,7 +1458,7 @@ export function Dashboard({
           {initialPos && panels.launches.open && (
             <Win
               id="launches"
-              title="Launches · top Product Hunt AI launches today"
+              title="Launches · top AI launches on Product Hunt this week"
               accent="teal"
               initial={initialPos.launches}
               zIndex={z("launches")}

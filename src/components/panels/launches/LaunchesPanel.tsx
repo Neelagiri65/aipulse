@@ -101,7 +101,7 @@ export function LaunchesPanel({
         </ul>
       </div>
       <div className="border-t border-border/40 px-3 py-1.5 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-        Product Hunt · AI topic{data.generatedAt ? ` · as of ${new Date(data.generatedAt).toLocaleTimeString("en-GB")}` : ""}
+        Product Hunt · AI · top this week{data.generatedAt ? ` · as of ${new Date(data.generatedAt).toLocaleTimeString("en-GB")}` : ""}
       </div>
     </div>
   );
