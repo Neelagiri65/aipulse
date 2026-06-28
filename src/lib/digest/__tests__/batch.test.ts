@@ -3,6 +3,7 @@ import {
   buildBatchItem,
   buildBatchPayload,
   chunkForBatch,
+  sanitizeHeaderValue,
   type DigestRecipient,
 } from "@/lib/digest/batch";
 
@@ -85,6 +86,51 @@ describe("buildBatchItem", () => {
     expect(item.to).toBe("u1@x.com");
     expect(item.subject).toBe(OPTS.subject);
     expect(item.html).toContain("u1@x.com");
+  });
+
+  // Regression: NEXT_PUBLIC_SITE_ORIGIN was saved on Vercel with a
+  // trailing newline. After interpolation into the unsub URL the newline
+  // became *internal* ("https://gawk.dev\n/api/subscribe/unsubscribe"),
+  // so the List-Unsubscribe header carried a \n and Resend rejected the
+  // entire batch ("Header keys and values cannot contain carriage return,
+  // line feed, or null characters") — the digest sent 0 emails for ~10
+  // days. The chokepoint must strip CR/LF/null wherever they appear.
+  it("strips CR/LF/null from header values built from a dirty origin", () => {
+    const item = buildBatchItem(r(1), {
+      ...OPTS,
+      unsubBaseUrl: "https://gawk.dev\n/api/subscribe/unsubscribe",
+    });
+    const unsub = item.headers["List-Unsubscribe"];
+    expect(unsub).not.toMatch(/[\r\n\u0000]/);
+    expect(unsub).toBe(
+      "<https://gawk.dev/api/subscribe/unsubscribe?token=tok-1>, <mailto:unsub@gawk.dev>",
+    );
+  });
+
+  it("strips CR/LF/null from from/to/subject (header-injection guard)", () => {
+    const item = buildBatchItem(
+      { ...r(1), email: "u1@x.com\r\nBcc: evil@x.com" },
+      {
+        ...OPTS,
+        from: "Gawk <digest@gawk.dev>\n",
+        subject: "Gawk — 2026-04-22\r\nX-Injected: 1",
+      },
+    );
+    expect(item.from).toBe("Gawk <digest@gawk.dev>");
+    expect(item.to).toBe("u1@x.comBcc: evil@x.com");
+    expect(item.subject).toBe("Gawk — 2026-04-22X-Injected: 1");
+    for (const v of [item.from, item.to, item.subject]) {
+      expect(v).not.toMatch(/[\r\n\u0000]/);
+    }
+  });
+
+  it("leaves clean values (incl. spaces) untouched", () => {
+    expect(sanitizeHeaderValue("Gawk <digest@gawk.dev>")).toBe(
+      "Gawk <digest@gawk.dev>",
+    );
+    expect(sanitizeHeaderValue("Gawk — 2026-04-22 · 1 tool incident")).toBe(
+      "Gawk — 2026-04-22 · 1 tool incident",
+    );
   });
 
   it("carries tags when provided", () => {

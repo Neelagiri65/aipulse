@@ -63,20 +63,40 @@ export function buildBatchPayload(
   return recipients.map((r) => buildBatchItem(r, opts));
 }
 
+/**
+ * Strip CR, LF and null from any value destined for an email header.
+ *
+ * Resend (and SMTP generally) rejects the *entire* batch if any header
+ * key or value contains a carriage return, line feed, or null character:
+ * "Header keys and values cannot contain carriage return, line feed, or
+ * null characters." The usual source is an env var saved with a trailing
+ * newline (e.g. `NEXT_PUBLIC_SITE_ORIGIN`) that becomes *internal* once
+ * interpolated into a URL ("https://gawk.dev\n/api/subscribe/..."), so a
+ * trailing-only `.trim()` at the env read site is not enough — by the
+ * time it reaches the header the newline is mid-string. This chokepoint
+ * strips every occurrence regardless of which upstream input was dirty,
+ * and doubles as standard header-injection hardening (CRLF in from/to/
+ * subject is the classic injection vector). Clean values pass through
+ * unchanged.
+ */
+export function sanitizeHeaderValue(value: string): string {
+  return value.replace(/[\r\n\u0000]/g, "");
+}
+
 export function buildBatchItem(
   recipient: DigestRecipient,
   opts: BuildBatchPayloadOpts,
 ): DigestBatchItem {
   const unsubUrl = `${opts.unsubBaseUrl}?token=${encodeURIComponent(recipient.unsubToken)}`;
   const headers: Record<string, string> = {
-    "List-ID": opts.listId,
-    "List-Unsubscribe": `<${unsubUrl}>, <${opts.unsubMailto}>`,
+    "List-ID": sanitizeHeaderValue(opts.listId),
+    "List-Unsubscribe": sanitizeHeaderValue(`<${unsubUrl}>, <${opts.unsubMailto}>`),
     "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
   };
   return {
-    from: opts.from,
-    to: recipient.email,
-    subject: opts.subject,
+    from: sanitizeHeaderValue(opts.from),
+    to: sanitizeHeaderValue(recipient.email),
+    subject: sanitizeHeaderValue(opts.subject),
     html: opts.renderHtml(recipient),
     headers,
     tags: opts.tags,

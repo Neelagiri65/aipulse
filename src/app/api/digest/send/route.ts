@@ -190,7 +190,7 @@ export const POST = withIngest<RouteResult>({
     if (result.skipped) {
       return { ok: true, itemsProcessed: 0 };
     }
-    if (result.send.failedChunks > 0 && result.send.sent === 0) {
+    if (isTotalSendFailure(result.send)) {
       return {
         ok: false,
         error: `all ${result.send.attemptedChunks} batch chunks failed`,
@@ -231,7 +231,10 @@ export const POST = withIngest<RouteResult>({
       });
     }
     return NextResponse.json({
-      ok: true,
+      // ok mirrors toOutcome: a 0-sent / all-chunks-failed run is NOT ok,
+      // so the GH Actions guard (which parses this field) fails the job
+      // instead of going green on a broken send.
+      ok: !isTotalSendFailure(result.send),
       date: result.date,
       subject: result.subject,
       mode: result.mode,
@@ -271,6 +274,21 @@ export function parseForceFlag(request: Request): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * A digest send is a failure when every batch chunk failed and nothing
+ * went out. Shared by `toOutcome` (drives cron-health) and `toResponse`
+ * (the GH Actions step parses `response.ok` to pass/fail the job) so the
+ * two can never disagree again. Their divergence was the bug: a 0-sent
+ * run reported `ok:true` and showed GREEN in GitHub while cron-health
+ * correctly flagged it stale — a silent failure dressed as success.
+ */
+function isTotalSendFailure(send: {
+  sent: number;
+  failedChunks: number;
+}): boolean {
+  return send.failedChunks > 0 && send.sent === 0;
 }
 
 function inferBaseUrl(request: Request): string {
