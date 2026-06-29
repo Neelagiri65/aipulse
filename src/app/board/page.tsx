@@ -11,8 +11,14 @@
 
 import type { Metadata } from "next";
 import { loadFeedResponse } from "@/lib/feed/load";
+import { readRecentSnapshots } from "@/lib/data/snapshot";
 import type { FeedResponse } from "@/lib/feed/types";
 import { BentoBoard } from "@/components/board/BentoBoard";
+import {
+  deriveBoardSeries,
+  EMPTY_BOARD_SERIES,
+  type BoardSeries,
+} from "@/lib/board/series";
 
 export const dynamic = "force-dynamic";
 
@@ -36,16 +42,22 @@ const EMPTY_FEED: FeedResponse = {
 
 export default async function BoardPage() {
   let feed: FeedResponse = EMPTY_FEED;
+  let series: BoardSeries = EMPTY_BOARD_SERIES;
   try {
-    feed = await loadFeedResponse(Date.now());
+    const [feedRes, snapshots] = await Promise.all([
+      loadFeedResponse(Date.now()),
+      readRecentSnapshots(30).catch(() => []),
+    ]);
+    feed = feedRes;
+    series = deriveBoardSeries(snapshots);
   } catch (err) {
     // SSR must never throw; a degraded empty board is honest degradation.
-    console.error("[board] loadFeedResponse failed", err);
+    console.error("[board] load failed", err);
   }
 
   return (
     <div className="min-h-screen bg-neutral-950">
-      <BentoBoard feed={feed} />
+      <BentoBoard feed={feed} series={series} />
     </div>
   );
 }

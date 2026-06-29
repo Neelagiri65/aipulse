@@ -17,6 +17,11 @@
  */
 
 import type { Card, CardType, FeedResponse } from "@/lib/feed/types";
+import { SparklineMini } from "@/components/charts/SparklineMini";
+import {
+  EMPTY_BOARD_SERIES,
+  type BoardSeries,
+} from "@/lib/board/series";
 
 type Domain = {
   key: string;
@@ -24,19 +29,29 @@ type Domain = {
   types: CardType[];
   /** Column span on the 12-col desktop grid (tile-size hierarchy). */
   span: string;
+  /** Which 30-day snapshot series to sparkline, if any. Feed-only domains
+   *  (no captured history) omit this and render without a sparkline. */
+  seriesKey?: keyof BoardSeries;
+  /** Human label for the sparkline (accessibility). */
+  seriesLabel?: string;
 };
 
 // Tile-size hierarchy: the busiest / highest-signal domains get more room.
 const DOMAINS: Domain[] = [
-  { key: "models", title: "Models", types: ["MODEL_MOVER"], span: "lg:col-span-4" },
-  { key: "tools", title: "Tool Health", types: ["TOOL_ALERT"], span: "lg:col-span-4" },
-  { key: "packages", title: "Packages / SDKs", types: ["SDK_TREND"], span: "lg:col-span-4" },
+  { key: "models", title: "Models", types: ["MODEL_MOVER"], span: "lg:col-span-4", seriesKey: "models", seriesLabel: "Top benchmark Elo, last 30 days" },
+  { key: "tools", title: "Tool Health", types: ["TOOL_ALERT"], span: "lg:col-span-4", seriesKey: "tools", seriesLabel: "Tools operational, last 30 days" },
+  { key: "packages", title: "Packages / SDKs", types: ["SDK_TREND"], span: "lg:col-span-4", seriesKey: "packages", seriesLabel: "Weekly package downloads, last 30 days" },
   { key: "launches", title: "Launches", types: ["PRODUCT_LAUNCH"], span: "lg:col-span-3" },
   { key: "releases", title: "Releases", types: ["NEW_RELEASE"], span: "lg:col-span-3" },
   { key: "research", title: "Research", types: ["RESEARCH"], span: "lg:col-span-3" },
   { key: "discussion", title: "Discussion", types: ["NEWS"], span: "lg:col-span-3" },
-  { key: "labs", title: "Labs", types: ["LAB_HIGHLIGHT"], span: "lg:col-span-12" },
+  { key: "labs", title: "Labs", types: ["LAB_HIGHLIGHT"], span: "lg:col-span-12", seriesKey: "labs", seriesLabel: "Tracked-lab activity, last 30 days" },
 ];
+
+/** A series is worth drawing only with ≥2 real (non-null) points. */
+function hasSeries(series: Array<number | null> | undefined): boolean {
+  return !!series && series.filter((v) => v !== null).length >= 2;
+}
 
 function fmtTime(iso: string): string {
   // Deterministic HH:MM UTC — no locale drift between server/client.
@@ -89,32 +104,51 @@ function Tile({
   domain,
   cards,
   staleAsOf,
+  series,
 }: {
   domain: Domain;
   cards: Card[];
   staleAsOf: string | null;
+  series?: Array<number | null>;
 }) {
   const top = cards.slice(0, domain.key === "labs" ? 6 : 4);
+  const showSpark = hasSeries(series);
   return (
     <section
       className={`flex flex-col rounded-lg border border-neutral-800 bg-neutral-950/60 p-3 ${domain.span}`}
     >
-      <header className="mb-1.5 flex items-baseline justify-between gap-2">
+      <header className="mb-1.5 flex items-center justify-between gap-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
           {domain.title}
         </h2>
-        <span className="text-[10px] tabular-nums text-neutral-500">
-          {staleAsOf ? (
+        <div className="flex items-center gap-2">
+          {showSpark ? (
             <span
-              title={`Live fetch failed — showing last-known data as of ${fmtTime(staleAsOf)}`}
-              className="text-amber-500/80"
+              className="text-neutral-500"
+              title={`${domain.seriesLabel ?? "Trend"} (source: daily snapshots)`}
             >
-              ◐ as of {fmtTime(staleAsOf)}
+              <SparklineMini
+                data={series as Array<number | null>}
+                width={56}
+                height={14}
+                label={domain.seriesLabel ?? `${domain.title} trend`}
+                strokeWidth={1}
+              />
             </span>
-          ) : (
-            `${cards.length}`
-          )}
-        </span>
+          ) : null}
+          <span className="text-[10px] tabular-nums text-neutral-500">
+            {staleAsOf ? (
+              <span
+                title={`Live fetch failed — showing last-known data as of ${fmtTime(staleAsOf)}`}
+                className="text-amber-500/80"
+              >
+                ◐ as of {fmtTime(staleAsOf)}
+              </span>
+            ) : (
+              `${cards.length}`
+            )}
+          </span>
+        </div>
       </header>
       {top.length > 0 ? (
         <ul className="flex-1">
@@ -131,7 +165,13 @@ function Tile({
   );
 }
 
-export function BentoBoard({ feed }: { feed: FeedResponse }) {
+export function BentoBoard({
+  feed,
+  series = EMPTY_BOARD_SERIES,
+}: {
+  feed: FeedResponse;
+  series?: BoardSeries;
+}) {
   const staleByName = new Map(
     (feed.staleSources ?? []).map((s) => [s.source, s.staleAsOf]),
   );
@@ -175,6 +215,7 @@ export function BentoBoard({ feed }: { feed: FeedResponse }) {
               domain={domain}
               cards={cards}
               staleAsOf={stale}
+              series={domain.seriesKey ? series[domain.seriesKey] : undefined}
             />
           );
         })}
