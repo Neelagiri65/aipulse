@@ -1,0 +1,107 @@
+name: integrity-watch
+
+# The nervous system's active watcher. Curls /api/integrity (which probes
+# gawk's live OUTPUT independently of the producing jobs) and pages Discord
+# when the data is not genuine or has gone stale.
+#
+# Paging policy (calibrated to avoid free-tier-drift flapping):
+#   - ANY source FAIL pages immediately (missing provenance, fabricated
+#     data, malformed output, video not live — unambiguous, rare).
+#   - STALE pages only for the daily-critical sources (daily-digest,
+#     daily-video) where a single stale day is a real miss.
+#   - Frequent sources (globe, feed) do NOT page on STALE — their drift is
+#     visible on the board at /api/integrity but is not worth a 3am alert.
+#
+# Required repo secrets:
+#   DISCORD_DAILY_WEBHOOK_URL — operational alert channel (shared w/ video).
+# Optional repo secrets:
+#   INTEGRITY_URL — override the probed endpoint (defaults to prod).
+
+on:
+  schedule:
+    - cron: "0 */3 * * *" # every 3 hours
+  workflow_dispatch: {}
+
+concurrency:
+  group: integrity-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe integrity board and page on real failures
+        env:
+          DISCORD_DAILY_WEBHOOK_URL: ${{ secrets.DISCORD_DAILY_WEBHOOK_URL }}
+          INTEGRITY_URL: ${{ secrets.INTEGRITY_URL }}
+        run: |
+          URL="${INTEGRITY_URL:-https://gawk.dev/api/integrity}"
+          echo "Probing $URL"
+          BODY=$(curl -sS --max-time 60 "$URL" || true)
+          printf '%s' "$BODY" | python3 - "$URL" <<'PY'
+          import json, os, sys, urllib.request
+          body = sys.stdin.read()
+          url = sys.argv[1]
+          try:
+              d = json.loads(body)
+          except Exception as e:
+              print(f"::error::integrity endpoint returned non-JSON: {e}")
+              print(body[:500])
+              sys.exit(1)
+
+          reports = d.get("reports", [])
+          DAILY = {"daily-video", "daily-digest"}
+
+          def pageable(r):
+              v = r.get("verdict")
+              if v == "FAIL":
+                  return True
+              if v == "STALE" and r.get("source") in DAILY:
+                  return True
+              return False
+
+          print(f"board verdict={d.get('verdict')} counts={d.get('counts')}")
+          for r in reports:
+              print(f"  {r.get('source')}: {r.get('verdict')}")
+
+          bad = [r for r in reports if pageable(r)]
+          if not bad:
+              print("integrity OK — nothing to page")
+              sys.exit(0)
+
+          lines = []
+          for r in bad:
+              fails = [c for c in r.get("checks", []) if not c.get("ok")]
+              detail = "; ".join(c.get("detail", "") for c in fails) or r.get("verdict")
+              lines.append(f"• **{r.get('source')}** [{r.get('verdict')}] — {detail}")
+
+          repo = os.environ.get("GITHUB_REPOSITORY", "")
+          run_id = os.environ.get("GITHUB_RUN_ID", "")
+          run_url = f"https://github.com/{repo}/actions/runs/{run_id}"
+          content = (
+              "**DATA INTEGRITY ALERT** — gawk is serving non-genuine or stale data:\n"
+              + "\n".join(lines)
+              + f"\n\nBoard: {url}\nRun: {run_url}"
+          )
+
+          hook = os.environ.get("DISCORD_DAILY_WEBHOOK_URL")
+          if hook:
+              req = urllib.request.Request(
+                  hook,
+                  data=json.dumps(
+                      {"content": content[:1900], "username": "Gawk Integrity"}
+                  ).encode(),
+                  headers={"Content-Type": "application/json"},
+              )
+              try:
+                  urllib.request.urlopen(req, timeout=15)
+                  print("paged Discord")
+              except Exception as e:
+                  print(f"::warning::Discord post failed: {e}")
+          else:
+              print("::warning::DISCORD_DAILY_WEBHOOK_URL unset — cannot page")
+
+          print(f"::error::integrity alert: {len(bad)} source(s) failing")
+          sys.exit(1)
+          PY
