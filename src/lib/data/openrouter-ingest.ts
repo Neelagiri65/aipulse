@@ -39,6 +39,17 @@ import type {
  * yesterday's snapshot, then walks back up to 7 days before giving
  * up — covers a missed cron fire without surfacing stale rank
  * deltas from a week ago.
+ *
+ * CRITICAL: only a `top-weekly`-ordered baseline is eligible. A
+ * `catalogue-fallback` snapshot is release-recency order, NOT a usage
+ * ranking — diffing today's top-weekly rank against a catalogue
+ * position manufactures spurious "moves". The 2026-06-30 endpoint-move
+ * recovery did exactly this: the first top-weekly run after a
+ * fallback streak diffed against a catalogue baseline and emitted 17
+ * false MODEL_MOVER cards (deltas up to 69). When no like-ordered
+ * baseline exists within the window, return undefined → previousRank
+ * stays null → MODEL_MOVER suppressed until two consecutive top-weekly
+ * snapshots accumulate. Honest emptiness beats fabricated movement.
  */
 function resolvePreviousSnapshotSlugs(
   snapshots: Record<string, ModelUsageSnapshotRow>,
@@ -50,7 +61,9 @@ function resolvePreviousSnapshotSlugs(
     .reverse();
   for (const d of dates.slice(0, 7)) {
     const row = snapshots[d];
-    if (row && row.slugs.length > 0) return row.slugs;
+    if (row && row.slugs.length > 0 && row.ordering === "top-weekly") {
+      return row.slugs;
+    }
   }
   return undefined;
 }

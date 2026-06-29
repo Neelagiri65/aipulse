@@ -239,4 +239,54 @@ describe("runOpenRouterIngest", () => {
       expect(r.previousRank).toBeNull();
     }
   });
+
+  it("does NOT seed previousRank from a catalogue-fallback baseline (avoids spurious movers)", async () => {
+    const store = mkStore();
+    // A prior snapshot captured during a fallback streak: its slug order
+    // is release-recency, not usage rank. Diffing against it would
+    // fabricate rank moves — so it must be skipped, leaving null.
+    store.written.snapshots["2026-04-25"] = {
+      date: "2026-04-25",
+      ordering: "catalogue-fallback",
+      slugs: ["b/second", "anthropic/claude-sonnet-4.6"],
+    };
+    store.presentDates.add("2026-04-25");
+    await runOpenRouterIngest({
+      fetchRankings: async () => mkFetched(),
+      store,
+      now: fixedClock,
+    });
+    const dto = store.written.dto!;
+    for (const r of dto.rows) {
+      expect(r.previousRank).toBeNull();
+    }
+  });
+
+  it("skips a fallback baseline and walks back to the last top-weekly one", async () => {
+    const store = mkStore();
+    // Yesterday was fallback (ineligible); day-2 was a real top-weekly
+    // ranking — that is the baseline the diff must use.
+    store.written.snapshots["2026-04-25"] = {
+      date: "2026-04-25",
+      ordering: "catalogue-fallback",
+      slugs: ["junk/a", "junk/b"],
+    };
+    store.written.snapshots["2026-04-24"] = {
+      date: "2026-04-24",
+      ordering: "top-weekly",
+      slugs: ["anthropic/claude-sonnet-4.6"],
+    };
+    store.presentDates.add("2026-04-25");
+    store.presentDates.add("2026-04-24");
+    await runOpenRouterIngest({
+      fetchRankings: async () => mkFetched(),
+      store,
+      now: fixedClock,
+    });
+    const dto = store.written.dto!;
+    const sonnet = dto.rows.find(
+      (r) => r.slug === "anthropic/claude-sonnet-4.6",
+    )!;
+    expect(sonnet.previousRank).toBe(1);
+  });
 });
