@@ -346,8 +346,8 @@
     "leaderboardPublishDate": "2026-06-25",
     "prevPublishDate": null,
     "totalVotes": 581119,
-    "staleDays": 3,
-    "fetchedAt": "2026-06-28T07:08:36.873Z"
+    "staleDays": 4,
+    "fetchedAt": "2026-06-29T08:23:25.355Z"
   },
   "sanity": {
     "ok": false,
