@@ -1,6 +1,6 @@
 name: integrity-watch
 
-# The nervous system's active watcher. Curls /api/integrity (which probes
+# The nervous system's active watcher. Reads /api/integrity (which probes
 # gawk's live OUTPUT independently of the producing jobs) and pages Discord
 # when the data is not genuine or has gone stale.
 #
@@ -35,30 +35,34 @@ jobs:
         env:
           DISCORD_DAILY_WEBHOOK_URL: ${{ secrets.DISCORD_DAILY_WEBHOOK_URL }}
           INTEGRITY_URL: ${{ secrets.INTEGRITY_URL }}
+        # Python does the fetch + retry + parse + page itself. (An earlier
+        # version piped the body into `python3 - <<'PY'`, but the heredoc
+        # and the pipe both claim stdin, so the script read nothing and
+        # always reported non-JSON — the watchdog flaked on itself.)
         run: |
-          URL="${INTEGRITY_URL:-https://gawk.dev/api/integrity}"
-          echo "Probing $URL"
-          # The route does a few server-side fetches; the first hit after a
-          # deploy can cold-start and return empty. Retry until we get valid
-          # JSON so the watchdog never false-alarms on its own cold start.
-          BODY=""
-          for attempt in 1 2 3 4; do
-            BODY=$(curl -sS --max-time 70 "$URL" || true)
-            if printf '%s' "$BODY" | python3 -c "import json,sys; json.load(sys.stdin)" 2>/dev/null; then
-              break
-            fi
-            echo "attempt $attempt: empty/invalid response, retrying in 8s (cold start?)"
-            sleep 8
-          done
-          printf '%s' "$BODY" | python3 - "$URL" <<'PY'
-          import json, os, sys, urllib.request
-          body = sys.stdin.read()
-          url = sys.argv[1]
+          python3 <<'PY'
+          import json, os, sys, time, urllib.request
+
+          url = os.environ.get("INTEGRITY_URL") or "https://gawk.dev/api/integrity"
+          print(f"Probing {url}")
+
+          body = None
+          for attempt in range(1, 5):
+              try:
+                  with urllib.request.urlopen(url, timeout=70) as r:
+                      body = r.read().decode()
+                  json.loads(body)  # validate; retry if cold-start empty/HTML
+                  break
+              except Exception as e:
+                  print(f"attempt {attempt}: {e}; retry in 8s (cold start?)")
+                  time.sleep(8)
+
           try:
-              d = json.loads(body)
+              d = json.loads(body) if body else None
+              if d is None:
+                  raise ValueError("empty body after retries")
           except Exception as e:
-              print(f"::error::integrity endpoint returned non-JSON: {e}")
-              print(body[:500])
+              print(f"::error::integrity endpoint unreachable / non-JSON: {e}")
               sys.exit(1)
 
           reports = d.get("reports", [])
@@ -89,11 +93,10 @@ jobs:
 
           repo = os.environ.get("GITHUB_REPOSITORY", "")
           run_id = os.environ.get("GITHUB_RUN_ID", "")
-          run_url = f"https://github.com/{repo}/actions/runs/{run_id}"
           content = (
               "**DATA INTEGRITY ALERT** — gawk is serving non-genuine or stale data:\n"
               + "\n".join(lines)
-              + f"\n\nBoard: {url}\nRun: {run_url}"
+              + f"\n\nBoard: {url}\nRun: https://github.com/{repo}/actions/runs/{run_id}"
           )
 
           hook = os.environ.get("DISCORD_DAILY_WEBHOOK_URL")
