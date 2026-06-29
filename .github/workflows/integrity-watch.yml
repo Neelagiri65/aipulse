@@ -38,7 +38,18 @@ jobs:
         run: |
           URL="${INTEGRITY_URL:-https://gawk.dev/api/integrity}"
           echo "Probing $URL"
-          BODY=$(curl -sS --max-time 60 "$URL" || true)
+          # The route does a few server-side fetches; the first hit after a
+          # deploy can cold-start and return empty. Retry until we get valid
+          # JSON so the watchdog never false-alarms on its own cold start.
+          BODY=""
+          for attempt in 1 2 3 4; do
+            BODY=$(curl -sS --max-time 70 "$URL" || true)
+            if printf '%s' "$BODY" | python3 -c "import json,sys; json.load(sys.stdin)" 2>/dev/null; then
+              break
+            fi
+            echo "attempt $attempt: empty/invalid response, retrying in 8s (cold start?)"
+            sleep 8
+          done
           printf '%s' "$BODY" | python3 - "$URL" <<'PY'
           import json, os, sys, urllib.request
           body = sys.stdin.read()
