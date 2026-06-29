@@ -22,7 +22,7 @@ import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { buildProbeSpecs, PROBE_ORIGIN } from "@/lib/integrity/specs";
-import { runProbes, httpJsonFetcher, summarise } from "@/lib/integrity/run";
+import { runProbes, summarise, type Fetcher } from "@/lib/integrity/run";
 import { evaluateVideo, type UploadLogEntry } from "@/lib/integrity/video";
 import {
   buildReport,
@@ -30,6 +30,8 @@ import {
   type IntegrityReport,
 } from "@/lib/integrity/checks";
 import { readAllCronHealth, CRON_WORKFLOWS } from "@/lib/data/cron-health";
+import { fetchGlobeEvents } from "@/lib/data/fetch-events";
+import { loadFeedResponse } from "@/lib/feed/load";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +41,20 @@ function origin(): string {
   const env = process.env.NEXT_PUBLIC_SITE_ORIGIN?.trim().replace(/\/$/, "");
   return env || PROBE_ORIGIN;
 }
+
+/**
+ * In-process "fetcher": resolves each probe spec's URL to the SAME data
+ * accessor its route uses, instead of an HTTP round-trip back into this
+ * deployment. Self-referential HTTP cold-start-amplified (the function
+ * fetching its own /api/feed + /api/globe-events timed the watchdog out);
+ * calling the accessors directly is faster and can't deadlock on itself.
+ * Unknown URLs throw, which the runner turns into a critical report.
+ */
+const inProcessFetcher: Fetcher = async (url) => {
+  if (url.endsWith("/api/globe-events")) return fetchGlobeEvents();
+  if (url.endsWith("/api/feed")) return loadFeedResponse(Date.now());
+  throw new Error(`no in-process source for ${url}`);
+};
 
 /** Video probe: is the most recent upload-log entry recent AND live on
  *  YouTube? Daily video → allow up to 2 days before stale. */
@@ -92,7 +108,7 @@ export async function GET() {
 
   const httpReports = await runProbes(
     buildProbeSpecs(origin()),
-    httpJsonFetcher(),
+    inProcessFetcher,
     now,
   );
   const [video, digest] = await Promise.all([
