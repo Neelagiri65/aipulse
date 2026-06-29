@@ -42,7 +42,12 @@ import {
   withLastKnown,
   type LastKnownResult,
 } from "@/lib/feed/last-known";
-import type { FeedResponse, StaleSource } from "@/lib/feed/types";
+import { deriveDegradedSources } from "@/lib/feed/degraded-sources";
+import type {
+  DegradedSource,
+  FeedResponse,
+  StaleSource,
+} from "@/lib/feed/types";
 
 const REGISTRIES: SdkAdoptionRegistry[] = [
   "pypi",
@@ -56,6 +61,7 @@ const REGISTRIES: SdkAdoptionRegistry[] = [
 export type LoadedSnapshots = {
   snapshots: FeedSnapshots;
   staleSources: StaleSource[];
+  degradedSources: DegradedSource[];
 };
 
 export async function loadSnapshots(
@@ -168,17 +174,23 @@ export async function loadSnapshots(
     { source: "hf-recent", result: hfRecent },
   );
 
-  return { snapshots, staleSources };
+  // Degraded ≠ stale ≠ quiet. A source serving a fallback (e.g. OpenRouter
+  // on catalogue-fallback) has data but a suppressed signal; surface it so
+  // the board doesn't render the affected tile as "quiet".
+  const degradedSources = deriveDegradedSources({ models });
+
+  return { snapshots, staleSources, degradedSources };
 }
 
 export async function loadFeedResponse(
   nowMs: number = Date.now(),
 ): Promise<FeedResponse> {
-  const { snapshots, staleSources } = await loadSnapshots(nowMs);
-  const response = composeFeed(snapshots, nowMs);
-  return staleSources.length > 0
-    ? { ...response, staleSources }
-    : response;
+  const { snapshots, staleSources, degradedSources } =
+    await loadSnapshots(nowMs);
+  let response = composeFeed(snapshots, nowMs);
+  if (staleSources.length > 0) response = { ...response, staleSources };
+  if (degradedSources.length > 0) response = { ...response, degradedSources };
+  return response;
 }
 
 function collectStale(
