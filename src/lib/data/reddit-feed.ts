@@ -26,6 +26,7 @@ import {
   REDDIT_SOURCES,
   type RedditSource,
 } from "@/lib/data/reddit-sources";
+import { isTotalFailure } from "@/lib/data/success-contract";
 
 const USER_AGENT = "gawk.dev-rss-ingest/1.0";
 
@@ -247,12 +248,10 @@ export async function runRedditIngest(opts: {
   const sink = opts.sink ?? defaultSink();
   const nowIso = opts.nowIso ?? new Date().toISOString();
   const sources: RedditIngestResult["sources"] = [];
-  let okOverall = true;
 
   for (const source of REDDIT_SOURCES) {
     const fetched = await fetchOne(source);
     if (fetched.error) {
-      okOverall = false;
       sources.push({
         id: source.id,
         fetched: 0,
@@ -293,5 +292,16 @@ export async function runRedditIngest(opts: {
     }
   }
 
-  return { ok: okOverall, sources, at: nowIso };
+  // Unified success contract: a poll fails only when EVERY source errored
+  // (delivered = sources that completed without error). One subreddit 429'ing
+  // after others have written — or a quiet poll that writes nothing new — is
+  // forward progress / nothing-to-do, not a failure. Per-source errors stay
+  // visible in `sources` for observability.
+  const failures = sources.filter((s) => s.error).length;
+  const delivered = sources.length - failures;
+  return {
+    ok: !isTotalFailure({ delivered, failures }),
+    sources,
+    at: nowIso,
+  };
 }

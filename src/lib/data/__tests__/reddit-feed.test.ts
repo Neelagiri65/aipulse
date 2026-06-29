@@ -219,7 +219,7 @@ describe("runRedditIngest", () => {
     expect(result.sources.every((s) => s.written === 2)).toBe(true);
   });
 
-  it("isolates per-source failures (one HTTP 503 doesn't kill the batch)", async () => {
+  it("partial success is OK: one HTTP 503 doesn't kill the batch (unified contract)", async () => {
     let call = 0;
     global.fetch = vi.fn().mockImplementation(async () => {
       call += 1;
@@ -241,13 +241,59 @@ describe("runRedditIngest", () => {
       sink,
       nowIso: "2026-04-30T12:00:00.000Z",
     });
-    expect(result.ok).toBe(false);
-    // First source failed, second succeeded.
+    // One source errored but others completed → forward progress, not a
+    // failure. The cron-health beacon should advance, not cry wolf.
+    expect(result.ok).toBe(true);
+    // First source failed, the rest succeeded — per-source detail preserved.
     expect(result.sources[0].error).toContain("503");
     expect(result.sources[0].written).toBe(0);
     expect(result.sources[1].error).toBeNull();
     expect(result.sources[1].written).toBe(1);
-    expect(sink.items).toHaveLength(1);
+  });
+
+  it("quiet poll + one transient error is still OK (delivered counts completed sources, not writes)", async () => {
+    // The discriminating case: nothing new written ANYWHERE plus one 429.
+    // Counting completed sources keeps this green; counting writes would
+    // wrongly flip it to ok:false — the same cry-wolf we are removing.
+    let call = 0;
+    global.fetch = vi.fn().mockImplementation(async () => {
+      call += 1;
+      if (call === 1) {
+        return {
+          ok: false,
+          status: 429,
+          text: async () => "",
+        } as unknown as Response;
+      }
+      // Completed fetch, but the feed is empty → 0 writes.
+      return {
+        ok: true,
+        status: 200,
+        text: async () => fakeAtomFeed([]),
+      } as unknown as Response;
+    }) as unknown as typeof fetch;
+    const result = await runRedditIngest({
+      sink: makeSink(),
+      nowIso: "2026-04-30T12:00:00.000Z",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.sources.reduce((n, s) => n + s.written, 0)).toBe(0);
+    expect(result.sources.some((s) => s.error?.includes("429"))).toBe(true);
+  });
+
+  it("total failure: EVERY source errored → ok:false", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      text: async () => "",
+    }) as unknown as typeof fetch;
+    const result = await runRedditIngest({
+      sink: makeSink(),
+      nowIso: "2026-04-30T12:00:00.000Z",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.sources.every((s) => s.error !== null)).toBe(true);
+    expect(result.sources.every((s) => s.written === 0)).toBe(true);
   });
 
   it("sends a non-default User-Agent so Reddit doesn't 429 us", async () => {

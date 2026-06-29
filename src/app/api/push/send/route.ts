@@ -10,6 +10,7 @@
 import { NextResponse } from "next/server";
 import { withIngest } from "@/app/api/_lib/withIngest";
 import { broadcastPush, type PushPayload } from "@/lib/push/send";
+import { isTotalFailure } from "@/lib/data/success-contract";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,7 +37,17 @@ export const POST = withIngest<SendResult>({
 
     return broadcastPush(payload);
   },
-  toOutcome: (r) => ({ ok: true, itemsProcessed: r.sent }),
+  // Unified success contract. No subscribers (sent:0, failed:0) is
+  // "nothing to do" — a green run with 0 items, not a failure. We only
+  // fail the run when there WERE recipients and every send failed
+  // (sent:0, failed>0): a broadcast that reached nobody despite trying.
+  toOutcome: (r) =>
+    isTotalFailure({ delivered: r.sent, failures: r.failed })
+      ? { ok: false, error: `all ${r.failed} push sends failed` }
+      : { ok: true, itemsProcessed: r.sent },
   toResponse: (r) =>
-    NextResponse.json({ ok: true, result: r }, { status: 200 }),
+    NextResponse.json(
+      { ok: !isTotalFailure({ delivered: r.sent, failures: r.failed }), result: r },
+      { status: 200 },
+    ),
 });

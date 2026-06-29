@@ -33,6 +33,7 @@
 
 import { NextResponse } from "next/server";
 import { withIngest } from "@/app/api/_lib/withIngest";
+import { isTotalFailure } from "@/lib/data/success-contract";
 import { ymdUtc } from "@/lib/data/snapshot";
 import { readSnapshot, readRecentSnapshots } from "@/lib/data/snapshot";
 import { readWire } from "@/lib/data/hn-store";
@@ -288,7 +289,10 @@ function isTotalSendFailure(send: {
   sent: number;
   failedChunks: number;
 }): boolean {
-  return send.failedChunks > 0 && send.sent === 0;
+  // Same predicate every cron now shares — see success-contract.ts. A
+  // send delivered to ≥1 recipient (or one that had nobody to send to)
+  // is not a total failure; only chunks-failed-and-nothing-delivered is.
+  return isTotalFailure({ delivered: send.sent, failures: send.failedChunks });
 }
 
 function inferBaseUrl(request: Request): string {
