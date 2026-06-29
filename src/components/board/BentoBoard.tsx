@@ -10,6 +10,9 @@
  *   - no scoring: severity is the existing sort key, not an invented rank
  *   - graceful degradation: staleSources → "as of <time>" badge per domain;
  *     a quiet domain shows an explicit quiet state, never a fabricated value
+ *   - honest emptiness: a DEGRADED source (e.g. OpenRouter on
+ *     catalogue-fallback) is labelled "source degraded", never collapsed
+ *     into "quiet" — an empty tile must say WHY it is empty
  *   - deterministic: headlines are the feed's deterministic copy, no LLM
  *
  * v1 = dense card bento. v2 (next): inline sparklines per tile from the
@@ -34,11 +37,15 @@ type Domain = {
   seriesKey?: keyof BoardSeries;
   /** Human label for the sparkline (accessibility). */
   seriesLabel?: string;
+  /** Canonical source name feeding this domain. Lets a tile match a
+   *  degraded/stale source even when it has ZERO cards to match against
+   *  (an empty tile carries no card.sourceName otherwise). */
+  sourceName?: string;
 };
 
 // Tile-size hierarchy: the busiest / highest-signal domains get more room.
 const DOMAINS: Domain[] = [
-  { key: "models", title: "Models", types: ["MODEL_MOVER"], span: "lg:col-span-4", seriesKey: "models", seriesLabel: "Top benchmark Elo, last 30 days" },
+  { key: "models", title: "Models", types: ["MODEL_MOVER"], span: "lg:col-span-4", seriesKey: "models", seriesLabel: "Top benchmark Elo, last 30 days", sourceName: "OpenRouter" },
   { key: "tools", title: "Tool Health", types: ["TOOL_ALERT"], span: "lg:col-span-4", seriesKey: "tools", seriesLabel: "Tools operational, last 30 days" },
   { key: "packages", title: "Packages / SDKs", types: ["SDK_TREND"], span: "lg:col-span-4", seriesKey: "packages", seriesLabel: "Weekly package downloads, last 30 days" },
   { key: "launches", title: "Launches", types: ["PRODUCT_LAUNCH"], span: "lg:col-span-3" },
@@ -104,11 +111,14 @@ function Tile({
   domain,
   cards,
   staleAsOf,
+  degradedReason,
   series,
 }: {
   domain: Domain;
   cards: Card[];
   staleAsOf: string | null;
+  /** Non-null when this domain's source is serving a degraded fallback. */
+  degradedReason: string | null;
   series?: Array<number | null>;
 }) {
   const top = cards.slice(0, domain.key === "labs" ? 6 : 4);
@@ -137,7 +147,14 @@ function Tile({
             </span>
           ) : null}
           <span className="text-[10px] tabular-nums text-neutral-500">
-            {staleAsOf ? (
+            {/* Precedence: degraded (source serving a fallback) over stale
+                (real-but-old) over a plain count. A degraded source is the
+                strongest disclosure — it explains an otherwise-empty tile. */}
+            {degradedReason ? (
+              <span title={degradedReason} className="text-amber-500/80">
+                ◐ source degraded
+              </span>
+            ) : staleAsOf ? (
               <span
                 title={`Live fetch failed — showing last-known data as of ${fmtTime(staleAsOf)}`}
                 className="text-amber-500/80"
@@ -156,6 +173,11 @@ function Tile({
             <CardRow key={c.id} card={c} />
           ))}
         </ul>
+      ) : degradedReason ? (
+        // Empty BECAUSE the source is degraded — say why, never "quiet".
+        <p className="flex-1 py-2 text-[11px] italic text-amber-500/70">
+          {degradedReason}
+        </p>
       ) : (
         <p className="flex-1 py-2 text-[11px] italic text-neutral-600">
           quiet — no activity in window
@@ -174,6 +196,9 @@ export function BentoBoard({
 }) {
   const staleByName = new Map(
     (feed.staleSources ?? []).map((s) => [s.source, s.staleAsOf]),
+  );
+  const degradedByName = new Map(
+    (feed.degradedSources ?? []).map((s) => [s.source, s.reason]),
   );
   const { toolHealth } = feed.currentState;
 
@@ -204,10 +229,20 @@ export function BentoBoard({
           const cards = feed.cards
             .filter((c) => domain.types.includes(c.type))
             .sort((a, b) => b.severity - a.severity);
-          // A domain is "stale" if any of its cards' source is in staleSources.
+          // Match degraded/stale by the domain's canonical source first (so a
+          // ZERO-card tile can still disclose its state — it has no card
+          // sourceName to match), then fall back to any card's source.
+          const sourceNames = [
+            domain.sourceName,
+            ...cards.map((c) => c.sourceName),
+          ].filter((v): v is string => Boolean(v));
+          const degradedReason =
+            sourceNames
+              .map((n) => degradedByName.get(n))
+              .find((v): v is string => Boolean(v)) ?? null;
           const stale =
-            cards
-              .map((c) => staleByName.get(c.sourceName))
+            sourceNames
+              .map((n) => staleByName.get(n))
               .find((v): v is string => Boolean(v)) ?? null;
           return (
             <Tile
@@ -215,6 +250,7 @@ export function BentoBoard({
               domain={domain}
               cards={cards}
               staleAsOf={stale}
+              degradedReason={degradedReason}
               series={domain.seriesKey ? series[domain.seriesKey] : undefined}
             />
           );
