@@ -25,6 +25,18 @@ function nominalCatalogueBody(slugs: string[] = ["anthropic/a"]) {
   };
 }
 
+describe("OPENROUTER_FRONTEND_URL", () => {
+  // Regression guard: OpenRouter moved the ranking endpoint from the
+  // un-versioned `/api/frontend/models/find` (now 404) to the versioned
+  // `/api/frontend/v1/models/find` on 2026-06-30. A silent revert to the
+  // old path re-triggers permanent catalogue-fallback (MODEL_MOVER dead).
+  it("targets the versioned frontend rankings path", () => {
+    expect(OPENROUTER_FRONTEND_URL).toBe(
+      "https://openrouter.ai/api/frontend/v1/models/find",
+    );
+  });
+});
+
 describe("fetchOpenRouterRankings", () => {
   it("happy path: primary OK, no secondary requested, no catalogue fetch", async () => {
     const fetcher = vi.fn(async (input: RequestInfo | URL) => {

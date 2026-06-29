@@ -2,12 +2,20 @@
  * Fetch layer for the OpenRouter Model Usage panel.
  *
  * Strategy (per PRD AC #11): primary path is the undocumented
- * `/api/frontend/models/find?order={ordering}` endpoint. If that
+ * `/api/frontend/v1/models/find?order={ordering}` endpoint. If that
  * returns 4xx, 5xx, network error, an empty models array, or a
  * response shape missing the `data.models` key, fall back to the
  * documented `/api/v1/models` catalogue. The catalogue carries no
  * ranking signal but lets the panel render *something* honest while
  * the upstream is broken.
+ *
+ * NB (2026-06-30): OpenRouter moved this endpoint from the un-versioned
+ * `/api/frontend/models/find` to `/api/frontend/v1/models/find` (the old
+ * path now 404s). Same `data.models` shape — slug/permaslug/name/
+ * short_name/endpoint.pricing all intact. The un-versioned 404 had been
+ * silently triggering catalogue-fallback, which suppresses MODEL_MOVER
+ * (catalogue order ≠ usage rank). The board now surfaces that degraded
+ * state explicitly (see degraded-sources.ts); this restores the live rank.
  *
  * Secondary frontend fetches (e.g. trending alongside top-weekly)
  * are best-effort: a failure on the secondary leaves the primary
@@ -25,7 +33,7 @@ import type {
 import type { ModelUsageOrdering } from "@/lib/data/openrouter-types";
 
 export const OPENROUTER_FRONTEND_URL =
-  "https://openrouter.ai/api/frontend/models/find";
+  "https://openrouter.ai/api/frontend/v1/models/find";
 export const OPENROUTER_V1_URL = "https://openrouter.ai/api/v1/models";
 
 export type Fetcher = typeof fetch;

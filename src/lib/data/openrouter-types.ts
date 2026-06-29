@@ -2,7 +2,7 @@
  * Types for the OpenRouter Model Usage panel (S38).
  *
  * Two upstream shapes feed in:
- *   - Frontend rankings: /api/frontend/models/find?order=top-weekly
+ *   - Frontend rankings: /api/frontend/v1/models/find?order=top-weekly
  *     (undocumented, may break — degrades to catalogue fallback).
  *   - Public catalogue: /api/v1/models (documented, no ranking signal).
  *
