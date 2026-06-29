@@ -106,7 +106,13 @@ jobs:
                   data=json.dumps(
                       {"content": content[:1900], "username": "Gawk Integrity"}
                   ).encode(),
-                  headers={"Content-Type": "application/json"},
+                  # Discord (via Cloudflare) 403s the default Python-urllib
+                  # User-Agent; a real UA is required (curl works for the
+                  # video alerts because it sends its own UA).
+                  headers={
+                      "Content-Type": "application/json",
+                      "User-Agent": "Gawk-Integrity (+https://gawk.dev)",
+                  },
               )
               try:
                   urllib.request.urlopen(req, timeout=15)
