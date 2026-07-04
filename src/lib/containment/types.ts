@@ -32,12 +32,12 @@ export interface HysteresisPolicy {
   /** Consecutive passes required in RECOVERING before returning to LIVE. */
   passesToRestore: number;
   /**
-   * Minimum time in the CURRENT state before restore is allowed
-   * (anti-flap). The engine anchors this at the most recent state ENTRY
-   * (`enteredAt` resets on every transition), so in practice it demands a
-   * sustained dwell in RECOVERING — stricter than "total time since the
-   * source first degraded", and deliberate: a restore must prove a
-   * sustained green period, not merely a long outage.
+   * Minimum time since the source entered QUARANTINED before a restore
+   * is allowed (anti-flap). The QUARANTINED→RECOVERING transition
+   * deliberately CARRIES `enteredAt` over (engine.ts, "carry it over"),
+   * so the dwell measures the whole quarantined+recovering episode —
+   * verified live 2026-07-04: quarantined 13:11Z, recovering 14:45Z,
+   * restored at the first cycle past 19:11Z (13:11+6h), not 20:45Z.
    */
   minDwellMs: number;
 }
