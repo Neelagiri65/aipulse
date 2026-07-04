@@ -101,6 +101,32 @@ export async function readContainmentState(): Promise<StateReadResult> {
 }
 
 /**
+ * Serve-path state read. Identical to readContainmentState, with one
+ * test-only seam: when CONTAINMENT_STATE_FIXTURE names a JSON file, the
+ * state is read from it instead of Redis. This exists solely so the
+ * Playwright quarantine-render e2e can start a REAL local server with a
+ * quarantined state and assert the actuation actually renders (PRD F4 —
+ * the actuator itself must be provable, not assumed). The env var is
+ * never set in production; an unreadable fixture is a loud error, not a
+ * silent fallback to Redis.
+ */
+export async function readContainmentStateForServe(): Promise<StateReadResult> {
+  const fixture = process.env.CONTAINMENT_STATE_FIXTURE;
+  if (fixture) {
+    try {
+      const { readFile } = await import("node:fs/promises");
+      const raw = JSON.parse(await readFile(fixture, "utf8")) as unknown;
+      if (!isContainmentState(raw)) return { state: null, error: true };
+      return { state: raw, error: false };
+    } catch (err) {
+      console.error("[containment:store] fixture read failed", err);
+      return { state: null, error: true };
+    }
+  }
+  return readContainmentState();
+}
+
+/**
  * Compare-and-set write of the state blob.
  *
  * `basedOnVersion` is the `computedAt` of the state this cycle's transitions
