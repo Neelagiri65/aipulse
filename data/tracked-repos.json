@@ -1,0 +1,19 @@
+{
+  "description": "Founder-curated tracked repos. Their COMPLETE public event streams are polled per-repo each globe-ingest run (unsampled, unlike the /events firehose) and feed the same map/wire pipeline with sourceKind=tracked-repo. See data-sources.ts gh-repo-events-tracked.",
+  "repos": [
+    "Neelagiri65/account-intelligence-tool",
+    "Neelagiri65/adk-python",
+    "Neelagiri65/aipulse",
+    "Neelagiri65/authdrift",
+    "Neelagiri65/bharataddress",
+    "Neelagiri65/codepulse",
+    "Neelagiri65/equiv",
+    "Neelagiri65/gemini-test-project",
+    "Neelagiri65/gmail-oauth-research",
+    "Neelagiri65/homebrew-privacylint",
+    "Neelagiri65/IceCubesApp",
+    "Neelagiri65/Neelagiri65",
+    "Neelagiri65/privacylint",
+    "Neelagiri65/tokenledger"
+  ]
+}

@@ -679,6 +679,36 @@ export const GITHUB_REPO_EVENTS_LABS: DataSource = {
   powersFeature: ["ai-labs-layer", "labs-panel"],
 };
 
+export const GITHUB_REPO_EVENTS_TRACKED: DataSource = {
+  id: "gh-repo-events-tracked",
+  name: "GitHub Repository Events API (tracked-repos fetcher)",
+  category: "github-activity",
+  url: "https://github.com/Neelagiri65/aipulse/blob/main/data/tracked-repos.json",
+  apiUrl:
+    "https://api.github.com/repos/{owner}/{repo}/events?per_page=100",
+  responseFormat: "json",
+  updateFrequency: "hourly",
+  rateLimit: {
+    authenticated: 5000,
+    unauthenticated: 60,
+    note: "Per-hour, per-token. 14 tracked repos × ~30 globe-ingest runs/day ≈ 420 req/day — trivial under the authenticated budget; shares the zero-scope GH_TOKEN with the firehose poll it rides along with. Per-repo failures isolate: one 404/timeout appears as a `tracked:{repo}` failure step and never tanks the run.",
+  },
+  auth: "github-token",
+  measures:
+    "COMPLETE public event streams for the 14 founder-curated repos in data/tracked-repos.json, merged verbatim into the same map/wire pipeline as the firehose sample (same relevant-type filter, same dedupe by event id, same geocoding). Purpose: the global /events firehose is a heavily sampled window — any specific repo's activity is statistically invisible in it; per-repo polling is complete, so tracked repos' events are guaranteed on the map within one ingest poll. Points store sourceKind='tracked-repo' (dots render identically; the stored provenance never lies about how an event arrived).",
+  sanityCheck: {
+    description:
+      "0–30 events per repo per poll under normal use (most polls return 0 for most repos — quiet repos are quiet). Sustained zero across ALL tracked repos for >48h while pushes are known to have happened indicates token/endpoint failure — investigate before attributing to inactivity. List size should equal data/tracked-repos.json length (14 at creation).",
+    expectedMin: 0,
+    expectedMax: 30,
+    unit: "events per repo per poll",
+  },
+  verifiedAt: "2026-07-04",
+  caveat:
+    "This is a CURATED source: presence on the map reflects the founder's tracked list, not global significance — disclosed here and in the committed JSON. Real public events only, verbatim; no re-ranking, no invented prominence (tracked events flow through the identical severity/insight pipeline as sampled events). Repo rename/transfer 404s until the JSON is updated (surfaced as a per-repo failure step). Events also caught by the firehose dedupe by event id — no double dots.",
+  powersFeature: ["flat-map", "the-wire"],
+};
+
 // ---------------------------------------------------------------------------
 // PENDING VERIFICATION — DO NOT CONSUME IN DASHBOARD
 // These sources are referenced in the spec but have not been Phase-0 validated
@@ -1205,6 +1235,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   LMARENA_LEADERBOARD,
   AI_LABS_REGISTRY,
   GITHUB_REPO_EVENTS_LABS,
+  GITHUB_REPO_EVENTS_TRACKED,
   RSS_THE_REGISTER_AI,
   RSS_HEISE_AI,
   RSS_SYNCED_REVIEW,

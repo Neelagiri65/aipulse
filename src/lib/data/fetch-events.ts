@@ -34,6 +34,7 @@ import {
   fetchArchiveHour,
   recentArchiveHours,
 } from "@/lib/data/gharchive";
+import { fetchTrackedRepoEvents } from "@/lib/data/tracked-repos";
 import {
   isGlobeStoreAvailable,
   readMeta,
@@ -260,6 +261,9 @@ function toGlobePoint(p: StoredGlobePoint): GlobePoint {
 // WRITE PATH — called by /api/ingest (cron)
 // ---------------------------------------------------------------------------
 
+/** Provenance of a raw event within one ingest pass. */
+type IngestSourceKind = "gharchive" | "events-api" | "tracked-repo";
+
 export type IngestOptions = {
   /**
    * When true, pulls the last ARCHIVE_BACKFILL_HOURS of gharchive data in
@@ -284,7 +288,7 @@ export type IngestResult = {
 export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult> {
   const startedAt = new Date();
   const failures: Array<{ step: string; message: string }> = [];
-  const rawEvents: Array<{ event: GitHubEvent; source: "gharchive" | "events-api" }> = [];
+  const rawEvents: Array<{ event: GitHubEvent; source: IngestSourceKind }> = [];
 
   // 1) Archive backfill (optional).
   if (opts.archiveBackfill) {
@@ -314,14 +318,25 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
     });
   }
 
+  // 2b) Tracked repos (always): COMPLETE per-repo streams for the curated
+  // list — the firehose above is a sample and misses specific repos; this
+  // guarantees their events land within one poll. Per-repo failures are
+  // isolated inside the fetch and merged into this run's failure list.
+  {
+    const tracked = await fetchTrackedRepoEvents();
+    for (const e of tracked.events) rawEvents.push({ event: e, source: "tracked-repo" });
+    failures.push(...tracked.failures);
+  }
+
   // 3) Type-filter + dedupe by event id.
-  const byId = new Map<string, { event: GitHubEvent; source: "gharchive" | "events-api" }>();
+  const byId = new Map<string, { event: GitHubEvent; source: IngestSourceKind }>();
   for (const r of rawEvents) {
     if (!RELEVANT_TYPES.has(r.event.type)) continue;
-    // Live-api takes precedence over archive for the same id (same event,
-    // but live has the freshest representation).
+    // Live-api and tracked-repo take precedence over archive for the same
+    // id (same event; the live representations are freshest). Between
+    // live-api and tracked-repo, first-in wins — identical payloads.
     const prev = byId.get(r.event.id);
-    if (prev && prev.source === "events-api") continue;
+    if (prev && prev.source !== "gharchive") continue;
     byId.set(r.event.id, r);
   }
   const eventsReceivedRaw = byId.size;
@@ -369,7 +384,7 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
   });
 
   // 5) Keep only placeable events.
-  const placeable: Array<{ event: GitHubEvent; source: "gharchive" | "events-api" }> = [];
+  const placeable: Array<{ event: GitHubEvent; source: IngestSourceKind }> = [];
   for (const r of cappedById.values()) {
     if (locationByLogin.has(r.event.actor.login)) placeable.push(r);
   }
