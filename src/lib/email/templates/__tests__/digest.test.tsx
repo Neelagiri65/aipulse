@@ -101,10 +101,14 @@ describe("renderDigestHtml — per-section links", () => {
     expect(html).toContain("x.com/intent/tweet");
   });
 
-  it("share URLs include the section anchor in the encoded url param", async () => {
+  it("shares consolidate to ONE footer block sharing the digest permalink (Direction A: no per-section CTA spam)", async () => {
     const html = await renderDigestHtml(BASE);
+    // Exactly one LinkedIn + one X share affordance in the whole issue.
+    expect(html.match(/linkedin\.com\/sharing\/share-offsite/g)).toHaveLength(1);
+    expect(html.match(/x\.com\/intent\/tweet/g)).toHaveLength(1);
+    // They share the issue permalink, not a section anchor.
     expect(html).toMatch(
-      /linkedin\.com\/sharing\/share-offsite\/\?url=https%3A%2F%2Fgawk\.dev%2Fdigest%2F2026-04-22%23tool-health/,
+      /linkedin\.com\/sharing\/share-offsite\/\?url=https%3A%2F%2Fgawk\.dev%2Fdigest%2F2026-04-22(?!%23)/,
     );
   });
 });
@@ -123,12 +127,14 @@ describe("renderDigestHtml — sources", () => {
 });
 
 describe("renderDigestHtml — TL;DR + chrome", () => {
-  it('drops the legacy "GAWK" eyebrow above the H1 — title is enough', async () => {
+  it("renders the Direction-A masthead band: GAWK wordmark + issue date", async () => {
     const html = await renderDigestHtml(BASE);
-    // The eyebrow was a standalone uppercase "GAWK" text node above the
-    // H1. Subject and H1 already say "Gawk —" so a third repetition was
-    // pure noise.
-    expect(html).not.toMatch(/>GAWK</);
+    // The dark masthead band is the brand anchor (a16z lesson: every
+    // issue unmistakably Gawk before a word is read). Wordmark + mono
+    // date, once, at the top.
+    expect(html).toMatch(/>GAWK</);
+    expect(html.match(/>GAWK</g)).toHaveLength(1);
+    expect(html).toContain("2026-04-22");
   });
 
   it("renders digest.tldr in place of the greeting when set", async () => {
@@ -145,18 +151,13 @@ describe("renderDigestHtml — TL;DR + chrome", () => {
     expect(html).toContain("Good morning from Gawk");
   });
 
-  it("renders the View on Gawk CTA in its own paragraph, separated from the share row", async () => {
+  it("renders exactly ONE primary CTA button for the whole issue", async () => {
     const html = await renderDigestHtml(BASE);
+    // Direction A CTA discipline: sections keep small anchor text links,
+    // but the button appears once, in the footer block.
+    expect(html.match(/Read today.{1,8}s full brief on Gawk/g)).toHaveLength(1);
+    // Per-section anchor deep links survive as text links.
     expect(html).toContain("View on Gawk →");
-    expect(html).toContain("Share:");
-    // Structural separation: there must be a closing `</p>` between the
-    // primary CTA and the share row so they render as two stacked rows
-    // rather than the previous inline run-on.
-    const viewIdx = html.indexOf("View on Gawk →");
-    const shareIdx = html.indexOf("Share:");
-    expect(viewIdx).toBeGreaterThanOrEqual(0);
-    expect(shareIdx).toBeGreaterThan(viewIdx);
-    expect(html.slice(viewIdx, shareIdx)).toContain("</p>");
   });
 });
 
