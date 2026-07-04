@@ -40,7 +40,7 @@ Checkpoints where Auditor review is mandatory:
 ## Stack (locked, decided 2026-04-18)
 - **Framework:** Next.js 16.2 (App Router, Turbopack). Scaffolded with React 19.
 - **Styling:** Tailwind 4 + shadcn/ui.
-- **Globe:** react-globe.gl + three.js, loaded via `next/dynamic` with `ssr: false`.
+- **Map (IMPORTANT — it is a 2D MAP, not a globe):** the shipped homepage visualisation is `src/components/map/FlatMap.tsx`, a 2D flat map loaded via `next/dynamic` with `ssr: false`. The original react-globe.gl 3D globe was replaced; identifiers named `globe*` (`/api/globe-events`, `globe-ingest`, `GlobePoint`, `components/globe/`) are LEGACY NAMING for the events pipeline that now feeds the 2D map. Say "map" when talking about the product; keep the `globe*` identifiers untouched in code (rename = churn across API routes, crons, Redis keys).
 - **Edge:** Vercel Edge Functions for polling proxies (CORS, auth key injection).
 - **Cache:** Upstash Redis free tier (10k cmd/day, 24h TTL for GH Events, 5-min TTL for status pages).
 - **Workers:** GitHub Actions cron for scheduled aggregation (writes static JSON to `data/`).
