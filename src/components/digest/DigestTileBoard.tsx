@@ -113,6 +113,18 @@ const CSS = `
   }
 `;
 
+/** The composed subject is "Gawk — {date} · {payload}". The masthead
+ *  already carries the wordmark and the date, so the band headline shows
+ *  only the payload — display de-duplication, the stored subject is
+ *  untouched (and the email, where it IS the subject line, keeps it). */
+function bandHeadline(subject: string, date: string): string {
+  const stripped = subject.replace(
+    new RegExp(`^Gawk\\s*—\\s*${date}\\s*·\\s*`),
+    "",
+  );
+  return stripped.length > 0 ? stripped : subject;
+}
+
 export function DigestTileBoard({
   digest,
   baseUrl,
@@ -188,7 +200,7 @@ export function DigestTileBoard({
             className="gd-display mt-6 max-w-3xl text-2xl leading-snug sm:text-3xl"
             style={{ color: C.paper, fontWeight: 500, letterSpacing: "-0.018em", textWrap: "balance" }}
           >
-            {digest.subject}
+            {bandHeadline(digest.subject, digest.date)}
           </h1>
         </header>
         <div style={{ backgroundColor: C.blue, height: 3 }} />
