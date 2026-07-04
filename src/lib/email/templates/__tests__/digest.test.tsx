@@ -319,3 +319,63 @@ describe("renderDigestHtml — quiet mode", () => {
     expect(html).toContain("All tools operational");
   });
 });
+
+describe("renderDigestHtml — Gmail clip guard", () => {
+  it("a maximal busy-day issue stays well under Gmail's ~102KB clipping threshold", async () => {
+    // Gmail truncates messages over ~102KB of HTML, hiding everything
+    // below the fold INCLUDING the unsubscribe link. Render the worst
+    // realistic day: every section, 10 items each, all optional fields.
+    const sections = (
+      ["tool-health", "hn", "benchmarks", "sdk-adoption", "agents", "labs", "model-usage"] as const
+    ).map((id, si) => ({
+      id,
+      title: `Section ${si} title with a reasonably long name`,
+      anchorSlug: id,
+      mode: "diff" as const,
+      headline:
+        "A long busy-day headline that says several things moved at once across registries",
+      items: Array.from({ length: 10 }, (_, i) => ({
+        headline: `#${i + 1} some/model-or-package-name-${i} climbed +${i + 1}4 to #${i + 2}`,
+        detail: `+${i}2.${i}k 24h downloads day-over-day`,
+        sourceLabel: "pypistats.org",
+        sourceUrl: `https://pypistats.org/packages/pkg-${i}`,
+        panelHref: `/panels/sdk-adoption?focus=pypi:pkg-${i}`,
+        // Composers emit caveats on the odd row, not every row.
+        ...(i < 2
+          ? {
+              caveat:
+                "pypistats.org is a third-party aggregator — counts include mirror hits, CI builds, and pip install retries.",
+            }
+          : {}),
+      })),
+      sourceUrls: [
+        "https://pypistats.org",
+        "https://www.npmjs.com",
+        "https://hub.docker.com",
+        "https://formulae.brew.sh",
+        "https://crates.io",
+        "https://marketplace.visualstudio.com",
+      ],
+    }));
+    const html = await renderDigestHtml({
+      digest: mkDigest({
+        tldr: "9 tool incidents · 60 SDK shifts · 10 agent movers · 30 lab updates · 10 HN stories",
+        inferences: [
+          "one long inference line about a model holding #1 for the 30th consecutive snapshot: −22.1k day-over-day.",
+          "another inference line with a delta somewhere +2.3M 24h downloads day-over-day.",
+          "a third inference line to fill the hero block to its realistic maximum.",
+        ],
+        sections,
+      }),
+      baseUrl: "https://gawk.dev",
+      unsubUrl: "https://gawk.dev/unsubscribe?token=x",
+    });
+    const bytes = Buffer.byteLength(html, "utf8");
+    // 90KB budget leaves headroom under the ~102KB clip.
+    expect(bytes).toBeLessThan(90 * 1024);
+    // And the unsubscribe link must exist in what was rendered.
+    expect(html).toContain("Unsubscribe");
+    // Overflow is DISCLOSED, never silent: 10 items - 6 cap = +4 more.
+    expect(html).toContain("+4 more in this section");
+  });
+});
