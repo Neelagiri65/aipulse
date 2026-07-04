@@ -9,6 +9,7 @@ import { LabCard } from "@/components/labs/LabCard";
 import { SourceCard } from "@/components/wire/SourceCard";
 import { CountryPill, LangTag } from "@/components/wire/country-pill";
 import type { RssSourcePanel, RssWireItem } from "@/lib/data/wire-rss";
+import { actorHref, actorLabel, repoHref } from "@/lib/data/event-links";
 import {
   summariseClusterTypes,
   formatBreakdownLine,
@@ -441,12 +442,13 @@ function eventKey(p: GlobePoint, fallback: number): string {
 function EventRow({ point }: { point: GlobePoint }) {
   const meta = (point.meta ?? {}) as EventMeta;
   const repo = meta.repo ?? "(unknown repo)";
-  const actor = meta.actor ?? "(unknown)";
+  const actor = actorLabel(meta.actor);
+  const actorLink = actorHref(meta.actor);
   const createdAt = meta.createdAt;
   const type = meta.type ?? "Event";
   const hasAi = meta.hasAiConfig === true;
   const source = meta.sourceKind;
-  const repoHref = meta.repo ? `https://github.com/${meta.repo}` : undefined;
+  const repoLink = repoHref(meta.repo);
 
   return (
     <li className="px-2.5 py-2">
@@ -467,9 +469,9 @@ function EventRow({ point }: { point: GlobePoint }) {
         )}
       </div>
       <div className="mt-1.5 truncate font-mono text-[12px] text-foreground">
-        {repoHref ? (
+        {repoLink ? (
           <a
-            href={repoHref}
+            href={repoLink}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-[#2dd4bf] hover:underline"
@@ -481,7 +483,13 @@ function EventRow({ point }: { point: GlobePoint }) {
         )}
       </div>
       <div className="mt-0.5 flex items-center justify-between font-mono text-[10px] text-muted-foreground">
-        <span className="truncate">@{actor}</span>
+        {actorLink ? (
+          <a href={actorLink} target="_blank" rel="noopener noreferrer" className="truncate hover:text-foreground">
+            @{actor}
+          </a>
+        ) : (
+          <span className="truncate">@{actor}</span>
+        )}
         <span className="ml-2 shrink-0 tabular-nums">{formatRelative(createdAt)}</span>
       </div>
     </li>
@@ -501,9 +509,7 @@ function EventTypePill({ type }: { type: string }) {
 function RegistryRow({ point }: { point: GlobePoint }) {
   const meta = (point.meta ?? {}) as EventMeta;
   const repo = meta.fullName ?? meta.repo ?? "(unknown repo)";
-  const repoHref = meta.fullName
-    ? `https://github.com/${meta.fullName}`
-    : undefined;
+  const repoLink = repoHref(meta.fullName ?? meta.repo);
   const age = meta.lastActivity ? formatAgeLabel(meta.lastActivity) : null;
   const kinds = meta.configKinds ?? [];
   const stars = meta.stars;
@@ -520,9 +526,9 @@ function RegistryRow({ point }: { point: GlobePoint }) {
         ))}
       </div>
       <div className="mt-1.5 truncate font-mono text-[12px] text-foreground">
-        {repoHref ? (
+        {repoLink ? (
           <a
-            href={repoHref}
+            href={repoLink}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-[#2dd4bf] hover:underline"
