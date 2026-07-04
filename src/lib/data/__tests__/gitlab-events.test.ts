@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   fetchGitLabEvents,
+  isBotAuthor,
   isPulseNoise,
   mapGitLabAction,
   toGitHubShape,
@@ -68,6 +69,19 @@ describe("toGitHubShape — namespacing (the cross-pipeline safety core)", () =>
   it("drops unmapped actions and authorless events", () => {
     expect(toGitHubShape(raw({ action_name: "joined" }), "x/y")).toBeNull();
     expect(toGitHubShape(raw({ author: undefined }), "x/y")).toBeNull();
+  });
+});
+
+describe("isBotAuthor — automation filter (GitLab is CI-dominated)", () => {
+  it("catches the real bot/service-account shapes seen on prod", () => {
+    for (const u of [
+      "gitlab-bot", "cki-ci-bot", "project_278964_bot_8e345ef7",
+      "service_account_group_60717473_b38ef9", "weblate",
+    ]) expect(isBotAuthor(u)).toBe(true);
+  });
+  it("keeps humans", () => {
+    for (const u of ["aleksandr-kotlyar", "cznic", "peter.prib"])
+      expect(isBotAuthor(u)).toBe(false);
   });
 });
 

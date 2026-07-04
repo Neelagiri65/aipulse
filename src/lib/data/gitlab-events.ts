@@ -85,6 +85,22 @@ export function isPulseNoise(pathWithNamespace: string): boolean {
   return false;
 }
 
+/** Automation authors carry no human location and dominate GitLab
+ *  activity (it is a CI/CD platform). Filtered before geo so we don't
+ *  waste lookups or dilute the human signal. Mechanical patterns only. */
+export function isBotAuthor(username: string): boolean {
+  const u = username.toLowerCase();
+  return (
+    u.endsWith("-bot") ||
+    u.endsWith("_bot") ||
+    u.includes("_bot_") ||
+    u.startsWith("service_account") ||
+    u.startsWith("project_") ||
+    u === "gitlab-bot" ||
+    u === "weblate"
+  );
+}
+
 /** GitLab action_name → the globe pipeline's event vocabulary. Null =
  *  unmapped → dropped and counted, never coerced into a wrong type. */
 export function mapGitLabAction(
@@ -112,7 +128,7 @@ export function toGitHubShape(
 ): GitHubEvent | null {
   const type = mapGitLabAction(raw.action_name, raw.target_type);
   const username = raw.author?.username;
-  if (!type || !username) return null;
+  if (!type || !username || isBotAuthor(username)) return null;
   return {
     id: `gl:${raw.id}`,
     type,
