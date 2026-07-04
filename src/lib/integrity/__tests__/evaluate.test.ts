@@ -100,4 +100,43 @@ describe("evaluate", () => {
     };
     expect(evaluate(spec, payload, NOW).verdict).toBe("DEGRADED");
   });
+
+  it("flags a fallback ordering via expectedOrdering (DEGRADED, S91 class)", () => {
+    const spec: ProbeSpec = {
+      id: "openrouter-rankings",
+      extract: (p) => {
+        const o = p as { rows?: unknown[]; generatedAt?: string; ordering?: string };
+        return {
+          observedAt: o.generatedAt ?? null,
+          records: (o.rows ?? []) as Array<Record<string, unknown>>,
+          ordering: o.ordering ?? null,
+        };
+      },
+      contract: { maxAgeMinutes: 720, expectedOrdering: ["top-weekly", "trending"] },
+    };
+    const fresh = "2026-06-28T11:30:00.000Z";
+    const fallback = evaluate(
+      spec,
+      { generatedAt: fresh, ordering: "catalogue-fallback", rows: [{ a: 1 }] },
+      NOW,
+    );
+    expect(fallback.verdict).toBe("DEGRADED");
+    expect(fallback.checks.find((c) => c.name === "ordering")?.ok).toBe(false);
+
+    const real = evaluate(
+      spec,
+      { generatedAt: fresh, ordering: "top-weekly", rows: [{ a: 1 }] },
+      NOW,
+    );
+    expect(real.checks.find((c) => c.name === "ordering")?.ok).toBe(true);
+  });
+
+  it("omits the ordering check when the contract declares no expectedOrdering", () => {
+    const report = evaluate(
+      globeSpec,
+      { polledAt: "2026-06-28T11:55:00.000Z", points: [{ source: "redis" }] },
+      NOW,
+    );
+    expect(report.checks.some((c) => c.name === "ordering")).toBe(false);
+  });
 });

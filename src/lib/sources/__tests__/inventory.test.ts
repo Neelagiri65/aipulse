@@ -9,7 +9,7 @@ import {
 } from "@/lib/sources/inventory";
 
 describe("sources inventory", () => {
-  it("covers every typed-registry source plus the virtual entries (OpenRouter + Stanford AI Index)", () => {
+  it("covers every typed-registry source plus the virtual entry (Stanford AI Index)", () => {
     const inventory = buildInventory();
     const inventoryIds = new Set(inventory.map((e) => e.id));
     for (const src of ALL_SOURCES) {
@@ -19,14 +19,14 @@ describe("sources inventory", () => {
     expect(inventoryIds.has("stanford-ai-index")).toBe(true);
   });
 
-  it("flags OpenRouter as auditor-pending until promoted to the typed registry", () => {
+  it("OpenRouter is promoted: typed-registry entry, no auditor-pending flag anywhere", () => {
     const inventory = buildInventory();
     const openrouter = inventory.find((e) => e.id === "openrouter-rankings");
-    expect(openrouter?.auditorPending).toBe(true);
-    const typed = inventory.filter((e) => e.id !== "openrouter-rankings");
-    for (const e of typed) {
-      // Typed-registry sources should never be auditor-pending — that
-      // flag is reserved for entries living outside ALL_SOURCES.
+    expect(openrouter).toBeDefined();
+    expect(openrouter?.auditorPending ?? false).toBe(false);
+    // The promotion closed the only auditor-pending gap — nothing in the
+    // inventory should carry the flag now.
+    for (const e of inventory) {
       expect(e.auditorPending ?? false).toBe(false);
     }
   });

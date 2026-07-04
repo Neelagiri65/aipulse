@@ -12,7 +12,9 @@
  * read through different paths.
  */
 
+import { handleGetSdkAdoption } from "@/app/api/panels/sdk-adoption/route";
 import { fetchGlobeEvents } from "@/lib/data/fetch-events";
+import { redisOpenRouterStore } from "@/lib/data/openrouter-store";
 import { loadFeedResponse } from "@/lib/feed/load";
 
 import type { Fetcher } from "./run";
@@ -20,5 +22,18 @@ import type { Fetcher } from "./run";
 export const inProcessFetcher: Fetcher = async (url) => {
   if (url.endsWith("/api/globe-events")) return fetchGlobeEvents();
   if (url.endsWith("/api/feed")) return loadFeedResponse(Date.now());
+  if (url.endsWith("/api/panels/model-usage")) {
+    // The STORED blob, not the trimmed panel view — probes judge what was
+    // delivered by the cron. A missing blob throws → `reachable` failure
+    // (availability), never a fabricated pass.
+    const dto = await redisOpenRouterStore.readRankingsLatest();
+    if (!dto) throw new Error("openrouter rankings blob missing");
+    return dto;
+  }
+  if (url.endsWith("/api/panels/sdk-adoption")) {
+    // Same assembler + deps the panel route uses — one read path (F6).
+    const { dto } = await handleGetSdkAdoption(new Request(url));
+    return dto;
+  }
   throw new Error(`no in-process source for ${url}`);
 };

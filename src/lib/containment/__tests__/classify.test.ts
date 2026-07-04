@@ -148,6 +148,24 @@ describe("classifyReport — synthetic reports for classes the feed spec cannot 
     expect(classifyReport(report).outcome).toBe("soft-fail");
   });
 
+  it("a failing ordering check (catalogue-fallback) is SOFT — degraded product, honest data", () => {
+    const report = buildReport({
+      source: "openrouter-rankings",
+      observedAt: "2026-06-28T11:30:00.000Z",
+      checks: [
+        {
+          name: "ordering",
+          ok: false,
+          severity: "warn",
+          detail: 'ordering "catalogue-fallback" is not the real product (expected top-weekly | trending)',
+        },
+      ],
+    });
+    const obs = classifyReport(report);
+    expect(obs.outcome).toBe("soft-fail");
+    expect(obs.reason).toContain("catalogue-fallback");
+  });
+
   it("probeErrorObservation wraps runner crashes as the state-preserving outcome", () => {
     expect(probeErrorObservation("feed", "redis down")).toEqual({
       sourceId: "feed",

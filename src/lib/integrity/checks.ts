@@ -198,6 +198,31 @@ export function checkSanityRange(args: {
 }
 
 /**
+ * Ordering provenance: is the output the REAL product, or a fallback that
+ * merely looks like it? The S91 incident class: OpenRouter's endpoint moved,
+ * every cron run silently flipped to catalogue-fallback (release-recency
+ * order, not a usage ranking), and the blob stayed fresh + non-empty + sane
+ * — every other check green while the ranking product was blind for weeks.
+ * A fallback ordering is honest data honestly labelled, so this is `warn`
+ * (degraded product), not `critical` (untrustworthy data).
+ */
+export function checkOrdering(args: {
+  ordering: string | null | undefined;
+  expected: readonly string[];
+}): CheckResult {
+  const { ordering, expected } = args;
+  if (ordering && expected.includes(ordering)) {
+    return { name: "ordering", ok: true, severity: "info", detail: ordering };
+  }
+  return {
+    name: "ordering",
+    ok: false,
+    severity: "warn",
+    detail: `ordering "${ordering ?? "missing"}" is not the real product (expected ${expected.join(" | ")})`,
+  };
+}
+
+/**
  * Distinguish a legitimately quiet day from a broken-empty output. We
  * cannot prove which it is from a count alone, so below-floor without an
  * explicit quiet-day allowance is `warn` (suspicious, investigate), never

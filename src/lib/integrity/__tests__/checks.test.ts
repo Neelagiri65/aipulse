@@ -4,6 +4,7 @@ import {
   checkFreshness,
   checkNonEmpty,
   checkNotFabricated,
+  checkOrdering,
   checkProvenance,
   checkSanityRange,
   checkVerified,
@@ -145,6 +146,33 @@ describe("checkSanityRange", () => {
     const r = checkSanityRange({ value: null, expectedMin: 1, expectedMax: 9 });
     expect(r.ok).toBe(false);
     expect(r.severity).toBe("critical");
+  });
+});
+
+describe("checkOrdering", () => {
+  it("passes when the ordering is one of the real products", () => {
+    expect(
+      checkOrdering({ ordering: "top-weekly", expected: ["top-weekly", "trending"] }).ok,
+    ).toBe(true);
+    expect(
+      checkOrdering({ ordering: "trending", expected: ["top-weekly", "trending"] }).ok,
+    ).toBe(true);
+  });
+
+  it("flags a fallback ordering as warn — the S91 masked-blindness class", () => {
+    const r = checkOrdering({
+      ordering: "catalogue-fallback",
+      expected: ["top-weekly", "trending"],
+    });
+    expect(r.ok).toBe(false);
+    expect(r.severity).toBe("warn");
+    expect(r.detail).toContain("catalogue-fallback");
+  });
+
+  it("flags a missing ordering", () => {
+    const r = checkOrdering({ ordering: null, expected: ["top-weekly"] });
+    expect(r.ok).toBe(false);
+    expect(r.detail).toContain("missing");
   });
 });
 

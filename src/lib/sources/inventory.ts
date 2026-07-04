@@ -12,9 +12,9 @@
  *
  * One source = one InventoryEntry. The mapping is deterministic and
  * exhaustive — every entry in `ALL_SOURCES` from `data-sources.ts`
- * is covered. OpenRouter is the single virtual entry: it ships in
- * the Model Usage panel but isn't yet in the typed registry. Flagged
- * AUDITOR-PENDING so the gap reads honestly until promotion.
+ * is covered. Stanford AI Index is the single virtual entry (static
+ * reference report, not a polled source). OpenRouter was promoted from
+ * virtual to the typed registry on 2026-07-04.
  */
 
 import {
@@ -187,6 +187,8 @@ const TRACKS: Record<string, string> = {
     "Upstash platform health by region (EU-CENTRAL-1, US-EAST-1, etc.) + product (Redis, QStash, Vector). Surfaces on /admin only.",
   "hf-models":
     "Top text-generation models on HuggingFace ranked by 30-day downloads.",
+  "openrouter-rankings":
+    "Weekly request-volume rankings for every OpenRouter-routed model. Reflects API spend, not end-user adoption.",
   "arxiv-papers":
     "Twenty most-recent cs.AI + cs.LG submissions on arXiv, newest first. No re-ranking.",
   "hn-ai-stories":
@@ -370,26 +372,13 @@ const FRESHNESS_OF: Record<string, FreshnessSource> = {
 };
 
 /**
- * Virtual entries — sources that ship in production but aren't yet in
- * the typed `ALL_SOURCES` registry. Each one carries `auditorPending`
- * so the page tells the truth about the gap.
- *
- * AUDITOR-REVIEW: PENDING — promote OpenRouter to the typed registry
- * with a sanity range and verifiedAt before next major source-list pass.
+ * Virtual entries — sources that ship in production but aren't in the
+ * typed `ALL_SOURCES` registry. OpenRouter was promoted to the typed
+ * registry on 2026-07-04 (sanity range + verifiedAt + caveat), closing
+ * the long-standing AUDITOR-PENDING gap; Stanford AI Index remains the
+ * one true virtual entry (static reference, not a polled source).
  */
 const VIRTUAL_ENTRIES: InventoryEntry[] = [
-  {
-    id: "openrouter-rankings",
-    category: "models",
-    name: "OpenRouter — top-weekly model rankings",
-    tracks:
-      "Weekly request-volume rankings for every OpenRouter-routed model. Reflects API spend, not end-user adoption.",
-    url: "https://openrouter.ai/rankings",
-    updateFrequency: "six-hourly",
-    freshness: { kind: "cron", workflow: "openrouter-rankings" },
-    auditorPending: true,
-    poweredFeature: POWERED_FEATURE["openrouter-rankings"],
-  },
   {
     id: "stanford-ai-index",
     category: "research",

@@ -17,6 +17,7 @@ import {
   checkFreshness,
   checkNonEmpty,
   checkNotFabricated,
+  checkOrdering,
   checkProvenance,
   checkSanityRange,
   checkVerified,
@@ -34,6 +35,9 @@ export type Observed = {
   /** The metric to sanity-range-check. Defaults to `records.length` when
    *  omitted (the common "is the count sane" case). */
   value?: number | null;
+  /** Which product/ordering this payload claims to be (e.g. OpenRouter's
+   *  `ordering` field). Checked against `contract.expectedOrdering`. */
+  ordering?: string | null;
 };
 
 export type ProbeContract = {
@@ -55,6 +59,10 @@ export type ProbeContract = {
   verifiedAt?: string;
   /** Provenance field name on each record. Default "source". */
   provenanceField?: string;
+  /** Orderings that count as the real product (e.g. ["top-weekly",
+   *  "trending"]). A fallback ordering is a degraded product even when
+   *  every other check passes — the S91 masked-blindness class. */
+  expectedOrdering?: readonly string[];
 };
 
 export type ProbeSpec = {
@@ -136,6 +144,15 @@ export function evaluate(
         value: observed.value ?? observed.records.length,
         expectedMin: c.expectedMin,
         expectedMax: c.expectedMax,
+      }),
+    );
+  }
+
+  if (c.expectedOrdering !== undefined) {
+    checks.push(
+      checkOrdering({
+        ordering: observed.ordering,
+        expected: c.expectedOrdering,
       }),
     );
   }

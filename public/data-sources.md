@@ -33,9 +33,10 @@ These four track the services Gawk itself runs on. Surfaced operator-side only (
 - Cloudflare Status — DNS + proxy
 - Upstash Status — Redis cache
 
-### Model distribution + research (3)
+### Model distribution + research (4)
 - GitHub Issues — anthropics/claude-code
 - HuggingFace Models API — text-generation by downloads
+- OpenRouter — model usage rankings (top-weekly)
 - arXiv API — cs.AI + cs.LG, recent
 
 ### Package adoption (6)

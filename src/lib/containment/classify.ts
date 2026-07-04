@@ -41,6 +41,10 @@ const CHECK_CLASS: Record<string, FailClass> = {
   // Availability class.
   "non-empty": "soft",
   reachable: "soft",
+  // A fallback ordering is honest data honestly labelled — the PRODUCT is
+  // degraded, not the data. Sustained fallback quarantines via hysteresis
+  // (the S91 weeks-blind scenario), a single flap does not.
+  ordering: "soft",
 };
 
 /**
