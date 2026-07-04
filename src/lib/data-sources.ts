@@ -679,6 +679,38 @@ export const GITHUB_REPO_EVENTS_LABS: DataSource = {
   powersFeature: ["ai-labs-layer", "labs-panel"],
 };
 
+export const GITLAB_PROJECT_EVENTS: DataSource = {
+  id: "gitlab-project-events",
+  name: "GitLab — universe pulse + tracked project events",
+  // Category value is the legacy "github-activity" enum (renaming the
+  // enum churns every consumer); the public summary groups it under
+  // "Code activity".
+  category: "github-activity",
+  url: "https://gitlab.com/explore",
+  apiUrl:
+    "https://gitlab.com/api/v4/projects?order_by=last_activity_at (pulse) + /projects/{id}/events (streams)",
+  responseFormat: "json",
+  updateFrequency: "hourly",
+  rateLimit: {
+    unauthenticated: 30000,
+    note: "gitlab.com allows ~500 req/min unauthenticated per IP. Each globe-ingest run: 1 pulse page + ≤20 project event fetches + bounded author lookups ≈ ≤60 calls per ~30–90min run — two orders under budget. No token deployed (public data only); the keychain gitlab-pat exists for local/manual headroom.",
+  },
+  auth: "none",
+  measures:
+    "Two verified mechanisms merged into the same map/wire pipeline as GitHub events: (1) PULSE — gitlab.com's global last_activity_at ordering is an unauthenticated, seconds-fresh SAMPLE of which projects across the whole instance just had activity (the GitHub-firehose analogue: a pulse, not a ledger); the freshest slice's projects then have their REAL events fetched so every dot carries a true action + author. (2) TRACKED — complete event streams for the curated notables in data/gitlab-sources.json. GitLab action_names map to the globe's event vocabulary; UNMAPPED actions are dropped and counted in failures[], never coerced. Author geo resolves via the GITLAB users API only.",
+  sanityCheck: {
+    description:
+      "0–400 mapped events per ingest run (12 pulse-sampled + 8 tracked projects × ≤20 events, many unmappable). Sustained zero across ALL projects while gitlab-org/gitlab is known-active indicates endpoint/shape drift — investigate before attributing to quiet. Mirror namespaces and deletion-scheduled paths are filtered by pattern (disclosed here): mirrors double-count our GitHub feed; deletion churn is not activity.",
+    expectedMin: 0,
+    expectedMax: 400,
+    unit: "mapped events per ingest run",
+  },
+  verifiedAt: "2026-07-05",
+  caveat:
+    "gitlab.com has NO global event firehose (/events is auth-gated and caller-scoped) — the pulse is a last-activity SAMPLE, so per-event completeness exists only for tracked projects. Events are namespaced end-to-end (gl: ids, gl: logins, gitlab.com/ repo paths) so they can never collide with GitHub ids, never send GitLab usernames to the GitHub users API (same-name users would attach wrong geo), and never feed the GitHub-only registry-discovery backfill (triple-fenced). Self-hosted GitLab instances (GNOME, KDE, freedesktop) are out of scope v1.",
+  powersFeature: ["flat-map", "the-wire"],
+};
+
 export const GITHUB_REPO_EVENTS_TRACKED: DataSource = {
   id: "gh-repo-events-tracked",
   name: "GitHub Repository Events API (tracked-repos fetcher)",
@@ -1236,6 +1268,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   AI_LABS_REGISTRY,
   GITHUB_REPO_EVENTS_LABS,
   GITHUB_REPO_EVENTS_TRACKED,
+  GITLAB_PROJECT_EVENTS,
   RSS_THE_REGISTER_AI,
   RSS_HEISE_AI,
   RSS_SYNCED_REVIEW,

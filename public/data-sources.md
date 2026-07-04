@@ -2,13 +2,13 @@
 
 Every number on this dashboard traces back to a publicly verifiable source. Gawk aggregates — it does not invent metrics, re-score labs, or manufacture values. When a source is unavailable, the affected card falls to graceful degradation with a "last known value" and timestamp rather than blanking silently.
 
-As of 2026-07-04, Gawk tracks **40 verified sources** across GitHub activity, status pages, platform-infrastructure status pages, published research, model distribution, package adoption, community sentiment, AI publishers, and model benchmarks.
+As of 2026-07-04, Gawk tracks **41 verified sources** across GitHub activity, status pages, platform-infrastructure status pages, published research, model distribution, package adoption, community sentiment, AI publishers, and model benchmarks.
 
 ---
 
 ## Verified sources
 
-### GitHub activity (10)
+### Code activity (11)
 - GitHub Events API
 - GH Archive — hourly public-event dumps
 - GitHub Contents API
@@ -18,6 +18,7 @@ As of 2026-07-04, Gawk tracks **40 verified sources** across GitHub activity, st
 - ecosyste.ms — npm reverse-dependencies
 - GitHub Repository Events API — labs activity fetcher
 - GitHub Repository Events API — tracked repos (founder-curated list)
+- GitLab — universe pulse + tracked project events
 - AI Labs — curated HQ registry
 
 ### Status pages — AI tools (5)
