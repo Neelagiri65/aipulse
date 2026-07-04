@@ -44,7 +44,7 @@ export type StoredGlobePoint = GlobePoint & {
   /** Where this event originated (archive-hour, live-api firehose sample,
    *  or a curated tracked repo's complete stream). Transparency — stored
    *  and inspectable even though dots render identically. */
-  sourceKind: "gharchive" | "events-api" | "tracked-repo";
+  sourceKind: "gharchive" | "events-api" | "tracked-repo" | "gitlab";
 };
 
 export type IngestMeta = {
