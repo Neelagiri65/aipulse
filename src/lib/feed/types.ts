@@ -61,6 +61,21 @@ export type StaleSource = {
   staleAsOf: string;
 };
 
+/**
+ * A source that returned data but in a DEGRADED mode — it is serving a
+ * fallback that can't support its usual signal. Distinct from a stale
+ * source (a real-but-old value) and from a quiet domain (genuinely
+ * nothing to report). Canonical case: OpenRouter on `catalogue-fallback`
+ * — rows exist, but they're catalogue order, not usage ranks, so
+ * rank-movement (MODEL_MOVER) is deliberately suppressed. Surfacing this
+ * stops the board mislabelling "degraded" as "quiet".
+ */
+export type DegradedSource = {
+  source: string;
+  /** One-line, user-facing explanation of what's degraded and the consequence. */
+  reason: string;
+};
+
 export type FeedResponse = {
   cards: Card[];
   /** True when zero cards with severity ≥ 40 exist in the last 24h. */
@@ -74,4 +89,9 @@ export type FeedResponse = {
    * fresh fetch failed. Omitted when every source returned fresh data.
    */
   staleSources?: StaleSource[];
+  /**
+   * Sources serving a degraded fallback (data present but a signal
+   * suppressed). Omitted when no source is degraded. See DegradedSource.
+   */
+  degradedSources?: DegradedSource[];
 };
