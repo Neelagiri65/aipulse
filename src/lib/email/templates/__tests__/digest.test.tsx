@@ -142,7 +142,13 @@ describe("renderDigestHtml — TL;DR + chrome", () => {
       tldr: "1 tool incident · 5 HN stories · 4 benchmark movers",
     });
     const html = await renderDigestHtml({ ...BASE, digest: withTldr });
-    expect(html).toContain("1 tool incident · 5 HN stories · 4 benchmark movers");
+    // v2: the TL;DR renders as stat chips — every fragment survives
+    // verbatim (number + label), the separator becomes layout.
+    expect(html).toContain("1");
+    expect(html).toContain("tool incident");
+    expect(html).toContain("5");
+    expect(html).toContain("HN stories");
+    expect(html).toContain("benchmark movers");
     expect(html).not.toContain("Good morning from Gawk");
   });
 
