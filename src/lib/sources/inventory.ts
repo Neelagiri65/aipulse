@@ -203,6 +203,8 @@ const TRACKS: Record<string, string> = {
     "36 curated AI labs across 10+ countries with verifiable HQ coordinates.",
   "gh-repo-events-tracked":
     "Complete public event streams for the 14 founder-curated repos in data/tracked-repos.json — unsampled, unlike the /events firehose — merged into the same map/wire pipeline with sourceKind=tracked-repo provenance.",
+  "gitlab-project-events":
+    "GitLab universe pulse (global last-activity sampling — the firehose analogue) + complete streams for curated notables; real actions and authors only, gl:-namespaced end to end.",
   "gh-repo-events-labs":
     "7-day activity counts on flagship repos for every lab in the registry.",
   "rss-the-register-ai": "AI/ML headlines from The Register (UK tech press, London).",
@@ -260,6 +262,7 @@ const POWERED_FEATURE: Record<string, string> = {
   "ai-labs-registry": "AI Labs panel + globe layer",
   "gh-repo-events-labs": "AI Labs panel · sizes lab dots",
   "gh-repo-events-tracked": "Map · Wire (tracked-repo dots, rendered identically)",
+  "gitlab-project-events": "Map · Wire (GitLab dots, rendered identically)",
   "rss-the-register-ai": "Wire panel + map",
   "rss-heise-ai": "Wire panel + map",
   "rss-synced-review": "Wire panel + map",
@@ -320,6 +323,7 @@ const CATEGORY_OF: Record<string, CategoryId> = {
   "ai-labs-registry": "labs",
   "gh-repo-events-labs": "labs",
   "gh-repo-events-tracked": "code-activity",
+  "gitlab-project-events": "code-activity",
   // AI publishers
   "rss-the-register-ai": "ai-publishers",
   "rss-heise-ai": "ai-publishers",
@@ -359,6 +363,7 @@ const FRESHNESS_OF: Record<string, FreshnessSource> = {
   "ai-labs-registry": { kind: "last-known", key: "labs" },
   "gh-repo-events-labs": { kind: "last-known", key: "labs" },
   "gh-repo-events-tracked": { kind: "cron", workflow: "globe-ingest" },
+  "gitlab-project-events": { kind: "cron", workflow: "globe-ingest" },
   "rss-the-register-ai": { kind: "cron", workflow: "wire-ingest-rss" },
   "rss-heise-ai": { kind: "cron", workflow: "wire-ingest-rss" },
   "rss-synced-review": { kind: "cron", workflow: "wire-ingest-rss" },
