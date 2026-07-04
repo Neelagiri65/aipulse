@@ -148,8 +148,20 @@ export function DigestEmail({
             <Row>
               <Column>
                 <Text style={styles.bandKicker}>LIVE TELEMETRY</Text>
-                <Text style={styles.bandBrand}>
-                  GAWK<span style={styles.bandBy}> by nativerse</span>
+                <Text style={styles.bandBrand}>GAWK</Text>
+                <Text style={styles.bandBy}>
+                  <Img
+                    src={`${baseUrl}/brand/nativerse-mark.png`}
+                    width={16}
+                    height={16}
+                    alt="Nativerse"
+                    style={{
+                      display: "inline-block",
+                      verticalAlign: "middle",
+                      marginRight: "6px",
+                    }}
+                  />
+                  by nativerse
                 </Text>
               </Column>
               <Column style={styles.bandRight}>
@@ -684,19 +696,19 @@ const styles: Record<string, React.CSSProperties> = {
     margin: "0 0 3px 0",
   },
   bandBrand: {
-    fontFamily: DISPLAY,
+    fontFamily: MONO,
     fontSize: "24px",
     fontWeight: 500,
-    letterSpacing: "-0.018em",
+    letterSpacing: "0.16em",
     color: "#FAFAF6",
     margin: 0,
   },
   bandBy: {
     fontFamily: DISPLAY,
-    fontSize: "14px",
+    fontSize: "13px",
     fontWeight: 400,
-    letterSpacing: "0em",
     color: "#A3A396",
+    margin: "4px 0 0 0",
   },
   bandRight: {
     textAlign: "right" as const,

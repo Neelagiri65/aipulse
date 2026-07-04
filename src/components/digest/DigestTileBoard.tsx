@@ -139,40 +139,61 @@ export function DigestTileBoard({
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        {/* Masthead — ink band, endorsed lockup (mirrors the email). */}
+        {/* Masthead — ONE committed ink band: lockup at scale + the day's
+            headline together (two stacked weak headers read as neither). */}
         <header
-          className="flex flex-wrap items-end justify-between gap-3 rounded-lg px-6 py-5"
+          className="rounded-t-lg px-6 pb-7 pt-6 sm:px-8"
           style={{ backgroundColor: C.ink }}
         >
-          <div>
-            <p
-              className="gd-mono text-[10px] font-medium uppercase"
-              style={{ color: "#9AA3FF", letterSpacing: "0.18em" }}
-            >
-              Live telemetry
-            </p>
-            <p className="gd-display text-2xl" style={{ color: C.paper, fontWeight: 500 }}>
-              GAWK <span className="text-sm" style={{ color: "#A3A396" }}>by nativerse</span>
-            </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p
+                className="gd-mono text-[11px] font-medium uppercase"
+                style={{ color: "#9AA3FF", letterSpacing: "0.18em" }}
+              >
+                Live telemetry · daily brief
+              </p>
+              <p
+                className="gd-mono mt-1 text-3xl sm:text-4xl"
+                style={{ color: C.paper, fontWeight: 500, letterSpacing: "0.16em" }}
+              >
+                GAWK
+              </p>
+              <p className="mt-2 flex items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/brand/nativerse-mark.svg"
+                  alt="Nativerse"
+                  width={20}
+                  height={20}
+                />
+                <span
+                  className="gd-display text-base lowercase"
+                  style={{ color: "#A3A396", fontWeight: 400 }}
+                >
+                  by nativerse
+                </span>
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="gd-mono text-[11px]" style={{ color: "#A3A396", letterSpacing: "0.14em" }}>
+                <span style={{ color: "#9AA3FF" }}>●</span> ARCHIVE
+              </p>
+              <p className="gd-mono mt-1 text-base font-medium" style={{ color: C.paper }}>
+                {digest.date}
+              </p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="gd-mono text-[10px]" style={{ color: "#A3A396", letterSpacing: "0.14em" }}>
-              <span style={{ color: "#9AA3FF" }}>●</span> DAILY BRIEF · ARCHIVE
-            </p>
-            <p className="gd-mono text-sm font-medium" style={{ color: C.paper }}>
-              {digest.date}
-            </p>
-          </div>
+          <h1
+            className="gd-display mt-6 max-w-3xl text-2xl leading-snug sm:text-3xl"
+            style={{ color: C.paper, fontWeight: 500, letterSpacing: "-0.018em", textWrap: "balance" }}
+          >
+            {digest.subject}
+          </h1>
         </header>
         <div style={{ backgroundColor: C.blue, height: 3 }} />
 
-        <h1
-          className="gd-display mt-7 text-3xl leading-tight"
-          style={{ fontWeight: 500, letterSpacing: "-0.018em" }}
-        >
-          {digest.subject}
-        </h1>
-        <p className="mt-2 text-sm" style={{ color: C.body }}>
+        <p className="mt-5 text-sm" style={{ color: C.body }}>
           {digest.mode === "bootstrap"
             ? "First-day snapshot — where things stand now. Diff mode resumes tomorrow once we have two days to compare."
             : digest.mode === "quiet"
