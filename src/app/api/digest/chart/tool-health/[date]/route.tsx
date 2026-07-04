@@ -116,8 +116,8 @@ function ToolHealthChart({
       style={{
         width: "100%",
         height: "100%",
-        background: "#06080a",
-        color: "#e2e8f0",
+        background: "#FAFAF6",
+        color: "#16160F",
         padding: `${PADDING}px`,
         display: "flex",
         flexDirection: "column",
@@ -146,13 +146,13 @@ function ToolHealthChart({
             style={{
               fontSize: "14px",
               letterSpacing: "0.32em",
-              color: "#94a3b8",
+              color: "#6B6B5E",
             }}
           >
-            GAWK · TOOL HEALTH · 7-DAY
+            GAWK · TOOL HEALTH · DAILY 04:00 UTC SNAPSHOT
           </div>
         </div>
-        <div style={{ fontSize: "14px", color: "#94a3b8" }}>{date}</div>
+        <div style={{ fontSize: "14px", color: "#6B6B5E" }}>{date}</div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
@@ -163,20 +163,27 @@ function ToolHealthChart({
               alignItems: "center",
               justifyContent: "center",
               flex: 1,
-              color: "#64748b",
+              color: "#6B6B5E",
               fontSize: "16px",
             }}
           >
             No snapshot data available for the past {TOOL_HEALTH_CHART_DAYS} days.
           </div>
         ) : (
-          <>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+            }}
+          >
             {grid.toolIds.map((id, ti) => (
               <div
                 key={id}
                 style={{
                   display: "flex",
                   alignItems: "center",
+                  width: "100%",
                   height: `${cellH + cellGap}px`,
                 }}
               >
@@ -184,7 +191,7 @@ function ToolHealthChart({
                   style={{
                     width: `${ROW_LABEL_W}px`,
                     fontSize: "13px",
-                    color: "#cbd5e1",
+                    color: "#3A3A30",
                     paddingRight: "12px",
                     overflow: "hidden",
                     whiteSpace: "nowrap",
@@ -216,7 +223,7 @@ function ToolHealthChart({
               </div>
             ))}
 
-            <div style={{ display: "flex", marginTop: "6px" }}>
+            <div style={{ display: "flex", width: "100%", marginTop: "6px" }}>
               <div style={{ width: `${ROW_LABEL_W}px` }} />
               <div style={{ display: "flex", gap: `${cellGap}px` }}>
                 {dayLabels.map((d) => (
@@ -225,7 +232,7 @@ function ToolHealthChart({
                     style={{
                       width: `${cellW - cellGap}px`,
                       fontSize: "10px",
-                      color: "#64748b",
+                      color: "#6B6B5E",
                       textAlign: "center",
                     }}
                   >
@@ -234,7 +241,7 @@ function ToolHealthChart({
                 ))}
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
 
@@ -246,7 +253,7 @@ function ToolHealthChart({
           gap: "18px",
           height: LEGEND_H,
           fontSize: "11px",
-          color: "#94a3b8",
+          color: "#6B6B5E",
         }}
       >
         <LegendKey label="OPERATIONAL" colour={TOOL_HEALTH_COLORS.operational} />

@@ -37,3 +37,24 @@ export function deltaDirection(
   }
   return "neutral";
 }
+
+/** Split a line around its FIRST signed figure ("+2.3M", "\u221222.1k", "-38")
+ *  so renderers can colour the verbatim token without rewriting the copy.
+ *  Boundary-guarded like the direction regexes: a hyphen inside a word or
+ *  slug ("claude-fable-5", "day-over-day") never splits. Null when the
+ *  line carries no signed figure. */
+export function splitFirstSignedToken(
+  line: string,
+): { before: string; token: string; after: string; direction: DeltaDirection } | null {
+  const m = line.match(/(^|[\s(:])([+\-\u2212\u25b2\u25bc]\s?[\d.,]+[kKmMbB%]?)/);
+  if (!m || m.index === undefined) return null;
+  const start = m.index + m[1].length;
+  const token = m[2];
+  const direction: DeltaDirection = /^[+\u25b2]/.test(token) ? "up" : "down";
+  return {
+    before: line.slice(0, start),
+    token,
+    after: line.slice(start + token.length),
+    direction,
+  };
+}

@@ -49,7 +49,11 @@ import type {
   DigestSection,
   DigestSectionItem,
 } from "@/lib/digest/types";
-import { deltaDirection, type DeltaDirection } from "@/lib/email/delta";
+import {
+  deltaDirection,
+  splitFirstSignedToken,
+  type DeltaDirection,
+} from "@/lib/email/delta";
 import { renderGreeting } from "@/lib/email/greeting";
 import { buildShareUrl, composeShareText } from "@/lib/email/share-urls";
 import { deriveTranslateUrl, TRANSLATE_LABEL } from "@/lib/i18n/translate-link";
@@ -217,7 +221,22 @@ export function DigestEmail({
                     </Column>
                     <Column>
                       <Text className="ge-ink" style={styles.heroLine}>
-                        {line}
+                        {(() => {
+                          const parts = splitFirstSignedToken(line);
+                          if (!parts) return line;
+                          return (
+                            <>
+                              {parts.before}
+                              <span
+                                className={deltaClass(parts.direction)}
+                                style={heroTokenStyle(parts.direction)}
+                              >
+                                {parts.token}
+                              </span>
+                              {parts.after}
+                            </>
+                          );
+                        })()}
                       </Text>
                     </Column>
                   </Row>
@@ -309,20 +328,9 @@ function SectionBlock({
 
   return (
     <Section className="ge-card" style={styles.card}>
-      <Row>
-        <Column>
-          <Text className="ge-kick" style={styles.kicker}>
-            {section.title}
-          </Text>
-        </Column>
-        <Column style={styles.kickerRight}>
-          <Text className="ge-mut" style={styles.kickerCount}>
-            {section.items.length > 0
-              ? `${section.items.length} item${section.items.length === 1 ? "" : "s"}`
-              : ""}
-          </Text>
-        </Column>
-      </Row>
+      <Text className="ge-kick" style={styles.kicker}>
+        {section.title}
+      </Text>
       <Heading as="h2" className="ge-ink" style={styles.cardHeadline}>
         {section.headline}
       </Heading>
@@ -386,10 +394,22 @@ function ItemRow({
   const direction = deltaDirection(item.detail, item.headline);
   const rank = splitRank(item.headline);
   const delta = item.detail ? splitDelta(item.detail) : null;
+  const icon = !rank && item.sourceUrl ? faviconUrl(item.sourceUrl) : null;
 
   return (
     <div style={itemStyle(direction, isLast)}>
       <Row>
+        {icon ? (
+          <Column style={styles.iconCol}>
+            <Img
+              src={icon}
+              width={14}
+              height={14}
+              alt=""
+              style={styles.iconTile}
+            />
+          </Column>
+        ) : null}
         <Column>
           <Text className="ge-ink" style={styles.itemHeadline}>
             {rank ? (
@@ -467,6 +487,19 @@ function ItemRow({
   );
 }
 
+/** Favicon for an item's source domain, shown in a warm-paper tile.
+ *  The tile stays LIGHT in dark mode deliberately (BRAND-BIBLE §13's
+ *  paper-tile rule): dark marks (GitHub, Anthropic) remain visible on
+ *  dark backgrounds without maintaining inverted logo variants. */
+function faviconUrl(sourceUrl: string): string | null {
+  try {
+    const host = new URL(sourceUrl).hostname;
+    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
+  } catch {
+    return null;
+  }
+}
+
 function displaySource(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, "");
@@ -526,11 +559,19 @@ function heroGlyphStyle(d: DeltaDirection): React.CSSProperties {
     margin: 0,
   };
 }
+function heroTokenStyle(d: DeltaDirection): React.CSSProperties {
+  return {
+    fontFamily: MONO,
+    fontWeight: 500,
+    color: deltaColor(d),
+  };
+}
+
 function itemStyle(d: DeltaDirection, isLast: boolean): React.CSSProperties {
   return {
-    padding: "10px 0 10px 12px",
+    padding: "8px 0 8px 12px",
+    margin: isLast ? "0" : "0 0 4px 0",
     borderLeft: `3px solid ${d === "up" ? UP : d === "down" ? DOWN : BORDER}`,
-    borderBottom: isLast ? "none" : `1px solid ${BORDER}`,
   };
 }
 function deltaFigureStyle(d: DeltaDirection): React.CSSProperties {
@@ -703,14 +744,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#64748B",
     margin: 0,
   },
-  kickerRight: { textAlign: "right" as const, verticalAlign: "top" },
-  kickerCount: {
-    fontFamily: MONO,
-    fontSize: "10px",
-    letterSpacing: "0.06em",
-    color: MUT,
-    margin: 0,
-  },
   cardHeadline: {
     fontFamily: DISPLAY,
     fontSize: "18px",
@@ -745,6 +778,15 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 500,
     color: INK,
     margin: 0,
+  },
+  iconCol: { width: "30px", verticalAlign: "top" },
+  iconTile: {
+    display: "block",
+    backgroundColor: SUNK,
+    border: `1px solid ${BORDER}`,
+    borderRadius: "4px",
+    padding: "3px",
+    marginTop: "0px",
   },
   rankChip: {
     display: "inline-block",

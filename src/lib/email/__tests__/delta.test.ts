@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { deltaDirection } from "@/lib/email/delta";
+import { deltaDirection, splitFirstSignedToken } from "@/lib/email/delta";
 
 describe("deltaDirection", () => {
   it("classifies gains", () => {
@@ -31,5 +31,32 @@ describe("deltaDirection", () => {
   it("falls through undefined/unsigned texts to the first signal", () => {
     expect(deltaDirection(undefined, "holds steady", "−1.9k 30d")).toBe("down");
     expect(deltaDirection(undefined, undefined)).toBe("neutral");
+  });
+});
+
+describe("splitFirstSignedToken", () => {
+  it("splits a leading-signed figure with direction, keeping copy verbatim", () => {
+    const r = splitFirstSignedToken("npm: openai gained +2.3M 24h downloads day-over-day.");
+    expect(r).not.toBeNull();
+    expect(r!.token).toBe("+2.3M");
+    expect(r!.direction).toBe("up");
+    expect(r!.before + r!.token + r!.after).toBe(
+      "npm: openai gained +2.3M 24h downloads day-over-day.",
+    );
+  });
+
+  it("handles unicode minus after a colon", () => {
+    const r = splitFirstSignedToken(
+      "diffusers downloads declined for the 3rd consecutive snapshot: −22.1k day-over-day.",
+    );
+    expect(r!.token).toBe("−22.1k");
+    expect(r!.direction).toBe("down");
+  });
+
+  it("NEVER splits hyphenated slugs or words", () => {
+    expect(
+      splitFirstSignedToken("claude-opus-4-6-thinking holds #1 on LMArena for the 30th consecutive snapshot."),
+    ).toBeNull();
+    expect(splitFirstSignedToken("day-over-day comparison window")).toBeNull();
   });
 });
