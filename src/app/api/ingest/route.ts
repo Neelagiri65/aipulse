@@ -16,6 +16,7 @@
 import { NextResponse } from "next/server";
 import { runIngest } from "@/lib/data/fetch-events";
 import { writeCronHealth } from "@/lib/data/cron-health";
+import { isTotalFailure } from "@/lib/data/success-contract";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,19 +55,26 @@ export async function POST(request: Request) {
     throw e;
   }
   const firstFailure = result.meta.failures[0]?.message ?? null;
+  // fetch-events.runIngest returns best-effort: it writes whatever it
+  // gathered even if a sub-step failed. Unified success contract: the run
+  // fails only when it attempted work and delivered NOTHING (empty batch
+  // + at least one failing step). The SAME verdict feeds the beacon and
+  // the HTTP ok — during the 2026-07-04 GH_TOKEN outage the beacon was
+  // honest but the response said ok:true, so the workflow stayed green
+  // and nothing paged.
+  const totalFailure = isTotalFailure({
+    delivered: result.points.length,
+    failures: result.meta.failures.length,
+  });
   await writeCronHealth(
     "globe-ingest",
-    // fetch-events.runIngest currently returns on best-effort: it writes
-    // whatever it gathered even if a sub-step failed. We treat the run
-    // as healthy if at least one point landed, failing if the batch was
-    // empty AND at least one step reported a failure.
-    result.points.length > 0 || result.meta.failures.length === 0
-      ? { ok: true, itemsProcessed: result.points.length }
-      : { ok: false, error: firstFailure ?? "ingest produced no points" },
+    totalFailure
+      ? { ok: false, error: firstFailure ?? "ingest produced no points" }
+      : { ok: true, itemsProcessed: result.points.length },
   );
 
   return NextResponse.json({
-    ok: true,
+    ok: !totalFailure,
     meta: result.meta,
     writtenCount: result.points.length,
   });
