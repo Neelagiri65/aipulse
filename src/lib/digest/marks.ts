@@ -65,7 +65,10 @@ export function tileIcon(item: {
   headline?: string;
   sourceUrl?: string;
 }): { src: string; selfHosted: boolean } | null {
-  const mark = markFor(item.sourceLabel, item.headline, item.sourceUrl);
+  // Headline first: it names the SUBJECT (OpenAI Agents, ollama/ollama);
+  // the source label often names the REGISTRY (pypistats) and would win
+  // with a generic mark.
+  const mark = markFor(item.headline, item.sourceLabel, item.sourceUrl);
   if (mark) return { src: mark, selfHosted: true };
   const fav = faviconFallback(item.sourceUrl);
   return fav ? { src: fav, selfHosted: false } : null;
