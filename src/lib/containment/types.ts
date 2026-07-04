@@ -50,6 +50,12 @@ export interface SourceContainment {
   lastProbeAt: number;
   /** Last time a probe passed — the honest "as of" anchor for last-known display. */
   lastGoodAt: number | null;
+  /**
+   * Freshness key (e.g. the DTO's generatedAt) of the last passing probe.
+   * Restore-counting only advances when this CHANGES: K identical green
+   * reads of a once-a-day source prove nothing (Auditor change 12).
+   */
+  lastPassKey: string | null;
 }
 
 /** The single persisted blob (Redis key `containment:state`). */
@@ -66,6 +72,13 @@ export interface ProbeObservation {
   outcome: ProbeOutcome;
   /** Why (first failing check), "" on pass. */
   reason: string;
+  /**
+   * Freshness key of the observed DTO (e.g. generatedAt). When provided,
+   * a pass only advances restore progress if the key differs from the last
+   * passing one — "consecutive" means distinct observations, not re-reads.
+   * Omit for sources without a usable key: every pass then counts.
+   */
+  distinctKey?: string;
 }
 
 /** Result of advancing the whole state one probe cycle. */

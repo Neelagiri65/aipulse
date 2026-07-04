@@ -328,6 +328,109 @@ describe("advance — batch cycle", () => {
   });
 });
 
+describe("distinct-observation restore counting (Auditor change 12)", () => {
+  it("re-reads of the SAME DTO never advance restore progress for a slow source", () => {
+    // Daily source: quarantined, then probes go green — but it's the same
+    // generatedAt every 30 minutes. 10 identical green reads ≠ recovery.
+    let s = inState("quarantined", { enteredAt: NOW - 3 * POLICY.minDwellMs });
+    s = transition(s, "pass", "", NOW, POLICY, "2026-07-04T04:00Z");
+    expect(s.state).toBe("recovering");
+    expect(s.consecutivePasses).toBe(1);
+
+    for (let i = 1; i <= 10; i++) {
+      s = transition(s, "pass", "", NOW + i * MINUTE, POLICY, "2026-07-04T04:00Z");
+    }
+    expect(s.state).toBe("recovering");
+    expect(s.consecutivePasses).toBe(1);
+
+    // Next day's genuinely new observation completes the restore.
+    s = transition(s, "pass", "", NOW + 11 * MINUTE, POLICY, "2026-07-05T04:00Z");
+    expect(s.state).toBe("live");
+  });
+
+  it("without a distinctKey every pass counts (fast sources keep old semantics)", () => {
+    let s = inState("quarantined", { enteredAt: NOW - 3 * POLICY.minDwellMs });
+    s = transition(s, "pass", "", NOW, POLICY);
+    s = transition(s, "pass", "", NOW + MINUTE, POLICY);
+    expect(s.state).toBe("live");
+  });
+});
+
+describe("aggregate breaker (Auditor change 11) + restores-during-trip", () => {
+  const obs = (
+    sourceId: string,
+    outcome: ProbeObservation["outcome"],
+    reason = "",
+  ): ProbeObservation => ({ sourceId, outcome, reason });
+
+  it("slow-rolling correlated failure trips on aggregate non-LIVE fraction", () => {
+    const ids = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
+    let state = emptyContainmentState(NOW - 10 * MINUTE);
+    // Quarantine 4 of 10 one at a time — each cycle 1 flip / 10 probed =
+    // 10%, never tripping the per-cycle condition.
+    for (let i = 0; i < 4; i++) {
+      const cycle = ids.map((id, idx) =>
+        idx === i ? obs(id, "hard-fail", "drift") : obs(id, idx < i ? "soft-fail" : "pass"),
+      );
+      const r = advance(state, cycle, NOW - (9 - i) * MINUTE, POLICY);
+      expect(r.breakerTripped).toBe(false);
+      state = r.next;
+    }
+    // 5th degrade would take aggregate non-LIVE to 5/10 = 50% > 40% → trip:
+    // the new hard-fail is NOT applied, existing quarantines stay.
+    const r = advance(
+      state,
+      ids.map((id, idx) =>
+        idx === 4 ? obs(id, "hard-fail", "drift") : obs(id, idx < 4 ? "soft-fail" : "pass"),
+      ),
+      NOW,
+      POLICY,
+    );
+    expect(r.breakerTripped).toBe(true);
+    expect(r.next.sources["e"].state).toBe("live");
+    expect(r.next.sources["a"].state).toBe("quarantined");
+  });
+
+  it("a tripped breaker still applies restores — recovery cannot deadlock", () => {
+    let state = emptyContainmentState(NOW - 60 * MINUTE);
+    // Seed: one source deep in recovery, ready to restore this cycle.
+    state = advance(
+      state,
+      [obs("recoverer", "hard-fail", "x")],
+      NOW - 3 * POLICY.minDwellMs,
+      POLICY,
+    ).next;
+    state = advance(
+      state,
+      [obs("recoverer", "pass")],
+      NOW - 2 * POLICY.minDwellMs,
+      POLICY,
+    ).next;
+    expect(state.sources["recoverer"].state).toBe("recovering");
+
+    // This cycle: mass hard-fail trips the per-cycle breaker, while the
+    // recovering source passes its final distinct probe.
+    const r = advance(
+      state,
+      [
+        obs("recoverer", "pass"),
+        obs("a", "hard-fail", "x"),
+        obs("b", "hard-fail", "x"),
+        obs("c", "hard-fail", "x"),
+        obs("d", "pass"),
+      ],
+      NOW,
+      POLICY,
+    );
+    expect(r.breakerTripped).toBe(true);
+    expect(r.next.sources["recoverer"].state).toBe("live");
+    expect(r.next.sources["a"]).toBeUndefined();
+    expect(r.transitions).toEqual([
+      { sourceId: "recoverer", from: "recovering", to: "live", reason: "" },
+    ]);
+  });
+});
+
 describe("full incident lifecycle (S91 replay shape)", () => {
   it("dead source → quarantine → endpoint fixed → recovery → live, with dwell respected", () => {
     const cycle = 30 * MINUTE;
