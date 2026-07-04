@@ -30,6 +30,7 @@ import type {
 } from "@/lib/digest/types";
 import { deltaDirection, splitFirstSignedToken } from "@/lib/email/delta";
 import { tileIcon } from "@/lib/digest/marks";
+import { deriveTranslateUrl, TRANSLATE_LABEL } from "@/lib/i18n/translate-link";
 import { whyThisMatters } from "@/lib/digest/why-this-matters";
 
 export type DigestTileBoardProps = {
@@ -112,6 +113,20 @@ const CSS = `
     .gd-pulse { animation: none; }
   }
 `;
+
+/** Map a TL;DR chip label to its section anchor so the chip row works
+ *  as a jump bar (navigation) rather than repeating the headline. */
+function chipAnchor(label: string): string | null {
+  const l = label.toLowerCase();
+  if (l.includes("tool")) return "tool-health";
+  if (l.includes("sdk")) return "sdk-adoption";
+  if (l.includes("benchmark")) return "benchmarks";
+  if (l.includes("model")) return "model-usage";
+  if (l.includes("hn")) return "hn";
+  if (l.includes("agent")) return "agents";
+  if (l.includes("lab")) return "labs";
+  return null;
+}
 
 /** The composed subject is "Gawk — {date} · {payload}". The masthead
  *  already carries the wordmark and the date, so the band headline shows
@@ -225,29 +240,44 @@ export function DigestTileBoard({
           >
             {chips.slice(0, 5).map((chip, i) => {
               const m = chip.match(/^(\d+)\s+(.*)$/);
-              return (
-                <div key={i} className="px-3 py-2 text-center" style={{ backgroundColor: C.card }}>
+              const anchor = chipAnchor(m ? m[2] : chip);
+              const body = (
+                <>
                   <p className="gd-mono text-xl font-bold" style={{ color: C.ink }}>
                     {m ? m[1] : chip}
                   </p>
                   {m ? (
                     <p className="text-[11px]" style={{ color: C.muted }}>
-                      {m[2]}
+                      {m[2]} {anchor ? "↓" : ""}
                     </p>
                   ) : null}
+                </>
+              );
+              return anchor ? (
+                <a
+                  key={i}
+                  href={`#${anchor}`}
+                  className="gd-tile px-3 py-2 text-center"
+                  style={{ backgroundColor: C.card }}
+                >
+                  {body}
+                </a>
+              ) : (
+                <div key={i} className="px-3 py-2 text-center" style={{ backgroundColor: C.card }}>
+                  {body}
                 </div>
               );
             })}
           </div>
         ) : null}
 
-        {/* THE TILE GRID */}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:grid-flow-dense">
+        {/* BAND 1: hero + the first metric section side by side. */}
+        <div className="mt-6 flex flex-col gap-3 lg:flex-row">
           {/* Hero tile — What moved */}
           {digest.inferences && digest.inferences.length > 0 ? (
             <section
               data-testid="digest-inferences"
-              className="gd-tile col-span-2 rounded-lg p-5 sm:col-span-2 sm:row-span-2 sm:min-h-[312px]"
+              className="gd-tile rounded-lg p-5 lg:w-1/2"
               style={{
                 backgroundColor: C.sunk,
                 border: `1px solid ${C.hairline}`,
@@ -292,23 +322,37 @@ export function DigestTileBoard({
             </section>
           ) : null}
 
-          {/* Stat flip tiles from the metric-shaped sections */}
-          {statSections.flatMap((section) =>
-            section.items.slice(0, 8).map((item, i) => (
-              <StatTile
-                key={`${section.id}-${i}`}
-                section={section}
-                item={item}
-                baseUrl={baseUrl}
-                date={digest.date}
-              />
-            )),
-          )}
+          {/* First metric section: header on top, its tiles beneath. */}
+          {statSections[0] ? (
+            <div className="lg:w-1/2 scroll-mt-4" id={statSections[0].anchorSlug}>
+              <GroupHeader section={statSections[0]} baseUrl={baseUrl} date={digest.date} />
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <StatTiles
+                  section={statSections[0]}
+                  baseUrl={baseUrl}
+                  date={digest.date}
+                />
+              </div>
+            </div>
+          ) : null}
+        </div>
 
+        {/* Remaining metric sections: header, then tiles — order guaranteed. */}
+        {statSections.slice(1).map((section) => (
+          <div key={section.id} id={section.anchorSlug} className="mt-5 scroll-mt-4">
+            <GroupHeader section={section} baseUrl={baseUrl} date={digest.date} />
+            <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatTiles section={section} baseUrl={baseUrl} date={digest.date} />
+            </div>
+          </div>
+        ))}
+
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:grid-flow-dense">
           {/* Tool health — wide tile, pulses only while incidents are live */}
           {toolHealth ? (
             <section
-              className={`gd-tile col-span-2 rounded-lg p-5 sm:col-span-4 ${hasIncidents ? "gd-pulse" : ""}`}
+              id={toolHealth.anchorSlug}
+              className={`gd-tile col-span-2 scroll-mt-4 rounded-lg p-5 sm:col-span-4 ${hasIncidents ? "gd-pulse" : ""}`}
               style={{
                 backgroundColor: hasIncidents ? "#FBF4E6" : C.card,
                 border: `1px solid ${hasIncidents ? "#EAD9B8" : C.hairline}`,
@@ -333,7 +377,8 @@ export function DigestTileBoard({
           {listSections.map((section) => (
             <section
               key={section.id}
-              className="gd-tile col-span-2 rounded-lg p-5"
+              id={section.anchorSlug}
+              className="gd-tile col-span-2 scroll-mt-4 rounded-lg p-5"
               style={{ backgroundColor: C.card, border: `1px solid ${C.hairline}` }}
             >
               <SectionHeader section={section} baseUrl={baseUrl} date={digest.date} />
@@ -363,6 +408,90 @@ export function DigestTileBoard({
 }
 
 /* ---------------------------------------------------------------- */
+
+function GroupHeader({
+  section,
+  baseUrl,
+  date,
+}: {
+  section: DigestSection;
+  baseUrl: string;
+  date: string;
+}): React.JSX.Element {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-1">
+      <p className="min-w-0">
+        <span
+          className="gd-mono text-[11px] font-bold uppercase"
+          style={{ color: C.blue, letterSpacing: "0.18em" }}
+        >
+          {section.title}
+        </span>
+        <span className="gd-display ml-3 text-base" style={{ fontWeight: 500 }}>
+          {section.headline}
+        </span>
+      </p>
+      <p className="max-w-full text-[11px]" style={{ color: C.muted }}>
+        {whyThisMatters(section.id)}{" "}
+        {section.sourceUrls.slice(0, 3).map((u, i) => (
+          <span key={u}>
+            <a href={u} style={{ color: C.blue }}>
+              {hostOf(u)}
+            </a>
+            {i < Math.min(section.sourceUrls.length, 3) - 1 ? ", " : ""}
+          </span>
+        ))}
+        <a
+          href={`${baseUrl}/digest/${date}#${section.anchorSlug}`}
+          style={{ color: C.blue }}
+        >
+          {" "}· view all →
+        </a>
+      </p>
+    </div>
+  );
+}
+
+function StatTiles({
+  section,
+  baseUrl,
+  date,
+}: {
+  section: DigestSection;
+  baseUrl: string;
+  date: string;
+}): React.JSX.Element {
+  const visible = section.items.slice(0, 8);
+  const overflow = section.items.length - visible.length;
+  const anchor = `${baseUrl}/digest/${date}#${section.anchorSlug}`;
+  return (
+    <>
+      {visible.map((item, i) => (
+        <StatTile
+          key={i}
+          section={section}
+          item={item}
+          baseUrl={baseUrl}
+          date={date}
+        />
+      ))}
+      {overflow > 0 ? (
+        <a
+          href={anchor}
+          className="gd-tile col-span-1 flex h-[150px] flex-col items-start justify-between rounded-lg p-4"
+          style={{ backgroundColor: C.sunk, border: `1px solid ${C.hairline}` }}
+        >
+          <span className="gd-mono text-2xl font-bold" style={{ color: C.ink }}>
+            +{overflow}
+          </span>
+          <span className="text-[12px] font-medium" style={{ color: C.body }}>
+            more · view all →
+          </span>
+        </a>
+      ) : null}
+    </>
+  );
+}
 
 function StatTile({
   section,
@@ -440,15 +569,35 @@ function StatTile({
           className="gd-face gd-face-back justify-between rounded-lg p-4"
           style={{ backgroundColor: C.sunk, border: `1px solid ${C.hairline}` }}
         >
-          <p className="text-[12px] leading-snug" style={{ color: C.body }}>
-            {item.detail ?? item.headline}
-          </p>
+          <span>
+            <p className="text-[12px] leading-snug" style={{ color: C.body }}>
+              {item.detail ?? item.headline}
+            </p>
+            {item.caveat ? (
+              <p className="mt-1 line-clamp-3 text-[10px] italic leading-tight" style={{ color: C.muted }}>
+                {item.caveat}
+              </p>
+            ) : null}
+          </span>
           <p className="text-[11px]">
             {item.sourceUrl ? (
               <a href={item.sourceUrl} style={{ color: C.blue }}>
                 {item.sourceLabel ?? "Source"}
               </a>
             ) : null}
+            {(() => {
+              const tx = item.sourceUrl
+                ? deriveTranslateUrl(item.sourceUrl, item.sourceLang)
+                : null;
+              return tx ? (
+                <>
+                  {" · "}
+                  <a href={tx} style={{ color: C.blue }}>
+                    {TRANSLATE_LABEL}
+                  </a>
+                </>
+              ) : null;
+            })()}
             {item.panelHref ? (
               <>
                 {item.sourceUrl ? " · " : ""}
@@ -532,6 +681,19 @@ function ItemList({
                   {item.sourceLabel ?? item.sourceUrl}
                 </a>
               ) : null}
+              {(() => {
+                const tx = item.sourceUrl
+                  ? deriveTranslateUrl(item.sourceUrl, item.sourceLang)
+                  : null;
+                return tx ? (
+                  <>
+                    {" · "}
+                    <a href={tx} style={{ color: C.blue }}>
+                      {TRANSLATE_LABEL}
+                    </a>
+                  </>
+                ) : null;
+              })()}
               {item.panelHref ? (
                 <>
                   {item.sourceUrl ? " · " : ""}
