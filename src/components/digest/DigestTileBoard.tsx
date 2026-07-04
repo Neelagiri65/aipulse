@@ -71,9 +71,10 @@ const CSS = `
   }
   .gd-tile:hover {
     transform: scale(1.02);
-    box-shadow: 0 6px 24px rgba(22,22,15,0.10);
+    box-shadow: 0 2px 8px rgba(22,22,15,0.12);
     z-index: 1;
   }
+  .gd-flip:focus-visible { outline: 2px solid #2A33C2; outline-offset: 2px; }
 
   /* Flip tiles: user-initiated reveal (hover / keyboard focus / tap). */
   .gd-flip { perspective: 900px; }
@@ -208,16 +209,15 @@ export function DigestTileBoard({
         ) : null}
 
         {/* THE TILE GRID */}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:grid-flow-dense">
           {/* Hero tile — What moved */}
           {digest.inferences && digest.inferences.length > 0 ? (
             <section
               data-testid="digest-inferences"
-              className="gd-tile col-span-2 rounded-lg p-5 sm:col-span-2 sm:row-span-2"
+              className="gd-tile col-span-2 rounded-lg p-5 sm:col-span-2 sm:row-span-2 sm:min-h-[312px]"
               style={{
-                backgroundColor: C.card,
+                backgroundColor: C.sunk,
                 border: `1px solid ${C.hairline}`,
-                borderLeft: `3px solid ${C.blue}`,
               }}
             >
               <p
@@ -226,7 +226,7 @@ export function DigestTileBoard({
               >
                 What moved
               </p>
-              <ul className="mt-3 space-y-3">
+              <ul className="mt-4 space-y-4">
                 {digest.inferences.map((line, i) => {
                   const d = deltaDirection(line);
                   const parts = splitFirstSignedToken(line);
@@ -236,7 +236,7 @@ export function DigestTileBoard({
                       <span className="gd-mono text-sm font-bold" style={{ color: glyphColor }}>
                         {d === "up" ? "▲" : d === "down" ? "▼" : "■"}
                       </span>
-                      <span className="text-[15px] font-medium leading-snug" style={{ color: C.ink }}>
+                      <span className="text-[16px] font-medium leading-snug" style={{ color: C.ink }}>
                         {!parts ? (
                           line
                         ) : (
@@ -277,9 +277,8 @@ export function DigestTileBoard({
             <section
               className={`gd-tile col-span-2 rounded-lg p-5 sm:col-span-4 ${hasIncidents ? "gd-pulse" : ""}`}
               style={{
-                backgroundColor: C.card,
-                border: `1px solid ${C.hairline}`,
-                borderLeft: `3px solid ${hasIncidents ? C.warn : C.hairline}`,
+                backgroundColor: hasIncidents ? "#FBF4E6" : C.card,
+                border: `1px solid ${hasIncidents ? "#EAD9B8" : C.hairline}`,
               }}
             >
               <SectionHeader section={toolHealth} baseUrl={baseUrl} date={digest.date} />
@@ -354,7 +353,7 @@ function StatTile({
 
   return (
     <div
-      className="gd-tile gd-flip col-span-1 aspect-square rounded-lg"
+      className="gd-tile gd-flip col-span-1 h-[150px] rounded-lg"
       tabIndex={0}
       aria-label={`${item.headline}${item.detail ? ` — ${item.detail}` : ""}`}
     >
@@ -395,10 +394,10 @@ function StatTile({
             </span>
           )}
           <div>
-            <p className="gd-mono text-2xl font-bold leading-none" style={{ color }}>
+            <p className="gd-mono text-[26px] font-bold leading-none" style={{ color }}>
               {figure ? figure.token : "—"}
             </p>
-            <p className="mt-2 line-clamp-2 text-[12px] font-medium leading-tight" style={{ color: C.ink }}>
+            <p className="mt-1.5 line-clamp-2 text-[12px] font-medium leading-tight" style={{ color: C.ink }}>
               {label}
             </p>
           </div>
@@ -443,20 +442,12 @@ function SectionHeader({
 }): React.JSX.Element {
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-2">
-        <p
-          className="gd-mono text-[11px] font-bold uppercase"
-          style={{ color: C.blue, letterSpacing: "0.18em" }}
-        >
-          {section.title}
-        </p>
-        <SectionShareButton
-          sectionId={section.id}
-          sectionTitle={section.title}
-          headline={section.headline}
-          permalink={`${baseUrl}/digest/${date}#${section.anchorSlug}`}
-        />
-      </div>
+      <p
+        className="gd-mono text-[11px] font-bold uppercase"
+        style={{ color: C.blue, letterSpacing: "0.18em" }}
+      >
+        {section.title}
+      </p>
       <h2 className="gd-display mt-1 text-lg leading-snug" style={{ fontWeight: 500 }}>
         {section.headline}
       </h2>
@@ -480,9 +471,17 @@ function ItemList({
     <ul className="mt-3 space-y-2">
       {items.map((item, i) => {
         const d = deltaDirection(item.detail, item.headline);
-        const edge = d === "up" ? C.up : d === "down" ? C.down : C.hairline;
+        const glyphColor = d === "up" ? C.up : d === "down" ? C.down : C.muted;
         return (
-          <li key={i} className="pl-3" style={{ borderLeft: `3px solid ${edge}` }}>
+          <li key={i} className="flex gap-2">
+            <span
+              className="gd-mono mt-0.5 w-4 shrink-0 text-center text-[12px] font-bold"
+              style={{ color: glyphColor }}
+              aria-hidden
+            >
+              {d === "up" ? "▲" : d === "down" ? "▼" : "›"}
+            </span>
+            <span className="min-w-0">
             <p className="text-sm font-medium" style={{ color: C.ink }}>
               {item.headline}
             </p>
@@ -514,6 +513,7 @@ function ItemList({
                 {item.caveat}
               </p>
             ) : null}
+            </span>
           </li>
         );
       })}
@@ -531,21 +531,31 @@ function SourceRow({
   date: string;
 }): React.JSX.Element {
   return (
-    <p className="mt-3 text-[11px]" style={{ color: C.muted }}>
-      {section.sourceUrls.length > 0 ? (
-        <>
-          Source:{" "}
-          {section.sourceUrls.map((u, i) => (
-            <span key={u}>
-              <a href={u} style={{ color: C.blue }}>
-                {hostOf(u)}
-              </a>
-              {i < section.sourceUrls.length - 1 ? ", " : ""}
-            </span>
-          ))}
-        </>
-      ) : null}
-    </p>
+    <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2">
+      <p className="text-[11px]" style={{ color: C.muted }}>
+        {section.sourceUrls.length > 0 ? (
+          <>
+            Source:{" "}
+            {section.sourceUrls.map((u, i) => (
+              <span key={u}>
+                <a href={u} style={{ color: C.blue }}>
+                  {hostOf(u)}
+                </a>
+                {i < section.sourceUrls.length - 1 ? ", " : ""}
+              </span>
+            ))}
+          </>
+        ) : null}
+      </p>
+      <span className="shrink-0">
+        <SectionShareButton
+          sectionId={section.id}
+          sectionTitle={section.title}
+          headline={section.headline}
+          permalink={`${baseUrl}/digest/${date}#${section.anchorSlug}`}
+        />
+      </span>
+    </div>
   );
 }
 
