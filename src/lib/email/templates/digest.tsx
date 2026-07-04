@@ -216,7 +216,7 @@ export function DigestEmail({
                         className={deltaClass(d)}
                         style={heroGlyphStyle(d)}
                       >
-                        {heroGlyph(d)}
+                        {heroGlyph(d)}&nbsp;
                       </Text>
                     </Column>
                     <Column>
@@ -284,7 +284,7 @@ export function DigestEmail({
             >
               Privacy
             </Link>
-            {" · "}
+            {"  ·  "}
             <Link href={unsubUrl} className="ge-link" style={styles.link}>
               Unsubscribe
             </Link>
@@ -737,11 +737,11 @@ const styles: Record<string, React.CSSProperties> = {
   },
   kicker: {
     fontFamily: MONO,
-    fontSize: "11px",
+    fontSize: "12px",
     fontWeight: 700,
     letterSpacing: "0.18em",
     textTransform: "uppercase" as const,
-    color: "#64748B",
+    color: BRAND,
     margin: 0,
   },
   cardHeadline: {
