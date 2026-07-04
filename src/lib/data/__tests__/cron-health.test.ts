@@ -111,6 +111,7 @@ describe("CRON_WORKFLOWS registry", () => {
     expect(keys).toEqual([
       "agents-ingest",
       "benchmarks-ingest",
+      "containment-cycle",
       "daily-digest",
       "daily-snapshot",
       "globe-events-snapshot",
