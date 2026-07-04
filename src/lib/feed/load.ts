@@ -12,6 +12,8 @@
  * (`src/app/page.tsx`) so SSR and the client refresh share one path.
  */
 
+import { applyContainment } from "@/lib/containment/apply";
+import { readContainmentStateForServe } from "@/lib/containment/store";
 import { fetchAllStatus, type StatusResult } from "@/lib/data/fetch-status";
 import { redisOpenRouterStore } from "@/lib/data/openrouter-store";
 import {
@@ -185,12 +187,15 @@ export async function loadSnapshots(
 export async function loadFeedResponse(
   nowMs: number = Date.now(),
 ): Promise<FeedResponse> {
-  const { snapshots, staleSources, degradedSources } =
-    await loadSnapshots(nowMs);
+  const [{ snapshots, staleSources, degradedSources }, containment] =
+    await Promise.all([loadSnapshots(nowMs), readContainmentStateForServe()]);
   let response = composeFeed(snapshots, nowMs);
   if (staleSources.length > 0) response = { ...response, staleSources };
   if (degradedSources.length > 0) response = { ...response, degradedSources };
-  return response;
+  // The containment chokepoint — every consumer of this loader (homepage,
+  // /board, share cards, /api/feed, /api/v1/feed) inherits quarantine
+  // actuation from this single call site.
+  return applyContainment(response, containment, nowMs);
 }
 
 function collectStale(

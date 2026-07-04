@@ -19,7 +19,7 @@
  * time-series snapshots (openrouter-store etc.).
  */
 
-import type { Card, CardType, FeedResponse } from "@/lib/feed/types";
+import type { Card, CardType, ContainedSource, FeedResponse } from "@/lib/feed/types";
 import { SparklineMini } from "@/components/charts/SparklineMini";
 import {
   EMPTY_BOARD_SERIES,
@@ -47,7 +47,7 @@ type Domain = {
 const DOMAINS: Domain[] = [
   { key: "models", title: "Models", types: ["MODEL_MOVER"], span: "lg:col-span-4", seriesKey: "models", seriesLabel: "Top benchmark Elo, last 30 days", sourceName: "OpenRouter" },
   { key: "tools", title: "Tool Health", types: ["TOOL_ALERT"], span: "lg:col-span-4", seriesKey: "tools", seriesLabel: "Tools operational, last 30 days" },
-  { key: "packages", title: "Packages / SDKs", types: ["SDK_TREND"], span: "lg:col-span-4", seriesKey: "packages", seriesLabel: "Weekly package downloads, last 30 days" },
+  { key: "packages", title: "Packages / SDKs", types: ["SDK_TREND"], span: "lg:col-span-4", seriesKey: "packages", seriesLabel: "Weekly package downloads, last 30 days", sourceName: "SDK registries" },
   { key: "launches", title: "Launches", types: ["PRODUCT_LAUNCH"], span: "lg:col-span-3" },
   { key: "releases", title: "Releases", types: ["NEW_RELEASE"], span: "lg:col-span-3" },
   { key: "research", title: "Research", types: ["RESEARCH"], span: "lg:col-span-3" },
@@ -112,6 +112,7 @@ function Tile({
   cards,
   staleAsOf,
   degradedReason,
+  contained,
   series,
 }: {
   domain: Domain;
@@ -119,6 +120,9 @@ function Tile({
   staleAsOf: string | null;
   /** Non-null when this domain's source is serving a degraded fallback. */
   degradedReason: string | null;
+  /** Non-null when the containment loop has QUARANTINED this domain's
+   *  source — the strongest disclosure; wins over degraded and stale. */
+  contained: ContainedSource | null;
   series?: Array<number | null>;
 }) {
   const top = cards.slice(0, domain.key === "labs" ? 6 : 4);
@@ -147,10 +151,18 @@ function Tile({
             </span>
           ) : null}
           <span className="text-[10px] tabular-nums text-neutral-500">
-            {/* Precedence: degraded (source serving a fallback) over stale
-                (real-but-old) over a plain count. A degraded source is the
-                strongest disclosure — it explains an otherwise-empty tile. */}
-            {degradedReason ? (
+            {/* Precedence: quarantined (containment loop stopped this
+                source's signal) over degraded (serving a fallback) over
+                stale (real-but-old) over a plain count. The strongest
+                disclosure explains an otherwise-empty tile. */}
+            {contained ? (
+              <span
+                title={contained.reasons.join("; ")}
+                className="text-neutral-400"
+              >
+                ⊘ source quarantined
+              </span>
+            ) : degradedReason ? (
               <span title={degradedReason} className="text-amber-500/80">
                 ◐ source degraded
               </span>
@@ -167,7 +179,19 @@ function Tile({
           </span>
         </div>
       </header>
-      {top.length > 0 ? (
+      {contained ? (
+        // Quarantined: the loop verified this source's output is failing its
+        // probes. Never render its numbers as live — show the reasons and
+        // the honest last-known anchor (or the honest empty).
+        <div className="flex-1 py-2 text-[11px] italic text-neutral-500">
+          <p>{contained.reasons.join(" · ")}</p>
+          <p className="mt-1 not-italic text-neutral-600">
+            {contained.lastKnownAt
+              ? `last known value · as of ${fmtTime(contained.lastKnownAt)}`
+              : "no trustworthy value available"}
+          </p>
+        </div>
+      ) : top.length > 0 ? (
         <ul className="flex-1">
           {top.map((c) => (
             <CardRow key={c.id} card={c} />
@@ -200,6 +224,9 @@ export function BentoBoard({
   const degradedByName = new Map(
     (feed.degradedSources ?? []).map((s) => [s.source, s.reason]),
   );
+  const containedByName = new Map(
+    (feed.containedSources ?? []).map((s) => [s.source, s]),
+  );
   const { toolHealth } = feed.currentState;
 
   return (
@@ -216,6 +243,14 @@ export function BentoBoard({
             ·
           </span>
           <span>as of {fmtTime(feed.lastComputed)}</span>
+          {feed.monitoringImpaired ? (
+            <span
+              className="text-amber-500/80"
+              title="The containment watchdog's own state is missing or stale — data is served as-is; standing quarantines remain applied"
+            >
+              ◌ monitoring impaired
+            </span>
+          ) : null}
           <span
             className={`h-2 w-2 rounded-full ${feed.quietDay ? "bg-neutral-600" : "bg-emerald-400"}`}
             title={feed.quietDay ? "Quiet day" : "Live"}
@@ -236,6 +271,10 @@ export function BentoBoard({
             domain.sourceName,
             ...cards.map((c) => c.sourceName),
           ].filter((v): v is string => Boolean(v));
+          const contained =
+            sourceNames
+              .map((n) => containedByName.get(n))
+              .find((v): v is ContainedSource => Boolean(v)) ?? null;
           const degradedReason =
             sourceNames
               .map((n) => degradedByName.get(n))
@@ -251,6 +290,7 @@ export function BentoBoard({
               cards={cards}
               staleAsOf={stale}
               degradedReason={degradedReason}
+              contained={contained}
               series={domain.seriesKey ? series[domain.seriesKey] : undefined}
             />
           );

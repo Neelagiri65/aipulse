@@ -66,3 +66,59 @@ describe("BentoBoard — degraded ≠ quiet", () => {
     expect(html).toContain("Some AI tool launched");
   });
 });
+
+describe("BentoBoard — quarantined (containment actuation)", () => {
+  it("renders a quarantined Models tile with reasons + last-known anchor, wins over degraded", () => {
+    const html = renderToStaticMarkup(
+      <BentoBoard
+        feed={feed({
+          containedSources: [
+            {
+              source: "OpenRouter",
+              reasons: ["sanity: 400 above max 150"],
+              lastKnownAt: "2026-07-04T09:00:00.000Z",
+            },
+          ],
+          degradedSources: [
+            { source: "OpenRouter", reason: "should be shadowed by quarantine" },
+          ],
+        })}
+      />,
+    );
+    expect(html).toContain("source quarantined");
+    expect(html).toContain("sanity: 400 above max 150");
+    expect(html).toContain("last known value");
+    expect(html).not.toContain("should be shadowed by quarantine");
+  });
+
+  it("renders the honest empty when no trustworthy value was ever observed", () => {
+    const html = renderToStaticMarkup(
+      <BentoBoard
+        feed={feed({
+          containedSources: [
+            {
+              source: "SDK registries",
+              reasons: ["freshness: undated output"],
+              lastKnownAt: null,
+            },
+          ],
+        })}
+      />,
+    );
+    expect(html).toContain("no trustworthy value available");
+  });
+
+  it("shows the ADDITIVE monitoring-impaired badge without hiding data", () => {
+    const html = renderToStaticMarkup(
+      <BentoBoard feed={feed({ cards: [launchCard], monitoringImpaired: true })} />,
+    );
+    expect(html).toContain("monitoring impaired");
+    expect(html).toContain("Some AI tool launched");
+  });
+
+  it("a healthy feed shows neither quarantine nor monitoring badges", () => {
+    const html = renderToStaticMarkup(<BentoBoard feed={feed({ cards: [launchCard] })} />);
+    expect(html).not.toContain("source quarantined");
+    expect(html).not.toContain("monitoring impaired");
+  });
+});

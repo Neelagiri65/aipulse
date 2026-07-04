@@ -76,6 +76,28 @@ export type DegradedSource = {
   reason: string;
 };
 
+/**
+ * A source QUARANTINED by the containment loop: its output probe failed
+ * (sustained availability failure, or a confirmed trust violation) and the
+ * loop has stopped presenting its numbers as live. Stronger than degraded
+ * (fallback data present) and stale (real-but-old served knowingly):
+ * quarantine means "do not present this source's signal as current at all".
+ * Derived cards are suppressed at the chokepoint; the tile disclosure
+ * carries the reasons and the honest last-known anchor.
+ */
+export type ContainedSource = {
+  /** Canonical display name (matches card.sourceName / Domain.sourceName). */
+  source: string;
+  /** Why — one entry per failing dimension (a source can be stale AND breached). */
+  reasons: string[];
+  /**
+   * Provenance timestamp of the last probe-PASSED value ("last known value ·
+   * as of T"). Null when no trustworthy value has ever been observed —
+   * render the honest empty, never the condemned current data.
+   */
+  lastKnownAt: string | null;
+};
+
 export type FeedResponse = {
   cards: Card[];
   /** True when zero cards with severity ≥ 40 exist in the last 24h. */
@@ -94,4 +116,17 @@ export type FeedResponse = {
    * suppressed). Omitted when no source is degraded. See DegradedSource.
    */
   degradedSources?: DegradedSource[];
+  /**
+   * Sources quarantined by the containment loop. Omitted when none.
+   * Display precedence: contained > degraded > stale.
+   */
+  containedSources?: ContainedSource[];
+  /**
+   * ADDITIVE disclosure that the containment loop's own state is missing,
+   * unreadable, or stale (UNKNOWN): data is served as-is, standing
+   * quarantines remain applied (sticky), and this flag only says "the
+   * watchdog itself is impaired". A monitoring failure must never silently
+   * restore a quarantined source (PRD F5 / Auditor change 2).
+   */
+  monitoringImpaired?: boolean;
 };
