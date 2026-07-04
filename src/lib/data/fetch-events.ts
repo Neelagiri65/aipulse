@@ -64,17 +64,23 @@ export type GlobeEventsResult = {
 const TEAL = "#2dd4bf";
 const WHITE = "#cbd5e1";
 
+// Trust contract: every dot must link to PERSISTENT, verifiable evidence.
+// WatchEvent (stars) and ForkEvent (forks) are DELIBERATELY EXCLUDED —
+// both are transient (a star/fork can be removed seconds later, and
+// star-farm spam accounts churn them), so a viewer who clicks through
+// can find the claimed activity already gone (e.g. a spam star on a
+// dormant repo showing 0 stars). Every type below leaves a durable
+// artefact: a commit, a PR, an issue, a comment, a release, a ref.
 const RELEVANT_TYPES = new Set([
   "PushEvent",
   "PullRequestEvent",
   "IssuesEvent",
   "ReleaseEvent",
-  "ForkEvent",
-  "WatchEvent",
   "CreateEvent",
   "IssueCommentEvent",
   "PullRequestReviewEvent",
 ]);
+
 
 const WINDOW_MINUTES = 240;
 const WINDOW_MS = WINDOW_MINUTES * 60 * 1000;
@@ -286,6 +292,27 @@ export type IngestResult = {
  * and write to Redis (when available). Returns the processed points so
  * the caller can inspect results without a separate read.
  */
+/**
+ * Pure step-3: keep only durable-evidence event types, dedupe by event id
+ * (live/tracked representations beat archive). This is the ONLY gate that
+ * stops a transient WatchEvent (a star a spam account added then removed)
+ * from becoming a map dot that contradicts reality when clicked — so it is
+ * asserted directly at the output level in the tests. runIngest calls this
+ * exact function; the test exercises the real code path, not a copy.
+ */
+export function dedupeAndFilterEvents(
+  rawEvents: Array<{ event: GitHubEvent; source: IngestSourceKind }>,
+): Map<string, { event: GitHubEvent; source: IngestSourceKind }> {
+  const byId = new Map<string, { event: GitHubEvent; source: IngestSourceKind }>();
+  for (const r of rawEvents) {
+    if (!RELEVANT_TYPES.has(r.event.type)) continue;
+    const prev = byId.get(r.event.id);
+    if (prev && prev.source !== "gharchive") continue;
+    byId.set(r.event.id, r);
+  }
+  return byId;
+}
+
 export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult> {
   const startedAt = new Date();
   const failures: Array<{ step: string; message: string }> = [];
@@ -354,17 +381,8 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
     failures.push(...gitlab.failures);
   }
 
-  // 3) Type-filter + dedupe by event id.
-  const byId = new Map<string, { event: GitHubEvent; source: IngestSourceKind }>();
-  for (const r of rawEvents) {
-    if (!RELEVANT_TYPES.has(r.event.type)) continue;
-    // Live-api and tracked-repo take precedence over archive for the same
-    // id (same event; the live representations are freshest). Between
-    // live-api and tracked-repo, first-in wins — identical payloads.
-    const prev = byId.get(r.event.id);
-    if (prev && prev.source !== "gharchive") continue;
-    byId.set(r.event.id, r);
-  }
+  // 3) Type-filter (durable evidence only) + dedupe by event id.
+  const byId = dedupeAndFilterEvents(rawEvents);
   const eventsReceivedRaw = byId.size;
 
   // 3b) Cap to the newest POST_DEDUPE_CAP events. Archive backfills
