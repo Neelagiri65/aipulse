@@ -14,7 +14,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { readDigestBody } from "@/lib/digest/archive";
-import { DigestPageView } from "@/components/digest/DigestPageView";
+import { DigestTileBoard } from "@/components/digest/DigestTileBoard";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -76,5 +76,5 @@ export default async function DigestArchivePage({
   const digest = await loadDigest(date);
   if (!digest) notFound();
   const baseUrl = await inferBaseUrl();
-  return <DigestPageView digest={digest} baseUrl={baseUrl} />;
+  return <DigestTileBoard digest={digest} baseUrl={baseUrl} />;
 }
