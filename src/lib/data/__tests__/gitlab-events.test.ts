@@ -96,7 +96,8 @@ describe("fetchGitLabEvents", () => {
     expect(result.failures).toEqual([]);
   });
 
-  it("tracked mode: fetches per project, maps, resolves geo via GITLAB only", async () => {
+  it("tracked mode: maps events; geo resolves via GITLAB users API only WHEN a token is present", async () => {
+    process.env.GITLAB_TOKEN = "test-token";
     const urls: string[] = [];
     const result = await fetchGitLabEvents(
       cfg({ projects: ["gitlab-org/gitlab"] }),
@@ -108,12 +109,29 @@ describe("fetchGitLabEvents", () => {
         return [];
       },
     );
+    delete process.env.GITLAB_TOKEN;
     expect(result.events).toHaveLength(1);
     expect(result.events[0].id).toBe("gl:12345");
     expect(result.droppedActions).toEqual({ joined: 1 });
     expect(result.locationSeeds.get("gl:alice")).toEqual(expect.any(Array));
-    // Every URL hit gitlab.com — never github.
     expect(urls.every((u) => u.startsWith("https://gitlab.com/"))).toBe(true);
+  });
+
+  it("NO token: events still ingest, but geo lookups are SKIPPED (no 403 noise)", async () => {
+    delete process.env.GITLAB_TOKEN;
+    const urls: string[] = [];
+    const result = await fetchGitLabEvents(
+      cfg({ projects: ["gitlab-org/gitlab"] }),
+      async (url) => {
+        urls.push(url);
+        if (url.includes("/events")) return [raw()];
+        return [];
+      },
+    );
+    expect(result.events).toHaveLength(1); // events flow
+    expect(result.locationSeeds.size).toBe(0); // no geo attempted
+    expect(urls.some((u) => u.includes("/users"))).toBe(false); // no user calls
+    expect(result.failures).toEqual([]); // no 403 spam
   });
 
   it("per-project failures are isolated; the result never throws", async () => {

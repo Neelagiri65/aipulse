@@ -131,12 +131,14 @@ export function toGitHubShape(
   } as unknown as GitHubEvent;
 }
 
-type Fetcher = (url: string) => Promise<unknown>;
+type Fetcher = (url: string, token?: string) => Promise<unknown>;
 
-const defaultFetcher: Fetcher = async (url) => {
+const defaultFetcher: Fetcher = async (url, token) => {
   const res = await fetch(url, {
     signal: AbortSignal.timeout(8000),
-    headers: { accept: "application/json" },
+    headers: token
+      ? { accept: "application/json", "PRIVATE-TOKEN": token }
+      : { accept: "application/json" },
   });
   if (!res.ok) throw new Error(`gitlab ${res.status} for ${url}`);
   return res.json();
@@ -208,8 +210,17 @@ export async function fetchGitLabEvents(
     }),
   );
 
-  // 3) Resolve author locations via the GITLAB users API (never GitHub),
-  //    bounded to unique authors, cached across runs.
+  // 3) Resolve author locations via the GITLAB users API (never GitHub).
+  //    The single-user endpoint (/users/{id}) 403s UNAUTHENTICATED on
+  //    gitlab.com (anti-scraping) and the /users?username= list omits
+  //    `location`, so without a token there is no geo path — skip
+  //    entirely rather than emit 403 noise. Verified 2026-07-05.
+  //    (Moot for display: GitLab activity is CI/container/bot-dominated,
+  //    so dots were never the right representation — see PRD §7.)
+  const token = process.env.GITLAB_TOKEN;
+  if (!token) {
+    return { events, locationSeeds, droppedActions, failures };
+  }
   const uniqueLogins = Array.from(new Set(events.map((e) => e.actor.login)));
   await Promise.all(
     uniqueLogins.map(async (namespaced) => {
@@ -226,9 +237,10 @@ export async function fetchGitLabEvents(
         const id = users[0]?.id;
         let coords: [number, number] | null = null;
         if (id) {
-          const profile = (await fetcher(`${GITLAB_API}/users/${id}`)) as {
-            location?: string | null;
-          };
+          const profile = (await fetcher(
+            `${GITLAB_API}/users/${id}`,
+            token,
+          )) as { location?: string | null };
           coords = geocode(profile.location ?? null) ?? null;
         }
         gitlabLocationCache.set(namespaced, coords);
