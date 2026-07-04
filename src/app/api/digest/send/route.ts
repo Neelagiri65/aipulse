@@ -33,7 +33,7 @@
 
 import { NextResponse } from "next/server";
 import { withIngest } from "@/app/api/_lib/withIngest";
-import { isTotalFailure } from "@/lib/data/success-contract";
+import { isTotalSendFailure } from "@/lib/data/success-contract";
 import { ymdUtc } from "@/lib/data/snapshot";
 import { readSnapshot, readRecentSnapshots } from "@/lib/data/snapshot";
 import { readWire } from "@/lib/data/hn-store";
@@ -191,10 +191,19 @@ export const POST = withIngest<RouteResult>({
     if (result.skipped) {
       return { ok: true, itemsProcessed: 0 };
     }
-    if (isTotalSendFailure(result.send)) {
+    if (
+      isTotalSendFailure({
+        sent: result.send.sent,
+        failedChunks: result.send.failedChunks,
+        recipientCount: result.recipientCount,
+      })
+    ) {
       return {
         ok: false,
-        error: `all ${result.send.attemptedChunks} batch chunks failed`,
+        error:
+          result.send.failedChunks > 0
+            ? `all ${result.send.attemptedChunks} batch chunks failed`
+            : `${result.recipientCount} recipients but nothing sent (hollow run — no chunk reported failure)`,
       };
     }
     return { ok: true, itemsProcessed: result.send.sent };
@@ -232,10 +241,15 @@ export const POST = withIngest<RouteResult>({
       });
     }
     return NextResponse.json({
-      // ok mirrors toOutcome: a 0-sent / all-chunks-failed run is NOT ok,
-      // so the GH Actions guard (which parses this field) fails the job
-      // instead of going green on a broken send.
-      ok: !isTotalSendFailure(result.send),
+      // ok mirrors toOutcome: a 0-sent run with recipients present is NOT
+      // ok (loud chunk failures or a silent hollow skip alike), so the GH
+      // Actions guard (which parses this field) fails the job instead of
+      // going green on a broken send.
+      ok: !isTotalSendFailure({
+        sent: result.send.sent,
+        failedChunks: result.send.failedChunks,
+        recipientCount: result.recipientCount,
+      }),
       date: result.date,
       subject: result.subject,
       mode: result.mode,
@@ -275,24 +289,6 @@ export function parseForceFlag(request: Request): boolean {
   } catch {
     return false;
   }
-}
-
-/**
- * A digest send is a failure when every batch chunk failed and nothing
- * went out. Shared by `toOutcome` (drives cron-health) and `toResponse`
- * (the GH Actions step parses `response.ok` to pass/fail the job) so the
- * two can never disagree again. Their divergence was the bug: a 0-sent
- * run reported `ok:true` and showed GREEN in GitHub while cron-health
- * correctly flagged it stale — a silent failure dressed as success.
- */
-function isTotalSendFailure(send: {
-  sent: number;
-  failedChunks: number;
-}): boolean {
-  // Same predicate every cron now shares — see success-contract.ts. A
-  // send delivered to ≥1 recipient (or one that had nobody to send to)
-  // is not a total failure; only chunks-failed-and-nothing-delivered is.
-  return isTotalFailure({ delivered: send.sent, failures: send.failedChunks });
 }
 
 function inferBaseUrl(request: Request): string {
