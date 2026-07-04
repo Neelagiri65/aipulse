@@ -1,5 +1,7 @@
 "use client";
 
+import { actorLabel, repoHref } from "@/lib/data/event-links";
+
 /**
  * Full-viewport chronological feed. Accepts a pre-merged, pre-sorted
  * list of wire rows (Dashboard owns the merge so the globe + map
@@ -137,7 +139,7 @@ function GhRow({
       </span>
       <span className="ap-label-sm truncate">{prettyType(row.type)}</span>
       <a
-        href={`https://github.com/${row.repo}`}
+        href={repoHref(row.repo)}
         target="_blank"
         rel="noopener noreferrer"
         className="truncate text-foreground/90 underline decoration-dotted underline-offset-2 hover:text-foreground"
@@ -145,7 +147,7 @@ function GhRow({
         {row.repo}
       </a>
       <div className="flex items-center gap-2 justify-self-end text-muted-foreground">
-        <span className="truncate">@{row.actor}</span>
+        <span className="truncate">@{actorLabel(row.actor)}</span>
         {row.sourceKind === "gharchive" && (
           <span className="ap-sev-pill ap-sev-pill--pending">archive</span>
         )}

@@ -1,6 +1,7 @@
 "use client";
 
 import type { GlobeEventsResult } from "@/lib/data/fetch-events";
+import { repoHref } from "@/lib/data/event-links";
 
 export type LiveFeedProps = {
   events?: GlobeEventsResult;
@@ -124,7 +125,7 @@ function FeedRowItem({ row }: { row: FeedRow }) {
       </div>
       <div className="mt-1 truncate text-[11px] text-foreground/90">
         <a
-          href={`https://github.com/${row.repo}`}
+          href={repoHref(row.repo)}
           target="_blank"
           rel="noopener noreferrer"
           className="underline decoration-dotted underline-offset-2 hover:text-foreground"
