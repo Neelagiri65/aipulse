@@ -27,3 +27,24 @@ export function isTotalFailure(args: {
 }): boolean {
   return args.delivered === 0 && args.failures > 0;
 }
+
+/**
+ * Send-shaped total failure. The base predicate alone cannot see the
+ * HOLLOW-GREEN case: recipients existed, zero were delivered, and no
+ * chunk even recorded a failure (a silent skip — e.g. every recipient
+ * filtered out by a decrypt bug, or the chunk builder produced nothing).
+ * "Attempted" for a send means recipients existed; delivering to none of
+ * them is a total failure whether or not any chunk owned up to it.
+ *
+ *   recipients=0             → false (early-life quiet, nothing to do)
+ *   recipients>0, sent=0     → true  (hollow or loud — both total)
+ *   recipients>0, sent>0     → false (forward progress, partial ok)
+ */
+export function isTotalSendFailure(args: {
+  sent: number;
+  failedChunks: number;
+  recipientCount: number;
+}): boolean {
+  if (args.recipientCount > 0 && args.sent === 0) return true;
+  return isTotalFailure({ delivered: args.sent, failures: args.failedChunks });
+}
