@@ -35,6 +35,7 @@ import {
   recentArchiveHours,
 } from "@/lib/data/gharchive";
 import { fetchTrackedRepoEvents } from "@/lib/data/tracked-repos";
+import { fetchGitLabEvents } from "@/lib/data/gitlab-events";
 import {
   isGlobeStoreAvailable,
   readMeta,
@@ -262,7 +263,7 @@ function toGlobePoint(p: StoredGlobePoint): GlobePoint {
 // ---------------------------------------------------------------------------
 
 /** Provenance of a raw event within one ingest pass. */
-type IngestSourceKind = "gharchive" | "events-api" | "tracked-repo";
+type IngestSourceKind = "gharchive" | "events-api" | "tracked-repo" | "gitlab";
 
 export type IngestOptions = {
   /**
@@ -326,6 +327,31 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
     const tracked = await fetchTrackedRepoEvents();
     for (const e of tracked.events) rawEvents.push({ event: e, source: "tracked-repo" });
     failures.push(...tracked.failures);
+  }
+
+  // 2c) GitLab (pulse sample + tracked list; INERT until data/
+  // gitlab-sources.json activates it). Events arrive fully namespaced
+  // (gl: ids/logins, gitlab.com/ repos) with PRE-RESOLVED coordinates —
+  // the GitHub users API must never be asked about a GitLab login, and
+  // the AI-config probe must never hit GitHub for a GitLab path (both
+  // seeded below). Total GitLab failure = failures[] only; the run's
+  // success contract is carried by the other sources.
+  {
+    const gitlab = await fetchGitLabEvents();
+    for (const e of gitlab.events) rawEvents.push({ event: e, source: "gitlab" });
+    for (const [login, coords] of gitlab.locationSeeds) {
+      userLocationCache.set(login, coords);
+    }
+    for (const e of gitlab.events) {
+      if (!aiConfigCache.has(e.repo.name)) aiConfigCache.set(e.repo.name, false);
+    }
+    for (const [action, n] of Object.entries(gitlab.droppedActions)) {
+      failures.push({
+        step: `gitlab-unmapped:${action}`,
+        message: `${n} event(s) dropped — unmapped GitLab action (never coerced)`,
+      });
+    }
+    failures.push(...gitlab.failures);
   }
 
   // 3) Type-filter + dedupe by event id.

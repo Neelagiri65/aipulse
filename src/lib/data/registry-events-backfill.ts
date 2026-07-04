@@ -92,6 +92,48 @@ type EventCandidate = {
   newestEventAt: string;
 };
 
+/**
+ * Pure candidate collapse over the globe window. Exported for the guard
+ * tests. HARD GUARD (plan §5.1): this pipeline probes candidates via the
+ * GITHUB Contents API — GitLab events must never become candidates (404
+ * noise + 30-day-cached false negatives + cross-platform name collisions
+ * like inkscape/inkscape existing on both). Three independent fences:
+ * sourceKind, the gl: id namespace, and the gitlab.com/ repo prefix.
+ */
+export function collapseCandidates(
+  events: Array<{
+    sourceKind?: string;
+    eventId?: string;
+    eventAt: string;
+    meta?: Record<string, unknown>;
+  }>,
+): Map<string, EventCandidate> {
+  const byRepo = new Map<string, EventCandidate>();
+  for (const ev of events) {
+    if (ev.sourceKind === "gitlab") continue;
+    if (typeof ev.eventId === "string" && ev.eventId.startsWith("gl:")) continue;
+    const meta = (ev.meta ?? {}) as { repo?: string; hasAiConfig?: boolean };
+    const fullName = typeof meta.repo === "string" ? meta.repo : null;
+    if (!fullName || !fullName.includes("/")) continue;
+    if (fullName.startsWith("gitlab.com/")) continue;
+    const existing = byRepo.get(fullName);
+    const hasAi = meta.hasAiConfig === true;
+    if (!existing) {
+      byRepo.set(fullName, {
+        fullName,
+        hasAiConfig: hasAi,
+        newestEventAt: ev.eventAt,
+      });
+    } else {
+      if (hasAi) existing.hasAiConfig = true;
+      if (ev.eventAt > existing.newestEventAt) {
+        existing.newestEventAt = ev.eventAt;
+      }
+    }
+  }
+  return byRepo;
+}
+
 export async function runEventsBackfill(
   opts: EventsBackfillOptions,
 ): Promise<EventsBackfillResult> {
@@ -129,26 +171,7 @@ export async function runEventsBackfill(
 
   // 2. Collapse to one candidate per repo. Keep the newest event timestamp
   //    only for ordering; lastActivity will come from pushed_at.
-  const byRepo = new Map<string, EventCandidate>();
-  for (const ev of events) {
-    const meta = (ev.meta ?? {}) as { repo?: string; hasAiConfig?: boolean };
-    const fullName = typeof meta.repo === "string" ? meta.repo : null;
-    if (!fullName || !fullName.includes("/")) continue;
-    const existing = byRepo.get(fullName);
-    const hasAi = meta.hasAiConfig === true;
-    if (!existing) {
-      byRepo.set(fullName, {
-        fullName,
-        hasAiConfig: hasAi,
-        newestEventAt: ev.eventAt,
-      });
-    } else {
-      if (hasAi) existing.hasAiConfig = true;
-      if (ev.eventAt > existing.newestEventAt) {
-        existing.newestEventAt = ev.eventAt;
-      }
-    }
-  }
+  const byRepo = collapseCandidates(events);
   const candidatesFound = byRepo.size;
 
   // 3. Drop repos already in the registry — re-verification is the job

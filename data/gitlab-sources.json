@@ -1,0 +1,9 @@
+{
+  "description": "GitLab ingestion config (PRD prd-tracked-gitlab-projects). INERT AS SHIPPED: pulse disabled and the tracked list empty — activation is a follow-up commit after post-merge no-op verification (plan §5.2). pulse = sampled universe activity via last_activity_at ordering (GitHub-firehose analogue); projects = guaranteed complete streams for curated notables. Noise filters are mechanical pattern rules, disclosed in data-sources.ts.",
+  "pulse": {
+    "enabled": false,
+    "pages": 1,
+    "sampleProjects": 12
+  },
+  "projects": []
+}
