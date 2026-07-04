@@ -71,22 +71,32 @@ function client(): Redis | null {
   return redis();
 }
 
+/** Result of a state read. `error` distinguishes "Redis unreachable" from
+ *  "state genuinely absent/corrupt": a read ERROR must abort the probe cycle
+ *  (monitoring failure, F7) — treating it as a cold start would rebuild a
+ *  fresh state over standing quarantines, un-greying lying sources at the
+ *  precise moment monitoring dies (the F5 failure the fail-safe must resist). */
+export interface StateReadResult {
+  state: ContainmentState | null;
+  error: boolean;
+}
+
 /**
- * Read the containment state blob. Returns null when Redis is unavailable,
- * the key is missing, or the blob fails structural validation — the caller
- * treats all three as "no trustworthy state" (UNKNOWN disclosure + rebuild
- * on next cycle, plan F3), never as an empty-but-valid state.
+ * Read the containment state blob. `state: null, error: false` means the
+ * key is missing or structurally invalid — a genuine cold start, safe to
+ * rebuild (plan F3). `error: true` means Redis itself failed — the caller
+ * must treat the whole cycle as PROBE_ERROR and mutate nothing.
  */
-export async function readContainmentState(): Promise<ContainmentState | null> {
+export async function readContainmentState(): Promise<StateReadResult> {
   const r = client();
-  if (!r) return null;
+  if (!r) return { state: null, error: true };
   try {
     const raw = await r.get<ContainmentState>(STATE_KEY);
-    if (!isContainmentState(raw)) return null;
-    return raw;
+    if (!isContainmentState(raw)) return { state: null, error: false };
+    return { state: raw, error: false };
   } catch (err) {
     console.error("[containment:store] state read failed", err);
-    return null;
+    return { state: null, error: true };
   }
 }
 
@@ -125,6 +135,29 @@ redis.call('SET', KEYS[1], ARGV[2])
 redis.call('SET', KEYS[2], ARGV[3])
 return 1
 `;
+
+/**
+ * Unconditional state write — bypasses the CAS guard. ONLY for cold-start
+ * wedge recovery: a stale version key over a missing/corrupt blob would make
+ * every CAS write fail forever (basedOnVersion 0 never matches). Callers must
+ * have verified state absence via readContainmentState (error: false, state:
+ * null) in the SAME cycle; using this anywhere else reintroduces the F16
+ * lost-update race.
+ */
+export async function forceWriteContainmentState(
+  next: ContainmentState,
+): Promise<boolean> {
+  const r = client();
+  if (!r) return false;
+  try {
+    await r.set(VERSION_KEY, String(next.computedAt));
+    await r.set(STATE_KEY, JSON.stringify(next));
+    return true;
+  } catch (err) {
+    console.error("[containment:store] state force write failed", err);
+    return false;
+  }
+}
 
 /**
  * Capture a last-good copy of a source's DTO on a passing probe. The caller

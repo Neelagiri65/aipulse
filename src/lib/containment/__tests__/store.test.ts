@@ -4,6 +4,7 @@ import type { Redis } from "@upstash/redis";
 
 import {
   __setRedisOverrideForTests,
+  forceWriteContainmentState,
   readContainmentState,
   readLastGood,
   writeContainmentState,
@@ -87,31 +88,31 @@ function state(computedAt: number): ContainmentState {
 }
 
 describe("readContainmentState", () => {
-  it("returns null when Redis is unavailable", async () => {
+  it("reports an ERROR (not a cold start) when Redis is unavailable", async () => {
     install(null);
-    expect(await readContainmentState()).toBeNull();
+    expect(await readContainmentState()).toEqual({ state: null, error: true });
   });
 
-  it("returns null when the key is missing", async () => {
+  it("reports a genuine cold start when the key is missing", async () => {
     install(new FakeRedis());
-    expect(await readContainmentState()).toBeNull();
+    expect(await readContainmentState()).toEqual({ state: null, error: false });
   });
 
-  it("returns null on a structurally invalid blob (wrong schemaVersion)", async () => {
+  it("treats a structurally invalid blob (wrong schemaVersion) as absent, not an error", async () => {
     const fake = new FakeRedis();
     fake.raw.set(
       "containment:state",
       JSON.stringify({ schemaVersion: 2, computedAt: 5, sources: {} }),
     );
     install(fake);
-    expect(await readContainmentState()).toBeNull();
+    expect(await readContainmentState()).toEqual({ state: null, error: false });
   });
 
-  it("returns null instead of throwing when the read errors", async () => {
+  it("reports an ERROR instead of throwing when the read errors", async () => {
     const fake = new FakeRedis();
     fake.failNextCall = true;
     install(fake);
-    expect(await readContainmentState()).toBeNull();
+    expect(await readContainmentState()).toEqual({ state: null, error: true });
   });
 
   it("round-trips a state written via CAS", async () => {
@@ -119,7 +120,7 @@ describe("readContainmentState", () => {
     install(fake);
     const s = state(1_000);
     expect(await writeContainmentState(s, 0)).toBe(true);
-    expect(await readContainmentState()).toEqual(s);
+    expect(await readContainmentState()).toEqual({ state: s, error: false });
   });
 });
 
@@ -148,8 +149,24 @@ describe("writeContainmentState (CAS)", () => {
     // A now tries to land, still based on 1000 — must be refused untouched.
     expect(await writeContainmentState(state(1_500), 1_000)).toBe(false);
     const stored = await readContainmentState();
-    expect(stored?.computedAt).toBe(2_000);
+    expect(stored.state?.computedAt).toBe(2_000);
     expect(fake.raw.get("containment:state:ver")).toBe("2000");
+  });
+
+  it("force write recovers a cold-start wedge (stale version key over a corrupt blob)", async () => {
+    const fake = new FakeRedis();
+    fake.raw.set("containment:state:ver", "5000");
+    fake.raw.set("containment:state", "not json at all{{");
+    install(fake);
+    // CAS against the wedged version fails for a cold-start writer...
+    expect(await writeContainmentState(state(6_000), 0)).toBe(false);
+    // ...force write clears the wedge and re-aligns both keys.
+    expect(await forceWriteContainmentState(state(6_000))).toBe(true);
+    expect(fake.raw.get("containment:state:ver")).toBe("6000");
+    expect(await readContainmentState()).toEqual({
+      state: state(6_000),
+      error: false,
+    });
   });
 
   it("returns false without throwing when Redis is unavailable", async () => {
