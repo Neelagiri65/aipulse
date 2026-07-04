@@ -60,6 +60,12 @@ const CSS = `
   .gd-display { font-family: Sentient, "Iowan Old Style", Georgia, serif; }
   .gd-mono { font-family: Tabular, ui-monospace, Menlo, monospace; }
 
+  /* Strict monochrome icon rule: every tile icon renders as a dark
+     charcoal silhouette — colour on the board is reserved for semantic
+     deltas and the incident pulse. Self-hosted marks are charcoal SVGs
+     already; the filter normalises favicon fallbacks to match. */
+  .gd-icon-img { filter: grayscale(1) brightness(0.45) contrast(1.2); }
+
   .gd-tile {
     transition: transform 120ms cubic-bezier(.2,0,0,1), box-shadow 120ms cubic-bezier(.2,0,0,1);
   }
@@ -359,21 +365,27 @@ function StatTile({
           style={{ backgroundColor: C.card, border: `1px solid ${C.hairline}` }}
         >
           {icon ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={icon.src}
-              alt=""
-              width={22}
-              height={22}
-              className="rounded"
+            <span
+              className="inline-flex items-center justify-center rounded"
               style={{
                 backgroundColor: C.sunk,
                 border: `1px solid ${C.hairline}`,
-                padding: 4,
-                width: 30,
-                height: 30,
+                // Bible §13: marks never render below 24px; uniform 36px
+                // tile keeps optical weight identical across all sources.
+                width: 36,
+                height: 36,
               }}
-            />
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={icon.src}
+                alt=""
+                width={24}
+                height={24}
+                className="gd-icon-img"
+                style={{ objectFit: "contain" }}
+              />
+            </span>
           ) : (
             <span
               className="gd-mono rounded px-1.5 text-xs font-bold"

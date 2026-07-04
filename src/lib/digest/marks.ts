@@ -36,6 +36,18 @@ export function markFor(
   return null;
 }
 
+/** PNG variant of a mark path for email surfaces — Gmail blocks SVG in
+ *  <img>, so email uses the pre-rendered 48px charcoal PNGs. Strict
+ *  monochrome: email has NO favicon fallback (CSS filters are stripped
+ *  by mail clients, so a colour favicon could not be normalised there);
+ *  markless items render without an icon. */
+export function markPngFor(
+  ...texts: Array<string | undefined>
+): string | null {
+  const svg = markFor(...texts);
+  return svg ? svg.replace("/marks/", "/marks/png/").replace(".svg", ".png") : null;
+}
+
 /** Favicon fallback for sources without a mark. Null on unparsable URLs. */
 export function faviconFallback(sourceUrl: string | undefined): string | null {
   if (!sourceUrl) return null;

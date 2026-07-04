@@ -56,6 +56,7 @@ import {
 } from "@/lib/email/delta";
 import { renderGreeting } from "@/lib/email/greeting";
 import { buildShareUrl, composeShareText } from "@/lib/email/share-urls";
+import { markPngFor } from "@/lib/digest/marks";
 import { deriveTranslateUrl, TRANSLATE_LABEL } from "@/lib/i18n/translate-link";
 import { whyThisMatters } from "@/lib/digest/why-this-matters";
 
@@ -418,7 +419,12 @@ function ItemRow({
   const direction = deltaDirection(item.detail, item.headline);
   const rank = splitRank(item.headline);
   const delta = item.detail ? splitDelta(item.detail) : null;
-  const icon = !rank && item.sourceUrl ? faviconUrl(item.sourceUrl) : null;
+  // Strict monochrome (founder rule): only the pre-rendered charcoal
+  // marks, served absolute from gawk.dev; no colour favicon fallback.
+  const iconPath = !rank
+    ? markPngFor(item.sourceLabel, item.headline, item.sourceUrl)
+    : null;
+  const icon = iconPath ? `${baseUrl}${iconPath}` : null;
   const tx = item.sourceUrl
     ? deriveTranslateUrl(item.sourceUrl, item.sourceLang)
     : null;
@@ -533,19 +539,6 @@ function ItemRow({
       </tbody>
     </table>
   );
-}
-
-/** Favicon for an item's source domain, shown in a warm-paper tile.
- *  The tile stays LIGHT in dark mode deliberately (BRAND-BIBLE §13's
- *  paper-tile rule): dark marks (GitHub, Anthropic) remain visible on
- *  dark backgrounds without maintaining inverted logo variants. */
-function faviconUrl(sourceUrl: string): string | null {
-  try {
-    const host = new URL(sourceUrl).hostname;
-    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
-  } catch {
-    return null;
-  }
 }
 
 function displaySource(url: string): string {
