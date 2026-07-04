@@ -136,8 +136,9 @@ export function normalizeToolHealthGrid(
 /** Hex colours used by the PNG renderer per bucket. Centralised so the
  *  route + any future legend renderer agree pixel-for-pixel. */
 export const TOOL_HEALTH_COLORS: Record<ToolHealthBucket, string> = {
-  operational: "#10b981",
-  degraded: "#f59e0b",
-  outage: "#ef4444",
-  unknown: "#475569",
+  // Nativerse status colours (BRAND-BIBLE §14) on warm paper.
+  operational: "#157A40",
+  degraded: "#B26A00",
+  outage: "#C0392B",
+  unknown: "#D8D7CC",
 };
