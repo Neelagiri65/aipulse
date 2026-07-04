@@ -509,6 +509,38 @@ export const HUGGINGFACE_MODELS: DataSource = {
   powersFeature: ["models-panel"],
 };
 
+// Registry backfill (2026-07-04): this source shipped in the model-usage
+// panel + MODEL_MOVER feed cards without a registry entry — found while
+// grounding containment probe specs. The entry documents what already runs;
+// values below are drawn from the ingest code + the S91 live verification.
+export const OPENROUTER_RANKINGS: DataSource = {
+  id: "openrouter-rankings",
+  name: "OpenRouter — model usage rankings (top-weekly)",
+  category: "model-distribution",
+  url: "https://openrouter.ai/rankings",
+  apiUrl:
+    "https://openrouter.ai/api/frontend/v1/models/find?order=top-weekly",
+  responseFormat: "json",
+  updateFrequency: "six-hourly",
+  rateLimit: {
+    note: "Undocumented frontend endpoint — no published limit. Cron fetches once per 6h run (4 calls/day) plus one trending call for the divergence flag; trivial under any plausible budget.",
+  },
+  auth: "none",
+  measures:
+    "Top ~100 models ranked by OpenRouter's own top-weekly usage ordering. Each row surfaces: slug, name, short_name, endpoint pricing. Gawk does NOT re-rank; rank deltas (MODEL_MOVER) are diffed ONLY against a prior snapshot with the same top-weekly ordering (S91 lesson: an unlike-ordered baseline fabricates movement). When the frontend endpoint degrades, ingest falls back to the public catalogue in release-recency order, clearly labelled `catalogue-fallback` — an honest list, but NOT a usage ranking, so movers are suppressed.",
+  sanityCheck: {
+    description:
+      "~100 rows per snapshot (rowsWritten:100 observed on every healthy run). Below 20 suggests a truncated or reshaped response; above 150 suggests the pagination or filter changed. Ordering must be `top-weekly` (or `trending`) for the ranking product to be real — `catalogue-fallback` means the ranking is degraded even when row counts look sane (the S91 masked-blindness class).",
+    expectedMin: 20,
+    expectedMax: 150,
+    unit: "rows per snapshot",
+  },
+  verifiedAt: "2026-06-30",
+  caveat:
+    "UNDOCUMENTED frontend endpoint — it can move or reshape without notice, and has: the un-versioned /api/frontend/* namespace silently 404'd from ~2026-06-09 until the /v1/ move was found on 2026-06-30 (S91), during which the cron stayed green on the fallback. Rankings reflect OpenRouter's own routed traffic only — NOT global model usage, NOT comparable to HF downloads or provider-reported tokens.",
+  powersFeature: ["model-usage-panel", "feed-model-mover"],
+};
+
 export const REDDIT_LOCALLLAMA: DataSource = {
   id: "reddit-localllama",
   name: "Reddit — r/LocalLLaMA",
@@ -1165,6 +1197,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   CLOUDFLARE_STATUS,
   UPSTASH_STATUS,
   HUGGINGFACE_MODELS,
+  OPENROUTER_RANKINGS,
   ARXIV_PAPERS,
   HN_AI_STORIES,
   REDDIT_LOCALLLAMA,

@@ -76,6 +76,11 @@ export const CRON_WORKFLOWS = {
   // compare current rolling-24h vs N-days-ago. Fires at 00:05 UTC
   // (5 min past midnight to capture all events stamped through 00:00).
   "globe-events-snapshot": { expectedIntervalMinutes: 1440 },
+  // Containment probe cycle (shadow mode): piggybacks the 3h
+  // integrity-watch schedule. Declared 240 (not 180) up front — 3h GH
+  // schedules drift less than short ones, but the S53 pattern says give
+  // long-tail drift headroom rather than flap healthy/stale.
+  "containment-cycle": { expectedIntervalMinutes: 240 },
 } as const;
 
 export type CronWorkflowName = keyof typeof CRON_WORKFLOWS;

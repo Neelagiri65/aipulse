@@ -15,7 +15,7 @@
  * listed. Adding a source is a one-object change — that is the point.
  */
 
-import { GITHUB_EVENTS } from "@/lib/data-sources";
+import { GITHUB_EVENTS, OPENROUTER_RANKINGS } from "@/lib/data-sources";
 import { CRON_WORKFLOWS, type CronWorkflowName } from "@/lib/data/cron-health";
 import type { RunnableSpec } from "./run";
 
@@ -76,6 +76,72 @@ export function buildProbeSpecs(origin = PROBE_ORIGIN): RunnableSpec[] {
         maxAgeMinutes: 360,
         floor: 1,
         provenanceField: "sourceUrl",
+      },
+    },
+    {
+      // OpenRouter usage rankings — the S91 incident source. Probes the
+      // STORED DTO the model-usage panel serves. generatedAt is stamped at
+      // cron-write time (honest witness). The ordering check is the piece
+      // every other signal missed for weeks: `catalogue-fallback` keeps
+      // freshness/count green while the ranking product is blind.
+      id: "openrouter-rankings",
+      url: `${origin}/api/panels/model-usage`,
+      extract: (p) => {
+        const o = p as {
+          ordering?: string;
+          generatedAt?: string;
+          rows?: unknown[];
+        };
+        if (!Array.isArray(o.rows)) {
+          throw new Error("openrouter-rankings: rows[] missing");
+        }
+        return {
+          observedAt: o.generatedAt ?? null,
+          records: o.rows as Array<Record<string, unknown>>,
+          ordering: o.ordering ?? null,
+        };
+      },
+      contract: {
+        maxAgeMinutes: freshnessBudget("openrouter-rankings"), // 360m × 2
+        floor: 1,
+        expectedMin: OPENROUTER_RANKINGS.sanityCheck.expectedMin,
+        expectedMax: OPENROUTER_RANKINGS.sanityCheck.expectedMax,
+        expectedOrdering: ["top-weekly", "trending"],
+        verifiedAt: OPENROUTER_RANKINGS.verifiedAt,
+      },
+    },
+    {
+      // SDK Adoption matrix — the assembled packages DTO. Its top-level
+      // generatedAt is stamped at ASSEMBLY (request) time — a self-clocking
+      // timestamp that can never go stale (the F11 class) — so freshness is
+      // witnessed by the NEWEST per-package `latest.fetchedAt`, i.e. "when
+      // did we last hear from any pkg registry". Per-registry staleness
+      // stays cron-health's job; this probe answers "is the panel fed at
+      // all". No sanity range: row count = tracked-package count, a config
+      // fact with no declared bounds — don't invent one.
+      id: "sdk-adoption",
+      url: `${origin}/api/panels/sdk-adoption`,
+      extract: (p) => {
+        const o = p as {
+          packages?: Array<{ latest?: { fetchedAt?: string | null } }>;
+        };
+        if (!Array.isArray(o.packages)) {
+          throw new Error("sdk-adoption: packages[] missing");
+        }
+        const fetchedAts = o.packages
+          .map((pkg) => pkg.latest?.fetchedAt)
+          .filter((t): t is string => typeof t === "string")
+          .sort();
+        return {
+          observedAt: fetchedAts.length
+            ? fetchedAts[fetchedAts.length - 1]
+            : null,
+          records: o.packages as Array<Record<string, unknown>>,
+        };
+      },
+      contract: {
+        maxAgeMinutes: freshnessBudget("pkg-pypi"), // all pkg crons 360m × 2
+        floor: 1,
       },
     },
   ];

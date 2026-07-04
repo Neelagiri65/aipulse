@@ -34,6 +34,40 @@ describe("buildProbeSpecs", () => {
     );
   });
 
+  it("openrouter spec: registry-backed sanity range, ordering contract, honest witness", () => {
+    const spec = buildProbeSpecs().find((s) => s.id === "openrouter-rankings")!;
+    expect(spec.contract.maxAgeMinutes).toBe(freshnessBudget("openrouter-rankings"));
+    expect(spec.contract.expectedOrdering).toEqual(["top-weekly", "trending"]);
+    expect(spec.contract.expectedMin).toBe(20);
+    expect(spec.contract.expectedMax).toBe(150);
+    const out = spec.extract({
+      ordering: "catalogue-fallback",
+      generatedAt: "2026-07-04T06:00:00.000Z",
+      rows: [{ slug: "a" }],
+    });
+    expect(out.ordering).toBe("catalogue-fallback");
+    expect(out.observedAt).toBe("2026-07-04T06:00:00.000Z");
+    expect(() => spec.extract({ ordering: "top-weekly" })).toThrow();
+  });
+
+  it("sdk-adoption spec: freshness witnessed by newest per-package fetchedAt, never assembly time", () => {
+    const spec = buildProbeSpecs().find((s) => s.id === "sdk-adoption")!;
+    const out = spec.extract({
+      generatedAt: "2026-07-04T12:00:00.000Z", // self-clocking — must be ignored
+      packages: [
+        { latest: { fetchedAt: "2026-07-01T00:00:00.000Z" } },
+        { latest: { fetchedAt: "2026-07-03T06:00:00.000Z" } },
+        { latest: { fetchedAt: null } },
+      ],
+    });
+    expect(out.observedAt).toBe("2026-07-03T06:00:00.000Z");
+    expect(out.records).toHaveLength(3);
+    // No package has ever been fetched -> no witness -> null (stale, honest).
+    const empty = spec.extract({ packages: [{ latest: { fetchedAt: null } }] });
+    expect(empty.observedAt).toBeNull();
+    expect(() => spec.extract({ nope: true })).toThrow();
+  });
+
   it("globe extract reads points[]/polledAt and throws on a shape change", () => {
     const globe = buildProbeSpecs().find((s) => s.id === "globe-events")!;
     const out = globe.extract({
