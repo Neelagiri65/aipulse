@@ -172,32 +172,40 @@ export function DigestEmail({
 
           {/* TL;DR as a stat-chip row — the issue at a glance. */}
           {chips.length > 0 ? (
-            <Section style={styles.chipRow}>
-              <Row>
-                {chips.slice(0, 5).map((chip, i) => {
-                  const m = chip.match(/^(\d+)\s+(.*)$/);
-                  return (
-                    <Column
-                      key={i}
-                      className="ge-chip"
-                      style={{
-                        ...styles.chip,
-                        ...(i === 0 ? {} : { borderLeft: "none" }),
-                      }}
-                    >
-                      <Text className="ge-ink" style={styles.chipNum}>
-                        {m ? m[1] : chip}
-                      </Text>
-                      {m ? (
-                        <Text className="ge-mut" style={styles.chipLabel}>
-                          {m[2]}
-                        </Text>
-                      ) : null}
-                    </Column>
-                  );
-                })}
-              </Row>
-            </Section>
+            <table
+              role="presentation"
+              width="100%"
+              cellPadding={0}
+              cellSpacing={0}
+              style={styles.chipRow}
+            >
+              <tbody>
+                <tr>
+                  {chips.slice(0, 5).map((chip, i) => {
+                    const m = chip.match(/^(\d+)\s+(.*)$/);
+                    return (
+                      <td
+                        key={i}
+                        className="ge-chip"
+                        style={{
+                          ...styles.chip,
+                          ...(i === 0 ? {} : { borderLeft: "none" }),
+                        }}
+                      >
+                        <p className="ge-ink" style={styles.chipNum}>
+                          {m ? m[1] : chip}
+                        </p>
+                        {m ? (
+                          <p className="ge-mut" style={styles.chipLabel}>
+                            {m[2]}
+                          </p>
+                        ) : null}
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tbody>
+            </table>
           ) : null}
 
           {digest.inferences && digest.inferences.length > 0 ? (
@@ -206,42 +214,42 @@ export function DigestEmail({
               style={styles.hero}
               data-testid="digest-inferences"
             >
-              <Text style={styles.heroLabel}>What moved</Text>
-              {digest.inferences.map((line, i) => {
-                const d = deltaDirection(line);
-                return (
-                  <Row key={i} style={styles.heroRow}>
-                    <Column style={styles.heroGlyphCol}>
-                      <Text
-                        className={deltaClass(d)}
-                        style={heroGlyphStyle(d)}
-                      >
-                        {heroGlyph(d)}&nbsp;
-                      </Text>
-                    </Column>
-                    <Column>
-                      <Text className="ge-ink" style={styles.heroLine}>
-                        {(() => {
-                          const parts = splitFirstSignedToken(line);
-                          if (!parts) return line;
-                          return (
-                            <>
-                              {parts.before}
-                              <span
-                                className={deltaClass(parts.direction)}
-                                style={heroTokenStyle(parts.direction)}
-                              >
-                                {parts.token}
-                              </span>
-                              {parts.after}
-                            </>
-                          );
-                        })()}
-                      </Text>
-                    </Column>
-                  </Row>
-                );
-              })}
+              <p style={styles.heroLabel}>What moved</p>
+              <table role="presentation" width="100%" cellPadding={0} cellSpacing={0}>
+                <tbody>
+                  {digest.inferences.map((line, i) => {
+                    const d = deltaDirection(line);
+                    const parts = splitFirstSignedToken(line);
+                    return (
+                      <tr key={i}>
+                        <td style={{ width: 20, verticalAlign: "top" }}>
+                          <p className={deltaClass(d)} style={heroGlyphStyle(d)}>
+                            {heroGlyph(d)}&nbsp;
+                          </p>
+                        </td>
+                        <td>
+                          <p className="ge-ink" style={styles.heroLine}>
+                            {!parts ? (
+                              line
+                            ) : (
+                              <>
+                                {parts.before}
+                                <span
+                                  className={deltaClass(parts.direction)}
+                                  style={heroTokenStyle(parts.direction)}
+                                >
+                                  {parts.token}
+                                </span>
+                                {parts.after}
+                              </>
+                            )}
+                          </p>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </Section>
           ) : null}
 
@@ -315,6 +323,12 @@ function splitDelta(
   return m ? { figure: m[1], unit: m[2] } : null;
 }
 
+/** Per-section render cap. Bounds the email's worst-case size under
+ *  Gmail's ~102KB clip (which would hide the unsubscribe link). Overflow
+ *  is DISCLOSED — an explicit "+K more" line deep-linking to the full
+ *  section — never silently dropped. */
+const MAX_ITEMS_PER_SECTION = 6;
+
 function SectionBlock({
   section,
   baseUrl,
@@ -325,20 +339,22 @@ function SectionBlock({
   date: string;
 }): React.JSX.Element {
   const sectionUrl = `${baseUrl}/digest/${date}#${section.anchorSlug}`;
+  const visible = section.items.slice(0, MAX_ITEMS_PER_SECTION);
+  const overflow = section.items.length - visible.length;
 
   return (
     <Section className="ge-card" style={styles.card}>
-      <Text className="ge-kick" style={styles.kicker}>
+      <p className="ge-kick" style={styles.kicker}>
         {section.title}
-      </Text>
-      <Heading as="h2" className="ge-ink" style={styles.cardHeadline}>
+      </p>
+      <h2 className="ge-ink" style={styles.cardHeadline}>
         {section.headline}
-      </Heading>
-      <Text className="ge-mut" style={styles.whyThisMatters}>
+      </h2>
+      <p className="ge-mut" style={styles.whyThisMatters}>
         <span style={styles.whyThisMattersLabel}>Why this matters</span>
         {" · "}
         {whyThisMatters(section.id)}
-      </Text>
+      </p>
 
       {section.id === "tool-health" ? (
         <Img
@@ -350,34 +366,42 @@ function SectionBlock({
         />
       ) : null}
 
-      {section.items.map((item, i) => (
+      {visible.map((item, i) => (
         <ItemRow
           key={i}
           item={item}
           baseUrl={baseUrl}
-          isLast={i === section.items.length - 1}
+          isLast={i === visible.length - 1 && overflow === 0}
         />
       ))}
+      {overflow > 0 ? (
+        <p className="ge-mut" style={leanStyles.overflow}>
+          {`+${overflow} more in this section · `}
+          <a href={sectionUrl} className="ge-link" style={leanStyles.a}>
+            View all on Gawk →
+          </a>
+        </p>
+      ) : null}
 
-      <Text className="ge-mut" style={styles.sourceLine}>
+      <p className="ge-mut" style={styles.sourceLine}>
         {section.sourceUrls.length > 0 ? (
           <>
             Source:{" "}
             {section.sourceUrls.map((u, i) => (
               <span key={u}>
-                <Link href={u} className="ge-link" style={styles.link}>
+                <a href={u} className="ge-link" style={leanStyles.a}>
                   {displaySource(u)}
-                </Link>
+                </a>
                 {i < section.sourceUrls.length - 1 ? ", " : ""}
               </span>
             ))}
             {" · "}
           </>
         ) : null}
-        <Link href={sectionUrl} className="ge-link" style={styles.link}>
+        <a href={sectionUrl} className="ge-link" style={leanStyles.a}>
           View on Gawk →
-        </Link>
-      </Text>
+        </a>
+      </p>
     </Section>
   );
 }
@@ -395,95 +419,119 @@ function ItemRow({
   const rank = splitRank(item.headline);
   const delta = item.detail ? splitDelta(item.detail) : null;
   const icon = !rank && item.sourceUrl ? faviconUrl(item.sourceUrl) : null;
+  const tx = item.sourceUrl
+    ? deriveTranslateUrl(item.sourceUrl, item.sourceLang)
+    : null;
+  const edge = direction === "up" ? UP : direction === "down" ? DOWN : BORDER;
 
+  // Raw, minimal markup: one table, compact single-string styles. This is
+  // the render hot loop — react-email's Text/Row/Column here cost ~2.5KB
+  // per item and pushed a busy day past Gmail's ~102KB clip (which hides
+  // the unsubscribe link). Verified by the clip-guard test.
   return (
-    <div style={itemStyle(direction, isLast)}>
-      <Row>
-        {icon ? (
-          <Column style={styles.iconCol}>
-            <Img
-              src={icon}
-              width={14}
-              height={14}
-              alt=""
-              style={styles.iconTile}
-            />
-          </Column>
-        ) : null}
-        <Column>
-          <Text className="ge-ink" style={styles.itemHeadline}>
-            {rank ? (
-              <>
-                <span className="ge-rank" style={styles.rankChip}>
-                  {rank.rank}
-                </span>{" "}
-                {rank.rest}
-              </>
-            ) : (
-              item.headline
-            )}
-          </Text>
-          {item.detail && delta ? (
-            <Text className="ge-mut" style={styles.itemUnit}>
-              {delta.unit}
-            </Text>
+    <table
+      role="presentation"
+      width="100%"
+      cellPadding={0}
+      cellSpacing={0}
+      style={{
+        margin: isLast ? "0" : "0 0 4px 0",
+        borderLeft: `3px solid ${edge}`,
+      }}
+    >
+      <tbody>
+        <tr>
+          {icon ? (
+            <td style={{ width: 30, verticalAlign: "top", paddingLeft: 10 }}>
+              <img
+                src={icon}
+                width={14}
+                height={14}
+                alt=""
+                style={{
+                  display: "block",
+                  backgroundColor: SUNK,
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: 4,
+                  padding: 3,
+                }}
+              />
+            </td>
+          ) : (
+            <td style={{ width: 12 }} />
+          )}
+          <td style={{ padding: "6px 0" }}>
+            <p className="ge-ink" style={leanStyles.headline}>
+              {rank ? (
+                <>
+                  <span className="ge-rank" style={leanStyles.rankChip}>
+                    {rank.rank}
+                  </span>{" "}
+                  {rank.rest}
+                </>
+              ) : (
+                item.headline
+              )}
+            </p>
+            {item.detail && delta ? (
+              <p className="ge-mut" style={leanStyles.unit}>
+                {delta.unit}
+              </p>
+            ) : null}
+            {item.detail && !delta ? (
+              <p
+                className={direction === "neutral" ? "ge-mut" : deltaClass(direction)}
+                style={{ ...leanStyles.detail, color: deltaColor(direction) }}
+              >
+                {item.detail}
+              </p>
+            ) : null}
+            {item.sourceUrl || item.panelHref ? (
+              <p style={leanStyles.source}>
+                {item.sourceUrl ? (
+                  <a href={item.sourceUrl} className="ge-link" style={leanStyles.a}>
+                    {item.sourceLabel ?? displaySource(item.sourceUrl)}
+                  </a>
+                ) : null}
+                {tx ? (
+                  <>
+                    {" · "}
+                    <a href={tx} className="ge-link" style={leanStyles.a}>
+                      {TRANSLATE_LABEL}
+                    </a>
+                  </>
+                ) : null}
+                {item.sourceUrl && item.panelHref ? " · " : ""}
+                {item.panelHref ? (
+                  <a
+                    href={`${baseUrl}${item.panelHref}`}
+                    className="ge-link"
+                    style={leanStyles.a}
+                  >
+                    View on Gawk →
+                  </a>
+                ) : null}
+              </p>
+            ) : null}
+            {item.caveat ? (
+              <p className="ge-mut" style={leanStyles.caveat}>
+                {item.caveat}
+              </p>
+            ) : null}
+          </td>
+          {delta ? (
+            <td style={{ width: 96, verticalAlign: "top", textAlign: "right", padding: "6px 0" }}>
+              <p
+                className={deltaClass(direction)}
+                style={{ ...leanStyles.figure, color: deltaColor(direction) }}
+              >
+                {delta.figure}
+              </p>
+            </td>
           ) : null}
-          {item.detail && !delta ? (
-            <Text
-              className={direction === "neutral" ? "ge-mut" : deltaClass(direction)}
-              style={detailInlineStyle(direction)}
-            >
-              {item.detail}
-            </Text>
-          ) : null}
-        </Column>
-        {delta ? (
-          <Column style={styles.deltaCol}>
-            <Text className={deltaClass(direction)} style={deltaFigureStyle(direction)}>
-              {delta.figure}
-            </Text>
-          </Column>
-        ) : null}
-      </Row>
-      {item.sourceUrl || item.panelHref ? (
-        <Text style={styles.itemSource}>
-          {item.sourceUrl ? (
-            <Link href={item.sourceUrl} className="ge-link" style={styles.link}>
-              {item.sourceLabel ?? displaySource(item.sourceUrl)}
-            </Link>
-          ) : null}
-          {(() => {
-            const tx = item.sourceUrl
-              ? deriveTranslateUrl(item.sourceUrl, item.sourceLang)
-              : null;
-            if (!tx) return null;
-            return (
-              <>
-                {" · "}
-                <Link href={tx} className="ge-link" style={styles.link}>
-                  {TRANSLATE_LABEL}
-                </Link>
-              </>
-            );
-          })()}
-          {item.sourceUrl && item.panelHref ? " · " : ""}
-          {item.panelHref ? (
-            <Link
-              href={`${baseUrl}${item.panelHref}`}
-              className="ge-link"
-              style={styles.link}
-            >
-              View on Gawk →
-            </Link>
-          ) : null}
-        </Text>
-      ) : null}
-      {item.caveat ? (
-        <Text className="ge-mut" style={styles.itemCaveat}>
-          {item.caveat}
-        </Text>
-      ) : null}
-    </div>
+        </tr>
+      </tbody>
+    </table>
   );
 }
 
@@ -521,12 +569,9 @@ export async function renderDigestHtml(
 /** Nativerse type system (BRAND-BIBLE §15): Sentient display, Supreme
  *  text, Tabular mono — each with the bible's own fallback stack, so
  *  clients that strip webfonts (Gmail) degrade to the brand fallbacks. */
-const DISPLAY =
-  'Sentient, "Iowan Old Style", Palatino, Georgia, serif';
-const SANS =
-  'Supreme, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif';
-const MONO =
-  'Tabular, ui-monospace, "SF Mono", Menlo, Consolas, monospace';
+const DISPLAY = "Sentient,Georgia,serif";
+const SANS = "Supreme,-apple-system,Segoe UI,Arial,sans-serif";
+const MONO = "Tabular,ui-monospace,Menlo,monospace";
 
 /** Nativerse palette (BRAND-BIBLE §14). Status colours carry data
  *  direction; royal blue is the ONLY accent. */
@@ -567,13 +612,7 @@ function heroTokenStyle(d: DeltaDirection): React.CSSProperties {
   };
 }
 
-function itemStyle(d: DeltaDirection, isLast: boolean): React.CSSProperties {
-  return {
-    padding: "8px 0 8px 12px",
-    margin: isLast ? "0" : "0 0 4px 0",
-    borderLeft: `3px solid ${d === "up" ? UP : d === "down" ? DOWN : BORDER}`,
-  };
-}
+
 function deltaFigureStyle(d: DeltaDirection): React.CSSProperties {
   return {
     fontFamily: MONO,
@@ -595,6 +634,28 @@ function detailInlineStyle(d: DeltaDirection): React.CSSProperties {
     margin: "2px 0 0 0",
   };
 }
+
+/** Compact single-object styles for the item hot loop. */
+const leanStyles: Record<string, React.CSSProperties> = {
+  headline: { fontSize: 14, lineHeight: "20px", fontWeight: 500, color: INK, margin: 0 },
+  unit: { fontFamily: MONO, fontSize: 11, lineHeight: "16px", color: MUT, margin: "2px 0 0" },
+  detail: { fontFamily: MONO, fontSize: 12, lineHeight: "18px", fontWeight: 500, margin: "2px 0 0" },
+  figure: { fontFamily: MONO, fontSize: 17, lineHeight: "22px", fontWeight: 700, margin: 0, whiteSpace: "nowrap" },
+  source: { fontSize: 11, lineHeight: "16px", margin: "3px 0 0" },
+  caveat: { fontSize: 11, lineHeight: "15px", color: MUT, fontStyle: "italic", margin: "3px 0 0" },
+  rankChip: {
+    display: "inline-block", fontFamily: MONO, fontSize: 12, fontWeight: 500,
+    color: INK, backgroundColor: SUNK, border: `1px solid ${BORDER}`,
+    borderRadius: 2, padding: "1px 6px",
+  },
+  a: { color: BRAND, textDecoration: "none" },
+  overflow: {
+    fontSize: 12,
+    lineHeight: "17px",
+    color: MUT,
+    margin: "6px 0 0 12px",
+  },
+};
 
 const styles: Record<string, React.CSSProperties> = {
   body: {
