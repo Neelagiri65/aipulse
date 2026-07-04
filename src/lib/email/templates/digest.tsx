@@ -1,5 +1,14 @@
 /**
- * Daily-digest email template — Direction A v2, "Editorial Data-Journalism".
+ * Daily-digest email template — Direction A v3, Nativerse brand system.
+ *
+ * v3 applies the canonical Nativerse Brand Bible (~/nativerse-site/brand/
+ * BRAND-BIBLE.md, "warm technical"): GAWK is the live-telemetry track of a
+ * branded house, so the digest is an endorsed sub-brand — "GAWK, by
+ * nativerse". Warm paper #FAFAF6 ground, ink #16160F, ONE accent (royal
+ * blue #2A33C2), Sentient 500 for display (Fontshare link with the
+ * bible's own fallbacks — Gmail falls back gracefully, Apple Mail gets
+ * the real face), Tabular mono kickers at 0.18em, brand status colours
+ * for data direction, hairlines #E7E6DE, small radii.
  *
  * v2 after founder review of v1 ("mediocre"): the difference between a
  * styled list and a data product is STRUCTURE — numbers live in their own
@@ -65,31 +74,31 @@ export type DigestEmailProps = {
 /** Dark-palette overrides, class-based so they can beat inline styles. */
 const DARK_CSS = `
   @media (prefers-color-scheme: dark) {
-    .ge-body { background-color: #0B0F17 !important; }
-    .ge-card { background-color: #111827 !important; border-color: #232B36 !important; }
-    .ge-hero { background-color: #0E1520 !important; border-color: #232B36 !important; }
-    .ge-chip { background-color: #0E1520 !important; border-color: #232B36 !important; }
-    .ge-ink { color: #E7EBF0 !important; }
-    .ge-mut { color: #94A3B8 !important; }
-    .ge-kick { color: #7C8DA5 !important; }
-    .ge-up { color: #4ADE80 !important; }
-    .ge-down { color: #F87171 !important; }
-    .ge-link { color: #7DD3FC !important; }
-    .ge-brand { color: #2DD4BF !important; }
-    .ge-rank { background-color: #1E293B !important; color: #E7EBF0 !important; }
+    .ge-body { background-color: #16160F !important; }
+    .ge-card { background-color: #1E1E16 !important; border-color: #34342A !important; }
+    .ge-hero { background-color: #1B1B13 !important; border-color: #34342A !important; }
+    .ge-chip { background-color: #1E1E16 !important; border-color: #34342A !important; }
+    .ge-ink { color: #FAFAF6 !important; }
+    .ge-mut { color: #A3A396 !important; }
+    .ge-kick { color: #8C8C7E !important; }
+    .ge-up { color: #4CAF6E !important; }
+    .ge-down { color: #E06052 !important; }
+    .ge-link { color: #9AA3FF !important; }
+    .ge-brand { color: #9AA3FF !important; }
+    .ge-rank { background-color: #2A2A20 !important; color: #FAFAF6 !important; }
   }
-  [data-ogsc] .ge-body { background-color: #0B0F17 !important; }
-  [data-ogsc] .ge-card { background-color: #111827 !important; border-color: #232B36 !important; }
-  [data-ogsc] .ge-hero { background-color: #0E1520 !important; border-color: #232B36 !important; }
-  [data-ogsc] .ge-chip { background-color: #0E1520 !important; border-color: #232B36 !important; }
-  [data-ogsc] .ge-ink { color: #E7EBF0 !important; }
-  [data-ogsc] .ge-mut { color: #94A3B8 !important; }
-  [data-ogsc] .ge-kick { color: #7C8DA5 !important; }
-  [data-ogsc] .ge-up { color: #4ADE80 !important; }
-  [data-ogsc] .ge-down { color: #F87171 !important; }
-  [data-ogsc] .ge-link { color: #7DD3FC !important; }
-  [data-ogsc] .ge-brand { color: #2DD4BF !important; }
-  [data-ogsc] .ge-rank { background-color: #1E293B !important; color: #E7EBF0 !important; }
+  [data-ogsc] .ge-body { background-color: #16160F !important; }
+  [data-ogsc] .ge-card { background-color: #1E1E16 !important; border-color: #34342A !important; }
+  [data-ogsc] .ge-hero { background-color: #1B1B13 !important; border-color: #34342A !important; }
+  [data-ogsc] .ge-chip { background-color: #1E1E16 !important; border-color: #34342A !important; }
+  [data-ogsc] .ge-ink { color: #FAFAF6 !important; }
+  [data-ogsc] .ge-mut { color: #A3A396 !important; }
+  [data-ogsc] .ge-kick { color: #8C8C7E !important; }
+  [data-ogsc] .ge-up { color: #4CAF6E !important; }
+  [data-ogsc] .ge-down { color: #E06052 !important; }
+  [data-ogsc] .ge-link { color: #9AA3FF !important; }
+  [data-ogsc] .ge-brand { color: #9AA3FF !important; }
+  [data-ogsc] .ge-rank { background-color: #2A2A20 !important; color: #FAFAF6 !important; }
 `;
 
 export function DigestEmail({
@@ -117,6 +126,11 @@ export function DigestEmail({
   return (
     <Html>
       <Head>
+        <link rel="preconnect" href="https://api.fontshare.com" />
+        <link
+          rel="stylesheet"
+          href="https://api.fontshare.com/v2/css?f[]=sentient@400,500,700&f[]=supreme@400,500,600&f[]=tabular@400,500&display=swap"
+        />
         <meta name="color-scheme" content="light dark" />
         <meta name="supported-color-schemes" content="light dark" />
         <style>{DARK_CSS}</style>
@@ -128,8 +142,10 @@ export function DigestEmail({
           <Section style={styles.band}>
             <Row>
               <Column>
-                <Text style={styles.bandBrand}>GAWK</Text>
-                <Text style={styles.bandSub}>the AI ecosystem · verbatim</Text>
+                <Text style={styles.bandKicker}>LIVE TELEMETRY</Text>
+                <Text style={styles.bandBrand}>
+                  GAWK<span style={styles.bandBy}> by nativerse</span>
+                </Text>
               </Column>
               <Column style={styles.bandRight}>
                 <Text style={styles.bandLive}>
@@ -239,8 +255,9 @@ export function DigestEmail({
           </Section>
 
           <Text className="ge-mut" style={styles.footer}>
-            You&rsquo;re receiving this because you subscribed to the AI
-            Pulse daily digest. Every number traces to a public source.{" "}
+            GAWK is the live-telemetry track of Nativerse. Clarity. Trust.
+            You&rsquo;re receiving this because you subscribed to the daily
+            digest. Every number traces to a public source.{" "}
             <Link
               href={`${baseUrl}/privacy`}
               className="ge-link"
@@ -468,17 +485,27 @@ export async function renderDigestHtml(
 // Styles — light palette inline (base); dark palette via DARK_CSS classes.
 // ---------------------------------------------------------------------------
 
+/** Nativerse type system (BRAND-BIBLE §15): Sentient display, Supreme
+ *  text, Tabular mono — each with the bible's own fallback stack, so
+ *  clients that strip webfonts (Gmail) degrade to the brand fallbacks. */
+const DISPLAY =
+  'Sentient, "Iowan Old Style", Palatino, Georgia, serif';
 const SANS =
-  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  'Supreme, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif';
 const MONO =
-  '"SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
+  'Tabular, ui-monospace, "SF Mono", Menlo, Consolas, monospace';
 
-const UP = "#15803D";
-const DOWN = "#B91C1C";
-const INK = "#111827";
-const MUT = "#64748B";
-const BORDER = "#E2E8F0";
-const BRAND = "#0F766E";
+/** Nativerse palette (BRAND-BIBLE §14). Status colours carry data
+ *  direction; royal blue is the ONLY accent. */
+const UP = "#157A40";
+const DOWN = "#C0392B";
+const INK = "#16160F";
+const BODY = "#3A3A30";
+const MUT = "#6B6B5E";
+const BORDER = "#E7E6DE";
+const BRAND = "#2A33C2";
+const PAPER = "#FAFAF6";
+const SUNK = "#F2F1EA";
 
 function deltaClass(d: DeltaDirection): string {
   return d === "up" ? "ge-up" : d === "down" ? "ge-down" : "ge-mut";
@@ -530,7 +557,7 @@ function detailInlineStyle(d: DeltaDirection): React.CSSProperties {
 
 const styles: Record<string, React.CSSProperties> = {
   body: {
-    backgroundColor: "#EEF1F5",
+    backgroundColor: PAPER,
     color: INK,
     margin: 0,
     fontFamily: SANS,
@@ -541,8 +568,8 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "0 0 24px 0",
   },
   band: {
-    backgroundColor: "#0B1220",
-    borderRadius: "12px 12px 0 0",
+    backgroundColor: INK,
+    borderRadius: "8px 8px 0 0",
     padding: "18px 24px 14px 24px",
   },
   bandRule: {
@@ -552,19 +579,29 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0px",
     margin: 0,
   },
-  bandBrand: {
-    fontFamily: SANS,
-    fontSize: "20px",
-    fontWeight: 800,
+  bandKicker: {
+    fontFamily: MONO,
+    fontSize: "10px",
+    fontWeight: 500,
     letterSpacing: "0.18em",
-    color: "#FFFFFF",
+    textTransform: "uppercase" as const,
+    color: "#9AA3FF",
+    margin: "0 0 3px 0",
+  },
+  bandBrand: {
+    fontFamily: DISPLAY,
+    fontSize: "24px",
+    fontWeight: 500,
+    letterSpacing: "-0.018em",
+    color: "#FAFAF6",
     margin: 0,
   },
-  bandSub: {
-    fontSize: "11px",
-    letterSpacing: "0.04em",
-    color: "#7C8DA5",
-    margin: "2px 0 0 0",
+  bandBy: {
+    fontFamily: DISPLAY,
+    fontSize: "14px",
+    fontWeight: 400,
+    letterSpacing: "0em",
+    color: "#A3A396",
   },
   bandRight: {
     textAlign: "right" as const,
@@ -574,29 +611,30 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: MONO,
     fontSize: "10px",
     letterSpacing: "0.14em",
-    color: "#94A3B8",
+    color: "#A3A396",
     margin: 0,
   },
-  liveDot: { color: "#2DD4BF" },
+  liveDot: { color: "#9AA3FF" },
   bandDate: {
     fontFamily: MONO,
     fontSize: "13px",
-    fontWeight: 600,
-    color: "#E7EBF0",
+    fontWeight: 500,
+    color: "#FAFAF6",
     margin: "3px 0 0 0",
   },
   h1: {
-    fontSize: "24px",
-    fontWeight: 700,
-    letterSpacing: "-0.01em",
-    lineHeight: "30px",
+    fontFamily: DISPLAY,
+    fontSize: "26px",
+    fontWeight: 500,
+    letterSpacing: "-0.018em",
+    lineHeight: "32px",
     color: INK,
     margin: "22px 24px 10px 24px",
   },
   greeting: {
     fontSize: "14px",
     lineHeight: "22px",
-    color: MUT,
+    color: BODY,
     margin: "0 24px 8px 24px",
   },
   chipRow: {
@@ -626,10 +664,10 @@ const styles: Record<string, React.CSSProperties> = {
   hero: {
     margin: "12px 24px 4px 24px",
     padding: "14px 16px",
-    backgroundColor: "#F7FAF9",
+    backgroundColor: SUNK,
     border: `1px solid ${BORDER}`,
     borderLeft: `3px solid ${BRAND}`,
-    borderRadius: "8px",
+    borderRadius: "4px",
   },
   heroLabel: {
     fontFamily: MONO,
@@ -654,7 +692,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "16px 18px",
     backgroundColor: "#FFFFFF",
     border: `1px solid ${BORDER}`,
-    borderRadius: "10px",
+    borderRadius: "8px",
   },
   kicker: {
     fontFamily: MONO,
@@ -674,9 +712,11 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
   },
   cardHeadline: {
-    fontSize: "16px",
-    fontWeight: 650,
-    lineHeight: "22px",
+    fontFamily: DISPLAY,
+    fontSize: "18px",
+    fontWeight: 500,
+    letterSpacing: "-0.008em",
+    lineHeight: "24px",
     color: INK,
     margin: "6px 0 6px 0",
   },
@@ -697,7 +737,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: "auto",
     margin: "0 0 12px 0",
     border: `1px solid ${BORDER}`,
-    borderRadius: "6px",
+    borderRadius: "4px",
   },
   itemHeadline: {
     fontSize: "14px",
@@ -710,11 +750,11 @@ const styles: Record<string, React.CSSProperties> = {
     display: "inline-block",
     fontFamily: MONO,
     fontSize: "12px",
-    fontWeight: 700,
+    fontWeight: 500,
     color: INK,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: SUNK,
     border: `1px solid ${BORDER}`,
-    borderRadius: "4px",
+    borderRadius: "2px",
     padding: "1px 6px",
   },
   itemUnit: {
@@ -753,10 +793,10 @@ const styles: Record<string, React.CSSProperties> = {
     display: "inline-block",
     padding: "11px 20px",
     fontSize: "14px",
-    fontWeight: 600,
+    fontWeight: 500,
     color: "#FFFFFF",
     backgroundColor: BRAND,
-    borderRadius: "8px",
+    borderRadius: "4px",
     textDecoration: "none",
   },
   shareRow: {
@@ -770,7 +810,7 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: "18px",
     margin: "20px 24px 0 24px",
   },
-  link: { color: "#0369A1" },
+  link: { color: BRAND },
 };
 
 export default DigestEmail;
