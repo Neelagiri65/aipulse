@@ -29,6 +29,7 @@
 import { NextResponse } from "next/server";
 import { runRegistryDiscovery } from "@/lib/data/registry-discovery";
 import { writeCronHealth } from "@/lib/data/cron-health";
+import { isDiscoverTotalFailure } from "@/lib/data/registry-discovery";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -78,12 +79,22 @@ export async function POST(request: Request) {
     await writeCronHealth("registry-discover", { ok: false, error: msg });
     throw e;
   }
-  await writeCronHealth("registry-discover", {
-    ok: true,
-    itemsProcessed: result.written,
-  });
+  // Unified success contract: one verdict feeds BOTH the beacon and the
+  // HTTP ok, so the workflow log and cron-health can never disagree. A
+  // dead GH_TOKEN 401-ing every search kind (2026-07-04 outage) goes
+  // loud instead of green-with-zero.
+  const totalFailure = isDiscoverTotalFailure(result);
+  await writeCronHealth(
+    "registry-discover",
+    totalFailure
+      ? {
+          ok: false,
+          error: result.failures[0]?.message ?? "sweep delivered nothing",
+        }
+      : { ok: true, itemsProcessed: result.written },
+  );
 
-  return NextResponse.json({ ok: true, result });
+  return NextResponse.json({ ok: !totalFailure, result });
 }
 
 export async function GET(request: Request) {

@@ -39,6 +39,7 @@ import {
   type RegistryMeta,
 } from "./repo-registry";
 import { verifyConfigFile } from "./config-verifier";
+import { isTotalFailure } from "./success-contract";
 import { resolveOwnerLocation } from "./owner-location";
 
 const ALL_KINDS: ConfigKind[] = Object.keys(CONFIG_PATHS) as ConfigKind[];
@@ -61,6 +62,12 @@ export type DiscoverOptions = {
 };
 
 export type DiscoverResult = {
+  /** Search kinds that completed without recording ANY failure. Feeds the
+   *  unified success contract: all-kinds-failed + zero candidates = the
+   *  run attempted work and delivered nothing (e.g. a dead GH_TOKEN
+   *  401-ing every search) and must go loud, while one flaky kind or a
+   *  genuinely quiet sweep stays green. */
+  searchesCompleted: number;
   candidatesFound: number;
   candidatesDeduped: number;
   verifiesAttempted: number;
@@ -68,6 +75,29 @@ export type DiscoverResult = {
   written: number;
   failures: Array<{ step: string; message: string }>;
 };
+
+/**
+ * Unified-success-contract verdict for a discovery run (pure — the route
+ * uses it for BOTH the cron-health beacon and the HTTP `ok`, so the two
+ * can never disagree the way globe-ingest's did during the 2026-07-04
+ * GH_TOKEN outage).
+ *
+ * "Delivered" = at least one search kind completed cleanly, OR candidates
+ * were found despite partial page failures. Total failure = the run
+ * attempted the sweep and got NOTHING with failures on record — a dead
+ * token 401-ing all six kinds goes loud; a quiet sweep (all kinds clean,
+ * zero candidates) and a single flaky kind stay green (no cry-wolf).
+ */
+export function isDiscoverTotalFailure(
+  result: Pick<
+    DiscoverResult,
+    "searchesCompleted" | "candidatesFound" | "failures"
+  >,
+): boolean {
+  const delivered =
+    result.searchesCompleted + (result.candidatesFound > 0 ? 1 : 0);
+  return isTotalFailure({ delivered, failures: result.failures.length });
+}
 
 type Candidate = {
   fullName: string;
@@ -121,9 +151,11 @@ export async function runRegistryDiscovery(
   const recordFailure = (step: string, message: string) => {
     failures.push({ step, message });
   };
+  let searchesCompleted = 0;
   for (let i = 0; i < kinds.length; i++) {
     const kind = kinds[i];
     if (i > 0) await delay(10000);
+    const failuresBefore = failures.length;
     try {
       const found = await searchCodeByFilename(
         kind,
@@ -136,6 +168,9 @@ export async function runRegistryDiscovery(
     } catch (err) {
       recordFailure(`search:${kind}`, (err as Error).message);
     }
+    // Clean completion = the sweep for this kind recorded no failure
+    // (searchCodeByFilename records page-level failures without throwing).
+    if (failures.length === failuresBefore) searchesCompleted += 1;
   }
 
   // 2. Dedupe by fullName + path. Same repo with the same file across
@@ -261,6 +296,7 @@ export async function runRegistryDiscovery(
   await writeMeta(finalMeta);
 
   return {
+    searchesCompleted,
     candidatesFound: allCandidates.length,
     candidatesDeduped: deduped.length,
     verifiesAttempted,
@@ -433,6 +469,7 @@ function emptyResult(
   failures: Array<{ step: string; message: string }>,
 ): DiscoverResult {
   return {
+    searchesCompleted: 0,
     candidatesFound: 0,
     candidatesDeduped: 0,
     verifiesAttempted: 0,
