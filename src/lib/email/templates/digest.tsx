@@ -56,6 +56,7 @@ import {
 } from "@/lib/email/delta";
 import { renderGreeting } from "@/lib/email/greeting";
 import { buildShareUrl, composeShareText } from "@/lib/email/share-urls";
+import { markPngFor } from "@/lib/digest/marks";
 import { deriveTranslateUrl, TRANSLATE_LABEL } from "@/lib/i18n/translate-link";
 import { whyThisMatters } from "@/lib/digest/why-this-matters";
 
@@ -147,8 +148,20 @@ export function DigestEmail({
             <Row>
               <Column>
                 <Text style={styles.bandKicker}>LIVE TELEMETRY</Text>
-                <Text style={styles.bandBrand}>
-                  GAWK<span style={styles.bandBy}> by nativerse</span>
+                <Text style={styles.bandBrand}>GAWK</Text>
+                <Text style={styles.bandBy}>
+                  <Img
+                    src={`${baseUrl}/brand/nativerse-mark.png`}
+                    width={16}
+                    height={16}
+                    alt="Nativerse"
+                    style={{
+                      display: "inline-block",
+                      verticalAlign: "middle",
+                      marginRight: "6px",
+                    }}
+                  />
+                  by nativerse
                 </Text>
               </Column>
               <Column style={styles.bandRight}>
@@ -418,7 +431,12 @@ function ItemRow({
   const direction = deltaDirection(item.detail, item.headline);
   const rank = splitRank(item.headline);
   const delta = item.detail ? splitDelta(item.detail) : null;
-  const icon = !rank && item.sourceUrl ? faviconUrl(item.sourceUrl) : null;
+  // Strict monochrome (founder rule): only the pre-rendered charcoal
+  // marks, served absolute from gawk.dev; no colour favicon fallback.
+  const iconPath = !rank
+    ? markPngFor(item.sourceLabel, item.headline, item.sourceUrl)
+    : null;
+  const icon = iconPath ? `${baseUrl}${iconPath}` : null;
   const tx = item.sourceUrl
     ? deriveTranslateUrl(item.sourceUrl, item.sourceLang)
     : null;
@@ -533,19 +551,6 @@ function ItemRow({
       </tbody>
     </table>
   );
-}
-
-/** Favicon for an item's source domain, shown in a warm-paper tile.
- *  The tile stays LIGHT in dark mode deliberately (BRAND-BIBLE §13's
- *  paper-tile rule): dark marks (GitHub, Anthropic) remain visible on
- *  dark backgrounds without maintaining inverted logo variants. */
-function faviconUrl(sourceUrl: string): string | null {
-  try {
-    const host = new URL(sourceUrl).hostname;
-    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
-  } catch {
-    return null;
-  }
 }
 
 function displaySource(url: string): string {
@@ -691,19 +696,19 @@ const styles: Record<string, React.CSSProperties> = {
     margin: "0 0 3px 0",
   },
   bandBrand: {
-    fontFamily: DISPLAY,
+    fontFamily: MONO,
     fontSize: "24px",
     fontWeight: 500,
-    letterSpacing: "-0.018em",
+    letterSpacing: "0.16em",
     color: "#FAFAF6",
     margin: 0,
   },
   bandBy: {
     fontFamily: DISPLAY,
-    fontSize: "14px",
+    fontSize: "13px",
     fontWeight: 400,
-    letterSpacing: "0em",
     color: "#A3A396",
+    margin: "4px 0 0 0",
   },
   bandRight: {
     textAlign: "right" as const,
