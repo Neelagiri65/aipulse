@@ -118,6 +118,31 @@ async function fetchEventsPage(
   return (await res.json()) as GitHubEvent[];
 }
 
+/**
+ * Complete recent public events for ONE repo (newest first). Unlike the
+ * global /events firehose — which GitHub exposes as a heavily sampled
+ * rolling window — the per-repo endpoint returns every public event for
+ * that repo (last ~300 / 90 days). Used by the tracked-repos source so a
+ * curated repo's activity is guaranteed on the map within one poll.
+ */
+export async function fetchRepoEvents(
+  fullName: string,
+): Promise<GitHubEvent[]> {
+  const token = requireToken();
+  const [owner, repo] = fullName.split("/");
+  const res = await fetch(
+    `${GITHUB_BASE}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/events?per_page=100`,
+    {
+      headers: authHeaders(token),
+      next: { revalidate: 30, tags: [`gh-repo-events:${fullName}`] },
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`repo events ${fullName} returned ${res.status}`);
+  }
+  return (await res.json()) as GitHubEvent[];
+}
+
 export async function fetchUser(login: string): Promise<GitHubUser | null> {
   const token = requireToken();
   const res = await fetch(`${GITHUB_BASE}/users/${encodeURIComponent(login)}`, {
