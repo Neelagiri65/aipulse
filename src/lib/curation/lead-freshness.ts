@@ -55,6 +55,52 @@ export type LeadRotation<T> = {
 };
 
 /**
+ * Script-level rotation — the TITLE chokepoint. The video title is
+ * stories[0].headline (video-metadata.ts), and generate-daily-script
+ * unconditionally pins a leaderboard "hook" first — which is exactly
+ * how six identical "DeepSeek holds #1" titles shipped: the hook
+ * headline repeats whenever the leader is unchanged, regardless of
+ * curation order (the first version of this gate targeted curation and
+ * was proven ineffective by the 2026-07-05 proof run). Rotates stories
+ * AND their narration entries in tandem; narration entries whose id has
+ * no matching story (intro/outro) keep their positions — first pinned
+ * stays first, remaining pinned go last.
+ */
+export function rotateScriptForFreshness<
+  S extends { id: string; headline: string },
+  N extends { id: string },
+>(
+  stories: S[],
+  narrations: N[],
+  recentLeadTitles: string[],
+  maxConsecutiveDays: number = LEAD_MAX_CONSECUTIVE_DAYS,
+): { stories: S[]; narrations: N[]; rotated: boolean; reason: string } {
+  const rotation = rotateLeadForFreshness(
+    stories,
+    recentLeadTitles,
+    maxConsecutiveDays,
+  );
+  if (!rotation.rotated) {
+    return { stories, narrations, rotated: false, reason: rotation.reason };
+  }
+  const order = new Map(rotation.narratives.map((s, i) => [s.id, i]));
+  const storyNarrs = narrations
+    .filter((n) => order.has(n.id))
+    .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+  const pinned = narrations.filter((n) => !order.has(n.id));
+  return {
+    stories: rotation.narratives,
+    narrations: [
+      ...(pinned.length > 0 ? [pinned[0]] : []),
+      ...storyNarrs,
+      ...pinned.slice(1),
+    ],
+    rotated: true,
+    reason: rotation.reason,
+  };
+}
+
+/**
  * @param narratives ranked narratives, best first (order otherwise preserved)
  * @param recentLeadTitles previous days' video titles, NEWEST FIRST
  *   (straight from upload-log; the Gawk Daily suffix is handled here)
