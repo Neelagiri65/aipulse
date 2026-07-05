@@ -32,15 +32,26 @@ const STATUS_LABEL: Record<string, string> = {
   unknown: "Unknown",
 };
 
+// Real, verified status pages (same upstreams the ingest polls in
+// fetch-status.ts — single source of truth). An unknown tool returns
+// undefined: the digest OMITS the source rather than inventing a domain.
+// The old fallback `https://status.${toolId}.com/` fabricated dead links
+// (status.codex.com, status.copilot.com — verified non-resolving) which
+// shipped live to subscribers, a trust-contract breach.
 const TOOL_STATUS_PAGES: Record<string, string> = {
+  "claude-code": "https://status.claude.com/",
+  anthropic: "https://status.claude.com/",
+  "openai-api": "https://status.openai.com/",
+  codex: "https://status.openai.com/",
   openai: "https://status.openai.com/",
-  anthropic: "https://status.anthropic.com/",
+  copilot: "https://www.githubstatus.com/",
   github: "https://www.githubstatus.com/",
+  windsurf: "https://status.windsurf.com/",
   npm: "https://status.npmjs.org/",
 };
 
-function statusPageFor(toolId: string): string {
-  return TOOL_STATUS_PAGES[toolId] ?? `https://status.${toolId}.com/`;
+export function statusPageFor(toolId: string): string | undefined {
+  return TOOL_STATUS_PAGES[toolId];
 }
 
 function formatTimeUtc(iso: string): string | null {
@@ -124,7 +135,8 @@ export function composeToolHealthSection(
           sourceLabel: "Statuspage",
           sourceUrl: statusPageFor(today.id),
         });
-        sourceUrls.add(statusPageFor(today.id));
+        const tp = statusPageFor(today.id);
+        if (tp) sourceUrls.add(tp);
       }
     }
   }
@@ -145,7 +157,8 @@ export function composeToolHealthSection(
         sourceLabel: "Statuspage",
         sourceUrl: statusPageFor(t.id),
       });
-      sourceUrls.add(statusPageFor(t.id));
+      const tp = statusPageFor(t.id);
+      if (tp) sourceUrls.add(tp);
     }
   }
 
