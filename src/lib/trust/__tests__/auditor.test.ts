@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { auditServedOutput } from "@/lib/trust/auditor";
+import { auditServedOutput, type FeedCardLike } from "@/lib/trust/auditor";
 
 const NOW = Date.parse("2026-07-05T12:00:00Z");
 const FRESH = "2026-07-05T11:30:00Z";
@@ -74,5 +74,81 @@ describe("auditServedOutput — Layer B live invariants", () => {
       modelUsage: { ordering: "catalogue-fallback", generatedAt: FRESH, rows: [] },
     });
     expect(r.findings.some((f) => f.feed === "model-usage" && f.invariant === "real")).toBe(false);
+  });
+
+  describe("per-card freshness (deriver-window types only)", () => {
+    const feedOf = (cards: FeedCardLike[]) => ({ lastComputed: FRESH, cards });
+
+    it("catches the frozen-ingest class: a month-old RESEARCH card served as newest", () => {
+      const r = auditServedOutput({
+        now: NOW,
+        feed: feedOf([
+          { type: "RESEARCH", sourceUrl: "https://arxiv.org/abs/2406.00001", timestamp: "2026-06-05T12:00:00Z" },
+        ]),
+      });
+      expect(
+        r.findings.some((f) => f.feed === "feed" && f.invariant === "fresh" && f.sample.startsWith("RESEARCH")),
+      ).toBe(true);
+    });
+
+    it("a 6-day RESEARCH card is within the 7d deriver window + slack — clean", () => {
+      const r = auditServedOutput({
+        now: NOW,
+        feed: feedOf([
+          { type: "RESEARCH", sourceUrl: "https://arxiv.org/abs/2406.00002", timestamp: "2026-06-29T12:00:00Z" },
+        ]),
+      });
+      expect(r.findings).toEqual([]);
+    });
+
+    it("catches a 3-day NEWS card (12h window + slack exceeded)", () => {
+      const r = auditServedOutput({
+        now: NOW,
+        feed: feedOf([
+          { type: "NEWS", sourceUrl: "https://news.ycombinator.com/item?id=1", timestamp: "2026-07-02T12:00:00Z" },
+        ]),
+      });
+      expect(r.findings.some((f) => f.invariant === "fresh" && f.sample.startsWith("NEWS"))).toBe(true);
+    });
+
+    it("a 20h NEWS card (reddit 12h window, feed up to 12h behind) — clean", () => {
+      const r = auditServedOutput({
+        now: NOW,
+        feed: feedOf([
+          { type: "NEWS", sourceUrl: "https://reddit.com/r/x/comments/1", timestamp: "2026-07-04T16:00:00Z" },
+        ]),
+      });
+      expect(r.findings).toEqual([]);
+    });
+
+    it("PRODUCT_LAUNCH is a ranking feed — a 6-day-old entry is NOT staleness", () => {
+      const r = auditServedOutput({
+        now: NOW,
+        feed: feedOf([
+          { type: "PRODUCT_LAUNCH", sourceUrl: "https://www.producthunt.com/posts/x", timestamp: "2026-06-29T12:00:00Z" },
+        ]),
+      });
+      expect(r.findings).toEqual([]);
+    });
+
+    it("types with no deriver-declared window are skipped, never defaulted", () => {
+      const r = auditServedOutput({
+        now: NOW,
+        feed: feedOf([
+          { type: "MODEL_MOVER", sourceUrl: "https://openrouter.ai/rankings", timestamp: "2026-06-20T12:00:00Z" },
+        ]),
+      });
+      expect(r.findings).toEqual([]);
+    });
+
+    it("a gated type with NO timestamp is a violation (freshness unverifiable)", () => {
+      const r = auditServedOutput({
+        now: NOW,
+        feed: feedOf([{ type: "RESEARCH", sourceUrl: "https://arxiv.org/abs/2406.00003" }]),
+      });
+      expect(
+        r.findings.some((f) => f.invariant === "fresh" && f.detail.includes("unverifiable")),
+      ).toBe(true);
+    });
   });
 });
