@@ -20,8 +20,15 @@ const MARK_RULES: Array<{ pattern: RegExp; mark: string }> = [
   { pattern: /ollama/i, mark: "ollama.svg" },
   { pattern: /meta\b|llama/i, mark: "meta.svg" },
   { pattern: /mistral/i, mark: "mistralai.svg" },
-  { pattern: /gemini|deepmind/i, mark: "googlegemini.svg" },
+  { pattern: /gemini|deepmind|google/i, mark: "googlegemini.svg" },
+  // Map by owning platform to a mark we actually have:
+  { pattern: /codex/i, mark: "openai.svg" },
+  { pattern: /copilot/i, mark: "github.svg" },
 ];
+
+/** Neutral fallback mark (a plain repo/box glyph) so a tile/row is NEVER
+ *  blank — an empty icon reads as broken. Used when no brand mark matches. */
+export const FALLBACK_MARK = "/marks/generic.svg";
 
 /** Resolve a self-hosted mark path ("/marks/x.svg") or null. */
 export function markFor(
@@ -36,6 +43,12 @@ export function markFor(
   return null;
 }
 
+/** Like markFor but never null — falls back to the neutral generic mark
+ *  so no surface renders a blank icon. */
+export function markOrFallback(...texts: Array<string | undefined>): string {
+  return markFor(...texts) ?? FALLBACK_MARK;
+}
+
 /** PNG variant of a mark path for email surfaces — Gmail blocks SVG in
  *  <img>, so email uses the pre-rendered 48px charcoal PNGs. Strict
  *  monochrome: email has NO favicon fallback (CSS filters are stripped
@@ -43,9 +56,9 @@ export function markFor(
  *  markless items render without an icon. */
 export function markPngFor(
   ...texts: Array<string | undefined>
-): string | null {
-  const svg = markFor(...texts);
-  return svg ? svg.replace("/marks/", "/marks/png/").replace(".svg", ".png") : null;
+): string {
+  const svg = markFor(...texts) ?? FALLBACK_MARK;
+  return svg.replace("/marks/", "/marks/png/").replace(".svg", ".png");
 }
 
 /** Favicon fallback for sources without a mark. Null on unparsable URLs. */
