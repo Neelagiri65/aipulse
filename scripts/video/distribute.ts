@@ -6,7 +6,7 @@
  *
  * Usage:
  *   npx tsx scripts/video/distribute.ts
- *   npx tsx scripts/video/distribute.ts --platforms youtube,instagram,facebook,tiktok
+ *   npx tsx scripts/video/distribute.ts --platforms youtube,instagram,tiktok
  *   npx tsx scripts/video/distribute.ts --dry-run
  */
 
@@ -18,7 +18,7 @@ const ROOT = process.cwd();
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes("--dry-run");
 
-const ALL_PLATFORMS = ["youtube", "instagram", "facebook", "tiktok", "discord"] as const;
+const ALL_PLATFORMS = ["youtube", "instagram", "tiktok", "discord"] as const;
 type Platform = typeof ALL_PLATFORMS[number];
 
 function getArg(flag: string, fallback: string): string {
@@ -105,16 +105,10 @@ const PLATFORM_CONFIGS: PlatformConfig[] = [
       (existsSync(resolve(process.env.HOME || "~", ".secrets/meta-config.json")) &&
        existsSync(resolve(process.env.HOME || "~", ".secrets/meta-token.json"))),
   },
-  {
-    platform: "facebook",
-    script: "scripts/video/upload-facebook.ts",
-    videoFile: `out/gawk-daily-${DATE}.mp4`,
-    extraArgs: [],
-    configCheck: () =>
-      Boolean(process.env.META_CONFIG && process.env.META_TOKEN) ||
-      (existsSync(resolve(process.env.HOME || "~", ".secrets/meta-config.json")) &&
-       existsSync(resolve(process.env.HOME || "~", ".secrets/meta-token.json"))),
-  },
+  // facebook removed from the roster 2026-07-05 (founder decision):
+  // META creds were never configured in CI, so it silently skipped on
+  // every scheduled run. upload-facebook.ts is kept on disk for
+  // explicit manual use if the channel is ever revived.
   {
     platform: "tiktok",
     script: "scripts/video/upload-tiktok.ts",
