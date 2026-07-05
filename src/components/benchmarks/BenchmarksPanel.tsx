@@ -8,6 +8,7 @@ import type {
   EloDelta,
   RankDelta,
 } from "@/lib/data/benchmarks-lmarena";
+import { LMARENA_LEADERBOARD } from "@/lib/data-sources";
 
 /** Map<modelName, ratings oldest→newest> with `null` for days the model
  *  wasn't in the captured top-N. The dashboard fetches this from
@@ -268,8 +269,11 @@ function FooterCaveat({ meta }: { meta: BenchmarksMeta }) {
           {meta.totalVotes.toLocaleString()}
         </span>{" "}
         pairwise human preference votes. Dataset:{" "}
+        {/* The citable primary source — read from the registry entry so the
+            panel can never drift from data-sources.ts (the HeroStrip-38
+            hardcode class). */}
         <a
-          href="https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+          href={LMARENA_LEADERBOARD.url}
           target="_blank"
           rel="noopener noreferrer"
           className="underline decoration-dotted underline-offset-2 hover:text-foreground"
