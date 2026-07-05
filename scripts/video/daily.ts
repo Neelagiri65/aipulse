@@ -210,7 +210,11 @@ function main() {
     return f;
   });
   if (FORMATS.includes("youtube")) {
-    requested.push("facebook", "discord");
+    // facebook dropped 2026-07-05 (founder decision): META creds were
+    // never in CI secrets, so it silently skipped on every scheduled
+    // run — an honest absence beats a silent skip. upload-facebook.ts
+    // remains runnable explicitly if it's ever revived.
+    requested.push("discord");
   }
 
   // Per-platform dedup + CI-only local guard — the 2026-07-05
