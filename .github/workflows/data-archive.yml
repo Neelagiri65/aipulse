@@ -1,0 +1,78 @@
+# Data-lake archiver — captures the live pipeline into the public
+# gawk-data repo (append-only NDJSON events + daily numeric-feed
+# snapshots). Founder-greenlit 2026-07-06 (prd-data-lake-and-cli).
+#
+# Trust posture: the tick is gated on /api/trust-audit (skip on breach),
+# dedupes by source event id, and never rewrites history. Fail-loud: a
+# red run means a capture problem — data written before the failure is
+# still committed (honest gaps beat silent ones).
+#
+# Cadence: hourly explicit-minute. The live events window is ~4h, so
+# GH's known scheduler drift (observed up to ~4.3h on throttled crons,
+# #62/#74) can shave slivers at worst — gaps are honest and visible in
+# the archive itself.
+name: data-archive
+
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: data-archive
+  cancel-in-progress: false
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout aipulse (archiver code)
+        uses: actions/checkout@v5
+
+      - name: Checkout gawk-data (write via deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: Neelagiri65/gawk-data
+          ssh-key: ${{ secrets.DATA_REPO_SSH_KEY }}
+          path: gawk-data-repo
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Archive tick
+        id: tick
+        continue-on-error: true
+        run: npx tsx scripts/data/archive-tick.ts --target gawk-data-repo
+
+      - name: Commit and push archive
+        working-directory: gawk-data-repo
+        run: |
+          # Retention telemetry: packed size is what GitHub's limits measure.
+          # Pre-committed trigger (PRD): packed size > 500MB → era-repo split
+          # + Parquet export to a HF dataset. Watch this line, don't simulate.
+          git count-objects -vH | grep size-pack || true
+          git config user.name "gawk-data-archiver"
+          git config user.email "archiver@gawk.dev"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No new data this tick."
+          else
+            git commit -m "archive: $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push origin main
+          fi
+
+      - name: Go loud on capture failure
+        if: steps.tick.outcome == 'failure'
+        run: |
+          echo "Archive tick reported capture failures — see tick step log."
+          exit 1
