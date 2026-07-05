@@ -55,6 +55,7 @@ describe("agents — weekly delta only against a real prior week", () => {
     const view = assembleAgentsView({
       registry: [REG],
       current: fetchResult("2026-05-03T07:00:00Z", snap("langgraph", 11_000_000)),
+      sevenDaysAgo: null,
       now: () => NOW,
     });
     const row = view.rows.find((r) => r.id === "langgraph")!;

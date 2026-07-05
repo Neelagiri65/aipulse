@@ -49,6 +49,12 @@ export type GitHubUser = {
   bio?: string | null;
   avatar_url: string;
   html_url: string;
+  // Throwaway/spam signals (see lib/data/spam-actor.ts). Present on the
+  // /users/{login} response; typed here so the ingest can read them for
+  // free (no extra call).
+  created_at?: string | null;
+  public_repos?: number | null;
+  followers?: number | null;
 };
 
 function requireToken(): string {

@@ -7,7 +7,7 @@ Invariants (prd-trust-harness §1): **F**resh · **A**ttributed · **D**elta-pro
 
 | Feed | F | A | D | R | S | V | Layer A test | Notes |
 |---|---|---|---|---|---|---|---|---|
-| map events (globe) | ✓ | ✓ | · | ✓ | ✗ | ✓ | fetch-events.test.ts | durable-type gate + read filter (#54/#55). **GAP: spam-actor filter** (amendashelani class) |
+| map events (globe) | ✓ | ✓ | · | ✓ | ✓ | ✓ | fetch-events + spam-actor.test.ts | durable-type gate (#54/#55) + throwaway-actor filter |
 | benchmarks (Elo) | ✗ | ✗ | ✓ | · | · | ✗ | benchmarks-trust.test.ts | delta-provenance done; F/A/V TODO |
 | model-usage (OpenRouter) | ✗ | ✗ | ✓ | · | · | ✗ | openrouter-trust.test.ts | S91 fabrication reconstructed END-TO-END (catalogue-fallback prior → 0 movers) |
 | sdk-adoption | ✗ | ✗ | ✓ | · | · | ✗ | sdk-adoption-trust.test.ts | +734% spike suppression PINNED |
@@ -24,7 +24,7 @@ Invariants (prd-trust-harness §1): **F**resh · **A**ttributed · **D**elta-pro
 ## Rollout order (highest stakes / worst coverage first)
 1. ~~model-usage~~ ✅ DONE — S91 reconstructed end-to-end (openrouter-trust.test.ts).
 2. ~~sdk-adoption + agents~~ ✅ DONE — +734% spike suppression pinned; agents delta-provenance framed.
-3. **map spam-actor filter** — throwaway-account gate (F invariant extension).
+3. ~~map spam-actor filter~~ ✅ DONE — throwaway-actor gate (spam-actor.ts).
 4. HN / producthunt / research / RSS — freshness + attribution (zero-coverage feeds).
 5. **Layer B live auditor** — once ≥3 feeds have reusable fixtures, the scheduled job samples live `/api/*` output and asserts these same invariants against reality.
 

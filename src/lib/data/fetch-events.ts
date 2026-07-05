@@ -36,6 +36,7 @@ import {
 } from "@/lib/data/gharchive";
 import { fetchTrackedRepoEvents } from "@/lib/data/tracked-repos";
 import { fetchGitLabEvents } from "@/lib/data/gitlab-events";
+import { isThrowawayActor } from "@/lib/data/spam-actor";
 import {
   isGlobeStoreAvailable,
   readMeta,
@@ -423,9 +424,27 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
       locationByLogin.set(login, cached);
     }
   }
+  let spamActorsDropped = 0;
   await runBounded(loginsToFetch, MAX_CONCURRENT_REQUESTS, async (login) => {
     try {
       const user = await fetchUser(login);
+      // Throwaway/spam actor (the amendashelani class): treat as
+      // unplaceable so no dot renders. Cached null → not re-fetched.
+      if (
+        user &&
+        isThrowawayActor(
+          {
+            createdAt: user.created_at,
+            publicRepos: user.public_repos,
+            followers: user.followers,
+          },
+          Date.now(),
+        )
+      ) {
+        spamActorsDropped += 1;
+        userLocationCache.set(login, null);
+        return;
+      }
       const coords = geocode(user?.location);
       if (coords) {
         locationByLogin.set(login, coords);
@@ -440,6 +459,13 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
       });
     }
   });
+
+  if (spamActorsDropped > 0) {
+    failures.push({
+      step: "spam-actors-dropped",
+      message: `${spamActorsDropped} throwaway/spam actor(s) filtered (brand-new, 0 repos, 0 followers)`,
+    });
+  }
 
   // 5) Keep only placeable events.
   const placeable: Array<{ event: GitHubEvent; source: IngestSourceKind }> = [];
