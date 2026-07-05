@@ -16,10 +16,11 @@
  *   - SubscribeModal is gated on `useBetaEnabled` here so bundle-level
  *     dead-code analysis keeps the form chunk deferred for non-beta
  *     visitors.
- *   - /subscribe, /privacy*, and /admin* routes suppress the overlays
- *     so the page itself owns the subscribe and consent surface and we
- *     don't render two forms, a banner-over-preferences stack, or the
- *     public subscribe modal floating over an operator-only ledger.
+ *   - /subscribe, /newsletter, /privacy*, and /admin* routes suppress
+ *     the overlays so the page itself owns the subscribe and consent
+ *     surface and we don't render two forms, a banner-over-preferences
+ *     stack, or the public subscribe modal floating over an
+ *     operator-only ledger.
  */
 
 import { usePathname } from "next/navigation";
@@ -33,6 +34,7 @@ export function GlobalOverlays(): React.JSX.Element | null {
   const beta = useBetaEnabled();
   const suppress =
     pathname?.startsWith("/subscribe") ||
+    pathname?.startsWith("/newsletter") ||
     pathname?.startsWith("/privacy") ||
     pathname?.startsWith("/admin");
   return (

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { StatusResult } from "@/lib/data/fetch-status";
 import { VERIFIED_SOURCES, PENDING_SOURCES } from "@/lib/data-sources";
@@ -88,6 +89,13 @@ export function TopBar({
             {now}
           </span>
         )}
+        <Link
+          href="/newsletter"
+          data-testid="topbar-newsletter-cta"
+          className="hidden rounded-md border border-teal-300/40 px-2.5 py-1 font-mono text-[11px] tracking-wider text-teal-300 transition-colors hover:border-teal-300/70 hover:text-teal-200 sm:inline-block"
+        >
+          Daily email
+        </Link>
       </div>
     </header>
   );

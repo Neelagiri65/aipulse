@@ -388,6 +388,25 @@ export function DigestTileBoard({
           ))}
         </div>
 
+        {/* Subscribe band — digest readers arriving from a shared link are
+            the warmest possible leads; give them the inbox path here. */}
+        <div
+          className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-lg p-5"
+          style={{ backgroundColor: C.card, border: `1px solid ${C.hairline}` }}
+        >
+          <p className="text-sm" style={{ color: C.ink }}>
+            Get this board in your inbox — one email, every morning (UTC).
+          </p>
+          <a
+            href={`${baseUrl}/newsletter`}
+            data-testid="board-newsletter-cta"
+            className="rounded-md px-3 py-1.5 text-sm font-medium"
+            style={{ backgroundColor: C.ink, color: C.paper }}
+          >
+            Subscribe free
+          </a>
+        </div>
+
         <footer
           className="mt-8 border-t pt-4 text-xs leading-relaxed"
           style={{ borderColor: C.hairline, color: C.muted }}
