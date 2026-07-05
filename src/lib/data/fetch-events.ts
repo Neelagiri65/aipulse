@@ -172,11 +172,17 @@ export async function fetchGlobeEvents(): Promise<GlobeEventsResult> {
     return runInProcessFallback(polledAt, "redis not configured");
   }
 
-  const stored = await readWindow(WINDOW_MINUTES);
-  if (stored.length === 0) {
+  const storedRaw = await readWindow(WINDOW_MINUTES);
+  if (storedRaw.length === 0) {
     // Empty store — either cold start, or ingest hasn't caught up yet.
     return runInProcessFallback(polledAt, "redis empty");
   }
+
+  // Belt-and-braces: never SERVE a non-durable event type even if one is
+  // still in the window (e.g. a WatchEvent stored before the ingest gate
+  // was added). Read-side mirror of the ingest filter so the fix takes
+  // effect immediately, not after the 4h window ages out.
+  const stored = storedRaw.filter((p) => isDurableStoredType(p.meta));
 
   const points = stored.map(toGlobePoint);
   const meta = await readMeta();
@@ -211,7 +217,7 @@ async function runInProcessFallback(
     const processed = await runIngest({ archiveBackfill: false });
     const cutoffMs = Date.now() - WINDOW_MS;
     const windowed = processed.points.filter(
-      (p) => Date.parse(p.eventAt) >= cutoffMs,
+      (p) => Date.parse(p.eventAt) >= cutoffMs && isDurableStoredType(p.meta),
     );
     return {
       points: windowed.map(toGlobePoint),
@@ -269,7 +275,7 @@ function toGlobePoint(p: StoredGlobePoint): GlobePoint {
 // ---------------------------------------------------------------------------
 
 /** Provenance of a raw event within one ingest pass. */
-type IngestSourceKind = "gharchive" | "events-api" | "tracked-repo" | "gitlab";
+export type IngestSourceKind = "gharchive" | "events-api" | "tracked-repo" | "gitlab";
 
 export type IngestOptions = {
   /**
@@ -300,6 +306,14 @@ export type IngestResult = {
  * asserted directly at the output level in the tests. runIngest calls this
  * exact function; the test exercises the real code path, not a copy.
  */
+/** True when a stored point's event type leaves durable evidence (mirror
+ *  of RELEVANT_TYPES for the read path). Unknown/absent type is dropped —
+ *  fail closed toward not showing an unverifiable dot. */
+export function isDurableStoredType(meta: unknown): boolean {
+  const t = (meta as { type?: string } | undefined)?.type;
+  return typeof t === "string" && RELEVANT_TYPES.has(t);
+}
+
 export function dedupeAndFilterEvents(
   rawEvents: Array<{ event: GitHubEvent; source: IngestSourceKind }>,
 ): Map<string, { event: GitHubEvent; source: IngestSourceKind }> {
