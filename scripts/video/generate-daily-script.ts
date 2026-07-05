@@ -397,7 +397,7 @@ async function main() {
   }
 
   // Build set of model names already shown in leaderboard (all top-5, not just #1)
-  const leaderboardModelNames = new Set(
+  const leaderboardModelNames = new Set<string>(
     (leaderboard?.story.leaderboard?.rows ?? []).map((r: any) => r.name.toLowerCase()),
   );
 
@@ -414,38 +414,26 @@ async function main() {
     if (!event) continue;
 
     const m = event.metrics ?? {};
-    const hasHardMetric = m.rank !== undefined || m.deltaPct !== undefined || m.stars !== undefined;
-    const hasHighEngagement = (m.points ?? 0) >= 100 || (m.comments ?? 0) >= 50;
-    const hasRankInHeadline = /\b(up|down)\s+\d+\s+ranks?\b/i.test(narrative.headline);
-    const isResearch = event.source === "arxiv";
-    if (!hasHardMetric && !hasHighEngagement && !hasRankInHeadline && !isResearch) {
-      console.log(`  [SKIP     ] No verifiable metric — ${narrative.headline.slice(0, 50)}`);
-      continue;
-    }
-
-    // Skip personal complaints and anecdotes — engagement without insight
-    if (/^(Tell HN|Ask HN):/i.test(narrative.headline) && !hasHardMetric) {
-      console.log(`  [SKIP     ] Personal/complaint — ${narrative.headline.slice(0, 50)}`);
-      continue;
-    }
-    if (/^(I built|I made|I created|My |Am I )/i.test(narrative.headline) && !hasHardMetric) {
-      console.log(`  [SKIP     ] Personal project — ${narrative.headline.slice(0, 50)}`);
+    const verdict = storyGate(narrative.headline, m, event.source);
+    if (!verdict.ok) {
+      const label = {
+        "no-metric": "No verifiable metric",
+        "personal-complaint": "Personal/complaint",
+        "personal-project": "Personal project",
+      }[verdict.reason];
+      console.log(`  [SKIP     ] ${label} — ${narrative.headline.slice(0, 50)}`);
       continue;
     }
 
     // Skip if any model in the leaderboard top-5 is mentioned
-    const headlineLower = narrative.headline.toLowerCase();
-    if (leaderboardModelNames.size > 0) {
-      const duplicatesLeaderboard = [...leaderboardModelNames].some(name => headlineLower.includes(name as string));
-      if (duplicatesLeaderboard) {
-        console.log(`  [SKIP     ] Already in leaderboard — ${narrative.headline.slice(0, 50)}`);
-        continue;
-      }
+    if (duplicatesLeaderboard(narrative.headline, leaderboardModelNames)) {
+      console.log(`  [SKIP     ] Already in leaderboard — ${narrative.headline.slice(0, 50)}`);
+      continue;
     }
 
     // Skip duplicate SDK packages (normalise: strip registry suffix, lowercase)
     if (m.deltaPct !== undefined && event.tags?.includes("sdk")) {
-      const pkgName = headlineLower.split(/\s+/)[0].replace(/-/g, "");
+      const pkgName = normalisePackageName(narrative.headline.toLowerCase().split(/\s+/)[0]);
       if (usedPackageNames.has(pkgName)) {
         console.log(`  [SKIP     ] Duplicate SDK package — ${narrative.headline.slice(0, 50)}`);
         continue;
@@ -472,7 +460,7 @@ async function main() {
     for (const sdk of vd.sdkMovers ?? []) {
       if (storyCount >= maxStories) break;
       if (Math.abs(sdk.diffPct) < 5) continue;
-      const pkgNorm = sdk.name.toLowerCase().replace(/-/g, "");
+      const pkgNorm = normalisePackageName(sdk.name);
       if (usedPackageNames.has(pkgNorm)) {
         console.log(`  [SKIP     ] Duplicate SDK — ${sdk.name} already covered`);
         continue;
