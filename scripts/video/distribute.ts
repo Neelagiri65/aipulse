@@ -11,7 +11,7 @@
  */
 
 import { execSync, execFileSync } from "child_process";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 
 const ROOT = process.cwd();
@@ -240,8 +240,41 @@ function main() {
 
   console.log();
 
+  // Record per-platform completion on today's upload-log entry so the
+  // daily pipeline's dedup guard (plan-distribution.ts) can heal a
+  // half-distributed day instead of skipping it wholesale — the
+  // 2026-07-05 incident (YouTube uploaded, Discord/Facebook never
+  // announced, everything green). Union-merge: never removes platforms.
+  if (succeeded.length > 0) {
+    recordPlatforms(succeeded.map((r) => r.platform));
+  }
+
   if (failed.length > 0) {
     process.exit(1);
+  }
+}
+
+function recordPlatforms(platforms: string[]) {
+  const logPath = resolve(ROOT, "data/upload-log.json");
+  try {
+    const log: Array<{ date: string; platforms?: string[]; videoId?: string }> =
+      existsSync(logPath) ? JSON.parse(readFileSync(logPath, "utf-8")) : [];
+    let entry = log.find((e) => e.date === DATE);
+    if (!entry) {
+      // Announce-only run before any uploader wrote the entry (rare) —
+      // create a stub so the completion is still durable.
+      entry = { date: DATE };
+      log.push(entry);
+    }
+    // Legacy entries predate the platforms field and were written by the
+    // YouTube uploader alone — seed with youtube so the union stays truthful.
+    const existing = entry.platforms ?? (entry.videoId ? ["youtube"] : []);
+    entry.platforms = [...new Set([...existing, ...platforms])];
+    writeFileSync(logPath, JSON.stringify(log, null, 2) + "\n");
+    console.log(`  Recorded platforms for ${DATE}: ${entry.platforms.join(", ")}`);
+  } catch (e: any) {
+    // Recording must never fail the distribution itself.
+    console.log(`  WARN: could not record platform completion: ${e.message}`);
   }
 }
 
