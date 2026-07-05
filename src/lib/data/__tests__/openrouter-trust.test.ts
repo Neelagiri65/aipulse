@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { runOpenRouterIngest } from "@/lib/data/openrouter-ingest";
 import { deriveModelMoverCards } from "@/lib/feed/derivers/model-mover";
+import { checkResolvableSource } from "@/lib/trust/invariants";
 import type { FetchOpenRouterRankingsResult } from "@/lib/data/openrouter-fetch";
 import type {
   ModelUsageDto,
@@ -130,5 +131,22 @@ describe("model-usage — S91 fabrication guard (end-to-end)", () => {
     expect(dto.rows.some((r) => r.previousRank !== null)).toBe(true);
     // Movers may now legitimately fire (the reversed order = real moves).
     expect(deriveModelMoverCards(dto).length).toBeGreaterThan(0);
+  });
+
+  it("A/V: every emitted MODEL_MOVER card carries a resolvable source (real ingest → real deriver)", async () => {
+    const store = storeWithPriorSnapshot("top-weekly");
+    await runOpenRouterIngest({
+      fetchRankings: async () => freshTopWeekly(),
+      store,
+      now: clock,
+    });
+    const cards = deriveModelMoverCards(store.written.dto!);
+    expect(cards.length).toBeGreaterThan(0);
+    for (const c of cards) {
+      expect
+        .soft(checkResolvableSource(c.sourceUrl), `"${c.headline}" -> ${c.sourceUrl}`)
+        .toBeNull();
+      expect.soft(c.sourceName, `"${c.headline}" has no sourceName`).toBeTruthy();
+    }
   });
 });

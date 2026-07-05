@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { deltasFromCounts } from "@/lib/data/sdk-adoption-deltas";
-import { auditItem, checkDeltaProvenance } from "@/lib/trust/invariants";
+import type { SdkAdoptionDto } from "@/lib/data/sdk-adoption";
+import { deriveSdkTrendCards } from "@/lib/feed/derivers/sdk-trend";
+import {
+  auditItem,
+  checkDeltaProvenance,
+  checkResolvableSource,
+} from "@/lib/trust/invariants";
 
 /**
  * OUTPUT-LEVEL trust test for the SDK-adoption delta engine, pinning the
@@ -51,5 +57,45 @@ describe("sdk-adoption deltas — implausible-spike suppression (+734% class)", 
     ]);
     expect(out[1].delta).toBeNull();
     expect(claimsMovement(out[1])).toBe(false);
+  });
+});
+
+describe("sdk-adoption — A/V on the real SDK_TREND deriver", () => {
+  it("every emitted card carries a resolvable registry source", () => {
+    const dto: SdkAdoptionDto = {
+      generatedAt: "2026-07-05T06:00:00.000Z",
+      packages: [
+        {
+          id: "pypi:anthropic",
+          label: "anthropic",
+          registry: "pypi",
+          latest: { count: 2_500_000, fetchedAt: "2026-07-05T06:00:00.000Z" },
+          days: [{ date: "2026-07-05", count: 2_500_000, delta: 0.5 }],
+          firstParty: true,
+          caveat: null,
+          counterName: "lastDay",
+          counterUnits: "downloads/day",
+        },
+        {
+          id: "npm:@anthropic-ai/sdk",
+          label: "@anthropic-ai/sdk",
+          registry: "npm",
+          latest: { count: 900_000, fetchedAt: "2026-07-05T06:00:00.000Z" },
+          days: [{ date: "2026-07-05", count: 900_000, delta: -0.3 }],
+          firstParty: true,
+          caveat: null,
+          counterName: "lastDay",
+          counterUnits: "downloads/day",
+        },
+      ],
+    };
+    const cards = deriveSdkTrendCards(dto);
+    expect(cards.length).toBe(2);
+    for (const c of cards) {
+      expect
+        .soft(checkResolvableSource(c.sourceUrl), `"${c.headline}" -> ${c.sourceUrl}`)
+        .toBeNull();
+      expect.soft(c.sourceName, `"${c.headline}" has no sourceName`).toBeTruthy();
+    }
   });
 });

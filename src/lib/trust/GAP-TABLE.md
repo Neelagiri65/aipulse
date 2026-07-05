@@ -8,10 +8,10 @@ Invariants (prd-trust-harness §1): **F**resh · **A**ttributed · **D**elta-pro
 | Feed | F | A | D | R | S | V | Layer A test | Notes |
 |---|---|---|---|---|---|---|---|---|
 | map events (globe) | ✓ | ✓ | · | ✓ | ✓ | ✓ | fetch-events + spam-actor.test.ts | durable-type gate (#54/#55) + throwaway-actor filter |
-| benchmarks (Elo) | ✗ | ✗ | ✓ | · | · | ✗ | benchmarks-trust.test.ts | delta-provenance done; F/A/V TODO |
-| model-usage (OpenRouter) | ✗ | ✗ | ✓ | · | · | ✗ | openrouter-trust.test.ts | S91 fabrication reconstructed END-TO-END (catalogue-fallback prior → 0 movers) |
-| sdk-adoption | ✗ | ✗ | ✓ | · | · | ✗ | sdk-adoption-trust.test.ts | +734% spike suppression PINNED |
-| agents | ✗ | ✗ | ✓ | · | · | ✗ | agents-trust.test.ts | delta-provenance (bootstrap/new-from-zero) framed via invariant |
+| benchmarks (Elo) | ✗ | ✗ | ✓ | · | · | ✗ | benchmarks-trust.test.ts | delta-provenance done. A/V live at CONSUMER surfaces (`computeDeltas` rows carry no URLs): digest section ✓ via digest-trust; board/panel surface untested. F: LMArena publishes irregularly — a window would be invented |
+| model-usage (OpenRouter) | ✗ | ✓ | ✓ | · | · | ✓ | openrouter-trust.test.ts | S91 fabrication reconstructed END-TO-END; A/V on real ingest→deriver MODEL_MOVER cards (hubUrl resolvable + sourceName). F: DTO generatedAt ≤24h gated in Layer B |
+| sdk-adoption | ✗ | ✓ | ✓ | · | · | ✓ | sdk-adoption-trust.test.ts | +734% spike suppression PINNED; A/V on real SDK_TREND deriver cards (registry source resolvable). F: no deriver-declared window (Layer B skip recorded) |
+| agents | ✗ | ✗ | ✓ | · | · | ✗ | agents-trust.test.ts | delta-provenance (bootstrap/new-from-zero) framed via invariant. A/V live at CONSUMER surfaces (`assembleAgentsView` carries no URLs): digest section ✓ via digest-trust; panel surface untested |
 | labs | ✓ | ✓ | · | ✓ | · | ✓ | lab-highlight-trust.test.ts | 7d payload gate (LABS_MAX_AGE_MS = WINDOW_MS — the gate derives from the claim); headline count = payload total (R); all-zero registry emits nothing; within-window staleness stays disclosed via staleSources |
 | HN (NEWS) | ✓ | ✓ | · | · | · | ✓ | news-trust.test.ts | 6h window IS the freshness guarantee; sourceUrl=news.ycombinator.com |
 | reddit (NEWS) | ✓ | ✓ | · | · | · | ✓ | reddit-trust.test.ts | 12h window; sourceUrl=reddit.com comments |
