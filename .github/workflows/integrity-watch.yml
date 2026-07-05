@@ -148,3 +148,53 @@ jobs:
             -H "x-ingest-secret: ${INGEST_SECRET}" \
             "$url") || { echo "::warning::shadow cycle request failed (non-blocking)"; exit 0; }
           echo "$body" | python3 -m json.tool || echo "$body"
+
+      # Trust auditor (Layer B): checks the LIVE SERVED output of each feed
+      # against the trust invariants (durable evidence, resolvable source,
+      # freshness, ordering provenance) and pages on any finding — the
+      # systemic catch for the phantom-star / fabrication classes. Own step,
+      # if: always() + continue-on-error so it can never break the pager.
+      - name: Trust audit (served-output invariants)
+        if: always()
+        continue-on-error: true
+        env:
+          DISCORD_DAILY_WEBHOOK_URL: ${{ secrets.DISCORD_DAILY_WEBHOOK_URL }}
+          TRUST_AUDIT_URL: ${{ secrets.TRUST_AUDIT_URL }}
+        run: |
+          python3 <<'PY'
+          import json, os, urllib.request
+          url = os.environ.get("TRUST_AUDIT_URL") or "https://gawk.dev/api/trust-audit"
+          print(f"Trust audit: GET {url}")
+          try:
+              with urllib.request.urlopen(url, timeout=70) as r:
+                  d = json.loads(r.read().decode())
+          except Exception as e:
+              print(f"::warning::trust-audit unreachable (non-blocking): {e}")
+              raise SystemExit(0)
+
+          checked = d.get("checked", {})
+          findings = d.get("findings", [])
+          print(f"checked={checked} findings={len(findings)}")
+          for f in findings[:20]:
+              print(f"  [{f.get('feed')}/{f.get('invariant')}] {f.get('sample')} — {f.get('detail')}")
+          if not findings:
+              print("trust audit clean — served output holds every invariant")
+              raise SystemExit(0)
+
+          lines = [f"• **{f.get('feed')}** [{f.get('invariant')}] {f.get('sample')} — {f.get('detail')}" for f in findings[:15]]
+          repo = os.environ.get("GITHUB_REPOSITORY", ""); run_id = os.environ.get("GITHUB_RUN_ID", "")
+          content = ("**TRUST AUDIT ALERT** — gawk is serving data that breaks a trust invariant:\n"
+                     + "\n".join(lines)
+                     + f"\n\nAudit: {url}\nRun: https://github.com/{repo}/actions/runs/{run_id}")
+          hook = os.environ.get("DISCORD_DAILY_WEBHOOK_URL")
+          if hook:
+              req = urllib.request.Request(hook,
+                  data=json.dumps({"content": content[:1900], "username": "Gawk Trust"}).encode(),
+                  headers={"Content-Type": "application/json", "User-Agent": "Gawk-Trust (+https://gawk.dev)"})
+              try:
+                  urllib.request.urlopen(req, timeout=15); print("paged Discord")
+              except Exception as e:
+                  print(f"::warning::Discord post failed: {e}")
+          print(f"::error::trust audit: {len(findings)} invariant violation(s)")
+          raise SystemExit(1)
+          PY
