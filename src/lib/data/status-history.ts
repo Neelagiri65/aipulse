@@ -126,6 +126,62 @@ export async function readSamples(toolId: string): Promise<StatusSample[]> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Probe history (active-reachability probes — the dual-signal "measured" half)
+// ---------------------------------------------------------------------------
+
+import type { ProbeSample } from "@/lib/data/tool-probe";
+
+const PROBE_KEY = (toolId: string) => `aipulse:probe-history:${toolId}`;
+// Enough for a few hours of 5-min probes — plenty for hysteresis + a short
+// trend, without unbounded growth.
+const MAX_PROBES = 60;
+
+/** Record one probe result (newest-first). Fail-closed — never blocks. */
+export async function recordProbe(
+  toolId: string,
+  sample: ProbeSample,
+): Promise<void> {
+  const r = redis();
+  if (!r) return;
+  try {
+    const key = PROBE_KEY(toolId);
+    await r.lpush(key, JSON.stringify(sample));
+    await r.ltrim(key, 0, MAX_PROBES - 1);
+    await r.expire(key, 8 * 24 * 3600);
+  } catch {
+    // Probe recording never blocks the dashboard.
+  }
+}
+
+/** Read a tool's probe history, newest-first. Empty when Redis is absent. */
+export async function readProbes(toolId: string): Promise<ProbeSample[]> {
+  const r = redis();
+  if (!r) return [];
+  try {
+    const raw = await r.lrange(PROBE_KEY(toolId), 0, MAX_PROBES - 1);
+    const out: ProbeSample[] = [];
+    for (const entry of raw as unknown[]) {
+      const parsed = typeof entry === "string" ? safeParse(entry) : entry;
+      if (isProbeSample(parsed)) out.push(parsed);
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+function isProbeSample(v: unknown): v is ProbeSample {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.ts === "string" &&
+    typeof o.reachable === "boolean" &&
+    typeof o.httpStatus === "number" &&
+    typeof o.latencyMs === "number"
+  );
+}
+
 function safeParse(s: string): unknown {
   try {
     return JSON.parse(s);
