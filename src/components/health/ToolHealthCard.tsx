@@ -57,7 +57,11 @@ export function ToolHealthCard({ config, data }: ToolHealthCardProps) {
         {mode === "awaiting" && <AwaitingBody />}
         {mode === "live" && data && <LiveBody data={data} />}
         {mode === "live" && data?.activeIncidents && data.activeIncidents.length > 0 && (
-          <ActiveIncidentList incidents={data.activeIncidents} sourceUrl={sourceUrl} />
+          <ActiveIncidentList
+            incidents={data.activeIncidents}
+            sourceUrl={sourceUrl}
+            declaredStatus={data.status}
+          />
         )}
         {mode === "live" && !config.incidentsApiAvailable && (
           <IncidentsApiUnavailable sourceUrl={sourceUrl} />
@@ -137,9 +141,11 @@ function IncidentsApiUnavailable({ sourceUrl }: { sourceUrl?: string }) {
 function ActiveIncidentList({
   incidents,
   sourceUrl,
+  declaredStatus,
 }: {
   incidents: NonNullable<ToolHealthData["activeIncidents"]>;
   sourceUrl?: string;
+  declaredStatus?: ToolHealthData["status"];
 }) {
   return (
     <div className="space-y-1.5 rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5">
@@ -149,6 +155,21 @@ function ActiveIncidentList({
           {incidents.length === 1 ? "1 active incident" : `${incidents.length} active incidents`}
         </span>
       </div>
+      {/* Vendor self-disagreement (#63 posture: surface, don't resolve).
+          The badge is the vendor's declared status for THIS tool; the
+          incident list is the vendor's page-level declaration. When they
+          conflict — e.g. OpenAI declaring Codex components operational
+          while running an incident that names Codex — say so instead of
+          letting the card read as self-contradictory. */}
+      {declaredStatus === "operational" && (
+        <p
+          className="text-[10px] leading-snug text-amber-200/70"
+          data-testid="incident-status-disagreement"
+        >
+          declared status and active incidents disagree — both shown as the
+          vendor reports them
+        </p>
+      )}
       <ul className="space-y-1">
         {incidents.slice(0, 3).map((i) => (
           <li key={i.id} className="text-[11px] leading-snug text-amber-100/90">
