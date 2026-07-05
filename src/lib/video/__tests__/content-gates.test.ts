@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  communitySourceLabel,
+  deltaPctFromHeadline,
   distilHeadline,
   duplicatesLeaderboard,
+  isRankStory,
+  mentionedModelName,
   normalisePackageName,
   storyGate,
   trimNarration,
@@ -134,5 +138,62 @@ describe("distilHeadline — strip personal framing", () => {
     expect(distilHeadline("Benchmarked 12 models on long context, here's what I found")).toBe(
       "Benchmarked 12 models on long context.",
     );
+  });
+});
+
+describe("deltaPctFromHeadline — headline-asserted deltas (follow-up)", () => {
+  // The incident: "@anthropic-ai/sdk on npm +25% vs baseline" — the day's
+  // most on-thesis story — skipped because the wire event carried the
+  // figure only in its headline, never in metrics.deltaPct.
+  it("parses signed and worded delta claims", () => {
+    expect(deltaPctFromHeadline("@anthropic-ai/sdk on npm +25% vs baseline")).toBe(25);
+    expect(deltaPctFromHeadline("cody installs down 41.5% this month")).toBe(-41.5);
+    expect(deltaPctFromHeadline("tokens served -12% week on week")).toBe(-12);
+    expect(deltaPctFromHeadline("usage up 30%")).toBe(30);
+  });
+
+  it("does NOT treat a bare proportion as a movement", () => {
+    expect(deltaPctFromHeadline("90% of developers now use AI tools")).toBeNull();
+    expect(deltaPctFromHeadline("Model scores 85% on the new benchmark")).toBeNull();
+    expect(deltaPctFromHeadline("No percentages here at all")).toBeNull();
+  });
+
+  it("storyGate accepts the incident headline from a wire source only", () => {
+    expect(storyGate("@anthropic-ai/sdk on npm +25% vs baseline", {}, "gawk-wire").ok).toBe(true);
+    // a community post asserting a delta is an anecdote, not a registry figure
+    expect(storyGate("My inference costs down 90% after switching", {}, "reddit").ok).toBe(false);
+    expect(storyGate("Throughput up 40% with the new runtime", {}, "hn").ok).toBe(false);
+  });
+});
+
+describe("isRankStory + mentionedModelName — cross-source model dedup (follow-up)", () => {
+  // The incident: Claude Sonnet 5 shipped TWICE in one video — "up 5
+  // ranks" (gawk-wire) and "moved from rank 24 to 19" (gawk-models) are
+  // the same fact from two sources. Top-5 exclusion didn't apply (#19).
+  const modelNames = ["DeepSeek V4 Flash", "Claude Sonnet 5", "Kimi K2"];
+
+  it("recognises both incident headlines as rank stories", () => {
+    expect(isRankStory("Anthropic: Claude Sonnet 5 up 5 ranks on OpenRouter weekly", {})).toBe(true);
+    expect(isRankStory("Claude Sonnet 5 moved from rank 24 to 19", { rank: 19, previousRank: 24 })).toBe(true);
+    expect(isRankStory("sqlite-utils 4.0rc2 released", { comments: 56 })).toBe(false);
+  });
+
+  it("resolves the same model from both headlines so the second dedups", () => {
+    const a = mentionedModelName("Anthropic: Claude Sonnet 5 up 5 ranks on OpenRouter weekly", modelNames);
+    const b = mentionedModelName("Claude Sonnet 5 moved from rank 24 to 19", modelNames);
+    expect(a).toBe("claude sonnet 5");
+    expect(b).toBe(a);
+    expect(mentionedModelName("immich-app/immich trending on GitHub", modelNames)).toBeNull();
+  });
+});
+
+describe("communitySourceLabel — honest card sourcing (follow-up)", () => {
+  // The incident: the high-engagement branch hardcoded "Reddit", so an
+  // HN thread shipped on air with "Source: Reddit" on the card.
+  it("labels the actual community source, never a hardcoded one", () => {
+    expect(communitySourceLabel("hn")).toBe("Hacker News");
+    expect(communitySourceLabel("reddit")).toBe("Reddit");
+    expect(communitySourceLabel("lobsters")).toBe("Community");
+    expect(communitySourceLabel(undefined)).toBe("Community");
   });
 });
