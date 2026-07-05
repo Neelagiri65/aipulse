@@ -21,6 +21,8 @@
  *     surface and we don't render two forms, a banner-over-preferences
  *     stack, or the public subscribe modal floating over an
  *     operator-only ledger.
+ *   - /digest/* suppresses ONLY the modal (the tile board has its own
+ *     subscribe band); the consent banner still mounts there.
  */
 
 import { usePathname } from "next/navigation";
@@ -37,6 +39,11 @@ export function GlobalOverlays(): React.JSX.Element | null {
     pathname?.startsWith("/newsletter") ||
     pathname?.startsWith("/privacy") ||
     pathname?.startsWith("/admin");
+  // /digest/{date} carries its own subscribe band (DigestTileBoard), so
+  // the floating modal would be a second form — and it physically
+  // overlaps the band's button. Modal-only: the consent banner must
+  // still mount there (digest pages are public shared-link landings).
+  const suppressModal = suppress || pathname?.startsWith("/digest");
   return (
     <>
       {/* AnalyticsMount is always rendered — it self-gates on consent +
@@ -46,7 +53,7 @@ export function GlobalOverlays(): React.JSX.Element | null {
           read. */}
       <AnalyticsMount />
       {!suppress && <ConsentBanner />}
-      {!suppress && beta ? <SubscribeModal /> : null}
+      {!suppressModal && beta ? <SubscribeModal /> : null}
     </>
   );
 }
