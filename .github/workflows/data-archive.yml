@@ -57,6 +57,10 @@ jobs:
       - name: Commit and push archive
         working-directory: gawk-data-repo
         run: |
+          # Retention telemetry: packed size is what GitHub's limits measure.
+          # Pre-committed trigger (PRD): packed size > 500MB → era-repo split
+          # + Parquet export to a HF dataset. Watch this line, don't simulate.
+          git count-objects -vH | grep size-pack || true
           git config user.name "gawk-data-archiver"
           git config user.email "archiver@gawk.dev"
           git add -A
