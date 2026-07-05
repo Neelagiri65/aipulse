@@ -15,9 +15,10 @@ name: notify-tool-alerts
 # Optional repo secret (no-op when absent):
 #   DISCORD_TOOL_ALERTS_WEBHOOK_URL — set on Vercel, not here.
 
+# Scheduled `*/5` cadence RETIRED (verified 2026-07-05): the `heartbeat`
+# workflow now drives /api/notify/tool-alerts every 5 min from a running loop
+# (GitHub was dropping the */5 schedule). Kept for manual dispatch.
 on:
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 concurrency:

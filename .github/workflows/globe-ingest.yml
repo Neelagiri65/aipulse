@@ -16,9 +16,12 @@ name: globe-ingest
 # consecutive failures will surface in the Actions log; density problem will
 # resurface in the UI coverage meter.
 
+# Scheduled `*/5` cadence RETIRED (verified 2026-07-05): GitHub was dropping it
+# to every 2-4h, aging the live map. The `heartbeat` workflow now drives
+# /api/ingest every 5 min from a RUNNING loop (immune to scheduler throttling)
+# — proven landing off the */5 grid. This workflow stays for manual dispatch
+# (incl. the 6h backfill on cold start).
 on:
-  schedule:
-    - cron: "*/5 * * * *"   # every 5 minutes
   workflow_dispatch:
     inputs:
       backfill:
