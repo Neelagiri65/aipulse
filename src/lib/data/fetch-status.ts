@@ -33,12 +33,11 @@ import {
   bucketToDays,
   fetchHistoricalIncidents,
   hasRedisConfigured,
-  readProbes,
+  readProbeSignals,
   readSamples,
   recordSample,
   type DayBucket,
 } from "@/lib/data/status-history";
-import { loadProbeSignals } from "@/lib/data/tool-probe";
 
 const REVALIDATE_SECONDS = 300;
 
@@ -384,11 +383,11 @@ export async function fetchAllStatus(): Promise<StatusResult> {
     }
   }
 
-  // Attach the MEASURED signal: read each tool's probe history and classify
-  // with hysteresis. Read-path only — probes are RUN on the cron write-path
-  // (never on SSR). Cheap Redis reads; when Redis is absent every signal is
-  // "pending" and the card falls back to declared-status-only.
-  const probeSignals = await loadProbeSignals(readProbes);
+  // Attach the MEASURED signal — a SINGLE GET of the cron-written signals
+  // blob (classification + hysteresis happen on the write-path, not here, to
+  // keep status reads within the Upstash budget). Absent blob → no probe
+  // shown and the card falls back to declared-status-only.
+  const probeSignals = await readProbeSignals();
   for (const [toolId, signal] of Object.entries(probeSignals)) {
     const payload = data[toolId as ToolConfig["id"]];
     if (payload && signal) payload.probe = signal;

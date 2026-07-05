@@ -3,8 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   classifyProbeHistory,
   isReachableStatus,
+  loadProbeSignals,
+  probeOne,
   PROBE_FAIL_THRESHOLD,
+  PROBE_LATENCY_CEILING_MS,
   PROBE_TARGETS,
+  runAllProbes,
   type ProbeSample,
 } from "@/lib/data/tool-probe";
 
@@ -78,6 +82,81 @@ describe("classifyProbeHistory — hysteresis (never a lone-failure outage)", ()
     const s = classifyProbeHistory(T, [sample(false, 0), sample(false, 0)]);
     // 2 fails < threshold 3, and zero successes → insufficient evidence.
     expect(s.state).toBe("pending");
+  });
+});
+
+describe("probeOne — reachability from a real HTTP outcome (never throws)", () => {
+  const target = PROBE_TARGETS[0];
+
+  it("a 200 response → reachable with a latency", async () => {
+    const fakeFetch = (async () => new Response("", { status: 200 })) as unknown as typeof fetch;
+    const s = await probeOne(target, 1_700_000_000_000, 6000, fakeFetch);
+    expect(s.reachable).toBe(true);
+    expect(s.httpStatus).toBe(200);
+    expect(typeof s.latencyMs).toBe("number");
+  });
+
+  it("a 401 (auth answered) → reachable — the intended proof-of-life", async () => {
+    const fakeFetch = (async () => new Response("", { status: 401 })) as unknown as typeof fetch;
+    const s = await probeOne(target, 1_700_000_000_000, 6000, fakeFetch);
+    expect(s.reachable).toBe(true);
+    expect(s.httpStatus).toBe(401);
+  });
+
+  it("a 503 → NOT reachable (server error)", async () => {
+    const fakeFetch = (async () => new Response("", { status: 503 })) as unknown as typeof fetch;
+    const s = await probeOne(target, 1_700_000_000_000, 6000, fakeFetch);
+    expect(s.reachable).toBe(false);
+    expect(s.httpStatus).toBe(503);
+  });
+
+  it("fetch THROWS (connection failure / abort) → reachable:false, httpStatus:0, never throws", async () => {
+    const fakeFetch = (async () => {
+      throw new Error("ECONNREFUSED");
+    }) as unknown as typeof fetch;
+    const s = await probeOne(target, 1_700_000_000_000, 6000, fakeFetch);
+    expect(s.reachable).toBe(false);
+    expect(s.httpStatus).toBe(0);
+  });
+
+  it("timeout exceeds the slow-latency ceiling (a slow-but-alive tool is not a failure)", () => {
+    // Guards Blocker-1: a 2.5–4s response must record as reachable, not down.
+    // The default probeOne timeout must be > PROBE_LATENCY_CEILING_MS.
+    expect(6000).toBeGreaterThan(PROBE_LATENCY_CEILING_MS);
+  });
+});
+
+describe("runAllProbes — records every target, isolates failures", () => {
+  it("records all six; one probe throwing does not drop the others", async () => {
+    const recorded: string[] = [];
+    // Fake fetch: throw for cursor's host, 200 otherwise.
+    const fakeFetch = (async (url: string) => {
+      if (String(url).includes("cursor")) throw new Error("down");
+      return new Response("", { status: 200 });
+    }) as unknown as typeof fetch;
+    const record = async (toolId: string) => {
+      recorded.push(toolId);
+    };
+    const res = await runAllProbes(1_700_000_000_000, record, fakeFetch);
+    expect(res.probed).toBe(6);
+    expect(recorded.sort()).toEqual(
+      ["claude-code", "codex", "copilot", "cursor", "openai-api", "windsurf"],
+    );
+    // 5 reachable (cursor threw), still recorded as a sample.
+    expect(res.reachable).toBe(5);
+  });
+});
+
+describe("loadProbeSignals — reads + classifies each target", () => {
+  it("classifies from injected history reads", async () => {
+    const read = async (toolId: string): Promise<ProbeSample[]> =>
+      toolId === "windsurf"
+        ? [sample(false, 0), sample(false, 0), sample(false, 0)] // unreachable
+        : [sample(true, 200, 150)];
+    const signals = await loadProbeSignals(read);
+    expect(signals["windsurf"]?.state).toBe("unreachable");
+    expect(signals["claude-code"]?.state).toBe("reachable");
+    expect(signals["cursor"]?.latencyMs).toBe(150);
   });
 });
 

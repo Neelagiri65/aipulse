@@ -14,6 +14,7 @@ import {
   formatIncidentImpact,
 } from "@/lib/data/last-incident";
 import { formatProvenanceTooltip } from "@/lib/provenance";
+import { PROBE_LATENCY_CEILING_MS } from "@/lib/data/tool-probe";
 
 export type ToolHealthCardProps = {
   config: ToolConfig;
@@ -283,7 +284,7 @@ function ProbeRow({ probe }: { probe: NonNullable<ToolHealthData["probe"]> }) {
   let title: string;
 
   if (state === "reachable") {
-    const slow = latencyMs !== null && latencyMs > 4000;
+    const slow = latencyMs !== null && latencyMs > PROBE_LATENCY_CEILING_MS;
     value = latencyMs === null || slow ? "reachable" : `reachable · ${latencyMs}ms`;
     color = "var(--sev-op, inherit)";
     title = `Reachable from our probe · ${host}${

@@ -25,8 +25,8 @@ import { Redis } from "@upstash/redis";
 
 import { withIngest } from "@/app/api/_lib/withIngest";
 import { fetchAllStatus } from "@/lib/data/fetch-status";
-import { recordProbe } from "@/lib/data/status-history";
-import { runAllProbes } from "@/lib/data/tool-probe";
+import { readProbes, recordProbe, writeProbeSignals } from "@/lib/data/status-history";
+import { loadProbeSignals, runAllProbes, type ProbeSignal } from "@/lib/data/tool-probe";
 import { deriveToolAlertCards } from "@/lib/feed/derivers/tool-alert";
 import {
   buildAlertEmbed,
@@ -143,11 +143,18 @@ export const POST = withIngest<RouteResult>({
 
     const snapshot = await fetchAllStatus();
 
-    // Dual-signal write-path: run the active reachability probes and record
-    // each into probe history (read back + hysteresis-classified by
-    // fetchAllStatus for display). Cron-only — never on SSR. Bounded by the
-    // per-probe 2.5s timeout, all in parallel; never rejects.
-    await runAllProbes(Date.now(), recordProbe).catch(() => {});
+    // Dual-signal write-path (cron-only, never SSR): probe each tool, record
+    // to history, then classify with hysteresis and persist ONE signals blob.
+    // The read-path (fetchAllStatus) does a single GET of that blob instead of
+    // re-reading + re-classifying per request — keeps status reads within the
+    // Upstash budget. Bounded by the per-probe timeout, parallel, never rejects.
+    try {
+      await runAllProbes(Date.now(), recordProbe);
+      const signals = await loadProbeSignals(readProbes);
+      await writeProbeSignals(signals as Record<string, ProbeSignal>);
+    } catch {
+      // probing never blocks tool-alert delivery
+    }
 
     const cards = deriveToolAlertCards(snapshot) as ToolAlertCard[];
     const previousState = await readState(redis);

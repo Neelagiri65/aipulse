@@ -130,9 +130,10 @@ export async function readSamples(toolId: string): Promise<StatusSample[]> {
 // Probe history (active-reachability probes — the dual-signal "measured" half)
 // ---------------------------------------------------------------------------
 
-import type { ProbeSample } from "@/lib/data/tool-probe";
+import type { ProbeSample, ProbeSignal } from "@/lib/data/tool-probe";
 
 const PROBE_KEY = (toolId: string) => `aipulse:probe-history:${toolId}`;
+const PROBE_SIGNALS_KEY = "aipulse:probe-signals";
 // Enough for a few hours of 5-min probes — plenty for hysteresis + a short
 // trend, without unbounded growth.
 const MAX_PROBES = 60;
@@ -168,6 +169,39 @@ export async function readProbes(toolId: string): Promise<ProbeSample[]> {
     return out;
   } catch {
     return [];
+  }
+}
+
+/**
+ * Persist the classified probe signals as ONE blob (written by the cron after
+ * probing). The read-path (fetchAllStatus, on every SSR + /api/status poll)
+ * then does a single GET instead of one lrange per tool — keeps the status
+ * path within the Upstash command budget. 1h TTL: if the cron stops, signals
+ * expire rather than showing a frozen "reachable" forever.
+ */
+export async function writeProbeSignals(
+  signals: Record<string, ProbeSignal>,
+): Promise<void> {
+  const r = redis();
+  if (!r) return;
+  try {
+    await r.set(PROBE_SIGNALS_KEY, JSON.stringify(signals), { ex: 3600 });
+  } catch {
+    // never blocks the cron
+  }
+}
+
+/** Read the cron-written probe signals (single GET). Empty when absent. */
+export async function readProbeSignals(): Promise<Record<string, ProbeSignal>> {
+  const r = redis();
+  if (!r) return {};
+  try {
+    const raw = await r.get(PROBE_SIGNALS_KEY);
+    const parsed = typeof raw === "string" ? safeParse(raw) : raw;
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed as Record<string, ProbeSignal>;
+  } catch {
+    return {};
   }
 }
 

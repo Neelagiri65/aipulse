@@ -169,7 +169,10 @@ export function classifyProbeHistory(
 export async function probeOne(
   target: ProbeTarget,
   nowMs: number,
-  timeoutMs = 2500,
+  // MUST exceed PROBE_LATENCY_CEILING_MS: a tool that is alive but slow
+  // (2.5–4s under transient load) must record as reachable-but-slow, NOT as a
+  // failure — three such "failures" in a row would headline a false outage.
+  timeoutMs = 6000,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ProbeSample> {
   const started = nowMs;
@@ -217,7 +220,7 @@ export async function runAllProbes(
   let reachable = 0;
   await Promise.all(
     PROBE_TARGETS.map(async (t) => {
-      const sample = await probeOne(t, nowMs, 2500, fetchImpl);
+      const sample = await probeOne(t, nowMs, 6000, fetchImpl);
       if (sample.reachable) reachable += 1;
       await record(t.toolId, sample).catch(() => {});
     }),
