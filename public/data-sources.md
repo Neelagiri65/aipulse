@@ -2,7 +2,7 @@
 
 Every number on this dashboard traces back to a publicly verifiable source. Gawk aggregates — it does not invent metrics, re-score labs, or manufacture values. When a source is unavailable, the affected card falls to graceful degradation with a "last known value" and timestamp rather than blanking silently.
 
-As of 2026-07-04, Gawk tracks **41 verified sources** across GitHub activity, status pages, platform-infrastructure status pages, published research, model distribution, package adoption, community sentiment, AI publishers, and model benchmarks.
+As of 2026-07-05, Gawk tracks **42 verified sources** across GitHub activity, status pages, platform-infrastructure status pages, published research, model distribution, package adoption, community sentiment, AI publishers, and model benchmarks — plus active reachability probes for each AI tool.
 
 ---
 
@@ -21,12 +21,16 @@ As of 2026-07-04, Gawk tracks **41 verified sources** across GitHub activity, st
 - GitLab — universe pulse + tracked project events
 - AI Labs — curated HQ registry
 
-### Status pages — AI tools (5)
+### Status pages — AI tools (6)
 - Anthropic Status — Claude Code + API
 - OpenAI Status — summary
 - OpenAI Status — incidents
 - GitHub Status — covers Copilot
 - Windsurf Status
+- Cursor Status
+
+### Tool reachability probes (measured, not declared)
+Alongside each tool's **declared** status page above, Gawk runs an **active reachability probe** — it hits the tool's real service endpoint and records whether it answered, from a single probe location. Shown symmetrically with the declared status, never merged into it; a disagreement (page says operational, probe unreachable) is surfaced, not resolved. The signal is "reachable", never "up/healthy" — a response proves the service answered, not that the backend is well. A single failed probe never asserts an outage (hysteresis). Latency is one-location round-trip (mostly geography). Endpoints (some undocumented; failure degrades to "pending", never fabricated): api.anthropic.com, api.openai.com, api.github.com, server.codeium.com, api2.cursor.sh.
 
 ### Status pages — platform infrastructure (4)
 These four track the services Gawk itself runs on. Surfaced operator-side only (`/admin`); the public Tool Health card grid stays AI-focused.
@@ -72,8 +76,7 @@ The PyPI, npm, and GitHub Repository Metadata sources also power the Agents pane
 
 ## Tracked gaps (surfaced, not hidden)
 
-### Cursor
-No public status endpoint and no public issue tracker at the time of checking. The Cursor card stays on the dashboard in explicit no-data mode rather than silently omitted — a dashboard that hides Cursor reads as "not an AI coding tool worth tracking", which isn't honest. Reinstatement requires a publicly hit-able endpoint with a stable schema.
+_(Cursor's first-party status page — `status.cursor.com` — is now tracked, and every tool carries an active reachability probe; both are listed under Verified sources above. No AI-tool card is in no-data mode.)_
 
 ---
 

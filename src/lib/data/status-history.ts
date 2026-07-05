@@ -126,6 +126,96 @@ export async function readSamples(toolId: string): Promise<StatusSample[]> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Probe history (active-reachability probes — the dual-signal "measured" half)
+// ---------------------------------------------------------------------------
+
+import type { ProbeSample, ProbeSignal } from "@/lib/data/tool-probe";
+
+const PROBE_KEY = (toolId: string) => `aipulse:probe-history:${toolId}`;
+const PROBE_SIGNALS_KEY = "aipulse:probe-signals";
+// Enough for a few hours of 5-min probes — plenty for hysteresis + a short
+// trend, without unbounded growth.
+const MAX_PROBES = 60;
+
+/** Record one probe result (newest-first). Fail-closed — never blocks. */
+export async function recordProbe(
+  toolId: string,
+  sample: ProbeSample,
+): Promise<void> {
+  const r = redis();
+  if (!r) return;
+  try {
+    const key = PROBE_KEY(toolId);
+    await r.lpush(key, JSON.stringify(sample));
+    await r.ltrim(key, 0, MAX_PROBES - 1);
+    await r.expire(key, 8 * 24 * 3600);
+  } catch {
+    // Probe recording never blocks the dashboard.
+  }
+}
+
+/** Read a tool's probe history, newest-first. Empty when Redis is absent. */
+export async function readProbes(toolId: string): Promise<ProbeSample[]> {
+  const r = redis();
+  if (!r) return [];
+  try {
+    const raw = await r.lrange(PROBE_KEY(toolId), 0, MAX_PROBES - 1);
+    const out: ProbeSample[] = [];
+    for (const entry of raw as unknown[]) {
+      const parsed = typeof entry === "string" ? safeParse(entry) : entry;
+      if (isProbeSample(parsed)) out.push(parsed);
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Persist the classified probe signals as ONE blob (written by the cron after
+ * probing). The read-path (fetchAllStatus, on every SSR + /api/status poll)
+ * then does a single GET instead of one lrange per tool — keeps the status
+ * path within the Upstash command budget. 1h TTL: if the cron stops, signals
+ * expire rather than showing a frozen "reachable" forever.
+ */
+export async function writeProbeSignals(
+  signals: Record<string, ProbeSignal>,
+): Promise<void> {
+  const r = redis();
+  if (!r) return;
+  try {
+    await r.set(PROBE_SIGNALS_KEY, JSON.stringify(signals), { ex: 3600 });
+  } catch {
+    // never blocks the cron
+  }
+}
+
+/** Read the cron-written probe signals (single GET). Empty when absent. */
+export async function readProbeSignals(): Promise<Record<string, ProbeSignal>> {
+  const r = redis();
+  if (!r) return {};
+  try {
+    const raw = await r.get(PROBE_SIGNALS_KEY);
+    const parsed = typeof raw === "string" ? safeParse(raw) : raw;
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed as Record<string, ProbeSignal>;
+  } catch {
+    return {};
+  }
+}
+
+function isProbeSample(v: unknown): v is ProbeSample {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.ts === "string" &&
+    typeof o.reachable === "boolean" &&
+    typeof o.httpStatus === "number" &&
+    typeof o.latencyMs === "number"
+  );
+}
+
 function safeParse(s: string): unknown {
   try {
     return JSON.parse(s);

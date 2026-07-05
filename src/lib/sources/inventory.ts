@@ -177,6 +177,7 @@ const TRACKS: Record<string, string> = {
   "github-status":
     "GitHub platform components, filtered for the `Copilot` component used by the Copilot health card.",
   "windsurf-status": "Overall page status + incidents for Windsurf (Cascade + Tab).",
+  "cursor-status": "Overall page status + incidents for Cursor (IDE, CLI, Cloud Agents).",
   "vercel-status":
     "Vercel platform health (Dashboard, Builds, Edge Network, Functions). Surfaces on /admin only.",
   "supabase-status":
@@ -249,6 +250,7 @@ const POWERED_FEATURE: Record<string, string> = {
   "gh-issues-claude-code": "Tools panel · Claude Code card",
   "github-status": "Tools panel · Copilot card",
   "windsurf-status": "Tools panel · Windsurf card",
+  "cursor-status": "Tools panel · Cursor card",
   "vercel-status": "/admin · Platform health",
   "supabase-status": "/admin · Platform health",
   "cloudflare-status": "/admin · Platform health",
@@ -287,6 +289,7 @@ const CATEGORY_OF: Record<string, CategoryId> = {
   "openai-incidents": "tool-status",
   "github-status": "tool-status",
   "windsurf-status": "tool-status",
+  "cursor-status": "tool-status",
   "gh-issues-claude-code": "tool-status",
   // Platform infrastructure
   "vercel-status": "platform-infrastructure",
@@ -349,6 +352,7 @@ const FRESHNESS_OF: Record<string, FreshnessSource> = {
   "openai-incidents": { kind: "last-known", key: "status" },
   "github-status": { kind: "last-known", key: "status" },
   "windsurf-status": { kind: "last-known", key: "status" },
+  "cursor-status": { kind: "last-known", key: "status" },
   "gh-issues-claude-code": { kind: "last-known", key: "status" },
   "vercel-status": { kind: "on-demand" },
   "supabase-status": { kind: "on-demand" },
