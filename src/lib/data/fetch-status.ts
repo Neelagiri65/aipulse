@@ -151,6 +151,25 @@ function findComponent(
   )?.status;
 }
 
+/**
+ * Incident-to-Codex attribution. OpenAI's incidents feed doesn't reliably
+ * populate `components[]` (observed empty on a live incident naming Codex,
+ * 2026-07-05), so attribution is name-based with a components[] check when
+ * present. Unnamed incidents are KEPT — we can't prove they exclude Codex,
+ * and the conservative failure mode is disclosing an extra incident, not
+ * hiding a real one. Shared by the codex card's activeIncidents filter and
+ * its history filter so the incident block and the uptime bar can never
+ * disagree on what counts as a Codex incident.
+ */
+export function mentionsCodex(i: {
+  name?: string;
+  components?: Array<{ name?: string }>;
+}): boolean {
+  if (!i.name) return true;
+  if (/codex/i.test(i.name)) return true;
+  return (i.components ?? []).some((c) => /codex/i.test(c.name ?? ""));
+}
+
 async function fetchClaudeCodeIssues(): Promise<number | Error> {
   const token = process.env.GH_TOKEN;
   if (!token) return new Error("GH_TOKEN not set");
@@ -239,10 +258,10 @@ export async function fetchAllStatus(): Promise<StatusResult> {
 
   const data: StatusResult["data"] = {};
 
-  // OpenAI incidents live on a separate endpoint — same array feeds all three
-  // OpenAI-powered cards (API, Codex Web, Codex API). We attach the full
-  // active list to each; filtering per-component would require inspecting
-  // each incident's `components[]` and is a future refinement.
+  // OpenAI incidents live on a separate endpoint. The API card gets the
+  // full active list (page-level card); the codex card filters it through
+  // the same `mentionsCodex` predicate its history uses, so its incident
+  // block and uptime bar share one inclusion rule.
   const openaiActive: ToolIncident[] =
     openaiIncidents instanceof Error ? [] : openaiIncidents;
   if (openaiIncidents instanceof Error) {
@@ -308,18 +327,15 @@ export async function fetchAllStatus(): Promise<StatusResult> {
         message: "neither `Codex Web` nor `Codex API` component found on OpenAI status page",
       });
     } else {
-      // Filter history to incidents referencing Codex components when possible.
-      const codexHistory = openaiHistory.filter(
-        (i) =>
-          !i.name ||
-          /codex/i.test(i.name) ||
-          /codex/i.test(JSON.stringify((i as unknown as { components?: { name?: string }[] }).components ?? "")),
+      // One inclusion rule for both surfaces: history AND the active list.
+      const codexHistory = openaiHistory.filter((i) =>
+        mentionsCodex(i as { name?: string; components?: { name?: string }[] }),
       );
       data["codex"] = {
         status: worstStatus(codexParts),
         statusSourceId: OPENAI_STATUS.id,
         lastCheckedAt: polledAt,
-        activeIncidents: openaiActive,
+        activeIncidents: openaiActive.filter(mentionsCodex),
         history: bucketToDays(codexHistory, codexSamples),
         historyHasSamples: redisOn,
       };
