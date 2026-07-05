@@ -14,6 +14,13 @@ import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve } from "path";
 
 import { rotateScriptForFreshness } from "../../src/lib/curation/lead-freshness";
+import {
+  distilHeadline,
+  duplicatesLeaderboard,
+  normalisePackageName,
+  storyGate,
+  trimNarration,
+} from "../../src/lib/video/content-gates";
 import { readRecentLeadTitles } from "./recent-leads";
 
 const ROOT = process.cwd();
@@ -78,58 +85,6 @@ function formatPrice(p: number): string {
   if (p < 0.01) return `$${p.toFixed(3)}`;
   if (p < 1) return `$${p.toFixed(2)}`;
   return `$${p.toFixed(2)}`;
-}
-
-// ~150 wpm natural speech → 5s ≈ 12 words. Condense to fit without speed-racing TTS.
-function trimNarration(text: string, holdSec: number): string {
-  const maxWords = Math.floor(holdSec * 2.5);
-  const words = text.split(/\s+/);
-  if (words.length <= maxWords) return text;
-
-  // Try splitting on sentence boundaries first — keep complete sentences that fit
-  const sentences = text.split(/(?<=[.!?])\s+/);
-  let result = "";
-  for (const s of sentences) {
-    const candidate = result ? `${result} ${s}` : s;
-    if (candidate.split(/\s+/).length <= maxWords) {
-      result = candidate;
-    } else break;
-  }
-  if (result && result.split(/\s+/).length >= 4) {
-    return result.endsWith(".") || result.endsWith("!") || result.endsWith("?") ? result : `${result}.`;
-  }
-
-  // Fallback: cut at a clause boundary (comma, dash, semicolon)
-  let trimmed = words.slice(0, maxWords).join(" ");
-  const clauseEnd = Math.max(trimmed.lastIndexOf(","), trimmed.lastIndexOf(" —"), trimmed.lastIndexOf(" -"), trimmed.lastIndexOf(";"));
-  if (clauseEnd > trimmed.length * 0.4) {
-    trimmed = trimmed.slice(0, clauseEnd);
-  }
-  trimmed = trimmed.replace(/\s+(and|but|or|the|a|an|in|on|at|for|of|with|from|to|is|was|that|this)$/i, "");
-  if (!trimmed.endsWith(".") && !trimmed.endsWith("!") && !trimmed.endsWith("?")) trimmed += ".";
-  return trimmed;
-}
-
-// Distil verbose headlines (Reddit/HN style) into broadcast-friendly sentences
-function distilHeadline(headline: string): string {
-  let h = headline;
-  // Strip personal framing ("I built...", "I catalogued...", "Is anyone...")
-  h = h.replace(/^I('ve)?\s+(built|made|created|catalogued|wrote|found|discovered|vibed)\s+(up\s+)?/i, (_, _ve, verb) => {
-    const past: Record<string, string> = {
-      built: "New tool:", made: "New tool:", created: "New tool:", vibed: "Recreation:",
-      catalogued: "Study:", wrote: "New:", found: "Finding:", discovered: "Discovery:",
-    };
-    return past[verb.toLowerCase()] + " ";
-  });
-  h = h.replace(/^Is\s+Anyone\s+/i, "Community asks: ");
-  // Strip trailing commentary after comma/dash ("here's what I found", "it's been fun")
-  h = h.replace(/[,\s]+here'?s?\s+what.*$/i, ".");
-  h = h.replace(/[,\s]+and\s+(?:here|it).*$/i, ".");
-  // Strip personal relative clauses
-  h = h.replace(/\s+I\s+used\s+to\s+.*$/i, ".");
-  h = h.replace(/\s+\d+\s+years?\s+ago$/i, ".");
-  if (!h.endsWith(".") && !h.endsWith("!") && !h.endsWith("?")) h += ".";
-  return h;
 }
 
 function numberToWords(n: number): string {
