@@ -26,11 +26,13 @@ Invariants (prd-trust-harness §1): **F**resh · **A**ttributed · **D**elta-pro
 2. ~~sdk-adoption + agents~~ ✅ DONE — +734% spike suppression pinned; agents delta-provenance framed.
 3. ~~map spam-actor filter~~ ✅ DONE — throwaway-actor gate (spam-actor.ts).
 4. HN / producthunt / research / RSS — freshness + attribution (zero-coverage feeds).
-5. **Layer B live auditor** — once ≥3 feeds have reusable fixtures, the scheduled job samples live `/api/*` output and asserts these same invariants against reality.
+5. ~~Layer B live auditor~~ ✅ BUILT — /api/trust-audit + integrity-watch pages on any served-invariant violation (auditor.ts).
 
 ## Done this session
 - Shared invariants spine (`invariants.ts`) — the executable §1.
 - benchmarks delta-provenance (first NEW feed guard).
 - map events durable-evidence (#54/#55) retro-fits the V invariant.
 - model-usage S91 fabrication guard END-TO-END (openrouter-trust.test.ts).
-- sdk-adoption +734% spike suppression pinned; agents delta-provenance framed via the shared invariant.
+- sdk-adoption +734% spike suppression pinned; agents delta-provenance framed.
+- spam-actor filter (throwaway-account gate) — fired on live data.
+- **Layer B LIVE AUDITOR** (/api/trust-audit) — served-output invariants, pages Discord via integrity-watch. Catches #54/#53/S88/S91 classes structurally on prod.
