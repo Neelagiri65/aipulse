@@ -61,8 +61,13 @@ export const CRON_WORKFLOWS = {
   // S53 (observed p95 = 140m on the */5 cron schedule).
   "notify-tool-alerts": { expectedIntervalMinutes: 90 },
   // Push notifications broadcast — piggybacked on notify-tool-alerts.
-  // Same cadence: fires only when a tool transition happens.
-  "push-send": { expectedIntervalMinutes: 90 },
+  // EVENT-TRIGGERED: fires only when a tool status transition happens,
+  // which can legitimately be days apart. An interval-staleness gate on
+  // this beacon is structurally cry-wolf (it read "stale" from S89 to
+  // S93 while its work was actually happening); eventTriggered exempts
+  // it from isCronStale. Failures still surface via lastFailureAt /
+  // errorCount on /admin.
+  "push-send": { expectedIntervalMinutes: 90, eventTriggered: true },
   // Curated Reddit subs (r/LocalLLaMA + r/ClaudeAI) feed NEWS cards.
   // Drift bumped 30→120 in S53 (observed p95 = 208m, the worst of the
   // short-cadence workflows).
@@ -189,17 +194,31 @@ export async function readAllCronHealth(): Promise<CronHealthRecord[]> {
   }
 }
 
+/** True for workflows that fire on events (status transitions), not on
+ *  an interval — elapsed time since last success is meaningless there. */
+export function isEventTriggered(workflow: CronWorkflowName): boolean {
+  return (
+    (CRON_WORKFLOWS[workflow] as { eventTriggered?: boolean })
+      .eventTriggered === true
+  );
+}
+
 /**
  * A cron is stale if its most recent success is older than 2× its
  * declared interval, or if it has never succeeded at all. 2× is the
  * standard "we missed one tick and the next one too" gate — tight
  * enough to catch real failures, loose enough to tolerate a single
  * transient blip without crying wolf.
+ *
+ * Event-triggered workflows are exempt: "time since last event" says
+ * nothing about health (a quiet week of tool statuses = zero pushes,
+ * correctly). Their failure signal is lastFailureAt/errorCount.
  */
 export function isCronStale(
   record: CronHealthRecord,
   now: number = Date.now(),
 ): boolean {
+  if (isEventTriggered(record.workflow)) return false;
   if (!record.lastSuccessAt) return true;
   const lastMs = Date.parse(record.lastSuccessAt);
   if (Number.isNaN(lastMs)) return true;

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CRON_WORKFLOWS,
   isCronStale,
+  isEventTriggered,
   type CronHealthRecord,
   type CronWorkflowName,
 } from "@/lib/data/cron-health";
@@ -71,6 +72,32 @@ describe("isCronStale", () => {
     });
     expect(isCronStale(freshAt40, now)).toBe(false);
     expect(isCronStale(staleAt70, now)).toBe(true);
+  });
+
+  describe("event-triggered workflows (push-send)", () => {
+    // Reconstructed S89→S93 incident: push-send sat "STALE" on the
+    // status bar for days while its work was actually happening —
+    // elapsed time since the last tool-status transition says nothing
+    // about health.
+    it("never flags an event-triggered workflow as interval-stale — even never-run", () => {
+      expect(isCronStale(mkRecord("push-send"), Date.now())).toBe(false);
+    });
+
+    it("not stale days after its last success (quiet statuses = zero pushes, correctly)", () => {
+      const now = Date.parse("2026-07-05T12:00:00Z");
+      const record = mkRecord("push-send", {
+        lastSuccessAt: "2026-07-01T03:40:00Z", // 4+ days ago
+      });
+      expect(isCronStale(record, now)).toBe(false);
+    });
+
+    it("isEventTriggered: true only for push-send; interval crons unaffected", () => {
+      expect(isEventTriggered("push-send")).toBe(true);
+      expect(isEventTriggered("wire-ingest-rss")).toBe(false);
+      expect(isEventTriggered("notify-tool-alerts")).toBe(false);
+      // Interval semantics unchanged for everything else:
+      expect(isCronStale(mkRecord("wire-ingest-hn"), Date.now())).toBe(true);
+    });
   });
 });
 
