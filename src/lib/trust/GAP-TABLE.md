@@ -19,7 +19,7 @@ Invariants (prd-trust-harness §1): **F**resh · **A**ttributed · **D**elta-pro
 | research/arXiv | ✓ | ✓ | · | · | · | ✓ | research-trust.test.ts | NEW 7d gate in deriver (`fetch-research` had no age bound); host=arxiv.org |
 | RSS | ✓ | ✓ | · | · | · | ✗ | rss-trust.test.ts | `normaliseItem` drops no-link / unparseable-date at ingest; url attribution via checkResolvableSource (arbitrary publisher host) |
 | gitlab | ✓ | ✓ | · | ✓ | ✓ | ✓ | gitlab-events.test.ts | built with invariants in mind |
-| digest | ✗ | ✗ | ✗ | · | · | ✗ | (template tests behavioural) | composes all — inherits their gaps |
+| digest | · | ✓ | ✓ | · | · | ✓ | digest-trust.test.ts | D: bootstrap/quiet bodies carry ZERO movement tokens (detector = the renderer's own `deltaDirection` — one truth); A/V: every item + section sourceUrl through checkResolvableSource; R: tldr counts = section item counts. F is input-side (build.ts fails loud on missing snapshot; snapshot keyed by date — compose can't fabricate staleness) |
 
 ## Rollout order (highest stakes / worst coverage first)
 1. ~~model-usage~~ ✅ DONE — S91 reconstructed end-to-end (openrouter-trust.test.ts).
