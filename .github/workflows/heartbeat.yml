@@ -7,13 +7,23 @@ name: heartbeat
 # its 4h window between real runs.
 #
 # The fix: a RUNNING job is immune to scheduler throttling. This workflow
-# starts on an explicit-minute 4x/hour schedule (which GitHub honours far more
-# reliably than `*/5`) and then loops INTERNALLY every 5 minutes, curling the
-# ingest endpoints itself. Loop duration (20m) EXCEEDS the restart interval
-# (15m), so a single dropped scheduled fire is covered by the still-running
-# previous loop. `cancel-in-progress: true` bounds us to exactly one live
-# instance — a landed restart cancels the mostly-sleeping predecessor
-# (stateless, harmless) rather than stacking a queue.
+# starts on an explicit-minute 4x/hour schedule and loops INTERNALLY every 5
+# minutes, curling the ingest endpoints itself. `cancel-in-progress: true`
+# bounds us to exactly one live instance — a landed restart cancels the
+# mostly-sleeping predecessor (stateless, harmless) rather than stacking a
+# queue.
+#
+# LOOP WINDOW (revised S93 on observed data): the original design assumed
+# explicit-minute schedules restart every ~15 min and looped for 20. Observed
+# reality (2026-07-05): scheduled fires landed 89-127 min apart (median 96) —
+# GitHub throttles even explicit-minute schedules. A 20-min loop therefore
+# covered only ~20% of wall-clock, and since #64 retired the ingests' own
+# schedules, the map got ZERO ticks in the dead stretches (invisible on the
+# status bar — the gaps sat just under the 2x stale budgets). The loop now
+# runs 175 min (> the 127-min max observed gap, ~40% margin; well under the
+# 360-min hosted-runner job cap), so coverage is continuous as long as ANY
+# fire lands within ~3h. When GitHub does honour the 15-min schedule, the
+# restart cancels the loop early — behaviour identical to the original.
 #
 # Public repo → unlimited Actions minutes, so a near-continuous loop is free.
 # Both endpoints are thin, idempotent poll-and-dedupe triggers (all compute is
@@ -32,12 +42,12 @@ name: heartbeat
 # wire-ingest-rss is the exception (added S93): the original "explicit-minute
 # schedules drift far less" premise was FALSIFIED by observation — its
 # `25,55 * * * *` schedule fired with 79min-4.3h real gaps, leaving the
-# regional wire stale for hours at a time. It ticks ONCE PER RUN (not per
-# 5-min loop iteration): 4 restarts/hour = effective ~15-min cadence, 2x its
-# designed 30-min rate — within the 5 publisher feeds' tolerance and the
-# Upstash budget. Its own 25,55 schedule stays as belt-and-braces until the
-# heartbeat path is verified live (then retire it per the #64
-# verify-before-disable discipline).
+# regional wire stale for hours at a time. It ticks every SIXTH loop
+# iteration (30 min — exactly its designed cadence; once-per-run would leave
+# it stale again at the observed 96-min restart gaps). 2/hour against 5
+# public publisher feeds is the load it always assumed. Its own 25,55
+# schedule stays as belt-and-braces until the heartbeat path is verified
+# live (then retire it per the #64 verify-before-disable discipline).
 
 on:
   schedule:
@@ -54,7 +64,7 @@ permissions:
 jobs:
   pulse:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 185
     steps:
       - name: Loop the live-critical ingests every 5 minutes
         env:
@@ -69,16 +79,12 @@ jobs:
           NOTIFY_URL="$BASE/api/notify/tool-alerts"
           RSS_URL="$BASE/api/wire/ingest-rss"
 
-          # Once per run (~every 15 min), NOT in the 5-min loop: the regional
-          # RSS ingest polls 5 external publisher feeds — see scope note.
-          code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 280 \
-            -H "x-ingest-secret: $INGEST_SECRET" -X POST "$RSS_URL" 2>/dev/null) || code="000"
-          echo "$(date -u +%H:%M:%S) wire-ingest-rss     -> $code"
-          [ "$code" = "200" ] || echo "::warning::wire-ingest-rss tick returned $code"
-
-          # One tick = poll both endpoints, logging each HTTP status. Per-endpoint
-          # failures are non-fatal: a bad tick is retried on the next one, and the
-          # loop must never exit early (that would reopen the drift gap).
+          # One tick = poll both live-critical endpoints, logging each HTTP
+          # status. Every 6th iteration (30 min — its designed cadence) also
+          # ticks the regional RSS ingest; see scope note. Per-endpoint
+          # failures are non-fatal: a bad tick is retried on the next one,
+          # and the loop must never exit early (that would reopen the gap).
+          i=0
           tick() {
             local code
             code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 100 \
@@ -90,12 +96,21 @@ jobs:
               -H "x-ingest-secret: $INGEST_SECRET" -X POST "$NOTIFY_URL" 2>/dev/null) || code="000"
             echo "$(date -u +%H:%M:%S) notify-tool-alerts  -> $code"
             [ "$code" = "200" ] || echo "::warning::notify-tool-alerts tick returned $code"
+
+            if [ $((i % 6)) -eq 0 ]; then
+              code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 280 \
+                -H "x-ingest-secret: $INGEST_SECRET" -X POST "$RSS_URL" 2>/dev/null) || code="000"
+              echo "$(date -u +%H:%M:%S) wire-ingest-rss     -> $code"
+              [ "$code" = "200" ] || echo "::warning::wire-ingest-rss tick returned $code"
+            fi
+            i=$((i + 1))
           }
 
-          # Loop for 20 min (> the 15-min restart interval, so a dropped fire is
-          # covered). Ticks at 0/5/10/15/20 min; the next scheduled fire cancels
-          # this run seamlessly (cancel-in-progress) for continuous coverage.
-          end=$((SECONDS + 20 * 60))
+          # Loop for 175 min (> the 127-min max observed restart gap — see
+          # header). A landed scheduled fire cancels this run seamlessly
+          # (cancel-in-progress) for continuous coverage; if none lands, the
+          # loop itself carries coverage for ~3h.
+          end=$((SECONDS + 175 * 60))
           tick
           while [ "$SECONDS" -lt "$end" ]; do
             sleep 300
