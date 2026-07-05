@@ -4,33 +4,12 @@
  * Usage: npx tsx scripts/video/curate-stories.ts [--max 6] [--llm] [--out data/curated.json]
  */
 
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { writeFileSync } from "fs";
 import { resolve } from "path";
 import { ingestAll } from "../../src/lib/curation/ingest";
 import { scoreAll } from "../../src/lib/curation/score";
 import { buildNarratives } from "../../src/lib/curation/cluster";
-import { rotateLeadForFreshness } from "../../src/lib/curation/lead-freshness";
 import type { CurationResult, CurationSource, Narrative } from "../../src/lib/curation/types";
-
-/** Previous days' actual video titles, newest first — the ground truth
- *  for what a viewer has already seen leading the channel. Fail-soft:
- *  a missing/corrupt log disables rotation, never blocks curation. */
-function readRecentLeadTitles(): string[] {
-  const logPath = resolve(process.cwd(), "data/upload-log.json");
-  if (!existsSync(logPath)) return [];
-  try {
-    const log: Array<{ date?: string; title?: string }> = JSON.parse(
-      readFileSync(logPath, "utf-8"),
-    );
-    return log
-      .filter((e) => typeof e.title === "string")
-      .slice(-5)
-      .reverse()
-      .map((e) => e.title as string);
-  } catch {
-    return [];
-  }
-}
 
 const args = process.argv.slice(2);
 function flag(name: string): boolean {
@@ -135,18 +114,14 @@ async function main() {
   console.log(`   Bottom score: ${scored[scored.length - 1]?.attention.total ?? 0}\n`);
 
   console.log("3. Clustering + deduplicating...");
-  const clustered = buildNarratives(scored, MAX_NARRATIVES);
-  console.log(`   ${clustered.length} narratives from ${scored.length} scored events\n`);
+  const narratives = buildNarratives(scored, MAX_NARRATIVES);
+  console.log(`   ${narratives.length} narratives from ${scored.length} scored events\n`);
 
-  // Cross-day lead freshness (2026-07-05 incident: the same lead shipped
-  // SIX days running — a standing state is not news). Compares against
-  // the previous days' actual video titles from the upload log; the
-  // repeated story stays in the video, just not as the lead/title.
-  console.log("3b. Cross-day lead freshness...");
-  const recentLeadTitles = readRecentLeadTitles();
-  const rotation = rotateLeadForFreshness(clustered, recentLeadTitles);
-  console.log(`   ${rotation.reason}\n`);
-  const narratives = rotation.narratives;
+  // NB: cross-day lead freshness is enforced in generate-daily-script.ts
+  // (rotateScriptForFreshness), NOT here — the video title comes from
+  // stories[0] AFTER the leaderboard hook is pinned first, so curation
+  // order cannot influence it. The first version of the gate lived here
+  // and was proven ineffective by the 2026-07-05 proof run.
 
   let final = narratives;
   if (USE_LLM) {

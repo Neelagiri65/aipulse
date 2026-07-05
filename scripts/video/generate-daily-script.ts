@@ -13,6 +13,9 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve } from "path";
 
+import { rotateScriptForFreshness } from "../../src/lib/curation/lead-freshness";
+import { readRecentLeadTitles } from "./recent-leads";
+
 const ROOT = process.cwd();
 const GAWK_BASE = process.env.GAWK_BASE_URL || "https://gawk.dev";
 const CURATED = resolve(ROOT, "data/curated.json");
@@ -584,14 +587,30 @@ async function main() {
     narration: "That's the briefing. Every number links to its source. gawk dot dev.",
   });
 
-  // Write outputs
-  writeFileSync(SCRIPT_OUT, JSON.stringify(stories, null, 2));
-  writeFileSync(NARRATION_OUT, JSON.stringify(narrations, null, 2));
+  // Cross-day lead freshness — at the TITLE chokepoint. The video title
+  // is stories[0].headline (video-metadata.ts), and the leaderboard hook
+  // above is pinned first unconditionally: that is exactly how six
+  // identical "DeepSeek holds #1" titles shipped 06-30 → 07-05. A story
+  // may lead at most 2 consecutive days; the repeated story stays in the
+  // video, it just loses the lead/title slot. Decision is always logged.
+  const freshness = rotateScriptForFreshness(
+    stories,
+    narrations,
+    readRecentLeadTitles(),
+  );
+  console.log(`  [LEAD GATE] ${freshness.reason}`);
+  const finalStories = freshness.stories;
+  const finalNarrations = freshness.narrations;
 
-  console.log(`\nWrote ${stories.length} stories to data/script-locked.json`);
-  console.log(`Wrote ${narrations.length} narration entries to data/narration-locked.json`);
-  console.log(`\nStories: ${stories.map((s) => s.type).join(", ")}`);
-  console.log(`Duration: ~${stories.reduce((a, s) => a + s.holdSec, 0) + 5}s (+ intro/outro/wipes)`);
+  // Write outputs
+  writeFileSync(SCRIPT_OUT, JSON.stringify(finalStories, null, 2));
+  writeFileSync(NARRATION_OUT, JSON.stringify(finalNarrations, null, 2));
+
+  console.log(`\nWrote ${finalStories.length} stories to data/script-locked.json`);
+  console.log(`Wrote ${finalNarrations.length} narration entries to data/narration-locked.json`);
+  console.log(`\nStories: ${finalStories.map((s) => s.type).join(", ")}`);
+  console.log(`Lead: ${finalStories[0]?.headline ?? "(none)"}`);
+  console.log(`Duration: ~${finalStories.reduce((a, s) => a + s.holdSec, 0) + 5}s (+ intro/outro/wipes)`);
 }
 
 main().catch((e) => {

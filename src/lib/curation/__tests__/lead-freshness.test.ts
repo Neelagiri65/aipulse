@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import {
   leadTokens,
   rotateLeadForFreshness,
+  rotateScriptForFreshness,
   sameLead,
 } from "@/lib/curation/lead-freshness";
 
@@ -115,5 +116,64 @@ describe("rotateLeadForFreshness", () => {
       ],
     );
     expect(result.rotated).toBe(false);
+  });
+});
+
+describe("rotateScriptForFreshness — the TITLE chokepoint (stories[0] IS the title)", () => {
+  const stories = [
+    { id: "hook-leaderboard", headline: "DeepSeek V4 Flash holds #1 on OpenRouter" },
+    { id: "s-langchain", headline: "langchain downloads jump 18% week-over-week" },
+    { id: "s-labs", headline: "Anthropic leads 7-day GitHub activity" },
+  ];
+  const narrations = [
+    { id: "intro" },
+    { id: "hook-leaderboard" },
+    { id: "s-langchain" },
+    { id: "s-labs" },
+    { id: "outro" },
+  ];
+
+  it("THE REAL FIX: the pinned leaderboard hook loses the lead, narration follows in tandem", () => {
+    const r = rotateScriptForFreshness(stories, narrations, REAL_RECENT_TITLES);
+    expect(r.rotated).toBe(true);
+    expect(r.stories.map((s) => s.id)).toEqual([
+      "s-langchain",
+      "hook-leaderboard",
+      "s-labs",
+    ]);
+    expect(r.narrations.map((x) => x.id)).toEqual([
+      "intro",
+      "s-langchain",
+      "hook-leaderboard",
+      "s-labs",
+      "outro",
+    ]);
+  });
+
+  it("no rotation → stories and narrations pass through untouched", () => {
+    const fresh = [
+      { id: "hook", headline: "Claude Opus 4.8 takes #1 on OpenRouter" },
+      ...stories.slice(1),
+    ];
+    const r = rotateScriptForFreshness(fresh, narrations, REAL_RECENT_TITLES);
+    expect(r.rotated).toBe(false);
+    expect(r.stories).toEqual(fresh);
+    expect(r.narrations).toEqual(narrations);
+  });
+
+  it("intro stays first and outro stays last regardless of rotation depth", () => {
+    const r = rotateScriptForFreshness(
+      [
+        { id: "hook", headline: "DeepSeek V4 Flash holds #1 on OpenRouter" },
+        { id: "a", headline: "DeepSeek V4 Flash still holds #1 on OpenRouter" },
+        { id: "b", headline: "npm downloads fall 12% for legacy SDKs" },
+      ],
+      [{ id: "intro" }, { id: "hook" }, { id: "a" }, { id: "b" }, { id: "outro" }],
+      REAL_RECENT_TITLES,
+    );
+    expect(r.rotated).toBe(true);
+    expect(r.stories[0].id).toBe("b");
+    expect(r.narrations[0].id).toBe("intro");
+    expect(r.narrations[r.narrations.length - 1].id).toBe("outro");
   });
 });
