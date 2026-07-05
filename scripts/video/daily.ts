@@ -13,11 +13,14 @@ import { execSync } from "child_process";
 import { existsSync, readFileSync, renameSync, copyFileSync } from "fs";
 import { resolve } from "path";
 
+import { planDistribution } from "../../src/lib/video/plan-distribution";
+
 const ROOT = process.cwd();
 const args = process.argv.slice(2);
 
 const FORCE_DISTRIBUTE = args.includes("--force-distribute");
 const NO_DISTRIBUTE = args.includes("--no-distribute");
+const ALLOW_LOCAL_DISTRIBUTE = args.includes("--allow-local-distribute");
 const SKIP_FETCH = args.includes("--skip-fetch");
 const FAIL_FORWARD = args.includes("--fail-forward");
 const FORMATS = getArg("--formats", "youtube,instagram").split(",").map((f) => f.trim());
@@ -191,32 +194,48 @@ function main() {
   // ─── PHASE 4: DISTRIBUTE ───
 
   const uploadLogPath = resolve(ROOT, "data/upload-log.json");
-  const alreadyUploaded = (() => {
-    if (!existsSync(uploadLogPath)) return false;
+  const todayEntry = (() => {
+    if (!existsSync(uploadLogPath)) return null;
     try {
       const log = JSON.parse(readFileSync(uploadLogPath, "utf-8"));
-      return log.some((e: { date: string }) => e.date === DATE);
-    } catch { return false; }
+      return (
+        log.find((e: { date: string }) => e.date === DATE) ?? null
+      );
+    } catch { return null; }
   })();
 
-  if (!NO_DISTRIBUTE && (!alreadyUploaded || FORCE_DISTRIBUTE)) {
-    const platforms = FORMATS.map((f) => {
-      if (f === "youtube") return "youtube";
-      if (f === "instagram") return "instagram";
-      return f;
-    });
+  const requested = FORMATS.map((f) => {
+    if (f === "youtube") return "youtube";
+    if (f === "instagram") return "instagram";
+    return f;
+  });
+  if (FORMATS.includes("youtube")) {
+    requested.push("facebook", "discord");
+  }
 
-    if (FORMATS.includes("youtube")) {
-      platforms.push("facebook", "discord");
-    }
+  // Per-platform dedup + CI-only local guard — the 2026-07-05
+  // half-distributed-day incident class. See plan-distribution.ts.
+  const plan = planDistribution({
+    requested,
+    todayEntry,
+    forceDistribute: FORCE_DISTRIBUTE,
+    noDistribute: NO_DISTRIBUTE,
+    isCi: process.env.GITHUB_ACTIONS === "true",
+    allowLocalDistribute: ALLOW_LOCAL_DISTRIBUTE,
+  });
 
+  if (plan.kind === "run") {
+    console.log(`\n  Distribution plan: ${plan.reason} → ${plan.platforms.join(", ")}`);
     run(
       "Distribute",
-      `npx tsx scripts/video/distribute.ts --platforms ${platforms.join(",")}`,
+      `npx tsx scripts/video/distribute.ts --platforms ${plan.platforms.join(",")}`,
       { timeout: 300_000, optional: true }
     );
-  } else if (alreadyUploaded && !FORCE_DISTRIBUTE) {
-    console.log(`\n  Skipping distribution (already uploaded for ${DATE} — use --force-distribute to override)`);
+  } else if (plan.reason === "all-done") {
+    console.log(`\n  Skipping distribution (all requested platforms already done for ${DATE} — use --force-distribute to override)`);
+    results.push({ step: "Distribute", status: "skip", durationMs: 0 });
+  } else if (plan.reason === "local-guard") {
+    console.log("\n  Skipping distribution (not CI — pass --allow-local-distribute to upload from a local run)");
     results.push({ step: "Distribute", status: "skip", durationMs: 0 });
   } else {
     console.log("\n  Skipping distribution (--no-distribute)");
