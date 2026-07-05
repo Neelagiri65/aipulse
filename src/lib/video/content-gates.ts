@@ -47,8 +47,12 @@ export function storyGate(
   const hasHardMetric = m.rank !== undefined || m.deltaPct !== undefined || m.stars !== undefined;
   const hasHighEngagement = (m.points ?? 0) >= 100 || (m.comments ?? 0) >= 50;
   const hasRankInHeadline = /\b(up|down)\s+\d+\s+ranks?\b/i.test(headline);
+  // Headline-asserted deltas count ONLY for gawk wire/registry events — a
+  // community post claiming "down 90%" is an anecdote, not a registry figure
+  const hasDeltaPctInHeadline =
+    (source ?? "").startsWith("gawk-") && deltaPctFromHeadline(headline) !== null;
   const isResearch = source === "arxiv";
-  if (!hasHardMetric && !hasHighEngagement && !hasRankInHeadline && !isResearch) {
+  if (!hasHardMetric && !hasHighEngagement && !hasRankInHeadline && !hasDeltaPctInHeadline && !isResearch) {
     return { ok: false, reason: "no-metric" };
   }
 
@@ -136,4 +140,53 @@ export function distilHeadline(headline: string): string {
   h = h.replace(/\s+\d+\s+years?\s+ago$/i, ".");
   if (!h.endsWith(".") && !h.endsWith("!") && !h.endsWith("?")) h += ".";
   return h;
+}
+
+/**
+ * Parse a delta percentage ASSERTED by a headline ("+25%", "-12%",
+ * "up 25%", "down 12.5%"). A bare proportion ("90% of devs use AI") is
+ * NOT a movement and must not match. The incident: "@anthropic-ai/sdk
+ * on npm +25% vs baseline" — the day's most on-thesis story — was
+ * skipped as "no verifiable metric" because the wire event carried the
+ * figure only in its headline, never in metrics.deltaPct.
+ */
+export function deltaPctFromHeadline(headline: string): number | null {
+  const signed = headline.match(/(?:^|\s)([+-])(\d+(?:\.\d+)?)%/);
+  if (signed) return (signed[1] === "-" ? -1 : 1) * parseFloat(signed[2]);
+  const worded = headline.match(/\b(up|down)\s+(\d+(?:\.\d+)?)%/i);
+  if (worded) return (worded[1].toLowerCase() === "down" ? -1 : 1) * parseFloat(worded[2]);
+  return null;
+}
+
+/** A story about a rank move — via metrics or a parseable headline claim. */
+export function isRankStory(headline: string, metrics: StoryMetrics | undefined): boolean {
+  const m = metrics ?? {};
+  return m.rank !== undefined || /\b(up|down)\s+\d+\s+ranks?\b/i.test(headline);
+}
+
+/**
+ * First known model name mentioned in a headline (normalised), or null.
+ * Backs cross-narrative model dedup: the incident was Claude Sonnet 5
+ * shipping TWICE in one video — "up 5 ranks" (wire) and "moved from
+ * rank 24 to 19" (models feed) are the same fact from two sources, and
+ * neither the leaderboard top-5 exclusion (Sonnet was #19) nor the SDK
+ * package dedup applied.
+ */
+export function mentionedModelName(headline: string, modelNames: Iterable<string>): string | null {
+  const h = headline.toLowerCase();
+  for (const name of modelNames) {
+    const n = String(name ?? "").toLowerCase();
+    if (n && h.includes(n)) return n;
+  }
+  return null;
+}
+
+/**
+ * Honest source label for community engagement cards. The incident: the
+ * high-engagement branch hardcoded "Reddit", so an HN thread shipped
+ * with "Source: Reddit" on the card — a mislabelled source on air.
+ */
+export function communitySourceLabel(source: string | undefined): string {
+  const map: Record<string, string> = { hn: "Hacker News", reddit: "Reddit" };
+  return map[(source ?? "").toLowerCase()] ?? "Community";
 }

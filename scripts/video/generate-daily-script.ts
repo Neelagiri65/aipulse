@@ -15,8 +15,12 @@ import { resolve } from "path";
 
 import { rotateScriptForFreshness } from "../../src/lib/curation/lead-freshness";
 import {
+  communitySourceLabel,
+  deltaPctFromHeadline,
   distilHeadline,
   duplicatesLeaderboard,
+  isRankStory,
+  mentionedModelName,
   normalisePackageName,
   storyGate,
   trimNarration,
@@ -163,7 +167,7 @@ function buildLeaderboardStory(models: ModelRow[]): { story: LockedStory; narrat
   };
 }
 
-function buildMoverStory(event: CurationEvent, narrative: Narrative, models: ModelRow[]): { story: LockedStory; narration: NarrationEntry } {
+function buildMoverStory(event: CurationEvent, narrative: Narrative, models: ModelRow[]): { story: LockedStory; narration: NarrationEntry } | null {
   const m = event.metrics;
 
   if (m.rank !== undefined && m.previousRank !== undefined) {
@@ -287,6 +291,40 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
     };
   }
 
+  // Delta % asserted in the headline (wire SDK events often carry the figure
+  // only in the text — the "@anthropic-ai/sdk +25%" skip)
+  const headlinePct = event.source?.startsWith("gawk-") ? deltaPctFromHeadline(narrative.headline) : null;
+  if (headlinePct !== null) {
+    const direction = headlinePct > 0 ? "up" : "down";
+    const absPct = Math.abs(headlinePct);
+    const name = narrative.headline
+      .replace(/(?:^|\s)[+-]\d+(?:\.\d+)?%.*$/, "")
+      .replace(/\b(up|down)\s+\d+(?:\.\d+)?%.*$/i, "")
+      .replace(/[,:;\s]+$/, "")
+      .trim() || narrative.headline.split(" ")[0];
+    return {
+      story: {
+        id: narrative.id,
+        segment: "story",
+        headline: narrative.headline,
+        type: "data-card",
+        scene: "sdk-adoption",
+        holdSec: 5,
+        dataCard: {
+          label: "CHANGE",
+          number: `${direction === "up" ? "↑" : "↓"} ${absPct.toFixed(0)}%`,
+          direction,
+          title: narrative.headline,
+          source: `Source: Gawk wire · ${DATE}`,
+        },
+      },
+      narration: {
+        id: narrative.id,
+        narration: trimNarration(`${name}: ${direction} ${absPct.toFixed(0)} percent.`, 5),
+      },
+    };
+  }
+
   // High-engagement community posts — show as data card with engagement metric
   if ((m.points ?? 0) >= 100) {
     const shortHeadline = distilHeadline(narrative.headline);
@@ -303,7 +341,34 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
           number: `▲ ${m.points}`,
           direction: "up" as const,
           title: shortHeadline.replace(/\.$/, ""),
-          source: `Source: Reddit · ${DATE}`,
+          source: `Source: ${communitySourceLabel(event.source)} · ${DATE}`,
+        },
+      },
+      narration: {
+        id: narrative.id,
+        narration: trimNarration(shortHeadline, 5),
+      },
+    };
+  }
+
+  // Discussion-heavy posts that qualified on comments (50+) but not points —
+  // render the verifiable count, never a numberless card (the "—" IN FOCUS card)
+  if ((m.comments ?? 0) >= 50) {
+    const shortHeadline = distilHeadline(narrative.headline);
+    return {
+      story: {
+        id: narrative.id,
+        segment: "story",
+        headline: narrative.headline,
+        type: "data-card",
+        scene: "wire",
+        holdSec: 5,
+        dataCard: {
+          label: "DISCUSSION",
+          number: `${m.comments} comments`,
+          direction: "neutral" as const,
+          title: shortHeadline.replace(/\.$/, ""),
+          source: `Source: ${communitySourceLabel(event.source)} · ${DATE}`,
         },
       },
       narration: {
@@ -338,29 +403,9 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
     };
   }
 
-  // Fallback: data card with headline (no lower-thirds — every story gets full-screen treatment)
-  const shortHeadline = distilHeadline(narrative.headline);
-  return {
-    story: {
-      id: narrative.id,
-      segment: "story",
-      headline: narrative.headline,
-      type: "data-card",
-      scene: "wire",
-      holdSec: 5,
-      dataCard: {
-        label: "IN FOCUS",
-        number: "—",
-        direction: "neutral" as const,
-        title: shortHeadline.replace(/\.$/, ""),
-        source: `Source: Community · ${DATE}`,
-      },
-    },
-    narration: {
-      id: narrative.id,
-      narration: trimNarration(shortHeadline, 5),
-    },
-  };
+  // Nothing renderable — a card with no verifiable number breaks the trust
+  // bar. Drop the story (the gate should have caught it; this is the backstop).
+  return null;
 }
 
 async function main() {
@@ -404,6 +449,9 @@ async function main() {
   // Track used package names (normalised) to prevent SDK duplication
   const usedPackageNames = new Set<string>();
 
+  // Track models that already have a rank story (cross-source dedup)
+  const usedRankModels = new Set<string>();
+
   // Remaining stories — only include events with verifiable metrics
   const maxStories = 9;
   let storyCount = 0;
@@ -432,7 +480,10 @@ async function main() {
     }
 
     // Skip duplicate SDK packages (normalise: strip registry suffix, lowercase)
-    if (m.deltaPct !== undefined && event.tags?.includes("sdk")) {
+    const hasSdkDelta =
+      m.deltaPct !== undefined ||
+      (event.source?.startsWith("gawk-") && deltaPctFromHeadline(narrative.headline) !== null);
+    if (hasSdkDelta && event.tags?.some((t) => t.toLowerCase().startsWith("sdk"))) {
       const pkgName = normalisePackageName(narrative.headline.toLowerCase().split(/\s+/)[0]);
       if (usedPackageNames.has(pkgName)) {
         console.log(`  [SKIP     ] Duplicate SDK package — ${narrative.headline.slice(0, 50)}`);
@@ -441,7 +492,23 @@ async function main() {
       usedPackageNames.add(pkgName);
     }
 
-    const { story, narration } = buildMoverStory(event, narrative, models);
+    // Cross-narrative model dedup: the same rank move must not ship twice
+    // from two sources (the Claude Sonnet 5 double)
+    if (isRankStory(narrative.headline, m)) {
+      const mentioned = mentionedModelName(narrative.headline, models.map((r) => r.shortName));
+      if (mentioned && usedRankModels.has(mentioned)) {
+        console.log(`  [SKIP     ] Duplicate model story — ${narrative.headline.slice(0, 50)}`);
+        continue;
+      }
+      if (mentioned) usedRankModels.add(mentioned);
+    }
+
+    const built = buildMoverStory(event, narrative, models);
+    if (!built) {
+      console.log(`  [SKIP     ] No renderable metric — ${narrative.headline.slice(0, 50)}`);
+      continue;
+    }
+    const { story, narration } = built;
     stories.push(story);
     narrations.push(narration);
     storyCount++;
