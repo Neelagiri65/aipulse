@@ -54,6 +54,13 @@ export type ToolHealthData = {
   lastCheckedAt: string;
   /** ISO timestamp of the last known good reading if current poll failed. */
   lastKnownAt?: string;
+  /**
+   * Active-reachability probe — the MEASURED half of the dual signal (the
+   * declared status page above is the CLAIMED half). Present for every tool
+   * with a probe target; "pending" until enough history accrues. Shown
+   * symmetrically with `status`, never merged into it. See tool-probe.ts.
+   */
+  probe?: import("@/lib/data/tool-probe").ProbeSignal;
 };
 
 export type ToolId =
@@ -137,12 +144,9 @@ export const TOOLS: readonly ToolConfig[] = [
     id: "cursor",
     name: "Cursor",
     subtitle: "Anysphere · IDE",
-    sourceIds: [],
-    incidentsApiAvailable: false,
-    noPublicSource: true,
+    sourceIds: ["cursor-status"],
+    incidentsApiAvailable: true,
     publicPageUrl: "https://status.cursor.com",
-    noSourceReason:
-      "No public status API and no public GitHub issue tracker. Card is surfaced so the gap is visible, not hidden.",
   },
 ] as const;
 

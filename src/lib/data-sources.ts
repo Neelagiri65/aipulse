@@ -331,6 +331,28 @@ export const OPENAI_INCIDENTS: DataSource = {
   ],
 };
 
+export const CURSOR_STATUS: DataSource = {
+  id: "cursor-status",
+  name: "Cursor Status",
+  category: "status-page",
+  url: "https://status.cursor.com",
+  apiUrl: "https://status.cursor.com/api/v2/summary.json",
+  responseFormat: "json",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "No documented limit. Poll every 5 min via edge cache.",
+  },
+  auth: "none",
+  measures:
+    "Overall page status and incidents for Cursor (Anysphere). Full Statuspage.io v2 schema. Components: Automations, Bugbot, CLI, Cloud Agents, cursor.com, IDE. Previously untracked — the page existed but was never fetched.",
+  sanityCheck: {
+    description:
+      "Statuspage.io v2 schema. `status.indicator` ∈ {none, minor, major, critical}. Expect ~6 components covering IDE, CLI, Cloud Agents.",
+  },
+  verifiedAt: "2026-07-05",
+  powersFeature: ["tool-health-cursor"],
+};
+
 export const WINDSURF_STATUS: DataSource = {
   id: "windsurf-status",
   name: "Windsurf Status",
@@ -1254,6 +1276,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   GITHUB_ISSUES_CLAUDE_CODE,
   GITHUB_STATUS,
   WINDSURF_STATUS,
+  CURSOR_STATUS,
   VERCEL_STATUS,
   SUPABASE_STATUS,
   CLOUDFLARE_STATUS,

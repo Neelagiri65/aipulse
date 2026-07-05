@@ -25,6 +25,8 @@ import { Redis } from "@upstash/redis";
 
 import { withIngest } from "@/app/api/_lib/withIngest";
 import { fetchAllStatus } from "@/lib/data/fetch-status";
+import { recordProbe } from "@/lib/data/status-history";
+import { runAllProbes } from "@/lib/data/tool-probe";
 import { deriveToolAlertCards } from "@/lib/feed/derivers/tool-alert";
 import {
   buildAlertEmbed,
@@ -140,6 +142,13 @@ export const POST = withIngest<RouteResult>({
     }
 
     const snapshot = await fetchAllStatus();
+
+    // Dual-signal write-path: run the active reachability probes and record
+    // each into probe history (read back + hysteresis-classified by
+    // fetchAllStatus for display). Cron-only — never on SSR. Bounded by the
+    // per-probe 2.5s timeout, all in parallel; never rejects.
+    await runAllProbes(Date.now(), recordProbe).catch(() => {});
+
     const cards = deriveToolAlertCards(snapshot) as ToolAlertCard[];
     const previousState = await readState(redis);
     const { alerts, recoveries, nextState } = computeTransitions(

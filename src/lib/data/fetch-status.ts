@@ -9,6 +9,7 @@
 
 import {
   ANTHROPIC_STATUS,
+  CURSOR_STATUS,
   GITHUB_STATUS,
   OPENAI_INCIDENTS,
   OPENAI_STATUS,
@@ -32,10 +33,12 @@ import {
   bucketToDays,
   fetchHistoricalIncidents,
   hasRedisConfigured,
+  readProbes,
   readSamples,
   recordSample,
   type DayBucket,
 } from "@/lib/data/status-history";
+import { loadProbeSignals } from "@/lib/data/tool-probe";
 
 const REVALIDATE_SECONDS = 300;
 
@@ -182,22 +185,26 @@ export async function fetchAllStatus(): Promise<StatusResult> {
     openaiIncidents,
     github,
     windsurf,
+    cursor,
     claudeIssues,
     anthropicHistory,
     openaiHistory,
     githubHistory,
     windsurfHistory,
+    cursorHistory,
     claudeSamples,
     openaiApiSamples,
     codexSamples,
     copilotSamples,
     windsurfSamples,
+    cursorSamples,
   ] = await Promise.all([
     fetchStatuspage(ANTHROPIC_STATUS),
     fetchStatuspage(OPENAI_STATUS),
     fetchIncidents(OPENAI_INCIDENTS),
     fetchStatuspage(GITHUB_STATUS),
     fetchStatuspage(WINDSURF_STATUS),
+    fetchStatuspage(CURSOR_STATUS),
     fetchClaudeCodeIssues(),
     fetchHistoricalIncidents({
       incidentsApiUrl: "https://status.claude.com/api/v2/incidents.json?limit=50",
@@ -217,11 +224,16 @@ export async function fetchAllStatus(): Promise<StatusResult> {
       incidentsApiUrl: "https://status.windsurf.com/api/v2/incidents.json?limit=50",
       cacheTag: `${WINDSURF_STATUS.id}-history`,
     }),
+    fetchHistoricalIncidents({
+      incidentsApiUrl: "https://status.cursor.com/api/v2/incidents.json?limit=50",
+      cacheTag: `${CURSOR_STATUS.id}-history`,
+    }),
     readSamples("claude-code"),
     readSamples("openai-api"),
     readSamples("codex"),
     readSamples("copilot"),
     readSamples("windsurf"),
+    readSamples("cursor"),
   ]);
 
   const redisOn = hasRedisConfigured();
@@ -343,6 +355,21 @@ export async function fetchAllStatus(): Promise<StatusResult> {
     };
   }
 
+  // Cursor card: overall status.cursor.com page (first-party — previously
+  // known but never fetched, so the card rendered empty).
+  if (cursor instanceof Error) {
+    failures.push({ toolId: "cursor", sourceId: CURSOR_STATUS.id, message: cursor.message });
+  } else {
+    data["cursor"] = {
+      status: overallStatus(cursor),
+      statusSourceId: CURSOR_STATUS.id,
+      lastCheckedAt: polledAt,
+      activeIncidents: activeIncidentsOf(cursor),
+      history: bucketToDays(cursorHistory, cursorSamples),
+      historyHasSamples: redisOn,
+    };
+  }
+
   // Fire-and-forget: record each tool's current sample into Redis (no-op when
   // env vars absent). We don't await these — the dashboard response doesn't
   // need to wait for a write to be durable.
@@ -355,6 +382,16 @@ export async function fetchAllStatus(): Promise<StatusResult> {
         activeIncidents: payload.activeIncidents?.length ?? 0,
       });
     }
+  }
+
+  // Attach the MEASURED signal: read each tool's probe history and classify
+  // with hysteresis. Read-path only — probes are RUN on the cron write-path
+  // (never on SSR). Cheap Redis reads; when Redis is absent every signal is
+  // "pending" and the card falls back to declared-status-only.
+  const probeSignals = await loadProbeSignals(readProbes);
+  for (const [toolId, signal] of Object.entries(probeSignals)) {
+    const payload = data[toolId as ToolConfig["id"]];
+    if (payload && signal) payload.probe = signal;
   }
 
   return { data, polledAt, failures };
