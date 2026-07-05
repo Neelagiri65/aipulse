@@ -10,8 +10,8 @@ Invariants (prd-trust-harness §1): **F**resh · **A**ttributed · **D**elta-pro
 | map events (globe) | ✓ | ✓ | · | ✓ | ✗ | ✓ | fetch-events.test.ts | durable-type gate + read filter (#54/#55). **GAP: spam-actor filter** (amendashelani class) |
 | benchmarks (Elo) | ✗ | ✗ | ✓ | · | · | ✗ | benchmarks-trust.test.ts | delta-provenance done; F/A/V TODO |
 | model-usage (OpenRouter) | ✗ | ✗ | ✓ | · | · | ✗ | openrouter-trust.test.ts | S91 fabrication reconstructed END-TO-END (catalogue-fallback prior → 0 movers) |
-| sdk-adoption | ✗ | ✗ | ✗ | · | · | ✗ | — | +734% incident class (S79/80) UNGUARDED |
-| agents | ✗ | ✗ | ✗ | · | · | ✗ | — | weekly % deltas unguarded |
+| sdk-adoption | ✗ | ✗ | ✓ | · | · | ✗ | sdk-adoption-trust.test.ts | +734% spike suppression PINNED |
+| agents | ✗ | ✗ | ✓ | · | · | ✗ | agents-trust.test.ts | delta-provenance (bootstrap/new-from-zero) framed via invariant |
 | labs | ✗ | ✗ | · | · | · | ✗ | — | event counts |
 | HN | ✗ | ✗ | · | · | ✗ | ✗ | NONE | zero tests |
 | reddit | ✗ | ✗ | · | · | ✗ | ✗ | — | zero tests |
@@ -23,7 +23,7 @@ Invariants (prd-trust-harness §1): **F**resh · **A**ttributed · **D**elta-pro
 
 ## Rollout order (highest stakes / worst coverage first)
 1. ~~model-usage~~ ✅ DONE — S91 reconstructed end-to-end (openrouter-trust.test.ts).
-2. **sdk-adoption + agents** — delta-provenance on download %s (the +734% class).
+2. ~~sdk-adoption + agents~~ ✅ DONE — +734% spike suppression pinned; agents delta-provenance framed.
 3. **map spam-actor filter** — throwaway-account gate (F invariant extension).
 4. HN / producthunt / research / RSS — freshness + attribution (zero-coverage feeds).
 5. **Layer B live auditor** — once ≥3 feeds have reusable fixtures, the scheduled job samples live `/api/*` output and asserts these same invariants against reality.
@@ -33,3 +33,4 @@ Invariants (prd-trust-harness §1): **F**resh · **A**ttributed · **D**elta-pro
 - benchmarks delta-provenance (first NEW feed guard).
 - map events durable-evidence (#54/#55) retro-fits the V invariant.
 - model-usage S91 fabrication guard END-TO-END (openrouter-trust.test.ts).
+- sdk-adoption +734% spike suppression pinned; agents delta-provenance framed via the shared invariant.
