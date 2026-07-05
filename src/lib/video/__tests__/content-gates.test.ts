@@ -9,6 +9,7 @@ import {
   mentionedModelName,
   normalisePackageName,
   storyGate,
+  toolStatusFromEvent,
   trimNarration,
 } from "../content-gates";
 
@@ -195,5 +196,31 @@ describe("communitySourceLabel — honest card sourcing (follow-up)", () => {
     expect(communitySourceLabel("reddit")).toBe("Reddit");
     expect(communitySourceLabel("lobsters")).toBe("Community");
     expect(communitySourceLabel(undefined)).toBe("Community");
+  });
+});
+
+describe("toolStatusFromEvent + storyGate — tool health qualifies (founder decision 2026-07-06)", () => {
+  // The incident: "Openai Api is degraded" — a vendor-declared status,
+  // verifiable via gawk's own /api/v1/status — was skipped every day as
+  // "no verifiable metric". Tool health is gawk's differentiator and the
+  // bucket was structurally locked out of the video.
+  const tags = ["tools", "outage", "degraded"];
+
+  it("parses the declared status from the ingest's title shape", () => {
+    expect(toolStatusFromEvent("Openai Api is degraded", tags)).toEqual({ status: "degraded", direction: "down" });
+    expect(toolStatusFromEvent("Codex is major_outage", ["tools", "outage", "major_outage"]))
+      .toEqual({ status: "major_outage", direction: "down" });
+    expect(toolStatusFromEvent("Claude Code is operational", ["tools", "operational"]))
+      .toEqual({ status: "operational", direction: "up" });
+  });
+
+  it("returns null when no declared status is present", () => {
+    expect(toolStatusFromEvent("Tooling roundup for June", ["tools"])).toBeNull();
+  });
+
+  it("qualifies ONLY events from the tools ingest — community 'X is degraded' is hearsay", () => {
+    expect(storyGate("Openai Api is degraded", {}, "gawk-tools", tags).ok).toBe(true);
+    expect(storyGate("OpenAI API is degraded again", {}, "hn", ["discussion"]).ok).toBe(false);
+    expect(storyGate("OpenAI API is degraded again", {}, "reddit", []).ok).toBe(false);
   });
 });

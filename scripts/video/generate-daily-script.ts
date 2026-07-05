@@ -23,6 +23,7 @@ import {
   mentionedModelName,
   normalisePackageName,
   storyGate,
+  toolStatusFromEvent,
   trimNarration,
 } from "../../src/lib/video/content-gates";
 import { readRecentLeadTitles } from "./recent-leads";
@@ -169,6 +170,34 @@ function buildLeaderboardStory(models: ModelRow[]): { story: LockedStory; narrat
 
 function buildMoverStory(event: CurationEvent, narrative: Narrative, models: ModelRow[]): { story: LockedStory; narration: NarrationEntry } | null {
   const m = event.metrics;
+
+  // Tool health — the vendor's DECLARED status, shown as the vendor reports
+  // it (never escalated). Backing: gawk /api/v1/status (#63 write path).
+  if (event.source === "gawk-tools") {
+    const ts = toolStatusFromEvent(narrative.headline, event.tags);
+    if (!ts) return null; // unparseable tool event — never render a numberless card
+    return {
+      story: {
+        id: narrative.id,
+        segment: "story",
+        headline: narrative.headline,
+        type: "data-card",
+        scene: "tools",
+        holdSec: 5,
+        dataCard: {
+          label: "TOOL STATUS",
+          number: ts.status.replace(/_/g, " ").toUpperCase(),
+          direction: ts.direction,
+          title: narrative.headline,
+          source: `Source: Vendor status page · ${DATE}`,
+        },
+      },
+      narration: {
+        id: narrative.id,
+        narration: trimNarration(`${narrative.headline.replace(/\.$/, "")}, per the vendor's status page.`, 5),
+      },
+    };
+  }
 
   if (m.rank !== undefined && m.previousRank !== undefined) {
     const delta = Math.abs(m.previousRank - m.rank);
@@ -462,7 +491,7 @@ async function main() {
     if (!event) continue;
 
     const m = event.metrics ?? {};
-    const verdict = storyGate(narrative.headline, m, event.source);
+    const verdict = storyGate(narrative.headline, m, event.source, event.tags);
     if (!verdict.ok) {
       const label = {
         "no-metric": "No verifiable metric",

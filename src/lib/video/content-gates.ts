@@ -42,6 +42,7 @@ export function storyGate(
   headline: string,
   metrics: StoryMetrics | undefined,
   source: string | undefined,
+  tags?: string[],
 ): GateVerdict {
   const m = metrics ?? {};
   const hasHardMetric = m.rank !== undefined || m.deltaPct !== undefined || m.stars !== undefined;
@@ -52,7 +53,11 @@ export function storyGate(
   const hasDeltaPctInHeadline =
     (source ?? "").startsWith("gawk-") && deltaPctFromHeadline(headline) !== null;
   const isResearch = source === "arxiv";
-  if (!hasHardMetric && !hasHighEngagement && !hasRankInHeadline && !hasDeltaPctInHeadline && !isResearch) {
+  // Tool health: a vendor-declared status IS verifiable (gawk's own
+  // /api/v1/status is the source of the event) — but only from the tools
+  // ingest; a community post saying "X is degraded" is hearsay
+  const isToolStatus = source === "gawk-tools" && toolStatusFromEvent(headline, tags) !== null;
+  if (!hasHardMetric && !hasHighEngagement && !hasRankInHeadline && !hasDeltaPctInHeadline && !isResearch && !isToolStatus) {
     return { ok: false, reason: "no-metric" };
   }
 
@@ -189,4 +194,24 @@ export function mentionedModelName(headline: string, modelNames: Iterable<string
 export function communitySourceLabel(source: string | undefined): string {
   const map: Record<string, string> = { hn: "Hacker News", reddit: "Reddit" };
   return map[(source ?? "").toLowerCase()] ?? "Community";
+}
+
+export type ToolStatusStory = { status: string; direction: "up" | "down" };
+
+/**
+ * Tool-health stories (source "gawk-tools"). The verifiable backing is the
+ * vendor's DECLARED status as served by gawk's own /api/v1/status — the
+ * ingest only emits events for non-operational declared states, titled
+ * "<Tool> is <status>" with the status echoed in tags. The card shows the
+ * declaration as the vendor reports it — never escalated, never invented
+ * (#63 posture). Founder decision 2026-07-06: tool health qualifies for the
+ * video; it was structurally locked out before (no numeric metric).
+ */
+export function toolStatusFromEvent(headline: string, tags: string[] | undefined): ToolStatusStory | null {
+  const fromHeadline = headline.match(/\sis\s+([a-z_ ]+?)\s*$/i)?.[1];
+  const fromTags = (tags ?? []).find((t) => /degraded|outage|maintenance|incident|operational|recovered/i.test(t));
+  const status = (fromHeadline ?? fromTags ?? "").trim().toLowerCase();
+  if (!status) return null;
+  const recovered = /operational|recovered|resolved/.test(status);
+  return { status, direction: recovered ? "up" : "down" };
 }
