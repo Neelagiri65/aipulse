@@ -33,6 +33,13 @@ export function PrivacyFooter() {
         >
           Sources
         </Link>
+        <Link
+          href="/newsletter"
+          className="hover:text-foreground"
+          data-testid="footer-newsletter"
+        >
+          Newsletter
+        </Link>
         <CommunityLink variant="footer" />
       </nav>
     </footer>

@@ -31,6 +31,7 @@ const STATIC_ROUTES: { path: string; priority: number; freq: Freq }[] = [
   { path: "/methodology", priority: 0.7, freq: "monthly" },
   { path: "/audit", priority: 0.7, freq: "weekly" },
   { path: "/docs/api", priority: 0.5, freq: "monthly" },
+  { path: "/newsletter", priority: 0.7, freq: "monthly" },
   { path: "/subscribe", priority: 0.5, freq: "monthly" },
 ];
 

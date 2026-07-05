@@ -1,6 +1,7 @@
 "use client";
 
 import type { StatusResult } from "@/lib/data/fetch-status";
+import { VERIFIED_SOURCES } from "@/lib/data-sources";
 import { deriveSev } from "@/components/chrome/StatusBar";
 import { PushAlertToggle } from "@/components/chrome/PushAlertToggle";
 
@@ -66,7 +67,8 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
           Is your AI coding stack working right now?
         </span>
         <span className="text-xs text-gray-400">
-          Claude · Cursor · Copilot · Windsurf · OpenAI — tracked from 38 verified sources.
+          Claude · Cursor · Copilot · Windsurf · OpenAI — tracked from{" "}
+          {VERIFIED_SOURCES.length} verified sources.
         </span>
       </div>
 
