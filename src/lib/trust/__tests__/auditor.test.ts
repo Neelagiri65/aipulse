@@ -131,6 +131,26 @@ describe("auditServedOutput — Layer B live invariants", () => {
       expect(r.findings).toEqual([]);
     });
 
+    it("catches an expired LAB_HIGHLIGHT (20d — past the 7d claim window + slack)", () => {
+      const r = auditServedOutput({
+        now: NOW,
+        feed: feedOf([
+          { type: "LAB_HIGHLIGHT", sourceUrl: "https://www.anthropic.com", timestamp: "2026-06-15T12:00:00Z" },
+        ]),
+      });
+      expect(r.findings.some((f) => f.invariant === "fresh" && f.sample.startsWith("LAB_HIGHLIGHT"))).toBe(true);
+    });
+
+    it("a 10-day LAB_HIGHLIGHT is within 2×(7d window + feed budget) — clean", () => {
+      const r = auditServedOutput({
+        now: NOW,
+        feed: feedOf([
+          { type: "LAB_HIGHLIGHT", sourceUrl: "https://www.anthropic.com", timestamp: "2026-06-25T12:00:00Z" },
+        ]),
+      });
+      expect(r.findings).toEqual([]);
+    });
+
     it("types with no deriver-declared window are skipped, never defaulted", () => {
       const r = auditServedOutput({
         now: NOW,

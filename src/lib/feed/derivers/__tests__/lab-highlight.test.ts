@@ -40,6 +40,11 @@ const basePayload: LabsPayload = {
   failures: [],
 };
 
+// Fixtures are dated 2026-04-27; pin the clock next to them so the
+// freshness gate (payload older than its 7-day window → dropped)
+// exercises real behaviour instead of tripping on wall-clock time.
+const NOW = Date.parse("2026-04-27T13:00:00.000Z");
+
 describe("deriveLabHighlightCards", () => {
   it("emits exactly one card — the lab with the highest 7d total", () => {
     const payload: LabsPayload = {
@@ -50,7 +55,7 @@ describe("deriveLabHighlightCards", () => {
         lab({ id: "stanford-crfm", displayName: "Stanford CRFM", total: 50 }),
       ],
     };
-    const cards = deriveLabHighlightCards(payload);
+    const cards = deriveLabHighlightCards(payload, NOW);
     expect(cards).toHaveLength(1);
     expect(cards[0].severity).toBe(10);
     expect(cards[0].type).toBe("LAB_HIGHLIGHT");
@@ -69,7 +74,7 @@ describe("deriveLabHighlightCards", () => {
         }),
       ],
     };
-    const cards = deriveLabHighlightCards(payload);
+    const cards = deriveLabHighlightCards(payload, NOW);
     expect(cards[0].sourceUrl).toBe("https://github.com/anthropics");
   });
 
@@ -79,12 +84,12 @@ describe("deriveLabHighlightCards", () => {
       generatedAt: "2026-04-27T12:00:00.000Z",
       labs: [lab({ id: "anthropic", displayName: "Anthropic", total: 100 })],
     };
-    const cards = deriveLabHighlightCards(payload);
+    const cards = deriveLabHighlightCards(payload, NOW);
     expect(cards[0].timestamp).toBe("2026-04-27T12:00:00.000Z");
   });
 
   it("returns [] when there are no labs", () => {
-    expect(deriveLabHighlightCards(basePayload)).toEqual([]);
+    expect(deriveLabHighlightCards(basePayload, NOW)).toEqual([]);
   });
 
   it("returns [] when the top lab has zero events (quiet across the registry)", () => {
@@ -92,6 +97,6 @@ describe("deriveLabHighlightCards", () => {
       ...basePayload,
       labs: [lab({ id: "x", displayName: "X", total: 0 })],
     };
-    expect(deriveLabHighlightCards(payload)).toEqual([]);
+    expect(deriveLabHighlightCards(payload, NOW)).toEqual([]);
   });
 });
