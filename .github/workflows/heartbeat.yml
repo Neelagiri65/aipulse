@@ -25,11 +25,19 @@ name: heartbeat
 #   INGEST_URL     — full URL to /api/ingest, e.g. https://…/api/ingest
 #   INGEST_SECRET  — shared secret matching Vercel's INGEST_SECRET
 #
-# Scope note: the wire feeds (hn/rss/reddit) and registry crons are
-# deliberately NOT driven here — they poll external, rate-limited sources at
-# 1-4x/hour and their explicit-minute schedules drift far less than `*/5`.
-# Folding them into a 5-minute loop would trade a cadence bug for a rate-limit
-# ban. They stay on their own schedules.
+# Scope note: the wire feeds (hn/reddit) and registry crons are deliberately
+# NOT in the 5-minute loop — they poll external, rate-limited sources and
+# folding them in would trade a cadence bug for a rate-limit ban.
+#
+# wire-ingest-rss is the exception (added S93): the original "explicit-minute
+# schedules drift far less" premise was FALSIFIED by observation — its
+# `25,55 * * * *` schedule fired with 79min-4.3h real gaps, leaving the
+# regional wire stale for hours at a time. It ticks ONCE PER RUN (not per
+# 5-min loop iteration): 4 restarts/hour = effective ~15-min cadence, 2x its
+# designed 30-min rate — within the 5 publisher feeds' tolerance and the
+# Upstash budget. Its own 25,55 schedule stays as belt-and-braces until the
+# heartbeat path is verified live (then retire it per the #64
+# verify-before-disable discipline).
 
 on:
   schedule:
@@ -59,6 +67,14 @@ jobs:
           fi
           BASE="${INGEST_URL%/api/ingest}"
           NOTIFY_URL="$BASE/api/notify/tool-alerts"
+          RSS_URL="$BASE/api/wire/ingest-rss"
+
+          # Once per run (~every 15 min), NOT in the 5-min loop: the regional
+          # RSS ingest polls 5 external publisher feeds — see scope note.
+          code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 280 \
+            -H "x-ingest-secret: $INGEST_SECRET" -X POST "$RSS_URL" 2>/dev/null) || code="000"
+          echo "$(date -u +%H:%M:%S) wire-ingest-rss     -> $code"
+          [ "$code" = "200" ] || echo "::warning::wire-ingest-rss tick returned $code"
 
           # One tick = poll both endpoints, logging each HTTP status. Per-endpoint
           # failures are non-fatal: a bad tick is retried on the next one, and the

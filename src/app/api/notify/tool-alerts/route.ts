@@ -24,6 +24,8 @@ import { NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
 
 import { withIngest } from "@/app/api/_lib/withIngest";
+import { writeCronHealth } from "@/lib/data/cron-health";
+import { isTotalFailure } from "@/lib/data/success-contract";
 import { fetchAllStatus } from "@/lib/data/fetch-status";
 import { readProbes, recordProbe, writeProbeSignals } from "@/lib/data/status-history";
 import { loadProbeSignals, runAllProbes, type ProbeSignal } from "@/lib/data/tool-probe";
@@ -205,25 +207,53 @@ export const POST = withIngest<RouteResult>({
 
     const discordResult = await postEmbeds(embeds);
 
-    // Broadcast push notifications for each transition (fire-and-forget;
-    // push failures don't block state persistence or Discord flow).
+    // Broadcast push notifications for each transition. AWAITED (was
+    // fire-and-forget): on Vercel an un-awaited promise can be killed
+    // when the function suspends after the response, silently dropping
+    // sends. Per-broadcast failures still don't block state persistence
+    // or Discord flow — each rejection resolves to null.
+    const pushJobs: Array<Promise<{ sent: number; failed: number } | null>> =
+      [];
     for (const t of alerts) {
       const toolName = toolDisplayNameFromHeadline(t.card.headline);
       const status = String(t.card.meta.status);
-      broadcastPush({
-        title: `Gawk: ${toolName} ${status}`,
-        body: t.card.detail || `Status changed to ${status}`,
-        url: "https://gawk.dev",
-        tag: `tool-alert-${toolName}`,
-      }).catch(() => {});
+      pushJobs.push(
+        broadcastPush({
+          title: `Gawk: ${toolName} ${status}`,
+          body: t.card.detail || `Status changed to ${status}`,
+          url: "https://gawk.dev",
+          tag: `tool-alert-${toolName}`,
+        }).catch(() => null),
+      );
     }
     for (const r of recoveries) {
-      broadcastPush({
-        title: `Gawk: ${r.state.toolDisplayName} recovered`,
-        body: `Back to operational from ${r.state.status}`,
-        url: "https://gawk.dev",
-        tag: `tool-alert-${r.state.toolDisplayName}`,
-      }).catch(() => {});
+      pushJobs.push(
+        broadcastPush({
+          title: `Gawk: ${r.state.toolDisplayName} recovered`,
+          body: `Back to operational from ${r.state.status}`,
+          url: "https://gawk.dev",
+          tag: `tool-alert-${r.state.toolDisplayName}`,
+        }).catch(() => null),
+      );
+    }
+    if (pushJobs.length > 0) {
+      // Record the push-send beacon HERE — the real execution site.
+      // The /api/push/send route records via withIngest, but this route
+      // calls broadcastPush in-process (self-HTTP is the #30 deadlock
+      // class), which is why the beacon sat at lastSuccessAt:null from
+      // S89 to S93 while real transitions fired. Same success contract
+      // as the route: broadcasting to zero subscribers is ok-with-0; a
+      // run fails only when every job errored (nulls with no delivery).
+      const results = await Promise.all(pushJobs);
+      const sent = results.reduce((n, r) => n + (r?.sent ?? 0), 0);
+      const errored = results.filter((r) => r === null).length;
+      const ok = !isTotalFailure({ delivered: sent, failures: errored });
+      await writeCronHealth(
+        "push-send",
+        ok
+          ? { ok: true, itemsProcessed: sent }
+          : { ok: false, error: `all ${errored} push broadcasts failed` },
+      );
     }
 
     // Persist state ONLY when:
