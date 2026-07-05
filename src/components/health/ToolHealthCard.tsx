@@ -249,7 +249,9 @@ function LiveBody({ data }: { data: ToolHealthData }) {
     rows.push({ label: "Open issues", value: data.openIssues.toLocaleString() });
   }
 
-  if (rows.length === 0) {
+  const probe = data.probe;
+
+  if (rows.length === 0 && !probe) {
     return (
       <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground opacity-50">
         metrics pending
@@ -262,6 +264,55 @@ function LiveBody({ data }: { data: ToolHealthData }) {
       {rows.map((r) => (
         <MetricRow key={r.label} label={r.label} value={r.value} />
       ))}
+      {probe && <ProbeRow probe={probe} />}
+    </div>
+  );
+}
+
+/**
+ * The MEASURED signal, shown symmetrically alongside the declared status pill
+ * — never merged into it. Trust posture: the word is "reachable", never
+ * "up/healthy"; a disagreement with the declared status is surfaced, not
+ * resolved; hysteresis means one blip never reads as an outage.
+ */
+function ProbeRow({ probe }: { probe: NonNullable<ToolHealthData["probe"]> }) {
+  const { state, latencyMs, host, checkedAt, consecutiveFails } = probe;
+
+  let value: string;
+  let color: string | undefined;
+  let title: string;
+
+  if (state === "reachable") {
+    const slow = latencyMs !== null && latencyMs > 4000;
+    value = latencyMs === null || slow ? "reachable" : `reachable · ${latencyMs}ms`;
+    color = "var(--sev-op, inherit)";
+    title = `Reachable from our probe · ${host}${
+      checkedAt ? ` · ${formatRelative(checkedAt)}` : ""
+    }. A response proves the service answered from our single probe location — not a guarantee the backend is healthy. Latency is one-location round-trip, mostly geography.`;
+  } else if (state === "unreachable") {
+    value = "unreachable";
+    color = "var(--sev-degrade)";
+    title = `No response on the last ${consecutiveFails} probes · ${host}. This is our measurement from one location — compare against the declared status above; they may disagree.`;
+  } else {
+    value = "pending";
+    color = undefined;
+    title = `Probe pending · ${host}. Not enough samples yet to report reachability.`;
+  }
+
+  return (
+    <div
+      className="flex items-baseline justify-between gap-3"
+      title={title}
+    >
+      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        Reachability
+      </span>
+      <span
+        className="font-mono text-[11px] tabular-nums"
+        style={color ? { color } : undefined}
+      >
+        {value}
+      </span>
     </div>
   );
 }
