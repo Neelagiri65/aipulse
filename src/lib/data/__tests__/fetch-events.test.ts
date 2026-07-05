@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   dedupeAndFilterEvents,
+  isDurableStoredType,
   type IngestSourceKind,
 } from "@/lib/data/fetch-events";
 import type { GitHubEvent } from "@/lib/github";
@@ -88,5 +89,20 @@ describe("dedupeAndFilterEvents — the map-dot gate (durable evidence only)", (
     const out = dedupeAndFilterEvents([archive, live]);
     expect(out.size).toBe(1);
     expect(out.get("same")!.source).toBe("events-api");
+  });
+});
+
+describe("isDurableStoredType — read-side serve gate", () => {
+  it("a WatchEvent already in the store is NEVER served (immediate effect, no 4h wait)", () => {
+    expect(isDurableStoredType({ type: "WatchEvent" })).toBe(false);
+    expect(isDurableStoredType({ type: "ForkEvent" })).toBe(false);
+  });
+  it("durable stored types are served", () => {
+    expect(isDurableStoredType({ type: "PushEvent" })).toBe(true);
+    expect(isDurableStoredType({ type: "ReleaseEvent" })).toBe(true);
+  });
+  it("fails closed on missing/unknown type", () => {
+    expect(isDurableStoredType({})).toBe(false);
+    expect(isDurableStoredType(undefined)).toBe(false);
   });
 });
