@@ -30,7 +30,7 @@ Invariants (prd-trust-harness §1): **F**resh · **A**ttributed · **D**elta-pro
 
 ## Known residuals (surfaced, not hidden)
 - **PH ranking width**: PRODUCT_LAUNCH shows PH-ranked AI products up to ~6 days old (observed on prod). That's PH's ranking semantics, NOT staleness — the timestamp is the real `createdAt`, shown honestly. Flagged so it isn't mistaken for a stale-item bug.
-- **Layer B per-card freshness gap**: `auditServedOutput` runs per-card `checkResolvableSource` on feed cards but only whole-feed `checkFresh` (on `feed.lastComputed`), not per-card. A stale research card would pass Layer B today (Layer A now gates it at source). Follow-up: add per-card freshness to the Layer B feed loop.
+- **Layer B per-card freshness — PARTIALLY CLOSED**: `auditServedOutput` now runs per-card `checkFresh` on feed cards for the types whose deriver declares a compose window — NEWS (reddit 12h, the wider of the two), NEW_RELEASE (48h), RESEARCH (7d) — ceiling = 2 × (deriver window + 12h feed budget), same 2× slack convention as the globe. Windows are IMPORTED from `thresholds.ts` / the research deriver (no parallel truth). Still ungated per-card: PRODUCT_LAUNCH (deliberate — ranking semantics), TOOL_ALERT / MODEL_MOVER / SDK_TREND / LAB_HIGHLIGHT (no deriver-declared window; gating would invent one).
 - **labs**: event counts still have no output-invariant test.
 
 ## Done this session

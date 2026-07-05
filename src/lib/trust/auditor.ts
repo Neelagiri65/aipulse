@@ -18,6 +18,8 @@
  * (S88), a degraded ordering masquerading as a ranking (S91).
  */
 
+import { RESEARCH_MAX_AGE_MS } from "@/lib/feed/derivers/research";
+import { FEED_TRIGGERS } from "@/lib/feed/thresholds";
 import {
   checkFresh,
   checkResolvableSource,
@@ -72,6 +74,32 @@ export type AuditInput = {
 
 const H = 3_600_000;
 
+/** The whole-feed lastComputed budget — a served feed may legitimately be
+ *  this far behind its compose run before Layer B calls it stale. */
+const FEED_STALENESS_BUDGET_MS = 12 * H;
+
+/**
+ * Per-card freshness ceilings, keyed by CardType. Each is derived from the
+ * SAME deriver-declared compose window (no parallel truth), plus the feed
+ * staleness budget, doubled — the globe's 2× serve-side-slack convention.
+ * A breach means a card is being served far outside anything its deriver
+ * could have legitimately produced (a deriver regression or frozen-compose
+ * class), not a marginal drift.
+ *
+ * Deliberately ABSENT (a missing type is skipped, never defaulted):
+ * - PRODUCT_LAUNCH — a RANKING feed; multi-day entries (~6d observed) are
+ *   its semantics, not staleness (see GAP-TABLE).
+ * - TOOL_ALERT / MODEL_MOVER / SDK_TREND / LAB_HIGHLIGHT — no
+ *   deriver-declared compose window yet; gating them here would invent
+ *   one. Tracked in GAP-TABLE known residuals.
+ */
+const CARD_MAX_AGE_MS: Readonly<Partial<Record<string, number>>> = {
+  // HN (6h) and reddit (12h) share the NEWS type — gate on the wider window.
+  NEWS: 2 * (FEED_TRIGGERS.NEWS_REDDIT_WINDOW_HOURS * H + FEED_STALENESS_BUDGET_MS),
+  NEW_RELEASE: 2 * (FEED_TRIGGERS.NEW_RELEASE_AGE_HOURS * H + FEED_STALENESS_BUDGET_MS),
+  RESEARCH: 2 * (RESEARCH_MAX_AGE_MS + FEED_STALENESS_BUDGET_MS),
+};
+
 /**
  * Audit the live served output. Sampling caps keep it bounded; a cap hit
  * is disclosed in `checked` (never a silent partial pass).
@@ -107,7 +135,7 @@ export function auditServedOutput(input: AuditInput): TrustAuditReport {
     const cards = input.feed.cards.slice(0, 200);
     checked["feed"] = cards.length;
     // Whole-feed freshness.
-    const feedFresh = checkFresh(input.feed.lastComputed, input.now, 12 * H);
+    const feedFresh = checkFresh(input.feed.lastComputed, input.now, FEED_STALENESS_BUDGET_MS);
     if (feedFresh) findings.push({ feed: "feed", sample: "lastComputed", ...feedFresh });
     for (const c of cards) {
       // Attribution: every card links to a resolvable, non-nested-host
@@ -119,6 +147,20 @@ export function auditServedOutput(input: AuditInput): TrustAuditReport {
           sample: `${c.type ?? "card"} → ${c.sourceUrl ?? "(none)"}`,
           ...src,
         });
+      }
+      // Per-card freshness, only for types with a deriver-declared window
+      // (the frozen-ingest / deriver-regression class Layer A gates at
+      // source — this re-asserts it on the SERVED output).
+      const maxAge = c.type ? CARD_MAX_AGE_MS[c.type] : undefined;
+      if (maxAge !== undefined) {
+        const cardFresh = checkFresh(c.timestamp, input.now, maxAge);
+        if (cardFresh) {
+          findings.push({
+            feed: "feed",
+            sample: `${c.type} @ ${c.timestamp ?? "(no timestamp)"}`,
+            ...cardFresh,
+          });
+        }
       }
     }
   }
