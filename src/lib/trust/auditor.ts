@@ -18,6 +18,7 @@
  * (S88), a degraded ordering masquerading as a ranking (S91).
  */
 
+import { LABS_MAX_AGE_MS } from "@/lib/feed/derivers/lab-highlight";
 import { RESEARCH_MAX_AGE_MS } from "@/lib/feed/derivers/research";
 import { FEED_TRIGGERS } from "@/lib/feed/thresholds";
 import {
@@ -89,15 +90,16 @@ const FEED_STALENESS_BUDGET_MS = 12 * H;
  * Deliberately ABSENT (a missing type is skipped, never defaulted):
  * - PRODUCT_LAUNCH — a RANKING feed; multi-day entries (~6d observed) are
  *   its semantics, not staleness (see GAP-TABLE).
- * - TOOL_ALERT / MODEL_MOVER / SDK_TREND / LAB_HIGHLIGHT — no
- *   deriver-declared compose window yet; gating them here would invent
- *   one. Tracked in GAP-TABLE known residuals.
+ * - TOOL_ALERT / MODEL_MOVER / SDK_TREND — no deriver-declared compose
+ *   window yet; gating them here would invent one. Tracked in GAP-TABLE
+ *   known residuals.
  */
 const CARD_MAX_AGE_MS: Readonly<Partial<Record<string, number>>> = {
   // HN (6h) and reddit (12h) share the NEWS type — gate on the wider window.
   NEWS: 2 * (FEED_TRIGGERS.NEWS_REDDIT_WINDOW_HOURS * H + FEED_STALENESS_BUDGET_MS),
   NEW_RELEASE: 2 * (FEED_TRIGGERS.NEW_RELEASE_AGE_HOURS * H + FEED_STALENESS_BUDGET_MS),
   RESEARCH: 2 * (RESEARCH_MAX_AGE_MS + FEED_STALENESS_BUDGET_MS),
+  LAB_HIGHLIGHT: 2 * (LABS_MAX_AGE_MS + FEED_STALENESS_BUDGET_MS),
 };
 
 /**

@@ -12,7 +12,7 @@ Invariants (prd-trust-harness §1): **F**resh · **A**ttributed · **D**elta-pro
 | model-usage (OpenRouter) | ✗ | ✗ | ✓ | · | · | ✗ | openrouter-trust.test.ts | S91 fabrication reconstructed END-TO-END (catalogue-fallback prior → 0 movers) |
 | sdk-adoption | ✗ | ✗ | ✓ | · | · | ✗ | sdk-adoption-trust.test.ts | +734% spike suppression PINNED |
 | agents | ✗ | ✗ | ✓ | · | · | ✗ | agents-trust.test.ts | delta-provenance (bootstrap/new-from-zero) framed via invariant |
-| labs | ✗ | ✗ | · | · | · | ✗ | — | event counts |
+| labs | ✓ | ✓ | · | ✓ | · | ✓ | lab-highlight-trust.test.ts | 7d payload gate (LABS_MAX_AGE_MS = WINDOW_MS — the gate derives from the claim); headline count = payload total (R); all-zero registry emits nothing; within-window staleness stays disclosed via staleSources |
 | HN (NEWS) | ✓ | ✓ | · | · | · | ✓ | news-trust.test.ts | 6h window IS the freshness guarantee; sourceUrl=news.ycombinator.com |
 | reddit (NEWS) | ✓ | ✓ | · | · | · | ✓ | reddit-trust.test.ts | 12h window; sourceUrl=reddit.com comments |
 | producthunt | · | ✓ | · | ✓ | · | ✓ | product-launch-trust.test.ts | RANKING feed (multi-day legit, ~6d observed) → no freshness window; killed the `generatedAt` fabrication (dateless post dropped, not stamped-now); host=producthunt.com |
@@ -30,8 +30,7 @@ Invariants (prd-trust-harness §1): **F**resh · **A**ttributed · **D**elta-pro
 
 ## Known residuals (surfaced, not hidden)
 - **PH ranking width**: PRODUCT_LAUNCH shows PH-ranked AI products up to ~6 days old (observed on prod). That's PH's ranking semantics, NOT staleness — the timestamp is the real `createdAt`, shown honestly. Flagged so it isn't mistaken for a stale-item bug.
-- **Layer B per-card freshness — PARTIALLY CLOSED**: `auditServedOutput` now runs per-card `checkFresh` on feed cards for the types whose deriver declares a compose window — NEWS (reddit 12h, the wider of the two), NEW_RELEASE (48h), RESEARCH (7d) — ceiling = 2 × (deriver window + 12h feed budget), same 2× slack convention as the globe. Windows are IMPORTED from `thresholds.ts` / the research deriver (no parallel truth). Still ungated per-card: PRODUCT_LAUNCH (deliberate — ranking semantics), TOOL_ALERT / MODEL_MOVER / SDK_TREND / LAB_HIGHLIGHT (no deriver-declared window; gating would invent one).
-- **labs**: event counts still have no output-invariant test.
+- **Layer B per-card freshness — PARTIALLY CLOSED**: `auditServedOutput` now runs per-card `checkFresh` on feed cards for the types whose deriver declares a compose window — NEWS (reddit 12h, the wider of the two), NEW_RELEASE (48h), RESEARCH (7d), LAB_HIGHLIGHT (7d payload window) — ceiling = 2 × (deriver window + 12h feed budget), same 2× slack convention as the globe. Windows are IMPORTED from `thresholds.ts` / the derivers (no parallel truth). Still ungated per-card: PRODUCT_LAUNCH (deliberate — ranking semantics), TOOL_ALERT / MODEL_MOVER / SDK_TREND (no deriver-declared window; gating would invent one).
 
 ## Done this session
 - Shared invariants spine (`invariants.ts`) — the executable §1.
