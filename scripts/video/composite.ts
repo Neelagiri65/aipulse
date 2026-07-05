@@ -15,9 +15,10 @@
  *   npx tsx scripts/video/composite.ts --format vertical
  */
 
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, renameSync, unlinkSync } from "fs";
 import { resolve } from "path";
 import { execSync } from "child_process";
+import { buildStingConcat } from "../../src/lib/video/stings";
 import type { CurationResult } from "../../src/lib/curation/types";
 
 const ROOT = process.cwd();
@@ -328,6 +329,38 @@ function main() {
   } catch (e) {
     console.error("ffmpeg failed:", e);
     process.exit(1);
+  }
+
+  // Optional brand stings (assets/video/, generated once — see the
+  // Higgsfield research note, vault docs 2026-07-05). FAIL-OPEN: stings
+  // are polish; any problem here keeps the plain daily video.
+  applyBrandStings(outFile, hasAudio);
+}
+
+function applyBrandStings(outFile: string, hasAudio: boolean) {
+  const suffix = FORMAT === "vertical" ? "vertical" : "landscape";
+  const intro = resolve(ROOT, `assets/video/intro-sting-${suffix}.mp4`);
+  const outro = resolve(ROOT, `assets/video/outro-sting-${suffix}.mp4`);
+  const plan = buildStingConcat({
+    mainFile: outFile,
+    introFile: existsSync(intro) ? intro : null,
+    outroFile: existsSync(outro) ? outro : null,
+    outFile: `${outFile}.stung.mp4`,
+    vertical: FORMAT === "vertical",
+    hasAudio,
+  });
+  if (!plan.run) {
+    console.log(`  Brand stings: ${plan.reason}`);
+    return;
+  }
+  console.log(`  Brand stings: concatenating ${plan.inputs.length} parts...`);
+  try {
+    execSync(plan.cmd, { stdio: "inherit", timeout: 180_000 });
+    renameSync(`${outFile}.stung.mp4`, outFile);
+    console.log(`  Brand stings applied: ${outFile}`);
+  } catch (e) {
+    console.error("  Brand sting concat FAILED — keeping the plain video (polish never blocks the product):", e);
+    try { unlinkSync(`${outFile}.stung.mp4`); } catch { /* nothing to clean */ }
   }
 }
 
