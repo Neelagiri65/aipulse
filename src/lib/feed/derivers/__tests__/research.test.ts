@@ -23,6 +23,10 @@ const baseResult: ResearchResult = {
   generatedAt: "2026-04-27T12:00:00.000Z",
 };
 
+// Fixtures are dated 2026-04-27; anchor `now` alongside them so the 7-day
+// freshness gate (RESEARCH_MAX_AGE_MS) doesn't drop them as stale.
+const NOW = Date.parse("2026-04-27T18:00:00.000Z");
+
 describe("deriveResearchCards", () => {
   it("emits up to 5 cards from the top-of-list (newest first)", () => {
     const papers = Array.from({ length: 12 }, (_, i) =>
@@ -32,7 +36,7 @@ describe("deriveResearchCards", () => {
         published: new Date(Date.UTC(2026, 3, 27, 12 - i)).toISOString(),
       }),
     );
-    const cards = deriveResearchCards({ ...baseResult, papers });
+    const cards = deriveResearchCards({ ...baseResult, papers }, NOW);
     expect(cards).toHaveLength(5);
     for (const card of cards) {
       expect(card.type).toBe("RESEARCH");
@@ -45,7 +49,7 @@ describe("deriveResearchCards", () => {
       paper({ id: "2604.00001v1", title: "Only paper" }),
       paper({ id: "2604.00002v1", title: "Second paper" }),
     ];
-    const cards = deriveResearchCards({ ...baseResult, papers });
+    const cards = deriveResearchCards({ ...baseResult, papers }, NOW);
     expect(cards).toHaveLength(2);
   });
 
@@ -57,7 +61,7 @@ describe("deriveResearchCards", () => {
         abstractUrl: "https://arxiv.org/abs/2604.15306v1",
       }),
     ];
-    const cards = deriveResearchCards({ ...baseResult, papers });
+    const cards = deriveResearchCards({ ...baseResult, papers }, NOW);
     expect(cards[0].sourceUrl).toBe("https://arxiv.org/abs/2604.15306v1");
     expect(cards[0].sourceName).toContain("arXiv");
   });
@@ -70,12 +74,12 @@ describe("deriveResearchCards", () => {
         published: "2026-04-27T08:30:00.000Z",
       }),
     ];
-    const cards = deriveResearchCards({ ...baseResult, papers });
+    const cards = deriveResearchCards({ ...baseResult, papers }, NOW);
     expect(cards[0].timestamp).toBe("2026-04-27T08:30:00.000Z");
   });
 
   it("returns [] on empty papers", () => {
-    expect(deriveResearchCards(baseResult)).toEqual([]);
+    expect(deriveResearchCards(baseResult, NOW)).toEqual([]);
   });
 
   it("returns [] when result is not ok (graceful degradation, never fabricated)", () => {

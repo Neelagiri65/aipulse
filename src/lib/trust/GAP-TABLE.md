@@ -13,11 +13,11 @@ Invariants (prd-trust-harness §1): **F**resh · **A**ttributed · **D**elta-pro
 | sdk-adoption | ✗ | ✗ | ✓ | · | · | ✗ | sdk-adoption-trust.test.ts | +734% spike suppression PINNED |
 | agents | ✗ | ✗ | ✓ | · | · | ✗ | agents-trust.test.ts | delta-provenance (bootstrap/new-from-zero) framed via invariant |
 | labs | ✗ | ✗ | · | · | · | ✗ | — | event counts |
-| HN | ✗ | ✗ | · | · | ✗ | ✗ | NONE | zero tests |
-| reddit | ✗ | ✗ | · | · | ✗ | ✗ | — | zero tests |
-| producthunt | ✗ | ✗ | · | · | ✗ | ✗ | NONE | zero tests |
-| research/arXiv | ✗ | ✗ | · | · | · | ✗ | NONE | zero tests |
-| RSS | ✗ | ✗ | · | · | · | ✗ | — | zero tests |
+| HN (NEWS) | ✓ | ✓ | · | · | · | ✓ | news-trust.test.ts | 6h window IS the freshness guarantee; sourceUrl=news.ycombinator.com |
+| reddit (NEWS) | ✓ | ✓ | · | · | · | ✓ | reddit-trust.test.ts | 12h window; sourceUrl=reddit.com comments |
+| producthunt | · | ✓ | · | ✓ | · | ✓ | product-launch-trust.test.ts | RANKING feed (multi-day legit, ~6d observed) → no freshness window; killed the `generatedAt` fabrication (dateless post dropped, not stamped-now); host=producthunt.com |
+| research/arXiv | ✓ | ✓ | · | · | · | ✓ | research-trust.test.ts | NEW 7d gate in deriver (`fetch-research` had no age bound); host=arxiv.org |
+| RSS | ✓ | ✓ | · | · | · | ✗ | rss-trust.test.ts | `normaliseItem` drops no-link / unparseable-date at ingest; url attribution via checkResolvableSource (arbitrary publisher host) |
 | gitlab | ✓ | ✓ | · | ✓ | ✓ | ✓ | gitlab-events.test.ts | built with invariants in mind |
 | digest | ✗ | ✗ | ✗ | · | · | ✗ | (template tests behavioural) | composes all — inherits their gaps |
 
@@ -25,8 +25,13 @@ Invariants (prd-trust-harness §1): **F**resh · **A**ttributed · **D**elta-pro
 1. ~~model-usage~~ ✅ DONE — S91 reconstructed end-to-end (openrouter-trust.test.ts).
 2. ~~sdk-adoption + agents~~ ✅ DONE — +734% spike suppression pinned; agents delta-provenance framed.
 3. ~~map spam-actor filter~~ ✅ DONE — throwaway-actor gate (spam-actor.ts).
-4. HN / producthunt / research / RSS — freshness + attribution (zero-coverage feeds).
+4. ~~HN / reddit / producthunt / research / RSS~~ ✅ DONE — freshness + attribution (the five zero-coverage text feeds). Two deriver fixes surfaced by the empirical probe: research got a 7d freshness gate (`fetch-research` had NO age bound — a frozen ingest would serve month-old cache as newest); PH's `generatedAt` fabrication killed (a dateless post was stamped "now" = "just launched"). labs still uncovered (event counts).
 5. ~~Layer B live auditor~~ ✅ BUILT — /api/trust-audit + integrity-watch pages on any served-invariant violation (auditor.ts).
+
+## Known residuals (surfaced, not hidden)
+- **PH ranking width**: PRODUCT_LAUNCH shows PH-ranked AI products up to ~6 days old (observed on prod). That's PH's ranking semantics, NOT staleness — the timestamp is the real `createdAt`, shown honestly. Flagged so it isn't mistaken for a stale-item bug.
+- **Layer B per-card freshness gap**: `auditServedOutput` runs per-card `checkResolvableSource` on feed cards but only whole-feed `checkFresh` (on `feed.lastComputed`), not per-card. A stale research card would pass Layer B today (Layer A now gates it at source). Follow-up: add per-card freshness to the Layer B feed loop.
+- **labs**: event counts still have no output-invariant test.
 
 ## Done this session
 - Shared invariants spine (`invariants.ts`) — the executable §1.
@@ -36,3 +41,4 @@ Invariants (prd-trust-harness §1): **F**resh · **A**ttributed · **D**elta-pro
 - sdk-adoption +734% spike suppression pinned; agents delta-provenance framed.
 - spam-actor filter (throwaway-account gate) — fired on live data.
 - **Layer B LIVE AUDITOR** (/api/trust-audit) — served-output invariants, pages Discord via integrity-watch. Catches #54/#53/S88/S91 classes structurally on prod.
+- **Text feeds (HN/reddit/research/PH/RSS)** — Layer A freshness+attribution. Empirical prod probe drove two real deriver fixes: research 7d gate + PH `generatedAt` fabrication kill.

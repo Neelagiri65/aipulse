@@ -7,6 +7,14 @@
  *
  * Severity is fixed at FEED_SEVERITIES.PRODUCT_LAUNCH. Returns [] on a failed
  * fetch or missing token — graceful degradation, never fabricated.
+ *
+ * This is a RANKING feed, not a recency feed: PH's top-AI list legitimately
+ * includes products several days old (observed span up to ~6 days in normal
+ * operation), so there is deliberately NO freshness window — the card shows
+ * the post's real `createdAt`, honestly. What IS enforced (trust harness,
+ * prd-trust-harness §1 F): a post whose `createdAt` is missing/unparseable is
+ * DROPPED, never stamped with `generatedAt` (= now), which would render a
+ * dateless product as "just launched" — the S88 fabrication class.
  */
 
 import { cardId } from "@/lib/feed/card-id";
@@ -23,7 +31,10 @@ export function deriveProductLaunchCards(result: ProductHuntResult): Card[] {
   for (const post of result.posts.slice(0, TOP_N)) {
     if (!post || !post.id || !post.url) continue;
     const timestampMs = new Date(post.createdAt).getTime();
-    const tsMs = Number.isNaN(timestampMs) ? 0 : timestampMs;
+    // Freshness attribution: a dateless post must not be stamped with
+    // `generatedAt` (= now) — that fabricates a "just launched" claim. Drop it.
+    if (Number.isNaN(timestampMs)) continue;
+    const tsMs = timestampMs;
     cards.push({
       id: cardId("PRODUCT_LAUNCH", `ph:${post.id}`, tsMs),
       type: "PRODUCT_LAUNCH",
@@ -32,7 +43,7 @@ export function deriveProductLaunchCards(result: ProductHuntResult): Card[] {
       detail: typeof post.votesCount === "number" ? `${post.votesCount} upvotes on Product Hunt` : undefined,
       sourceName: SOURCE_NAME,
       sourceUrl: post.url,
-      timestamp: tsMs ? new Date(tsMs).toISOString() : result.generatedAt,
+      timestamp: new Date(tsMs).toISOString(),
       meta: {
         votes: typeof post.votesCount === "number" ? post.votesCount : 0,
         tagline: post.tagline ?? "",

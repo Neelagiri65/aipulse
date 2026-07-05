@@ -73,7 +73,7 @@ export function composeFeed(
     ...deriveSdkTrendCards(snapshots.sdk),
     ...deriveNewsCards(snapshots.hn, nowMs),
     ...deriveRedditCards(snapshots.reddit, nowMs),
-    ...deriveResearchCards(snapshots.research),
+    ...deriveResearchCards(snapshots.research, nowMs),
     ...deriveLabHighlightCards(snapshots.labs),
     ...deriveProductLaunchCards(snapshots.productHunt),
   ];
