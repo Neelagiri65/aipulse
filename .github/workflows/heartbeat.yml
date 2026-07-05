@@ -1,0 +1,88 @@
+name: heartbeat
+
+# Drift-proof driver for the two live-critical, high-frequency ingests that
+# GitHub's scheduler drops hardest: globe-ingest and notify-tool-alerts (both
+# were `*/5 * * * *`). GitHub deprioritises frequent scheduled crons — on this
+# repo the `*/5` jobs were firing only every 2-4h, so the live map aged toward
+# its 4h window between real runs.
+#
+# The fix: a RUNNING job is immune to scheduler throttling. This workflow
+# starts on an explicit-minute 4x/hour schedule (which GitHub honours far more
+# reliably than `*/5`) and then loops INTERNALLY every 5 minutes, curling the
+# ingest endpoints itself. Loop duration (20m) EXCEEDS the restart interval
+# (15m), so a single dropped scheduled fire is covered by the still-running
+# previous loop. `cancel-in-progress: true` bounds us to exactly one live
+# instance — a landed restart cancels the mostly-sleeping predecessor
+# (stateless, harmless) rather than stacking a queue.
+#
+# Public repo → unlimited Actions minutes, so a near-continuous loop is free.
+# Both endpoints are thin, idempotent poll-and-dedupe triggers (all compute is
+# server-side on Vercel), so calling them every 5 minutes only restores the
+# ORIGINALLY-DESIGNED `*/5` load — it adds nothing above the budget the
+# ingests already assumed.
+#
+# Required repo secrets (same as globe-ingest / notify-tool-alerts):
+#   INGEST_URL     — full URL to /api/ingest, e.g. https://…/api/ingest
+#   INGEST_SECRET  — shared secret matching Vercel's INGEST_SECRET
+#
+# Scope note: the wire feeds (hn/rss/reddit) and registry crons are
+# deliberately NOT driven here — they poll external, rate-limited sources at
+# 1-4x/hour and their explicit-minute schedules drift far less than `*/5`.
+# Folding them into a 5-minute loop would trade a cadence bug for a rate-limit
+# ban. They stay on their own schedules.
+
+on:
+  schedule:
+    - cron: "2,17,32,47 * * * *" # 4x/hour restart; explicit minutes are honoured far better than */5
+  workflow_dispatch:
+
+concurrency:
+  group: heartbeat
+  cancel-in-progress: true # exactly one live loop; a landed restart cancels the sleeping predecessor
+
+permissions:
+  contents: read
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Loop the live-critical ingests every 5 minutes
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
+            echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
+            exit 1
+          fi
+          BASE="${INGEST_URL%/api/ingest}"
+          NOTIFY_URL="$BASE/api/notify/tool-alerts"
+
+          # One tick = poll both endpoints, logging each HTTP status. Per-endpoint
+          # failures are non-fatal: a bad tick is retried on the next one, and the
+          # loop must never exit early (that would reopen the drift gap).
+          tick() {
+            local code
+            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 100 \
+              -H "x-ingest-secret: $INGEST_SECRET" -X POST "$INGEST_URL" 2>/dev/null) || code="000"
+            echo "$(date -u +%H:%M:%S) globe-ingest        -> $code"
+            [ "$code" = "200" ] || echo "::warning::globe-ingest tick returned $code"
+
+            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 60 \
+              -H "x-ingest-secret: $INGEST_SECRET" -X POST "$NOTIFY_URL" 2>/dev/null) || code="000"
+            echo "$(date -u +%H:%M:%S) notify-tool-alerts  -> $code"
+            [ "$code" = "200" ] || echo "::warning::notify-tool-alerts tick returned $code"
+          }
+
+          # Loop for 20 min (> the 15-min restart interval, so a dropped fire is
+          # covered). Ticks at 0/5/10/15/20 min; the next scheduled fire cancels
+          # this run seamlessly (cancel-in-progress) for continuous coverage.
+          end=$((SECONDS + 20 * 60))
+          tick
+          while [ "$SECONDS" -lt "$end" ]; do
+            sleep 300
+            tick
+          done
+          echo "Loop window elapsed; next scheduled fire continues coverage."
