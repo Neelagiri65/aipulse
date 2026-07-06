@@ -15,6 +15,11 @@ import { resolve } from "path";
 
 import { rotateScriptForFreshness } from "../../src/lib/curation/lead-freshness";
 import {
+  assignSlots,
+  createDecisionLog,
+  toDecisionArchive,
+} from "../../src/lib/video/decision-log";
+import {
   communitySourceLabel,
   deltaPctFromHeadline,
   distilHeadline,
@@ -33,6 +38,7 @@ const GAWK_BASE = process.env.GAWK_BASE_URL || "https://gawk.dev";
 const CURATED = resolve(ROOT, "data/curated.json");
 const SCRIPT_OUT = resolve(ROOT, "data/script-locked.json");
 const NARRATION_OUT = resolve(ROOT, "data/narration-locked.json");
+const DECISIONS_OUT = resolve(ROOT, "data/decisions.json");
 
 const DATE = new Date().toLocaleDateString("en-GB", {
   day: "numeric",
@@ -458,6 +464,10 @@ async function main() {
 
   const stories: LockedStory[] = [];
   const narrations: NarrationEntry[] = [];
+  // Traceability over logging: every verdict below is also collected as a
+  // structured record, archived in gawk-data beside the day's snapshots.
+  // The console lines are a courtesy view only.
+  const decisionLog = createDecisionLog();
 
   // Intro narration
   narrations.push({ id: "intro", narration: `${DATE}. Here's what moved.` });
@@ -467,6 +477,12 @@ async function main() {
   if (leaderboard) {
     stories.push(leaderboard.story);
     narrations.push(leaderboard.narration);
+    decisionLog.record({
+      verdict: "accept",
+      id: leaderboard.story.id,
+      headline: leaderboard.story.headline,
+      source: "hook",
+    });
     console.log(`  [HOOK     ] LEADERBOARD: ${leaderboard.story.headline}`);
   }
 
@@ -498,12 +514,26 @@ async function main() {
         "personal-complaint": "Personal/complaint",
         "personal-project": "Personal project",
       }[verdict.reason];
+      decisionLog.record({
+        verdict: "skip",
+        gate: "story-gate",
+        reason: verdict.reason,
+        headline: narrative.headline,
+        source: "curated",
+      });
       console.log(`  [SKIP     ] ${label} — ${narrative.headline.slice(0, 50)}`);
       continue;
     }
 
     // Skip if any model in the leaderboard top-5 is mentioned
     if (duplicatesLeaderboard(narrative.headline, leaderboardModelNames)) {
+      decisionLog.record({
+        verdict: "skip",
+        gate: "leaderboard-dedup",
+        reason: "model already shown in the leaderboard top-5",
+        headline: narrative.headline,
+        source: "curated",
+      });
       console.log(`  [SKIP     ] Already in leaderboard — ${narrative.headline.slice(0, 50)}`);
       continue;
     }
@@ -515,6 +545,13 @@ async function main() {
     if (hasSdkDelta && event.tags?.some((t) => t.toLowerCase().startsWith("sdk"))) {
       const pkgName = normalisePackageName(narrative.headline.toLowerCase().split(/\s+/)[0]);
       if (usedPackageNames.has(pkgName)) {
+        decisionLog.record({
+          verdict: "skip",
+          gate: "sdk-dedup",
+          reason: "same package already covered under wording drift",
+          headline: narrative.headline,
+          source: "curated",
+        });
         console.log(`  [SKIP     ] Duplicate SDK package — ${narrative.headline.slice(0, 50)}`);
         continue;
       }
@@ -526,6 +563,13 @@ async function main() {
     if (isRankStory(narrative.headline, m)) {
       const mentioned = mentionedModelName(narrative.headline, models.map((r) => r.shortName));
       if (mentioned && usedRankModels.has(mentioned)) {
+        decisionLog.record({
+          verdict: "skip",
+          gate: "model-dedup",
+          reason: `same rank move already shipped for "${mentioned}"`,
+          headline: narrative.headline,
+          source: "curated",
+        });
         console.log(`  [SKIP     ] Duplicate model story — ${narrative.headline.slice(0, 50)}`);
         continue;
       }
@@ -534,12 +578,25 @@ async function main() {
 
     const built = buildMoverStory(event, narrative, models);
     if (!built) {
+      decisionLog.record({
+        verdict: "skip",
+        gate: "render",
+        reason: "no renderable metric at card-build time",
+        headline: narrative.headline,
+        source: "curated",
+      });
       console.log(`  [SKIP     ] No renderable metric — ${narrative.headline.slice(0, 50)}`);
       continue;
     }
     const { story, narration } = built;
     stories.push(story);
     narrations.push(narration);
+    decisionLog.record({
+      verdict: "accept",
+      id: story.id,
+      headline: story.headline,
+      source: "curated",
+    });
     storyCount++;
 
     const typeLabel = story.type === "data-card" ? `DATA CARD: ${story.dataCard?.number}` : story.type.toUpperCase();
@@ -558,6 +615,13 @@ async function main() {
       if (Math.abs(sdk.diffPct) < 5) continue;
       const pkgNorm = normalisePackageName(sdk.name);
       if (usedPackageNames.has(pkgNorm)) {
+        decisionLog.record({
+          verdict: "skip",
+          gate: "sdk-dedup",
+          reason: "same package already covered under wording drift",
+          headline: sdk.name,
+          source: "supplement",
+        });
         console.log(`  [SKIP     ] Duplicate SDK — ${sdk.name} already covered`);
         continue;
       }
@@ -580,6 +644,7 @@ async function main() {
         narration: trimNarration(`${sdk.name} on ${sdk.registry}: downloads ${direction} ${Math.abs(sdk.diffPct).toFixed(0)} percent.`, 5),
       });
       usedHeadlines.add(headline.toLowerCase());
+      decisionLog.record({ verdict: "accept", id, headline, source: "supplement" });
       storyCount++;
       console.log(`  [STORY    ] DATA CARD: ${direction === "up" ? "↑" : "↓"} ${Math.abs(sdk.diffPct).toFixed(0)}% — ${sdk.name} (${sdk.registry})`);
     }
@@ -591,6 +656,13 @@ async function main() {
       if (Math.abs(delta) < 2) continue;
       const nameKey = model.shortName.toLowerCase();
       if (leaderboardModelNames.has(nameKey)) {
+        decisionLog.record({
+          verdict: "skip",
+          gate: "leaderboard-dedup",
+          reason: "model already shown in the leaderboard top-5",
+          headline: model.shortName,
+          source: "supplement",
+        });
         console.log(`  [SKIP     ] Already in leaderboard — ${model.shortName}`);
         continue;
       }
@@ -613,6 +685,7 @@ async function main() {
         narration: trimNarration(`${model.shortName} moved ${direction} ${Math.abs(delta)} ranks. Now number ${model.rank}.`, 5),
       });
       usedHeadlines.add(model.shortName.toLowerCase());
+      decisionLog.record({ verdict: "accept", id, headline, source: "supplement" });
       storyCount++;
       console.log(`  [STORY    ] DATA CARD: ${direction === "up" ? "↑" : "↓"} ${Math.abs(delta)} — ${model.shortName}`);
     }
@@ -644,6 +717,33 @@ async function main() {
   // Write outputs
   writeFileSync(SCRIPT_OUT, JSON.stringify(finalStories, null, 2));
   writeFileSync(NARRATION_OUT, JSON.stringify(finalNarrations, null, 2));
+
+  // Archive-ready decision record — the authority on why each candidate
+  // did or didn't ship. Fail-loud on a malformed/drifted record: an
+  // archived derivation that disagrees with the shipped video is worse
+  // than none.
+  if (finalStories.length > 0) {
+    decisionLog.record({
+      verdict: freshness.rotated ? "lead-rotated" : "lead-kept",
+      reason: freshness.reason,
+      lead: finalStories[0].headline,
+    });
+    const runUrl = process.env.GITHUB_RUN_ID
+      ? `${process.env.GITHUB_SERVER_URL ?? "https://github.com"}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+      : undefined;
+    const archive = toDecisionArchive({
+      decisions: assignSlots(decisionLog.entries(), finalStories.map((s) => s.id)),
+      date: new Date().toISOString().slice(0, 10),
+      capturedAt: new Date().toISOString(),
+      runUrl,
+    });
+    writeFileSync(DECISIONS_OUT, JSON.stringify(archive, null, 1) + "\n");
+    console.log(
+      `Wrote ${archive.record.counts.accepted} accepts / ${archive.record.counts.skipped} skips to data/decisions.json`,
+    );
+  } else {
+    console.log("No stories shipped — no decision record to archive.");
+  }
 
   console.log(`\nWrote ${finalStories.length} stories to data/script-locked.json`);
   console.log(`Wrote ${finalNarrations.length} narration entries to data/narration-locked.json`);
