@@ -3,14 +3,20 @@
 # snapshots). Founder-greenlit 2026-07-06 (prd-data-lake-and-cli).
 #
 # Trust posture: the tick is gated on /api/trust-audit (skip on breach),
-# dedupes by source event id, and never rewrites history. Fail-loud: a
-# red run means a capture problem — data written before the failure is
-# still committed (honest gaps beat silent ones).
+# dedupes by source event id, and never rewrites history. Per-tick
+# capture failures are warnings (the loop must not exit early — that
+# widens the gap); the archive commits themselves are the health surface.
 #
-# Cadence: hourly explicit-minute. The live events window is ~4h, so
-# GH's known scheduler drift (observed up to ~4.3h on throttled crons,
-# #62/#74) can shave slivers at worst — gaps are honest and visible in
-# the archive itself.
+# LONG-LOOP DESIGN (revised 2026-07-06 on night-one data): the original
+# hourly "7 * * * *" schedule was throttled by GitHub's scheduler to gaps
+# of 77m / 118m / 5h21m — the last exceeding the ~4h live-events window,
+# losing ~80 min of events (the ledger's first honest gap). Same class as
+# #62/#74; same proven fix as heartbeat.yml: a RUNNING job is immune to
+# throttling. The job now loops internally (tick every 55 min ≈ the
+# designed hourly cadence) for 170 min, restarted by an explicit-minute
+# hourly schedule with cancel-in-progress handoff. Coverage holds as long
+# as any fire lands within ~2.8h of the last; a 5.3h fire gap now leaves
+# at most ~2.5h uncovered — inside the 4h window, zero loss.
 name: data-archive
 
 on:
@@ -23,12 +29,12 @@ permissions:
 
 concurrency:
   group: data-archive
-  cancel-in-progress: false
+  cancel-in-progress: true # one live loop; a landed restart takes over seamlessly
 
 jobs:
   archive:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 180
     steps:
       - name: Checkout aipulse (archiver code)
         uses: actions/checkout@v5
@@ -49,34 +55,46 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Archive tick
-        id: tick
-        continue-on-error: true
-        run: npx tsx scripts/data/archive-tick.ts --target gawk-data-repo
-
-      - name: Commit and push archive
+      - name: Archive loop (tick every 55 min for 170 min)
         working-directory: gawk-data-repo
         run: |
-          # Retention telemetry: GitHub's own measured repo size (KB) — the
-          # number its limits act on. A shallow checkout's count-objects lies
-          # (proved on run 1: "size-pack: 0"). Pre-committed trigger (PRD):
-          # > 500MB → era-repo split + Parquet export to a HF dataset.
-          curl -sf -H "Authorization: Bearer ${{ github.token }}" \
-            https://api.github.com/repos/Neelagiri65/gawk-data \
-            | grep -o '"size": *[0-9]*' | head -1 \
-            | awk -F': *' '{printf "[RETENTION] repo size: %.1f MB (trigger: 500 MB)\n", $2/1024}' || true
           git config user.name "gawk-data-archiver"
           git config user.email "archiver@gawk.dev"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No new data this tick."
-          else
-            git commit -m "archive: $(date -u +%Y-%m-%dT%H:%MZ)"
-            git push origin main
-          fi
 
-      - name: Go loud on capture failure
-        if: steps.tick.outcome == 'failure'
-        run: |
-          echo "Archive tick reported capture failures — see tick step log."
-          exit 1
+          tick() {
+            # A predecessor (or local run) may have pushed since checkout.
+            git pull --rebase --quiet origin main || echo "::warning::pre-tick pull failed; continuing on checkout state"
+
+            if npx tsx ../scripts/data/archive-tick.ts --target .; then
+              echo "tick clean"
+            else
+              echo "::warning::archive tick reported capture failures — honest gap, retrying next tick"
+            fi
+
+            git add -A
+            if git diff --cached --quiet; then
+              echo "No new data this tick."
+            else
+              git commit -m "archive: $(date -u +%Y-%m-%dT%H:%MZ)"
+              git push origin main || echo "::warning::push failed; data stays staged for the next tick's rebase"
+            fi
+
+            # Retention telemetry: GitHub's own measured repo size (KB) — the
+            # number its limits act on (a shallow checkout's count-objects
+            # lies; proved on run 1). Trigger (PRD): > 500MB → era-repo split
+            # + Parquet export to a HF dataset.
+            curl -sf -H "Authorization: Bearer ${{ github.token }}" \
+              https://api.github.com/repos/Neelagiri65/gawk-data \
+              | grep -o '"size": *[0-9]*' | head -1 \
+              | awk -F': *' '{printf "[RETENTION] repo size: %.1f MB (trigger: 500 MB)\n", $2/1024}' || true
+          }
+
+          # 170-min window: > the observed median fire gap; a landed hourly
+          # fire cancels this run (cancel-in-progress) for seamless coverage.
+          end=$((SECONDS + 170 * 60))
+          tick
+          while [ "$SECONDS" -lt "$end" ]; do
+            sleep 3300
+            tick
+          done
+          echo "Loop window elapsed; next scheduled fire continues coverage."

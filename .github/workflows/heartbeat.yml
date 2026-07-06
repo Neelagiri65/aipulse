@@ -35,9 +35,15 @@ name: heartbeat
 #   INGEST_URL     — full URL to /api/ingest, e.g. https://…/api/ingest
 #   INGEST_SECRET  — shared secret matching Vercel's INGEST_SECRET
 #
-# Scope note: the wire feeds (hn/reddit) and registry crons are deliberately
-# NOT in the 5-minute loop — they poll external, rate-limited sources and
-# folding them in would trade a cadence bug for a rate-limit ban.
+# Scope note: reddit and the registry crons are deliberately NOT in the
+# 5-minute loop — they poll external, rate-limited sources and folding them
+# in at 5-min cadence would trade a cadence bug for a rate-limit ban.
+# Ticking a feed at its OWN designed cadence, however, adds nothing above
+# the load its budget always assumed — that is the rss precedent, and
+# wire-ingest-hn joined it on 2026-07-06 (its 5,20,35,50 schedule went
+# silent for 4.5h overnight → stale flag; heartbeat now ticks it every 3rd
+# iteration = its designed 15-min cadence; own schedule stays as
+# belt-and-braces per #64 verify-before-disable).
 #
 # wire-ingest-rss is the exception (added S93): the original "explicit-minute
 # schedules drift far less" premise was FALSIFIED by observation — its
@@ -78,6 +84,7 @@ jobs:
           BASE="${INGEST_URL%/api/ingest}"
           NOTIFY_URL="$BASE/api/notify/tool-alerts"
           RSS_URL="$BASE/api/wire/ingest-rss"
+          HN_URL="$BASE/api/wire/ingest-hn?source=heartbeat&cap=20"
 
           # One tick = poll both live-critical endpoints, logging each HTTP
           # status. Every 6th iteration (30 min — its designed cadence) also
@@ -102,6 +109,15 @@ jobs:
                 -H "x-ingest-secret: $INGEST_SECRET" -X POST "$RSS_URL" 2>/dev/null) || code="000"
               echo "$(date -u +%H:%M:%S) wire-ingest-rss     -> $code"
               [ "$code" = "200" ] || echo "::warning::wire-ingest-rss tick returned $code"
+            fi
+
+            # Every 3rd iteration (15 min — wire-ingest-hn's designed 5,20,35,50
+            # cadence; see scope note). POST, matching its own workflow's call.
+            if [ $((i % 3)) -eq 0 ]; then
+              code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 160 \
+                -H "x-ingest-secret: $INGEST_SECRET" -X POST "$HN_URL" 2>/dev/null) || code="000"
+              echo "$(date -u +%H:%M:%S) wire-ingest-hn      -> $code"
+              [ "$code" = "200" ] || echo "::warning::wire-ingest-hn tick returned $code"
             fi
             i=$((i + 1))
           }
