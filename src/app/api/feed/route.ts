@@ -15,11 +15,14 @@
 import { NextResponse } from "next/server";
 
 import { loadFeedResponse } from "@/lib/feed/load";
+import { scheduleCliUsageTrack } from "@/lib/telemetry/cli-usage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  // Passive CLI usage count (UA-gated, aggregate-only) — off the request path.
+  scheduleCliUsageTrack(request);
   const response = await loadFeedResponse(Date.now());
   return NextResponse.json(response, {
     headers: {
