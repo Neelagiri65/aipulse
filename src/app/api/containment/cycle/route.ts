@@ -49,7 +49,7 @@ export const POST = withIngest<CycleResult>({
   toResponse: (r) =>
     NextResponse.json({
       ok: !r.aborted,
-      mode: "shadow",
+      mode: "actuate",
       aborted: r.aborted,
       abortReason: r.abortReason,
       coldStart: r.coldStart,
