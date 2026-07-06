@@ -4,9 +4,10 @@
  *   read state → probe outputs → classify → confirm hard failures →
  *   advance state machine → CAS-persist → capture last-good copies
  *
- * This is the piece the 3h integrity-watch rails invoke. In shadow mode the
- * caller logs `transitions` without actuating; the serve path only ever READS
- * the persisted state — this module is the sole writer.
+ * This is the piece the 3h integrity-watch rails invoke. The serve path
+ * (applyContainment in loadFeedResponse) only ever READS the persisted
+ * state — this module is the sole writer. Shadow mode (2026-07-03 →
+ * 07-06, 3 clean days) was the same cycle with no reader.
  *
  * Failure posture (plan F3/F5/F7 + Auditor changes 2/3/4):
  *   - state READ error → the whole cycle aborts untouched (a monitoring

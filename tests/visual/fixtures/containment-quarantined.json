@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "computedAt": 1751600000000,
+  "sources": {
+    "openrouter-rankings": {
+      "state": "quarantined",
+      "consecutivePasses": 0,
+      "consecutiveFails": 2,
+      "enteredAt": 1751600000000,
+      "reason": "sanity: 400 above max 150",
+      "lastProbeAt": 1751600000000,
+      "lastGoodAt": 1751590000000,
+      "lastPassKey": "2026-07-04T02:00:00.000Z"
+    },
+    "feed": {
+      "state": "live",
+      "consecutivePasses": 0,
+      "consecutiveFails": 0,
+      "enteredAt": 1751600000000,
+      "reason": "",
+      "lastProbeAt": 1751600000000,
+      "lastGoodAt": 1751600000000,
+      "lastPassKey": "2026-07-04T04:50:00.000Z"
+    }
+  }
+}
