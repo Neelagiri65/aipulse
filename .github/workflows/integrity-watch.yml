@@ -14,10 +14,10 @@ name: integrity-watch
 #
 # Required repo secrets:
 #   DISCORD_DAILY_WEBHOOK_URL — operational alert channel (shared w/ video).
-#   INGEST_SECRET — auth for the containment shadow-cycle POST.
+#   INGEST_SECRET — auth for the containment cycle POST.
 # Optional repo secrets:
 #   INTEGRITY_URL — override the probed endpoint (defaults to prod).
-#   CONTAINMENT_URL — override the shadow-cycle endpoint (defaults to prod).
+#   CONTAINMENT_URL — override the cycle endpoint (defaults to prod).
 
 on:
   schedule:
@@ -128,14 +128,12 @@ jobs:
           sys.exit(1)
           PY
 
-      # Containment loop, SHADOW MODE: run one probe cycle and print the
-      # decisions it WOULD actuate. Nothing a user sees changes until the
-      # serve path consumes containment state. `if: always()` +
-      # `continue-on-error` so a shadow bug can never break the pager above
-      # — the containment loop must not hurt the safety net it will replace.
-      # This step's printed JSON is the shadow decision log adjudicated
-      # against the exit criteria (PRD §6 change 10).
-      - name: Containment shadow cycle (log-only, no actuation)
+      # Containment loop: run one probe cycle. Since 2026-07-06 (shadow
+      # exit after 3 clean days, founder sign-off) the serve path consumes
+      # the persisted state — quarantine decisions actuate. `if: always()`
+      # + `continue-on-error` so a containment bug can never break the
+      # pager above — the loop must not hurt the safety net alongside it.
+      - name: Containment cycle (state persists, quarantines actuate)
         if: always()
         continue-on-error: true
         env:
@@ -143,10 +141,10 @@ jobs:
           CONTAINMENT_URL: ${{ secrets.CONTAINMENT_URL }}
         run: |
           url="${CONTAINMENT_URL:-https://gawk.dev/api/containment/cycle}"
-          echo "Shadow cycle: POST $url"
+          echo "Containment cycle: POST $url"
           body=$(curl -sS -X POST --max-time 70 \
             -H "x-ingest-secret: ${INGEST_SECRET}" \
-            "$url") || { echo "::warning::shadow cycle request failed (non-blocking)"; exit 0; }
+            "$url") || { echo "::warning::containment cycle request failed (non-blocking)"; exit 0; }
           echo "$body" | python3 -m json.tool || echo "$body"
 
       # Trust auditor (Layer B): checks the LIVE SERVED output of each feed
