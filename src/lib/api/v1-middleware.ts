@@ -8,6 +8,8 @@
  * for zero Redis cost. Not a security boundary, just abuse prevention.
  */
 
+import { scheduleCliUsageTrack } from "@/lib/telemetry/cli-usage";
+
 const RATE_LIMIT_MAX = 100;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
@@ -73,6 +75,10 @@ export async function handleV1Request(
   handler: () => Promise<V1HandlerResult>,
 ): Promise<Response> {
   if (request.method === "OPTIONS") return corsPreflightResponse();
+
+  // Passive CLI usage count (UA-gated, aggregate-only) — scheduled off the
+  // request path; see lib/telemetry/cli-usage.ts.
+  scheduleCliUsageTrack(request);
 
   const ip = getClientIp(request);
   const rl = checkRateLimit(ip);
