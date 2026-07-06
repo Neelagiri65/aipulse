@@ -82,6 +82,7 @@ next-env.d.ts
 # dirty. Wildcards cover the youtube + instagram (vertical) format variants.
 /data/narration-locked.json
 /data/script-locked.json
+/data/decisions.json
 /data/narration-segments-*.json
 /data/video-manifest-*.json
 /data/video-trim-*.json

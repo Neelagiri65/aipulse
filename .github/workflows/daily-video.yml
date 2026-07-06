@@ -137,6 +137,41 @@ jobs:
           path: out/logs/pipeline-*.log
           retention-days: 30
 
+      # Editorial decision record → gawk-data, beside the day's snapshots
+      # (traceability over logging). First-write-wins per day: heal/force
+      # re-runs regenerate the script from LATER data — their decisions
+      # must never overwrite the record of the video that actually shipped.
+      # Runs BEFORE the upload-log commit: that step's stash
+      # --include-untracked would otherwise swallow data/decisions.json.
+      - name: Checkout gawk-data (write via deploy key)
+        if: steps.pipeline.outputs.has_output == 'true'
+        uses: actions/checkout@v5
+        with:
+          repository: Neelagiri65/gawk-data
+          ssh-key: ${{ secrets.DATA_REPO_SSH_KEY }}
+          path: gawk-data-repo
+
+      - name: Archive editorial decisions (first-write-wins per day)
+        if: steps.pipeline.outputs.has_output == 'true'
+        run: |
+          DAY=$(date -u +%Y-%m-%d)
+          DEST="snapshots/$(date -u +%Y)/$(date -u +%m)/$DAY/decisions.json"
+          if [ ! -f data/decisions.json ]; then
+            echo "::warning::no decisions.json produced this run — nothing to archive"
+          elif [ -f "gawk-data-repo/$DEST" ]; then
+            echo "decisions for $DAY already archived — first-write-wins, leaving the shipped video's record as-is"
+          else
+            mkdir -p "gawk-data-repo/$(dirname "$DEST")"
+            cp data/decisions.json "gawk-data-repo/$DEST"
+            cd gawk-data-repo
+            git config user.name "gawk-data-archiver"
+            git config user.email "archiver@gawk.dev"
+            git add "$DEST"
+            git commit -m "decisions: $DAY daily-video editorial record"
+            # The hourly archiver loop pushes too — rebase once on a race
+            git push origin main || (git pull --rebase origin main && git push origin main)
+          fi
+
       - name: Commit upload log
         if: steps.pipeline.outputs.has_output == 'true'
         run: |
