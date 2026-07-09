@@ -406,5 +406,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-07-09",
+    "videoId": "zW0bRcat4dk",
+    "url": "https://youtu.be/zW0bRcat4dk",
+    "title": "ggml-org/whisper.cpp trending on GitHub (84 stars today) | Gawk Daily — 9 July 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-07-09T10:31:58.616Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
