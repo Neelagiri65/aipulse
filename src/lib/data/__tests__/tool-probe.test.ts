@@ -134,8 +134,8 @@ describe("runAllProbes — records every target, isolates failures", () => {
       if (String(url).includes("cursor")) throw new Error("down");
       return new Response("", { status: 200 });
     }) as unknown as typeof fetch;
-    const record = async (toolId: string) => {
-      recorded.push(toolId);
+    const record = async (entries: Array<{ toolId: string }>) => {
+      recorded.push(...entries.map((e) => e.toolId));
     };
     const res = await runAllProbes(1_700_000_000_000, record, fakeFetch);
     expect(res.probed).toBe(6);
@@ -149,11 +149,17 @@ describe("runAllProbes — records every target, isolates failures", () => {
 
 describe("loadProbeSignals — reads + classifies each target", () => {
   it("classifies from injected history reads", async () => {
-    const read = async (toolId: string): Promise<ProbeSample[]> =>
-      toolId === "windsurf"
-        ? [sample(false, 0), sample(false, 0), sample(false, 0)] // unreachable
-        : [sample(true, 200, 150)];
-    const signals = await loadProbeSignals(read);
+    const readAll = async (): Promise<Record<string, ProbeSample[]>> => {
+      const out: Record<string, ProbeSample[]> = {};
+      for (const t of PROBE_TARGETS) {
+        out[t.toolId] =
+          t.toolId === "windsurf"
+            ? [sample(false, 0), sample(false, 0), sample(false, 0)] // unreachable
+            : [sample(true, 200, 150)];
+      }
+      return out;
+    };
+    const signals = await loadProbeSignals(readAll);
     expect(signals["windsurf"]?.state).toBe("unreachable");
     expect(signals["claude-code"]?.state).toBe("reachable");
     expect(signals["cursor"]?.latencyMs).toBe(150);

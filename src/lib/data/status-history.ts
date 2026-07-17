@@ -132,44 +132,57 @@ export async function readSamples(toolId: string): Promise<StatusSample[]> {
 
 import type { ProbeSample, ProbeSignal } from "@/lib/data/tool-probe";
 
-const PROBE_KEY = (toolId: string) => `aipulse:probe-history:${toolId}`;
+// Single combined key for ALL tools' probe history (was one LIST key per
+// tool: 6 tools × 3 write cmds + 6 read cmds = ~24 cmds/cron-run, a real
+// contributor to the Upstash monthly command cap being exhausted
+// 2026-07-17). One GET + one SET covers every tool in one cron tick.
+const PROBE_HISTORY_KEY = "aipulse:probe-history";
 const PROBE_SIGNALS_KEY = "aipulse:probe-signals";
 // Enough for a few hours of 5-min probes — plenty for hysteresis + a short
 // trend, without unbounded growth.
 const MAX_PROBES = 60;
 
-/** Record one probe result (newest-first). Fail-closed — never blocks. */
-export async function recordProbe(
-  toolId: string,
-  sample: ProbeSample,
+/** Record a batch of probe results (one per tool) in a single GET + SET. */
+export async function recordProbes(
+  entries: Array<{ toolId: string; sample: ProbeSample }>,
 ): Promise<void> {
   const r = redis();
-  if (!r) return;
+  if (!r || entries.length === 0) return;
   try {
-    const key = PROBE_KEY(toolId);
-    await r.lpush(key, JSON.stringify(sample));
-    await r.ltrim(key, 0, MAX_PROBES - 1);
-    await r.expire(key, 8 * 24 * 3600);
+    const all = await readProbeHistoryBlob(r);
+    for (const { toolId, sample } of entries) {
+      const existing = Array.isArray(all[toolId]) ? all[toolId] : [];
+      all[toolId] = [sample, ...existing].slice(0, MAX_PROBES);
+    }
+    await r.set(PROBE_HISTORY_KEY, JSON.stringify(all), { ex: 8 * 24 * 3600 });
   } catch {
     // Probe recording never blocks the dashboard.
   }
 }
 
-/** Read a tool's probe history, newest-first. Empty when Redis is absent. */
-export async function readProbes(toolId: string): Promise<ProbeSample[]> {
+/** Read every tool's probe history in one GET. Empty when Redis is absent. */
+export async function readAllProbes(): Promise<Record<string, ProbeSample[]>> {
   const r = redis();
-  if (!r) return [];
+  if (!r) return {};
   try {
-    const raw = await r.lrange(PROBE_KEY(toolId), 0, MAX_PROBES - 1);
-    const out: ProbeSample[] = [];
-    for (const entry of raw as unknown[]) {
-      const parsed = typeof entry === "string" ? safeParse(entry) : entry;
-      if (isProbeSample(parsed)) out.push(parsed);
-    }
-    return out;
+    return await readProbeHistoryBlob(r);
   } catch {
-    return [];
+    return {};
   }
+}
+
+async function readProbeHistoryBlob(
+  r: Redis,
+): Promise<Record<string, ProbeSample[]>> {
+  const raw = await r.get(PROBE_HISTORY_KEY);
+  const parsed = typeof raw === "string" ? safeParse(raw) : raw;
+  if (!parsed || typeof parsed !== "object") return {};
+  const out: Record<string, ProbeSample[]> = {};
+  for (const [toolId, arr] of Object.entries(parsed as Record<string, unknown>)) {
+    if (!Array.isArray(arr)) continue;
+    out[toolId] = arr.filter(isProbeSample);
+  }
+  return out;
 }
 
 /**

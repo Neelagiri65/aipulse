@@ -27,7 +27,7 @@ import { withIngest } from "@/app/api/_lib/withIngest";
 import { writeCronHealth } from "@/lib/data/cron-health";
 import { isTotalFailure } from "@/lib/data/success-contract";
 import { fetchAllStatus } from "@/lib/data/fetch-status";
-import { readProbes, recordProbe, writeProbeSignals } from "@/lib/data/status-history";
+import { readAllProbes, recordProbes, writeProbeSignals } from "@/lib/data/status-history";
 import { loadProbeSignals, runAllProbes, type ProbeSignal } from "@/lib/data/tool-probe";
 import { deriveToolAlertCards } from "@/lib/feed/derivers/tool-alert";
 import {
@@ -151,8 +151,8 @@ export const POST = withIngest<RouteResult>({
     // re-reading + re-classifying per request — keeps status reads within the
     // Upstash budget. Bounded by the per-probe timeout, parallel, never rejects.
     try {
-      await runAllProbes(Date.now(), recordProbe);
-      const signals = await loadProbeSignals(readProbes);
+      await runAllProbes(Date.now(), recordProbes);
+      const signals = await loadProbeSignals(readAllProbes);
       await writeProbeSignals(signals as Record<string, ProbeSignal>);
     } catch {
       // probing never blocks tool-alert delivery

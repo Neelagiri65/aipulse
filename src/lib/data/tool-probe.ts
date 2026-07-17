@@ -206,41 +206,45 @@ export async function probeOne(
 }
 
 /**
- * Probe every target and record each result via the injected `record`
- * callback (kept injectable to avoid a module cycle with status-history and
- * to stay unit-testable). Runs on the cron write-path, never on SSR. All
- * probes fire in parallel; individual failures are already captured as
+ * Probe every target in parallel, then record all results via ONE call to
+ * the injected `record` callback (a single batched Redis write instead of
+ * one per tool — kept injectable to avoid a module cycle with
+ * status-history and to stay unit-testable). Runs on the cron write-path,
+ * never on SSR. Individual probe failures are already captured as
  * `reachable:false` samples by `probeOne`, so this never rejects.
  */
 export async function runAllProbes(
   nowMs: number,
-  record: (toolId: ToolId, sample: ProbeSample) => Promise<void>,
+  record: (
+    entries: Array<{ toolId: ToolId; sample: ProbeSample }>,
+  ) => Promise<void>,
   fetchImpl: typeof fetch = fetch,
 ): Promise<{ probed: number; reachable: number }> {
   let reachable = 0;
-  await Promise.all(
+  const entries = await Promise.all(
     PROBE_TARGETS.map(async (t) => {
       const sample = await probeOne(t, nowMs, 6000, fetchImpl);
       if (sample.reachable) reachable += 1;
-      await record(t.toolId, sample).catch(() => {});
+      return { toolId: t.toolId, sample };
     }),
   );
+  await record(entries).catch(() => {});
   return { probed: PROBE_TARGETS.length, reachable };
 }
 
 /**
- * Read each target's probe history via the injected `read` callback and
- * classify it into a display signal. Runs on the read-path (fetchAllStatus) —
- * a cheap Redis read + pure classification, no live probing.
+ * Read every target's probe history via ONE call to the injected `readAll`
+ * callback and classify each into a display signal. Runs on the read-path
+ * (fetchAllStatus) — a single cheap Redis read + pure classification, no
+ * live probing.
  */
 export async function loadProbeSignals(
-  read: (toolId: ToolId) => Promise<ProbeSample[]>,
+  readAll: () => Promise<Record<string, ProbeSample[]>>,
 ): Promise<Partial<Record<ToolId, ProbeSignal>>> {
+  const all = await readAll();
   const out: Partial<Record<ToolId, ProbeSignal>> = {};
-  await Promise.all(
-    PROBE_TARGETS.map(async (t) => {
-      out[t.toolId] = classifyProbeHistory(t, await read(t.toolId));
-    }),
-  );
+  for (const t of PROBE_TARGETS) {
+    out[t.toolId] = classifyProbeHistory(t, all[t.toolId] ?? []);
+  }
   return out;
 }
