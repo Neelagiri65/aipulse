@@ -29,12 +29,15 @@ const META_KEY = "aipulse:globe-ingest-meta";
 // 48h TTL covers two full 24h windows so the regional-deltas route can
 // partition into current24h vs prior24h from a single LRANGE. Display
 // window stays at WINDOW_MINUTES (240 = 4h) — the extension is read-side
-// only, the map dot density doesn't change. MAX_EVENTS is a generous
-// cap that comfortably absorbs the 12× retention bump (4h → 48h) at
-// observed daily volume after dedupe (3-8k); under the 20k ceiling
-// even at the 95th percentile.
+// only, the map dot density doesn't change. MAX_EVENTS caps how many
+// most-recent events (LPUSH pushes newest to index 0, LTRIM keeps
+// 0..MAX_EVENTS-1) are retained and readable in a single LRANGE.
+// Capped at 10k (well above observed daily volume after dedupe, 3-8k)
+// so one LRANGE response stays under Upstash's 10MB per-request limit
+// — a real ceiling hit in production (2026-07-17), not just the
+// command-count budget below.
 const KEY_TTL_SECONDS = 48 * 60 * 60;
-const MAX_EVENTS = 20000;
+const MAX_EVENTS = 10000;
 
 export type StoredGlobePoint = GlobePoint & {
   /** ISO timestamp of the underlying GitHub event. Used for window filtering. */
