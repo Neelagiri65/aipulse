@@ -550,5 +550,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-07-21",
+    "videoId": "oSrUfuMOVdc",
+    "url": "https://youtu.be/oSrUfuMOVdc",
+    "title": "PostHog/posthog trending on GitHub (310 stars today) | Gawk Daily — 21 July 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-07-21T09:35:48.712Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
