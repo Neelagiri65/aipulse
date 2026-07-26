@@ -610,5 +610,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-07-26",
+    "videoId": "ivDhsejx1WU",
+    "url": "https://youtu.be/ivDhsejx1WU",
+    "title": "jellyfin/jellyfin trending on GitHub (62 stars today) | Gawk Daily — 26 July 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-07-26T09:22:21.237Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
