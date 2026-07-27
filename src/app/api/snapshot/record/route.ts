@@ -29,7 +29,13 @@ export const POST = withIngest({
   run: async () => {
     const date = ymdUtc();
     const snapshot = await buildDailySnapshot(date);
-    await writeSnapshot(snapshot);
+    const write = await writeSnapshot(snapshot);
+    if (!write.ok) {
+      // A snapshot that didn't persist is a failed run — fold it into
+      // failures[] so ok flips false and the workflow's ok-parse goes
+      // red instead of reporting a write that never landed.
+      snapshot.failures.push({ step: "persist", message: write.message });
+    }
     return snapshot;
   },
   toOutcome: (snapshot) => {

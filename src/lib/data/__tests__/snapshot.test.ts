@@ -6,7 +6,10 @@ import {
   summarisePackageLatest,
   summariseRegistry,
   summariseSources,
+  writeSnapshot,
   ymdUtc,
+  type DailySnapshot,
+  type SnapshotWriteClient,
 } from "@/lib/data/snapshot";
 import type { RegistryEntry } from "@/lib/data/registry-shared";
 import type { PackageLatest } from "@/lib/data/pkg-store";
@@ -264,5 +267,60 @@ describe("summariseLabs24h", () => {
     expect(Object.keys(entry).sort()).toEqual(
       ["byType", "city", "country", "displayName", "id", "kind", "stale", "total"].sort(),
     );
+  });
+});
+
+// Minimal blob — writeSnapshot only serialises, so the summary fields
+// beyond date/failures are irrelevant to the write contract.
+function mkSnapshot(date: string): DailySnapshot {
+  return {
+    date,
+    capturedAt: `${date}T04:00:00Z`,
+    failures: [],
+  } as unknown as DailySnapshot;
+}
+
+describe("writeSnapshot", () => {
+  it("writes blob + index entry and reports ok", async () => {
+    const calls: Array<[string, unknown]> = [];
+    const client: SnapshotWriteClient = {
+      set: async (k, v) => calls.push(["set", [k, v]]),
+      zadd: async (k, e) => calls.push(["zadd", [k, e]]),
+    };
+    const result = await writeSnapshot(mkSnapshot("2026-07-27"), client);
+    expect(result).toEqual({ ok: true });
+    expect(calls[0][0]).toBe("set");
+    expect((calls[0][1] as [string, string])[0]).toBe("snapshot:2026-07-27");
+    expect(calls[1][0]).toBe("zadd");
+  });
+
+  it("reports ok:false with the error message when the write is rejected", async () => {
+    const client: SnapshotWriteClient = {
+      set: async () => {
+        throw new Error("max requests limit exceeded");
+      },
+      zadd: async () => 1,
+    };
+    const result = await writeSnapshot(mkSnapshot("2026-07-27"), client);
+    expect(result).toEqual({
+      ok: false,
+      message: "max requests limit exceeded",
+    });
+  });
+
+  it("reports ok:false when the index write is rejected after the blob landed", async () => {
+    const client: SnapshotWriteClient = {
+      set: async () => "OK",
+      zadd: async () => {
+        throw new Error("quota exhausted");
+      },
+    };
+    const result = await writeSnapshot(mkSnapshot("2026-07-27"), client);
+    expect(result).toEqual({ ok: false, message: "quota exhausted" });
+  });
+
+  it("reports ok:false when redis is unconfigured", async () => {
+    const result = await writeSnapshot(mkSnapshot("2026-07-27"), null);
+    expect(result).toEqual({ ok: false, message: "redis not configured" });
   });
 });

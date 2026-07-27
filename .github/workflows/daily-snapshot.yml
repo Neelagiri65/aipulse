@@ -47,3 +47,11 @@ jobs:
             -X POST \
             "$URL")
           echo "Response: $RESPONSE"
+          # The route returns HTTP 200 with ok:false when a build step
+          # or the Redis persist fails, so curl -f can't catch those —
+          # parse the body's ok field and fail the job ourselves.
+          OK=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print('true' if d.get('ok') else 'false')" 2>/dev/null || echo "parse-failed")
+          if [ "$OK" != "true" ]; then
+            echo "::error::daily-snapshot reported ok:$OK in response body — see Response above"
+            exit 1
+          fi

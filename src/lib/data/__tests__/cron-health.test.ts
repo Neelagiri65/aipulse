@@ -3,6 +3,8 @@ import {
   CRON_WORKFLOWS,
   isCronStale,
   isEventTriggered,
+  writeCronHealth,
+  type CronHealthClient,
   type CronHealthRecord,
   type CronWorkflowName,
 } from "@/lib/data/cron-health";
@@ -161,5 +163,64 @@ describe("CRON_WORKFLOWS registry", () => {
       "wire-ingest-reddit",
       "wire-ingest-rss",
     ]);
+  });
+});
+
+describe("writeCronHealth", () => {
+  it("returns true when the record lands", async () => {
+    const written: string[] = [];
+    const client: CronHealthClient = {
+      get: async () => null,
+      set: async (_k, v) => written.push(v),
+    };
+    const ok = await writeCronHealth(
+      "daily-snapshot",
+      { ok: true, itemsProcessed: 7 },
+      client,
+    );
+    expect(ok).toBe(true);
+    const record = JSON.parse(written[0]) as CronHealthRecord;
+    expect(record.workflow).toBe("daily-snapshot");
+    expect(record.itemsProcessed).toBe(7);
+    expect(record.lastSuccessAt).not.toBeNull();
+  });
+
+  it("returns false when the Redis write is rejected", async () => {
+    const client: CronHealthClient = {
+      get: async () => null,
+      set: async () => {
+        throw new Error("max requests limit exceeded");
+      },
+    };
+    const ok = await writeCronHealth(
+      "daily-snapshot",
+      { ok: true, itemsProcessed: 1 },
+      client,
+    );
+    expect(ok).toBe(false);
+  });
+
+  it("returns false when the pre-write read is rejected", async () => {
+    const client: CronHealthClient = {
+      get: async () => {
+        throw new Error("quota exhausted");
+      },
+      set: async () => "OK",
+    };
+    const ok = await writeCronHealth(
+      "daily-snapshot",
+      { ok: false, error: "boom" },
+      client,
+    );
+    expect(ok).toBe(false);
+  });
+
+  it("returns false when redis is unconfigured", async () => {
+    const ok = await writeCronHealth(
+      "daily-snapshot",
+      { ok: true, itemsProcessed: 0 },
+      null,
+    );
+    expect(ok).toBe(false);
   });
 });

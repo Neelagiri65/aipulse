@@ -48,13 +48,17 @@ export type SnapshotIngestResult = {
   /** Number of those events whose country couldn't be resolved
    *  (coord outside every tracked bbox). */
   unattributedEvents: number;
+  /** Set when the aggregate was computed but the Redis write was
+   *  rejected — distinguishes "nothing to store" from "couldn't store". */
+  persistError?: string;
 };
 
 export type SnapshotIngestOptions = {
   /** Override the read of recent events. Tests inject a fixed list. */
   readRecentEvents?: () => Promise<readonly StoredGlobePoint[]>;
-  /** Override the snapshot write. Tests pass a spy. */
-  writeSnapshot?: (s: RegionalSnapshot) => Promise<void>;
+  /** Override the snapshot write. Tests pass a spy. A `false` return
+   *  means the write was rejected; `void` (legacy spies) reads as ok. */
+  writeSnapshot?: (s: RegionalSnapshot) => Promise<boolean | void>;
   now?: () => Date;
 };
 
@@ -90,15 +94,22 @@ export async function runGlobeEventsSnapshot(
     byCity: agg.byCity,
   };
 
-  const ok = snapshot.totalEvents > 0;
-  if (ok) await writeSnap(snapshot);
+  const hasEvents = snapshot.totalEvents > 0;
+  let persistError: string | undefined;
+  if (hasEvents) {
+    const persisted = await writeSnap(snapshot);
+    if (persisted === false) {
+      persistError = "regional snapshot write to Redis was rejected";
+    }
+  }
 
   return {
-    ok,
+    ok: hasEvents && !persistError,
     date: snapshot.date,
     generatedAt: snapshot.generatedAt,
     totalEvents: snapshot.totalEvents,
     unattributedEvents: snapshot.unattributedEvents,
+    ...(persistError ? { persistError } : {}),
   };
 }
 
@@ -120,7 +131,9 @@ export const POST = withIngest({
       ? { ok: true, itemsProcessed: result.totalEvents }
       : {
           ok: false,
-          error: `globe-events-snapshot ${result.date}: 0 events aggregated`,
+          error: result.persistError
+            ? `globe-events-snapshot ${result.date}: ${result.persistError}`
+            : `globe-events-snapshot ${result.date}: 0 events aggregated`,
         },
   toResponse: (result) => NextResponse.json({ ok: result.ok, result }),
 });

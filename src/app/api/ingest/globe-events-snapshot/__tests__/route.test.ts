@@ -96,6 +96,20 @@ describe("runGlobeEventsSnapshot", () => {
     expect(writeSnapshot).not.toHaveBeenCalled();
   });
 
+  it("ok:false with persistError when the Redis write is rejected", async () => {
+    const writeSnapshot = vi.fn(async (_: RegionalSnapshot) => false);
+    const result = await runGlobeEventsSnapshot({
+      readRecentEvents: async () => [
+        pt(SF, "United States", "2026-05-03T15:00:00Z", "1"),
+      ],
+      writeSnapshot,
+      now: () => NOW,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.totalEvents).toBe(1);
+    expect(result.persistError).toMatch(/rejected/);
+  });
+
   it("counts unattributed events (null country) honestly", async () => {
     const writeSnapshot = vi.fn(async (_: RegionalSnapshot) => {});
     await runGlobeEventsSnapshot({

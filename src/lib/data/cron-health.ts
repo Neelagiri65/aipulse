@@ -136,17 +136,25 @@ export function isCronHealthAvailable(): boolean {
   return redis() !== null;
 }
 
+/** Minimal client surface writeCronHealth needs — lets tests inject a fake. */
+export type CronHealthClient = {
+  get: (key: string) => Promise<unknown>;
+  set: (key: string, value: string) => Promise<unknown>;
+};
+
 /**
- * Record the outcome of a cron run. Must never throw — if Redis is
- * unavailable we swallow the error; the ingest route's own success
- * path is what the user sees.
+ * Record the outcome of a cron run. Must never throw — the ingest
+ * route's own success path is what the user sees — but reports
+ * whether the record actually landed so callers can log a rejected
+ * write instead of losing it invisibly.
  */
 export async function writeCronHealth(
   workflow: CronWorkflowName,
   outcome: CronHealthOutcome,
-): Promise<void> {
-  const r = redis();
-  if (!r) return;
+  client: CronHealthClient | null = redis(),
+): Promise<boolean> {
+  const r = client;
+  if (!r) return false;
   const key = `${KEY_PREFIX}${workflow}`;
   const expected = CRON_WORKFLOWS[workflow].expectedIntervalMinutes;
   try {
@@ -166,8 +174,10 @@ export async function writeCronHealth(
       updatedAt: now,
     };
     await r.set(key, JSON.stringify(record));
+    return true;
   } catch {
     // never propagate — observability must not break the thing it observes.
+    return false;
   }
 }
 
