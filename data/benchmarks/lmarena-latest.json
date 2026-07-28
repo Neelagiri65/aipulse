@@ -3,14 +3,14 @@
   "rows": [
     {
       "rank": 1,
-      "modelName": "claude-opus-4-6-thinking",
+      "modelName": "claude-opus-5-max",
       "organization": "anthropic",
-      "rating": 1512.4235523879024,
-      "ratingLower": 1508.8655691467059,
-      "ratingUpper": 1515.981535629099,
-      "voteCount": 62772,
+      "rating": 1521.515854792777,
+      "ratingLower": 1509.1794326307208,
+      "ratingUpper": 1533.8522769548333,
+      "voteCount": 2348,
       "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
+      "leaderboardPublishDate": "2026-07-27",
       "rankDelta": {
         "kind": "new"
       },
@@ -20,14 +20,31 @@
     },
     {
       "rank": 1,
-      "modelName": "claude-opus-4-6-thinking",
+      "modelName": "claude-opus-5-max",
       "organization": "anthropic",
-      "rating": 1502.513672481345,
-      "ratingLower": 1498.8152982639733,
-      "ratingUpper": 1506.212046698717,
-      "voteCount": 63191,
+      "rating": 1511.5966036132436,
+      "ratingLower": 1499.1398008326787,
+      "ratingUpper": 1524.053406393809,
+      "voteCount": 2386,
       "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
+      "leaderboardPublishDate": "2026-07-27",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 1,
+      "modelName": "claude-opus-5-max",
+      "organization": "anthropic",
+      "rating": 1503.9915103213052,
+      "ratingLower": 1493.3270104667408,
+      "ratingUpper": 1514.6560101758691,
+      "voteCount": 2348,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-07-27",
       "rankDelta": {
         "kind": "new"
       },
@@ -39,12 +56,12 @@
       "rank": 1,
       "modelName": "gpt-5.4",
       "organization": "openai",
-      "rating": 1499.0150524927762,
-      "ratingLower": 1493.8591295729682,
-      "ratingUpper": 1504.1709754125843,
-      "voteCount": 61783,
+      "rating": 1498.7587827282414,
+      "ratingLower": 1493.7240597811342,
+      "ratingUpper": 1503.7935056753486,
+      "voteCount": 62920,
       "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
+      "leaderboardPublishDate": "2026-07-27",
       "rankDelta": {
         "kind": "new"
       },
@@ -56,29 +73,12 @@
       "rank": 1,
       "modelName": "gpt-5.4",
       "organization": "openai",
-      "rating": 1493.5370101360745,
-      "ratingLower": 1489.212305061009,
-      "ratingUpper": 1497.86171521114,
-      "voteCount": 61783,
+      "rating": 1493.2472351874933,
+      "ratingLower": 1489.028449323826,
+      "ratingUpper": 1497.4660210511604,
+      "voteCount": 62920,
       "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
-      "rankDelta": {
-        "kind": "new"
-      },
-      "eloDelta": {
-        "kind": "new"
-      }
-    },
-    {
-      "rank": 1,
-      "modelName": "claude-opus-4-6-thinking",
-      "organization": "anthropic",
-      "rating": 1492.7827516281066,
-      "ratingLower": 1489.7625058394417,
-      "ratingUpper": 1495.8029974167716,
-      "voteCount": 62772,
-      "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
+      "leaderboardPublishDate": "2026-07-27",
       "rankDelta": {
         "kind": "new"
       },
@@ -90,12 +90,12 @@
       "rank": 1,
       "modelName": "gpt-5.4-high",
       "organization": "openai",
-      "rating": 1489.0066404389704,
-      "ratingLower": 1485.4733560552208,
-      "ratingUpper": 1492.5399248227195,
-      "voteCount": 58808,
+      "rating": 1489.5902794809836,
+      "ratingLower": 1486.1442050658525,
+      "ratingUpper": 1493.0363538961146,
+      "voteCount": 60075,
       "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
+      "leaderboardPublishDate": "2026-07-27",
       "rankDelta": {
         "kind": "new"
       },
@@ -105,14 +105,14 @@
     },
     {
       "rank": 2,
-      "modelName": "claude-opus-4-6",
+      "modelName": "claude-opus-5-high",
       "organization": "anthropic",
-      "rating": 1506.9713159356818,
-      "ratingLower": 1503.507893334125,
-      "ratingUpper": 1510.4347385372387,
-      "voteCount": 66604,
+      "rating": 1515.0328760752413,
+      "ratingLower": 1507.2366503813575,
+      "ratingUpper": 1522.829101769125,
+      "voteCount": 6081,
       "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
+      "leaderboardPublishDate": "2026-07-27",
       "rankDelta": {
         "kind": "new"
       },
@@ -122,14 +122,14 @@
     },
     {
       "rank": 2,
-      "modelName": "claude-opus-4-6",
+      "modelName": "claude-opus-5-high",
       "organization": "anthropic",
-      "rating": 1497.0825817240568,
-      "ratingLower": 1493.4703179087742,
-      "ratingUpper": 1500.6948455393394,
-      "voteCount": 67037,
+      "rating": 1504.6724054622268,
+      "ratingLower": 1496.7822396424558,
+      "ratingUpper": 1512.5625712819974,
+      "voteCount": 6159,
       "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
+      "leaderboardPublishDate": "2026-07-27",
       "rankDelta": {
         "kind": "new"
       },
@@ -139,65 +139,116 @@
     },
     {
       "rank": 2,
+      "modelName": "gpt-5.4-high",
+      "organization": "openai",
+      "rating": 1494.8297573384882,
+      "ratingLower": 1489.7863986911132,
+      "ratingUpper": 1499.8731159858633,
+      "voteCount": 60075,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-07-27",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 2,
+      "modelName": "claude-opus-5-high",
+      "organization": "anthropic",
+      "rating": 1493.6365938902873,
+      "ratingLower": 1487.2852188858474,
+      "ratingUpper": 1499.9879688947271,
+      "voteCount": 6081,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-07-27",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 2,
+      "modelName": "gpt-5.4-high",
+      "organization": "openai",
+      "rating": 1492.4445305780334,
+      "ratingLower": 1488.22758958031,
+      "ratingUpper": 1496.6614715757569,
+      "voteCount": 60075,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-07-27",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 2,
+      "modelName": "gpt-5.5-high",
+      "organization": "openai",
+      "rating": 1486.305777776553,
+      "ratingLower": 1482.4838521904007,
+      "ratingUpper": 1490.1277033627048,
+      "voteCount": 47386,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-07-27",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 3,
+      "modelName": "claude-opus-4-6-thinking",
+      "organization": "anthropic",
+      "rating": 1512.4856825319694,
+      "ratingLower": 1508.960787637573,
+      "ratingUpper": 1516.0105774263657,
+      "voteCount": 64353,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-07-27",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 3,
+      "modelName": "claude-opus-4-6-thinking",
+      "organization": "anthropic",
+      "rating": 1502.583275160037,
+      "ratingLower": 1498.92012242594,
+      "ratingUpper": 1506.2464278941334,
+      "voteCount": 64805,
+      "category": "overall",
+      "leaderboardPublishDate": "2026-07-27",
+      "rankDelta": {
+        "kind": "new"
+      },
+      "eloDelta": {
+        "kind": "new"
+      }
+    },
+    {
+      "rank": 3,
       "modelName": "gpt-5.4-mini-high",
       "organization": "openai",
-      "rating": 1495.9205817632946,
-      "ratingLower": 1490.4707767001619,
-      "ratingUpper": 1501.3703868264274,
-      "voteCount": 57600,
+      "rating": 1494.7844435034333,
+      "ratingLower": 1489.4855387669786,
+      "ratingUpper": 1500.083348239888,
+      "voteCount": 58858,
       "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
-      "rankDelta": {
-        "kind": "new"
-      },
-      "eloDelta": {
-        "kind": "new"
-      }
-    },
-    {
-      "rank": 2,
-      "modelName": "gpt-5.4-high",
-      "organization": "openai",
-      "rating": 1491.7058836828287,
-      "ratingLower": 1487.3709718937657,
-      "ratingUpper": 1496.0407954718912,
-      "voteCount": 58808,
-      "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
-      "rankDelta": {
-        "kind": "new"
-      },
-      "eloDelta": {
-        "kind": "new"
-      }
-    },
-    {
-      "rank": 2,
-      "modelName": "claude-opus-4-6",
-      "organization": "anthropic",
-      "rating": 1487.1740657694397,
-      "ratingLower": 1484.2283422378664,
-      "ratingUpper": 1490.119789301013,
-      "voteCount": 66604,
-      "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
-      "rankDelta": {
-        "kind": "new"
-      },
-      "eloDelta": {
-        "kind": "new"
-      }
-    },
-    {
-      "rank": 2,
-      "modelName": "gpt-5.4",
-      "organization": "openai",
-      "rating": 1486.3767960851837,
-      "ratingLower": 1482.8519997215103,
-      "ratingUpper": 1489.9015924488572,
-      "voteCount": 61783,
-      "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
+      "leaderboardPublishDate": "2026-07-27",
       "rankDelta": {
         "kind": "new"
       },
@@ -207,48 +258,14 @@
     },
     {
       "rank": 3,
-      "modelName": "claude-fable-5",
+      "modelName": "claude-opus-4-6-thinking",
       "organization": "anthropic",
-      "rating": 1504.0001102945234,
-      "ratingLower": 1497.7600971231689,
-      "ratingUpper": 1510.2401234658782,
-      "voteCount": 14575,
+      "rating": 1493.022080510426,
+      "ratingLower": 1490.047985796692,
+      "ratingUpper": 1495.9961752241602,
+      "voteCount": 64353,
       "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
-      "rankDelta": {
-        "kind": "new"
-      },
-      "eloDelta": {
-        "kind": "new"
-      }
-    },
-    {
-      "rank": 3,
-      "modelName": "gpt-5.4-high",
-      "organization": "openai",
-      "rating": 1494.043480873376,
-      "ratingLower": 1488.8580307509872,
-      "ratingUpper": 1499.2289309957648,
-      "voteCount": 58808,
-      "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
-      "rankDelta": {
-        "kind": "new"
-      },
-      "eloDelta": {
-        "kind": "new"
-      }
-    },
-    {
-      "rank": 3,
-      "modelName": "claude-fable-5",
-      "organization": "anthropic",
-      "rating": 1493.3010108517556,
-      "ratingLower": 1486.9201915412195,
-      "ratingUpper": 1499.6818301622916,
-      "voteCount": 14646,
-      "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
+      "leaderboardPublishDate": "2026-07-27",
       "rankDelta": {
         "kind": "new"
       },
@@ -260,12 +277,12 @@
       "rank": 3,
       "modelName": "gpt-5.5",
       "organization": "openai",
-      "rating": 1487.8394670167709,
-      "ratingLower": 1483.0678664943257,
-      "ratingUpper": 1492.6110675392156,
-      "voteCount": 47031,
+      "rating": 1488.35541004603,
+      "ratingLower": 1483.7271696852406,
+      "ratingUpper": 1492.9836504068196,
+      "voteCount": 48612,
       "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
+      "leaderboardPublishDate": "2026-07-27",
       "rankDelta": {
         "kind": "new"
       },
@@ -275,31 +292,14 @@
     },
     {
       "rank": 3,
-      "modelName": "gpt-5.5-high",
+      "modelName": "gpt-5.4",
       "organization": "openai",
-      "rating": 1486.1428786846086,
-      "ratingLower": 1482.2199892393955,
-      "ratingUpper": 1490.0657681298212,
-      "voteCount": 45597,
+      "rating": 1485.9989715353272,
+      "ratingLower": 1482.555965174523,
+      "ratingUpper": 1489.441977896132,
+      "voteCount": 62920,
       "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
-      "rankDelta": {
-        "kind": "new"
-      },
-      "eloDelta": {
-        "kind": "new"
-      }
-    },
-    {
-      "rank": 3,
-      "modelName": "gpt-5.4-high",
-      "organization": "openai",
-      "rating": 1485.4056500711636,
-      "ratingLower": 1482.3488462250903,
-      "ratingUpper": 1488.4624539172369,
-      "voteCount": 58808,
-      "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
+      "leaderboardPublishDate": "2026-07-27",
       "rankDelta": {
         "kind": "new"
       },
@@ -309,14 +309,14 @@
     },
     {
       "rank": 4,
-      "modelName": "claude-opus-4-7-thinking",
+      "modelName": "claude-opus-4-6",
       "organization": "anthropic",
-      "rating": 1499.3422281183907,
-      "ratingLower": 1495.3054739130007,
-      "ratingUpper": 1503.3789823237807,
-      "voteCount": 50483,
+      "rating": 1506.3714822602335,
+      "ratingLower": 1502.9506467055862,
+      "ratingUpper": 1509.7923178148808,
+      "voteCount": 68045,
       "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
+      "leaderboardPublishDate": "2026-07-27",
       "rankDelta": {
         "kind": "new"
       },
@@ -326,14 +326,14 @@
     },
     {
       "rank": 4,
-      "modelName": "gpt-5.2-high",
-      "organization": "openai",
-      "rating": 1492.9861971892192,
-      "ratingLower": 1486.2498304725173,
-      "ratingUpper": 1499.722563905921,
-      "voteCount": 47421,
+      "modelName": "claude-opus-4-6",
+      "organization": "anthropic",
+      "rating": 1496.6257056431264,
+      "ratingLower": 1493.0582001970674,
+      "ratingUpper": 1500.1932110891853,
+      "voteCount": 68516,
       "category": "overall",
-      "leaderboardPublishDate": "2026-07-21",
+      "leaderboardPublishDate": "2026-07-27",
       "rankDelta": {
         "kind": "new"
       },
@@ -343,16 +343,17 @@
     }
   ],
   "meta": {
-    "leaderboardPublishDate": "2026-07-21",
+    "leaderboardPublishDate": "2026-07-27",
     "prevPublishDate": null,
-    "totalVotes": 1086914,
-    "staleDays": 6,
-    "fetchedAt": "2026-07-27T06:37:54.932Z"
+    "totalVotes": 879316,
+    "staleDays": 1,
+    "fetchedAt": "2026-07-28T06:01:23.012Z"
   },
   "sanity": {
     "ok": false,
     "warnings": [
-      "top1_rating=1512.4 outside [1300,1500]"
+      "top1_rating=1521.5 outside [1300,1500]",
+      "top1_vote_count=2348 below 5000"
     ]
   }
 }
