@@ -6,6 +6,7 @@ import {
   makeEnvelope,
   mergeEventLines,
   shouldArchive,
+  shouldCaptureHistory,
 } from "../archive";
 
 const T = "2026-07-05T20:00:00.000Z";
@@ -92,5 +93,48 @@ describe("makeEnvelope — provenance shape", () => {
   it("wraps the record verbatim with version, instant, endpoint", () => {
     const rec = { anything: [1, 2, 3] };
     expect(makeEnvelope(rec, "/api/feed", T)).toEqual({ v: 1, capturedAt: T, endpoint: "/api/feed", record: rec });
+  });
+});
+
+describe("shouldCaptureHistory — same-day, non-degraded gate", () => {
+  const CAPTURED = "2026-08-01T07:07:00.000Z";
+
+  it("captures when the newest served snapshot is dated today", () => {
+    const d = shouldCaptureHistory(
+      { snapshots: [{ date: "2026-08-01" }, { date: "2026-07-17" }] },
+      CAPTURED,
+    );
+    expect(d).toEqual({ capture: true });
+  });
+
+  it("quiet-skips when the newest snapshot is a prior day's — cron not fired yet", () => {
+    const d = shouldCaptureHistory({ snapshots: [{ date: "2026-07-31" }] }, CAPTURED);
+    expect(d.capture).toBe(false);
+    if (!d.capture) {
+      expect(d.loud).toBe(false);
+      expect(d.reason).toContain("2026-07-31");
+    }
+  });
+
+  it("loud-skips on degraded:true — a rejected read must never be locked in as the day", () => {
+    const d = shouldCaptureHistory(
+      { snapshots: [{ date: "2026-08-01" }], degraded: true },
+      CAPTURED,
+    );
+    expect(d.capture).toBe(false);
+    if (!d.capture) expect(d.loud).toBe(true);
+  });
+
+  it("loud-skips on an empty snapshot list — store served no history at all", () => {
+    const d = shouldCaptureHistory({ snapshots: [] }, CAPTURED);
+    expect(d.capture).toBe(false);
+    if (!d.capture) expect(d.loud).toBe(true);
+  });
+
+  it("loud-skips on a malformed body", () => {
+    expect(shouldCaptureHistory(null, CAPTURED).capture).toBe(false);
+    const d = shouldCaptureHistory({} as { snapshots?: [] }, CAPTURED);
+    expect(d.capture).toBe(false);
+    if (!d.capture) expect(d.loud).toBe(true);
   });
 });
