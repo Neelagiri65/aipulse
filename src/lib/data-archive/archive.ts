@@ -102,6 +102,56 @@ export function shouldArchive(audit: { ok?: boolean; findings?: unknown[] } | nu
   return audit.ok === true && (audit.findings ?? []).length === 0;
 }
 
+export type HistoryCaptureDecision =
+  | { capture: true }
+  | { capture: false; reason: string; loud: boolean };
+
+/**
+ * Decide whether an /api/history?limit=1 response is fit to archive as
+ * today's DailySnapshot record. The 2026-07 Upstash incident destroyed
+ * 14 days of these blobs — Redis was their only home. Archiving them
+ * here makes git the durable copy, but ONLY a same-day, non-degraded
+ * response may be locked in (the file is once-per-day, never
+ * overwritten — locking in a stale or empty read would archive the
+ * outage instead of the day).
+ *
+ * Outcomes:
+ *  - capture:true            — newest served snapshot is dated today.
+ *  - loud:false skip         — newest snapshot is a prior day's: the
+ *                              daily-snapshot cron (~06:00 UTC) hasn't
+ *                              fired yet. A later tick captures it.
+ *  - loud:true skip          — degraded:true (read rejected; flag ships
+ *                              with the /api/history degraded-flag PR
+ *                              and is simply absent before it) or an
+ *                              empty snapshot list. Both mean the store
+ *                              could not serve history — that's an
+ *                              incident signal, not a quiet wait.
+ */
+export function shouldCaptureHistory(
+  body: { snapshots?: Array<{ date?: unknown }>; degraded?: unknown } | null | undefined,
+  capturedAt: string,
+): HistoryCaptureDecision {
+  if (!body || !Array.isArray(body.snapshots)) {
+    return { capture: false, reason: "malformed history response", loud: true };
+  }
+  if (body.degraded === true) {
+    return { capture: false, reason: "history read degraded", loud: true };
+  }
+  if (body.snapshots.length === 0) {
+    return { capture: false, reason: "history served zero snapshots", loud: true };
+  }
+  const newest = body.snapshots[0]?.date;
+  const today = capturedAt.slice(0, 10);
+  if (newest !== today) {
+    return {
+      capture: false,
+      reason: `newest snapshot is ${String(newest)}, not ${today} — daily-snapshot cron not fired yet`,
+      loud: false,
+    };
+  }
+  return { capture: true };
+}
+
 /** UTC-keyed repo paths for a capture instant. */
 export function archivePaths(capturedAt: string): { eventsFile: string; snapshotsDir: string } {
   const d = new Date(capturedAt);

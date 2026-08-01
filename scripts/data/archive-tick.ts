@@ -21,6 +21,7 @@ import {
   makeEnvelope,
   mergeEventLines,
   shouldArchive,
+  shouldCaptureHistory,
 } from "../../src/lib/data-archive/archive";
 
 const GAWK_BASE = process.env.GAWK_BASE_URL || "https://gawk.dev";
@@ -89,6 +90,35 @@ async function main() {
       console.log(`[ARCHIVE] snapshot ${name}: captured → ${snapshotsDir}/${name}.json`);
     } catch (e) {
       failures.push(`${name}: ${(e as Error).message}`);
+    }
+  }
+
+  // Daily history snapshot — the DailySnapshot blob /api/history serves.
+  // Once per UTC day, never overwritten; the shouldCaptureHistory gate
+  // refuses to lock in a stale or degraded read (2026-07 incident: Redis
+  // was this dataset's only home and 14 days were lost — git is now the
+  // durable copy).
+  {
+    const endpoint = "/api/history?limit=1";
+    const file = join(root, snapshotsDir, "history.json");
+    if (existsSync(file)) {
+      console.log("[ARCHIVE] snapshot history: already captured today, leaving as-is");
+    } else {
+      try {
+        const body = (await fetchJson(endpoint)) as Parameters<typeof shouldCaptureHistory>[0];
+        const decision = shouldCaptureHistory(body, capturedAt);
+        if (decision.capture) {
+          mkdirSync(dirname(file), { recursive: true });
+          writeFileSync(file, JSON.stringify(makeEnvelope(body, endpoint, capturedAt), null, 1) + "\n");
+          console.log(`[ARCHIVE] snapshot history: captured → ${snapshotsDir}/history.json`);
+        } else if (decision.loud) {
+          failures.push(`history: ${decision.reason}`);
+        } else {
+          console.log(`[ARCHIVE] snapshot history: skip — ${decision.reason}`);
+        }
+      } catch (e) {
+        failures.push(`history: ${(e as Error).message}`);
+      }
     }
   }
 
