@@ -199,17 +199,21 @@ export function regionalSnapshotKey(date: string): string {
   return `${SNAPSHOT_PREFIX}${date}`;
 }
 
+/** Returns whether the write landed — a rejected write must surface
+ *  in the cron result rather than reporting a snapshot that was never
+ *  stored (the read path 30 days out has no other source for it). */
 export async function writeRegionalSnapshot(
   snap: RegionalSnapshot,
-): Promise<void> {
+): Promise<boolean> {
   const r = redis();
-  if (!r) return;
+  if (!r) return false;
   try {
     await r.set(regionalSnapshotKey(snap.date), JSON.stringify(snap), {
       ex: SNAPSHOT_TTL_SECONDS,
     });
+    return true;
   } catch {
-    // observability must not break the pipeline it observes
+    return false;
   }
 }
 

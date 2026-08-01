@@ -458,19 +458,40 @@ export async function buildDailySnapshot(
 // Storage
 // ---------------------------------------------------------------------------
 
-/** Write a snapshot blob + index entry. No TTL by design. */
-export async function writeSnapshot(snapshot: DailySnapshot): Promise<void> {
-  const r = redis();
-  if (!r) return;
+export type SnapshotWriteResult = { ok: true } | { ok: false; message: string };
+
+/** Minimal client surface writeSnapshot needs — lets tests inject a fake. */
+export type SnapshotWriteClient = {
+  set: (key: string, value: string) => Promise<unknown>;
+  zadd: (
+    key: string,
+    entry: { score: number; member: string },
+  ) => Promise<unknown>;
+};
+
+/**
+ * Write a snapshot blob + index entry. No TTL by design.
+ *
+ * Returns the outcome instead of swallowing errors: a snapshot that
+ * isn't persisted is a failed run, not a quiet success — every
+ * downstream consumer (digest, /api/history, sparklines) reads what
+ * this wrote, so the caller must be able to go loud when the write
+ * is rejected.
+ */
+export async function writeSnapshot(
+  snapshot: DailySnapshot,
+  client: SnapshotWriteClient | null = redis(),
+): Promise<SnapshotWriteResult> {
+  if (!client) return { ok: false, message: "redis not configured" };
   try {
     const score = Date.parse(`${snapshot.date}T00:00:00Z`);
-    await r.set(snapshotKey(snapshot.date), JSON.stringify(snapshot));
+    await client.set(snapshotKey(snapshot.date), JSON.stringify(snapshot));
     if (!Number.isNaN(score)) {
-      await r.zadd(INDEX_KEY, { score, member: snapshot.date });
+      await client.zadd(INDEX_KEY, { score, member: snapshot.date });
     }
-  } catch {
-    // Observability must not break the pipeline it observes. Callers
-    // only care that we tried; ingestion still succeeded.
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
   }
 }
 

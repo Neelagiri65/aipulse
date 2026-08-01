@@ -75,11 +75,27 @@ export function withIngest<TResult>(
       result = await config.run(request);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      await writeCronHealth(config.workflow, { ok: false, error: msg });
+      const recorded = await writeCronHealth(config.workflow, {
+        ok: false,
+        error: msg,
+      });
+      if (!recorded) {
+        console.error(
+          `[cron-health] failed to record failure outcome for ${config.workflow} — Redis write rejected or unconfigured`,
+        );
+      }
       throw e;
     }
 
-    await writeCronHealth(config.workflow, config.toOutcome(result));
+    const recorded = await writeCronHealth(
+      config.workflow,
+      config.toOutcome(result),
+    );
+    if (!recorded) {
+      console.error(
+        `[cron-health] failed to record outcome for ${config.workflow} — Redis write rejected or unconfigured`,
+      );
+    }
 
     if (config.toResponse) return config.toResponse(result);
     return NextResponse.json({ ok: true, result });
