@@ -508,33 +508,76 @@ export async function readSnapshot(
   }
 }
 
+/** Minimal client surface the recent-snapshots read needs — lets tests
+ *  inject a fake. */
+export type SnapshotReadClient = {
+  zrange: (
+    key: string,
+    start: number,
+    stop: number,
+    opts: { rev: boolean },
+  ) => Promise<unknown>;
+  mget: (...keys: string[]) => Promise<unknown[]>;
+};
+
+export type SnapshotReadResult =
+  | { ok: true; snapshots: DailySnapshot[] }
+  | { ok: false; snapshots: DailySnapshot[]; message: string };
+
 /**
- * Return the most recent `limit` snapshots, newest first. Uses the
- * ZSET index to avoid SCAN-over-all-keys. Absent or malformed blobs
- * are skipped, not faked.
+ * Return the most recent `limit` snapshots, newest first, plus whether
+ * the read actually succeeded. Uses the ZSET index to avoid
+ * SCAN-over-all-keys. Absent or malformed blobs are skipped, not faked.
+ *
+ * `ok:false` means "we could not read" (Redis unconfigured, command
+ * rejected) — NOT "no snapshots exist". The 2026-07 Upstash throttling
+ * incident hid ten days of rejected reads behind the same empty array
+ * an honest no-history state returns; callers that surface data to
+ * users need the distinction so they can say "temporarily unavailable"
+ * instead of "no history yet".
+ */
+export async function readRecentSnapshotsDetailed(
+  limit: number,
+  client: SnapshotReadClient | null = redis(),
+): Promise<SnapshotReadResult> {
+  if (!client) {
+    return { ok: false, snapshots: [], message: "redis not configured" };
+  }
+  const clamped = Math.max(1, Math.min(limit, 365));
+  try {
+    const dates = (await client.zrange(INDEX_KEY, 0, clamped - 1, {
+      rev: true,
+    })) as string[];
+    if (dates.length === 0) return { ok: true, snapshots: [] };
+    const keys = dates.map((d) => snapshotKey(d));
+    const values = (await client.mget(...keys)) as unknown[];
+    const snapshots: DailySnapshot[] = [];
+    for (const v of values) {
+      const parsed = parseSnapshot(v);
+      if (parsed) snapshots.push(parsed);
+    }
+    return { ok: true, snapshots };
+  } catch (e) {
+    return {
+      ok: false,
+      snapshots: [],
+      message: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
+/**
+ * Fail-soft variant: collapses read failures to an empty array. Kept
+ * for the many internal callers (digest, feed, sparklines) whose
+ * degradation contract is already "render the gap"; user-facing
+ * endpoints that must distinguish should use
+ * `readRecentSnapshotsDetailed` instead.
  */
 export async function readRecentSnapshots(
   limit: number,
 ): Promise<DailySnapshot[]> {
-  const r = redis();
-  if (!r) return [];
-  const clamped = Math.max(1, Math.min(limit, 365));
-  try {
-    const dates = (await r.zrange(INDEX_KEY, 0, clamped - 1, {
-      rev: true,
-    })) as string[];
-    if (dates.length === 0) return [];
-    const keys = dates.map((d) => snapshotKey(d));
-    const values = (await r.mget(...keys)) as unknown[];
-    const result: DailySnapshot[] = [];
-    for (const v of values) {
-      const parsed = parseSnapshot(v);
-      if (parsed) result.push(parsed);
-    }
-    return result;
-  } catch {
-    return [];
-  }
+  const result = await readRecentSnapshotsDetailed(limit);
+  return result.snapshots;
 }
 
 function parseSnapshot(value: unknown): DailySnapshot | null {

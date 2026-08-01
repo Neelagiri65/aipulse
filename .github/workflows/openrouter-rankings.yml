@@ -58,3 +58,13 @@ jobs:
             -X POST \
             "$URL")
           echo "Response: $RESPONSE"
+          # Fail loudly when the route reports ok:false in the body —
+          # curl -f only fires on 4xx/5xx, but a rejected Redis persist
+          # is HTTP 200 with ok:false in JSON (2026-07 Upstash incident:
+          # rejected writes stayed green for two weeks). Mirrors the
+          # daily-snapshot / agents-ingest parse step.
+          OK=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print('true' if d.get('ok') else 'false')" 2>/dev/null || echo "parse-failed")
+          if [ "$OK" != "true" ]; then
+            echo "::error::openrouter-rankings reported ok:$OK in response body"
+            exit 1
+          fi

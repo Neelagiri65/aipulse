@@ -66,15 +66,16 @@ function mkStore(): OpenRouterStore & {
     presentDates,
     async writeRankingsLatest(dto) {
       written.dto = dto;
+      return { ok: true as const };
     },
     async readRankingsLatest() {
       return written.dto;
     },
     async writeDailySnapshotIfAbsent(date, snapshot) {
-      if (presentDates.has(date)) return false;
+      if (presentDates.has(date)) return { wrote: false };
       presentDates.add(date);
       written.snapshots[date] = snapshot;
-      return true;
+      return { wrote: true };
     },
     async readSnapshots() {
       return { ...written.snapshots };
@@ -116,6 +117,70 @@ describe("runOpenRouterIngest", () => {
     });
     expect(result.snapshotWritten).toBe(false);
     expect(store.written.snapshots["2026-04-26"].slugs[0]).toBe("anthropic/older");
+  });
+
+  it("ok:false with persistErrors when a Redis write is rejected", async () => {
+    const store = mkStore();
+    store.writeRankingsLatest = async () => ({
+      ok: false as const,
+      message: "max requests limit exceeded",
+    });
+
+    const result = await runOpenRouterIngest({
+      fetchRankings: async () => mkFetched(),
+      store,
+      now: fixedClock,
+    });
+
+    // The fetch worked, but a rejected persist must not report green —
+    // the panel would serve a stale DTO while the cron stays green
+    // (2026-07 Upstash incident shape).
+    expect(result.ok).toBe(false);
+    expect(result.persistErrors).toEqual([
+      "rankings-latest: max requests limit exceeded",
+    ]);
+    // The snapshot append is still attempted independently.
+    expect(result.snapshotWritten).toBe(true);
+  });
+
+  it("ok:false when the daily-snapshot append errors (distinct from the idempotent skip)", async () => {
+    const store = mkStore();
+    store.writeDailySnapshotIfAbsent = async () => ({
+      wrote: false,
+      error: "max requests limit exceeded",
+    });
+
+    const result = await runOpenRouterIngest({
+      fetchRankings: async () => mkFetched(),
+      store,
+      now: fixedClock,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.snapshotWritten).toBe(false);
+    expect(result.persistErrors).toEqual([
+      "daily-snapshot: max requests limit exceeded",
+    ]);
+  });
+
+  it("same-day idempotent skip stays ok:true — it is not a failure", async () => {
+    const store = mkStore();
+    store.presentDates.add("2026-04-26");
+    store.written.snapshots["2026-04-26"] = {
+      date: "2026-04-26",
+      ordering: "top-weekly",
+      slugs: ["anthropic/older"],
+    };
+
+    const result = await runOpenRouterIngest({
+      fetchRankings: async () => mkFetched(),
+      store,
+      now: fixedClock,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.snapshotWritten).toBe(false);
+    expect(result.persistErrors).toEqual([]);
   });
 
   it("flags reason 'frontend-degraded' when fallback path was used", async () => {

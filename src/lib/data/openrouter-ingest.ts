@@ -78,6 +78,10 @@ export type RunOpenRouterIngestInput = {
 };
 
 export type RunResult = {
+  /** True iff both Redis persists landed (or were legitimately
+   *  skipped — same-day snapshot idempotency). A run whose writes were
+   *  rejected is a failed run: the panel would serve a stale DTO while
+   *  the cron stays green. */
   ok: boolean;
   ordering: ModelUsageDto["ordering"];
   rowsWritten: number;
@@ -86,6 +90,8 @@ export type RunResult = {
   /** Set when the frontend-primary path failed and catalogue fallback was used. */
   reason?: "frontend-degraded";
   sanityWarnings: string[];
+  /** Rejected Redis persists. Empty when everything landed. */
+  persistErrors: string[];
 };
 
 export async function runOpenRouterIngest(
@@ -122,23 +128,38 @@ export async function runOpenRouterIngest(
     now,
   });
 
-  await store.writeRankingsLatest(dto);
+  const persistErrors: string[] = [];
+
+  const latestOutcome = await store.writeRankingsLatest(dto);
+  if (!latestOutcome.ok) {
+    persistErrors.push(`rankings-latest: ${latestOutcome.message}`);
+  }
+
   const snapshotRow: ModelUsageSnapshotRow = {
     date,
     ordering: dto.ordering,
     slugs: dto.rows.slice(0, SNAPSHOT_TOP_N).map((r) => r.slug),
   };
-  const snapshotWritten =
-    dto.rows.length > 0 &&
-    (await store.writeDailySnapshotIfAbsent(date, snapshotRow));
+  let snapshotWritten = false;
+  if (dto.rows.length > 0) {
+    const appendOutcome = await store.writeDailySnapshotIfAbsent(
+      date,
+      snapshotRow,
+    );
+    snapshotWritten = appendOutcome.wrote;
+    if (appendOutcome.error) {
+      persistErrors.push(`daily-snapshot: ${appendOutcome.error}`);
+    }
+  }
 
   return {
-    ok: true,
+    ok: persistErrors.length === 0,
     ordering: dto.ordering,
     rowsWritten: dto.rows.length,
     snapshotWritten,
     date,
     reason: fetched.frontendErrored ? "frontend-degraded" : undefined,
     sanityWarnings: dto.sanityWarnings,
+    persistErrors,
   };
 }
