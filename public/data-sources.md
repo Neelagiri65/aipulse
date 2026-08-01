@@ -95,10 +95,28 @@ Gawk re-broadcasts a subset of its public, source-cited cards into operator-faci
 - **Email digest** — daily summary, opt-in. Sent from `noreply@gawk.dev` (Resend, eu-west-1).
 - **Discord webhook for tool-status transitions** — fires once when a tracked tool flips to a non-operational status on its upstream status page, and once again when it recovers. Yellow embed for `degraded`, red for `partial_outage` / `major_outage`, green on recovery. Dedup state is persisted so two consecutive ticks of the same status emit one embed.
 
+## Data licensing and attribution
+
+Gawk's own source code is MIT-licensed. The data is not ours, and that licence does not cover it. Every source in the registry carries a `license` record naming the terms we republish under, the terms page those terms were read from, and the date a human read it.
+
+Where a source has been read and verified, we say so. Where nobody has published terms governing reuse of their data, we say **that** — rather than treating silence as permission. Of the 42 sources, 25 have had their terms read against a primary source; 17 publish no data-reuse terms we could locate, and are recorded as unverified rather than upgraded to "open" by assumption.
+
+**Sources that require attribution**, and are attributed accordingly:
+
+- **Chatbot Arena leaderboard** (CC BY 4.0) — figures shown are derived from the published dataset.
+- **PyPI download statistics** (Creative Commons, via the PSF BigQuery dataset) — attribution runs to PyPI and the Python Software Foundation.
+- **The Register** — headline-and-link display under their published linking policy; article text is never reproduced.
+- **heise online** — feed content reused under their published grant, with active links back. That grant excludes feed images and framing; Gawk's feed parser reads only title, link, and description, so no feed images are displayed.
+- **ecosyste.ms** (CC BY-SA 4.0) — attribution required, and share-alike reaches any derived dataset.
+
+**Sources with no published reuse terms** — including every status page we poll — are cited with a link back to the origin and are never presented as openly licensed. arXiv metadata (CC0) carries no conditions at all.
+
+Where a source's terms restrict what we do, that is recorded in the registry against the specific clause, and treated as a decision to make in the open rather than a detail to bury.
+
 ## Full registry detail
 
 The complete source registry — endpoint URLs, polling cadences, rate-limit budgets, sanity-range bounds, caveats, and per-source curation criteria — is editorial intelligence rather than shipped code. Available on request.
 
 ---
 
-_Last updated: 2026-05-03._
+_Last updated: 2026-08-01._

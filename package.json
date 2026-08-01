@@ -1,6 +1,14 @@
 {
   "name": "aipulse",
   "version": "0.1.0",
+  "description": "Gawk \u2014 the real-time observatory for the global AI ecosystem. Aggregates publicly verifiable data; every displayed number traces to a public source.",
+  "author": "Srinathprasanna Shanmugam",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Neelagiri65/aipulse.git"
+  },
+  "homepage": "https://gawk.dev",
   "private": true,
   "scripts": {
     "dev": "next dev",
