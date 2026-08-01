@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  readRecentSnapshotsDetailed,
   snapshotKey,
   summariseEvents24h,
   summariseLabs24h,
@@ -9,6 +10,7 @@ import {
   writeSnapshot,
   ymdUtc,
   type DailySnapshot,
+  type SnapshotReadClient,
   type SnapshotWriteClient,
 } from "@/lib/data/snapshot";
 import type { RegistryEntry } from "@/lib/data/registry-shared";
@@ -322,5 +324,68 @@ describe("writeSnapshot", () => {
   it("reports ok:false when redis is unconfigured", async () => {
     const result = await writeSnapshot(mkSnapshot("2026-07-27"), null);
     expect(result).toEqual({ ok: false, message: "redis not configured" });
+  });
+});
+
+describe("readRecentSnapshotsDetailed", () => {
+  const goodBlob = (date: string) =>
+    JSON.stringify({ date, capturedAt: `${date}T04:00:00Z`, failures: [] });
+
+  it("returns ok with parsed snapshots, newest first per the index order", async () => {
+    const client: SnapshotReadClient = {
+      zrange: async () => ["2026-07-17", "2026-07-16"],
+      mget: async (...keys) => keys.map((k) => goodBlob(k.slice("snapshot:".length))),
+    };
+    const result = await readRecentSnapshotsDetailed(30, client);
+    expect(result.ok).toBe(true);
+    expect(result.snapshots.map((s) => s.date)).toEqual([
+      "2026-07-17",
+      "2026-07-16",
+    ]);
+  });
+
+  it("returns ok with an empty array when the index is empty — honest no-history", async () => {
+    const client: SnapshotReadClient = {
+      zrange: async () => [],
+      mget: async () => {
+        throw new Error("mget must not be called on an empty index");
+      },
+    };
+    const result = await readRecentSnapshotsDetailed(30, client);
+    expect(result).toEqual({ ok: true, snapshots: [] });
+  });
+
+  it("returns ok:false with the message when the read is rejected — NOT an empty success", async () => {
+    const client: SnapshotReadClient = {
+      zrange: async () => {
+        throw new Error("max requests limit exceeded");
+      },
+      mget: async () => [],
+    };
+    const result = await readRecentSnapshotsDetailed(30, client);
+    expect(result).toEqual({
+      ok: false,
+      snapshots: [],
+      message: "max requests limit exceeded",
+    });
+  });
+
+  it("returns ok:false when redis is unconfigured", async () => {
+    const result = await readRecentSnapshotsDetailed(30, null);
+    expect(result).toEqual({
+      ok: false,
+      snapshots: [],
+      message: "redis not configured",
+    });
+  });
+
+  it("skips malformed blobs without failing the read", async () => {
+    const client: SnapshotReadClient = {
+      zrange: async () => ["2026-07-17", "2026-07-16"],
+      mget: async () => [goodBlob("2026-07-17"), "not-json{{{"],
+    };
+    const result = await readRecentSnapshotsDetailed(30, client);
+    expect(result.ok).toBe(true);
+    expect(result.snapshots.map((s) => s.date)).toEqual(["2026-07-17"]);
   });
 });

@@ -42,12 +42,14 @@ function mkStored(rowCount = 50): ModelUsageDto {
 
 function mkStore(stored: ModelUsageDto | null): OpenRouterStore {
   return {
-    async writeRankingsLatest() {},
+    async writeRankingsLatest() {
+      return { ok: true as const };
+    },
     async readRankingsLatest() {
       return stored;
     },
     async writeDailySnapshotIfAbsent() {
-      return false;
+      return { wrote: false };
     },
     async readSnapshots() {
       return {};

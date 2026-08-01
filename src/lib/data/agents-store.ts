@@ -15,12 +15,27 @@
  * enough for the 7d delta window plus one full week of headroom for
  * a missed cron run.
  *
- * Graceful on Redis absence: every call returns the fail-soft value
- * (null / void) instead of throwing. Ingest writes are best-effort.
+ * Reads are fail-soft (null instead of throwing) — the panel renders
+ * a gap. Writes REPORT their outcome: a rejected write means the panel
+ * serves stale data while the cron stays green, so the ingest
+ * orchestrator must be able to fold the failure into its result
+ * (2026-07 Upstash incident: this store's swallowed writes kept
+ * agents-ingest green for two weeks of rejected persists).
  */
 
 import { Redis } from "@upstash/redis";
 import type { AgentFetchResult } from "@/lib/data/agents-fetch";
+
+export type AgentsWriteResult = { ok: true } | { ok: false; message: string };
+
+/** Minimal client surface the writes need — lets tests inject a fake. */
+export type AgentsWriteClient = {
+  set: (
+    key: string,
+    value: string,
+    opts?: { ex: number },
+  ) => Promise<unknown>;
+};
 
 const LATEST_KEY = "agents:latest";
 const SNAPSHOT_PREFIX = "agents:snapshot:";
@@ -48,13 +63,16 @@ export function snapshotKey(date: string): string {
   return `${SNAPSHOT_PREFIX}${date}`;
 }
 
-export async function writeAgentsLatest(blob: AgentFetchResult): Promise<void> {
-  const r = redis();
-  if (!r) return;
+export async function writeAgentsLatest(
+  blob: AgentFetchResult,
+  client: AgentsWriteClient | null = redis(),
+): Promise<AgentsWriteResult> {
+  if (!client) return { ok: false, message: "redis not configured" };
   try {
-    await r.set(LATEST_KEY, JSON.stringify(blob));
-  } catch {
-    // observability must not break the pipeline it observes
+    await client.set(LATEST_KEY, JSON.stringify(blob));
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
   }
 }
 
@@ -72,15 +90,16 @@ export async function readAgentsLatest(): Promise<AgentFetchResult | null> {
 export async function writeAgentsSnapshot(
   date: string,
   blob: AgentFetchResult,
-): Promise<void> {
-  const r = redis();
-  if (!r) return;
+  client: AgentsWriteClient | null = redis(),
+): Promise<AgentsWriteResult> {
+  if (!client) return { ok: false, message: "redis not configured" };
   try {
-    await r.set(snapshotKey(date), JSON.stringify(blob), {
+    await client.set(snapshotKey(date), JSON.stringify(blob), {
       ex: SNAPSHOT_TTL_SECONDS,
     });
-  } catch {
-    // see above
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
   }
 }
 

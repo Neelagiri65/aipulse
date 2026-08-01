@@ -19,9 +19,12 @@
  * makes the intent legible and protects against a future migration
  * to a parallel scheduler.
  *
- * Graceful absence: if Upstash env vars are unset (dev / preview),
- * every read returns null/empty and every write becomes a no-op so
- * the calling cron route can still complete cleanly.
+ * Reads are fail-soft (null/empty) — the panel renders a gap. Writes
+ * REPORT their outcome instead of swallowing: a rejected write means
+ * the panel serves a stale DTO and the sparkline loses a day while the
+ * cron stays green (the 2026-07 Upstash incident failure class). The
+ * ingest runner folds these outcomes into its ok so the workflow layer
+ * can go red.
  */
 
 import { Redis } from "@upstash/redis";
@@ -34,24 +37,79 @@ import type {
 export const RANKINGS_LATEST_KEY = "openrouter:rankings:latest";
 export const SNAPSHOTS_KEY = "openrouter:snapshots";
 
+export type OpenRouterWriteResult =
+  | { ok: true }
+  | { ok: false; message: string };
+
+/**
+ * Outcome of the idempotent daily-snapshot append. Three distinct
+ * states that used to collapse into one boolean:
+ *   { wrote: true }                — the field landed this call.
+ *   { wrote: false }               — already present; skipped to
+ *                                    preserve idempotency. Fine.
+ *   { wrote: false, error: "..." } — Redis unconfigured or the command
+ *                                    was rejected. NOT fine — the day's
+ *                                    snapshot is missing.
+ */
+export type SnapshotAppendResult = { wrote: boolean; error?: string };
+
 export type OpenRouterStore = {
-  writeRankingsLatest(dto: ModelUsageDto): Promise<void>;
+  writeRankingsLatest(dto: ModelUsageDto): Promise<OpenRouterWriteResult>;
   readRankingsLatest(): Promise<ModelUsageDto | null>;
-  /**
-   * Append today's snapshot under field=date. Returns true if it
-   * actually wrote (date was absent), false if the field was already
-   * present and we skipped to preserve idempotency.
-   */
+  /** Append today's snapshot under field=date. See SnapshotAppendResult. */
   writeDailySnapshotIfAbsent(
     date: string,
     snapshot: ModelUsageSnapshotRow,
-  ): Promise<boolean>;
+  ): Promise<SnapshotAppendResult>;
   /**
    * All snapshot rows keyed by ISO date. Returns an empty record
    * when the hash is missing or Upstash is unavailable.
    */
   readSnapshots(): Promise<Record<string, ModelUsageSnapshotRow>>;
 };
+
+/** Minimal client surface the writes need — lets tests inject a fake. */
+export type OpenRouterWriteClient = {
+  set: (key: string, value: string) => Promise<unknown>;
+  hget: (key: string, field: string) => Promise<unknown>;
+  hset: (key: string, fields: Record<string, string>) => Promise<unknown>;
+};
+
+/** Write the live DTO. Exported standalone (client-injectable) so the
+ *  error mapping is unit-testable without a Redis instance. */
+export async function writeRankingsLatestWith(
+  client: OpenRouterWriteClient | null,
+  dto: ModelUsageDto,
+): Promise<OpenRouterWriteResult> {
+  if (!client) return { ok: false, message: "redis not configured" };
+  try {
+    await client.set(RANKINGS_LATEST_KEY, JSON.stringify(dto));
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Idempotent daily-snapshot append. See SnapshotAppendResult for the
+ *  three outcomes. Exported standalone for the same reason as above. */
+export async function writeDailySnapshotIfAbsentWith(
+  client: OpenRouterWriteClient | null,
+  date: string,
+  snapshot: ModelUsageSnapshotRow,
+): Promise<SnapshotAppendResult> {
+  if (!client) return { wrote: false, error: "redis not configured" };
+  try {
+    const existing = await client.hget(SNAPSHOTS_KEY, date);
+    if (existing !== null && existing !== undefined) return { wrote: false };
+    await client.hset(SNAPSHOTS_KEY, { [date]: JSON.stringify(snapshot) });
+    return { wrote: true };
+  } catch (e) {
+    return {
+      wrote: false,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
 
 let cached: Redis | null | undefined;
 
@@ -69,13 +127,7 @@ function redis(): Redis | null {
 
 export const redisOpenRouterStore: OpenRouterStore = {
   async writeRankingsLatest(dto) {
-    const r = redis();
-    if (!r) return;
-    try {
-      await r.set(RANKINGS_LATEST_KEY, JSON.stringify(dto));
-    } catch {
-      // observability must not break the thing it observes
-    }
+    return writeRankingsLatestWith(redis(), dto);
   },
 
   async readRankingsLatest() {
@@ -90,16 +142,7 @@ export const redisOpenRouterStore: OpenRouterStore = {
   },
 
   async writeDailySnapshotIfAbsent(date, snapshot) {
-    const r = redis();
-    if (!r) return false;
-    try {
-      const existing = await r.hget(SNAPSHOTS_KEY, date);
-      if (existing !== null && existing !== undefined) return false;
-      await r.hset(SNAPSHOTS_KEY, { [date]: JSON.stringify(snapshot) });
-      return true;
-    } catch {
-      return false;
-    }
+    return writeDailySnapshotIfAbsentWith(redis(), date, snapshot);
   },
 
   async readSnapshots() {

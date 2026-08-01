@@ -59,8 +59,8 @@ describe("runAgentsIngest", () => {
           archived: false,
         }),
     });
-    const writeLatest = vi.fn(async () => {});
-    const writeSnapshot = vi.fn(async () => {});
+    const writeLatest = vi.fn(async () => ({ ok: true as const }));
+    const writeSnapshot = vi.fn(async () => ({ ok: true as const }));
 
     const result = await runAgentsIngest({
       fetchImpl,
@@ -84,13 +84,54 @@ describe("runAgentsIngest", () => {
     expect(blob.frameworks[0].weeklyDownloads).toBe(1_762_851);
   });
 
+  it("ok:false with persistErrors when the fetch succeeds but a Redis write is rejected", async () => {
+    const fetchImpl = buildHandler({
+      "pypistats.org/api/packages/crewai/recent": () =>
+        jsonResponse({
+          data: { last_day: 1, last_week: 1_762_851, last_month: 7_000_000 },
+        }),
+      "api.github.com/repos/crewAIInc/crewAI": () =>
+        jsonResponse({
+          stargazers_count: 50_534,
+          open_issues_count: 367,
+          pushed_at: "2026-05-03T16:10:59Z",
+          archived: false,
+        }),
+    });
+    const writeLatest = vi.fn(async () => ({
+      ok: false as const,
+      message: "max requests limit exceeded",
+    }));
+    const writeSnapshot = vi.fn(async () => ({ ok: true as const }));
+
+    const result = await runAgentsIngest({
+      fetchImpl,
+      now: () => NOW,
+      registry: TINY_REGISTRY,
+      writeLatest,
+      writeSnapshot,
+    });
+
+    // The fetch worked (succeeded=1) but the run must NOT report green:
+    // a rejected persist means the panel serves yesterday's blob. This
+    // is the exact 2026-07 incident shape — green cron, stale panel.
+    expect(result.succeeded).toBe(1);
+    expect(result.ok).toBe(false);
+    expect(result.persistErrors).toEqual([
+      { target: "latest", message: "max requests limit exceeded" },
+    ]);
+    // The snapshot write is still attempted — one rejected key must not
+    // abandon the other.
+    expect(writeSnapshot).toHaveBeenCalledTimes(1);
+  });
+
   it("ok:false when every fetch fails — neither blob is written", async () => {
     const fetchImpl = buildHandler({
       "pypistats.org": () => new Response("err", { status: 500 }),
       "api.github.com": () => new Response("err", { status: 500 }),
     });
-    const writeLatest = vi.fn(async () => {});
-    const writeSnapshot = vi.fn(async () => {});
+    const writeLatest = vi.fn(async () => ({ ok: true as const }));
+    const writeSnapshot = vi.fn(async () => ({ ok: true as const }));
 
     const result = await runAgentsIngest({
       fetchImpl,
@@ -128,8 +169,8 @@ describe("runAgentsIngest", () => {
           archived: false,
         }),
     });
-    const writeLatest = vi.fn(async () => {});
-    const writeSnapshot = vi.fn(async () => {});
+    const writeLatest = vi.fn(async () => ({ ok: true as const }));
+    const writeSnapshot = vi.fn(async () => ({ ok: true as const }));
 
     const result = await runAgentsIngest({
       fetchImpl,
@@ -163,8 +204,8 @@ describe("runAgentsIngest", () => {
       fetchedAt: "2026-05-02T06:30:00Z",
       frameworks: [priorSnapshot],
     }));
-    const writeLatest = vi.fn(async () => {});
-    const writeSnapshot = vi.fn(async () => {});
+    const writeLatest = vi.fn(async () => ({ ok: true as const }));
+    const writeSnapshot = vi.fn(async () => ({ ok: true as const }));
 
     await runAgentsIngest({
       fetchImpl,

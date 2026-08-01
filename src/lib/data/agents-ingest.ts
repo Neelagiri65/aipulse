@@ -30,6 +30,7 @@ import {
   readAgentsLatest,
   writeAgentsLatest,
   writeAgentsSnapshot,
+  type AgentsWriteResult,
 } from "@/lib/data/agents-store";
 
 /**
@@ -103,6 +104,9 @@ export function mergeWithPriorSnapshot(
 }
 
 export type AgentsIngestResult = {
+  /** True iff usable data landed AND both persists succeeded. A fetch
+   *  that succeeds but cannot be stored is a failed run — the panel
+   *  would silently serve yesterday's blob. */
   ok: boolean;
   /** ISO timestamp of the run. */
   fetchedAt: string;
@@ -124,6 +128,9 @@ export type AgentsIngestResult = {
      *  schema-drift errors. */
     errors: Array<{ source: string; message: string }>;
   }>;
+  /** Rejected Redis persists. Empty when both writes landed (or when
+   *  the fetch failed and no write was attempted). */
+  persistErrors: Array<{ target: "latest" | "snapshot"; message: string }>;
 };
 
 export type AgentsIngestOptions = {
@@ -135,8 +142,11 @@ export type AgentsIngestOptions = {
   /** Override read of the prior `agents:latest` blob (for merge). */
   readPriorLatest?: () => Promise<AgentFetchResult | null>;
   /** Override write functions — tests pass in spies. */
-  writeLatest?: (blob: AgentFetchResult) => Promise<void>;
-  writeSnapshot?: (date: string, blob: AgentFetchResult) => Promise<void>;
+  writeLatest?: (blob: AgentFetchResult) => Promise<AgentsWriteResult>;
+  writeSnapshot?: (
+    date: string,
+    blob: AgentFetchResult,
+  ) => Promise<AgentsWriteResult>;
   /** Forwarded to fetchAgentSnapshots — tests pass 0 to skip the
    *  1500ms inter-framework throttle. */
   perFrameworkDelayMs?: number;
@@ -202,12 +212,22 @@ export async function runAgentsIngest(
       f.archived !== null,
   ).length;
 
-  const ok = succeeded > 0;
+  const fetchOk = succeeded > 0;
   const snapshotDate = mergedResult.fetchedAt.slice(0, 10);
 
-  if (ok) {
-    await writeLatest(mergedResult);
-    await writeSnapshot(snapshotDate, mergedResult);
+  const persistErrors: AgentsIngestResult["persistErrors"] = [];
+  if (fetchOk) {
+    const latestOutcome = await writeLatest(mergedResult);
+    if (!latestOutcome.ok) {
+      persistErrors.push({ target: "latest", message: latestOutcome.message });
+    }
+    const snapshotOutcome = await writeSnapshot(snapshotDate, mergedResult);
+    if (!snapshotOutcome.ok) {
+      persistErrors.push({
+        target: "snapshot",
+        message: snapshotOutcome.message,
+      });
+    }
   }
 
   // Failures list comes from the RAW fetch, not the merged result —
@@ -229,11 +249,12 @@ export async function runAgentsIngest(
     }));
 
   return {
-    ok,
+    ok: fetchOk && persistErrors.length === 0,
     fetchedAt: mergedResult.fetchedAt,
     snapshotDate,
     attempted: registry.length,
     succeeded,
     failures,
+    persistErrors,
   };
 }

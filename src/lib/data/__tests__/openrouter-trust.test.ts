@@ -91,12 +91,13 @@ function storeWithPriorSnapshot(
     written,
     async writeRankingsLatest(dto) {
       written.dto = dto;
+      return { ok: true as const };
     },
     async readRankingsLatest() {
       return written.dto;
     },
     async writeDailySnapshotIfAbsent() {
-      return true;
+      return { wrote: true };
     },
     async readSnapshots() {
       return { ...snapshots };

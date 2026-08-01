@@ -35,7 +35,12 @@ export const POST = withIngest({
       ? { ok: true, itemsProcessed: result.succeeded }
       : {
           ok: false,
-          error: `agents ingest: 0/${result.attempted} frameworks succeeded`,
+          error:
+            result.persistErrors.length > 0
+              ? `agents ingest: ${result.succeeded}/${result.attempted} frameworks fetched but persist rejected: ${result.persistErrors
+                  .map((p) => `${p.target}: ${p.message}`)
+                  .join("; ")}`
+              : `agents ingest: 0/${result.attempted} frameworks succeeded`,
         },
   toResponse: (result) => NextResponse.json({ ok: result.ok, result }),
 });

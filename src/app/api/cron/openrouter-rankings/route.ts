@@ -25,9 +25,15 @@ export const POST = withIngest({
     if (result.ok) {
       return { ok: true, itemsProcessed: result.rowsWritten };
     }
-    return { ok: false, error: "openrouter-rankings ingest returned ok:false" };
+    return {
+      ok: false,
+      error: `openrouter-rankings persist rejected: ${result.persistErrors.join("; ")}`,
+    };
   },
-  toResponse: (result) => NextResponse.json({ ok: true, result }),
+  // ok mirrors result.ok so the workflow's body-parse step can fail the
+  // run when a Redis persist was rejected (HTTP status stays 200 — the
+  // cron-health record above is the structured trail).
+  toResponse: (result) => NextResponse.json({ ok: result.ok, result }),
 });
 
 export const GET = POST;
