@@ -30,13 +30,12 @@
 import {
   CONFIG_PATHS,
   isRegistryAvailable,
+  finaliseRegistryMeta,
   readAllEntries,
   upsertEntries,
-  writeMeta,
   type ConfigKind,
   type DetectedConfig,
   type RegistryEntry,
-  type RegistryMeta,
 } from "./repo-registry";
 import { verifyConfigFile } from "./config-verifier";
 import { isTotalFailure } from "./success-contract";
@@ -284,16 +283,14 @@ export async function runRegistryDiscovery(
   const ENRICH_CAP = 100;
   await enrichMissingLocations(ENRICH_CAP, failures);
 
-  // 6. Meta write.
-  const finalEntries = await readAllEntries();
-  const finalMeta: RegistryMeta = {
-    totalEntries: finalEntries.length,
-    verifiedEntries: finalEntries.length, // every entry in registry is verified by construction
-    lastDiscoveryRun: nowIso,
-    lastDiscoverySource: opts.source,
+  // 6. Meta write — guarded. A degraded read must never overwrite the
+  //    last known good total with a count it just failed to measure.
+  const finalise = await finaliseRegistryMeta({
+    source: opts.source,
+    runAt: nowIso,
     failures,
-  };
-  await writeMeta(finalMeta);
+  });
+  failures.push(...finalise.addedFailures);
 
   return {
     searchesCompleted,

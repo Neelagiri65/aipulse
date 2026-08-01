@@ -30,6 +30,10 @@ import { NextResponse } from "next/server";
 import { runRegistryDiscovery } from "@/lib/data/registry-discovery";
 import { writeCronHealth } from "@/lib/data/cron-health";
 import { isDiscoverTotalFailure } from "@/lib/data/registry-discovery";
+import {
+  hasRegistryIntegrityFailure,
+  REGISTRY_INTEGRITY_STEPS,
+} from "@/lib/data/repo-registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -83,13 +87,27 @@ export async function POST(request: Request) {
   // HTTP ok, so the workflow log and cron-health can never disagree. A
   // dead GH_TOKEN 401-ing every search kind (2026-07-04 outage) goes
   // loud instead of green-with-zero.
-  const totalFailure = isDiscoverTotalFailure(result);
+  //
+  // A store-integrity failure fails the run on its own. The delivery
+  // question ("did the sweep find anything?") cannot see a corpus
+  // collapsing underneath a productive sweep — which is exactly what
+  // 2026-06-05 looked like: entries went 9,670 → 0 while every run
+  // reported success.
+  const integrityMessage = result.failures.find((f) =>
+    REGISTRY_INTEGRITY_STEPS.includes(f.step),
+  )?.message;
+  const totalFailure =
+    isDiscoverTotalFailure(result) ||
+    hasRegistryIntegrityFailure(result.failures);
   await writeCronHealth(
     "registry-discover",
     totalFailure
       ? {
           ok: false,
-          error: result.failures[0]?.message ?? "sweep delivered nothing",
+          error:
+            integrityMessage ??
+            result.failures[0]?.message ??
+            "sweep delivered nothing",
         }
       : { ok: true, itemsProcessed: result.written },
   );
