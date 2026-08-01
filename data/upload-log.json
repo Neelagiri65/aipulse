@@ -682,5 +682,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-08-01",
+    "videoId": "xaAFGILk5Ck",
+    "url": "https://youtu.be/xaAFGILk5Ck",
+    "title": "MiMo-V2.5 holds #1 on OpenRouter | Gawk Daily — 1 August 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-08-01T09:13:53.525Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
