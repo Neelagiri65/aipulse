@@ -76,9 +76,9 @@ const ENDPOINTS: Endpoint[] = [
     method: "GET",
     path: "/api/v1/sources",
     description:
-      "Data source registry — every source Gawk tracks, with metadata and freshness indicators.",
+      "Data source registry — every source Gawk tracks, with metadata and freshness indicators. When `degraded` is true the registry could not be read: `entries` is empty but carries no information, so do not read its length as a count of zero.",
     example: `curl ${BASE}/sources`,
-    responseHint: `{ "ok": true, "entries": [...], "meta": { "lastRunAt": "...", "totalEntries": 42 }, "generatedAt": "..." }`,
+    responseHint: `{ "ok": true, "entries": [...], "meta": { "lastRunAt": "...", "totalEntries": 42 }, "degraded": false, "degradedReason": null, "generatedAt": "..." }`,
   },
 ];
 

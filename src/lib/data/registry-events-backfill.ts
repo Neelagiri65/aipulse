@@ -52,12 +52,11 @@
 import { CONFIG_PATHS, type ConfigKind } from "./registry-shared";
 import {
   isRegistryAvailable,
+  finaliseRegistryMeta,
   readAllEntries,
   upsertEntries,
-  writeMeta,
   type DetectedConfig,
   type RegistryEntry,
-  type RegistryMeta,
 } from "./repo-registry";
 import { verifyConfigFile } from "./config-verifier";
 import { resolveOwnerLocation } from "./owner-location";
@@ -293,15 +292,13 @@ export async function runEventsBackfill(
 
   // Write meta so the source label shows up in /api/registry.meta even
   // when this backfill runs in isolation from the Code Search sweep.
-  const finalEntries = await readAllEntries();
-  const finalMeta: RegistryMeta = {
-    totalEntries: finalEntries.length,
-    verifiedEntries: finalEntries.length,
-    lastDiscoveryRun: nowIso,
-    lastDiscoverySource: opts.source,
+  // Guarded — a degraded read leaves the previous total standing.
+  const finalise = await finaliseRegistryMeta({
+    source: opts.source,
+    runAt: nowIso,
     failures,
-  };
-  await writeMeta(finalMeta);
+  });
+  failures.push(...finalise.addedFailures);
 
   return {
     candidatesFound,
