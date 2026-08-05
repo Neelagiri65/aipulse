@@ -48,6 +48,48 @@ export type SanityCheck = {
   unit?: string;
 };
 
+/**
+ * What we must do to stay compliant when we republish a source's data.
+ *  - "none"        — public domain / no conditions on reuse.
+ *  - "attribution" — must credit the source. We always cite, so this is
+ *                    satisfied in practice, but it is a contractual
+ *                    obligation here, not a courtesy.
+ *  - "share-alike" — a derived database must carry the same licence.
+ *                    Matters for the gawk-data archive, not just the UI.
+ *  - "see-terms"   — bespoke ToS whose conditions don't reduce to a
+ *                    standard label; read `notes` before extending use.
+ *  - "unverified"  — terms NOT yet read against a primary source.
+ */
+export type LicenseObligation =
+  | "none"
+  | "attribution"
+  | "share-alike"
+  | "see-terms"
+  | "unverified";
+
+/**
+ * Data-reuse terms for ONE source. Deliberately separate from the repo's
+ * own MIT licence: the code is ours, the data is not.
+ *
+ * Same discipline as `verifiedAt` on the source itself — `verifiedAt: ""`
+ * means nobody has read the actual terms page yet, and the honest label
+ * is "unverified". NEVER infer a licence from a source's general posture
+ * or from what a similar service does: read the terms, or mark it
+ * unverified and say where you looked.
+ */
+export type DataLicense = {
+  /** SPDX id where one is declared (e.g. "CC0-1.0", "ODbL-1.0"), else a
+   *  short human label (e.g. "GitHub ToS", "No published terms"). */
+  label: string;
+  /** The terms/licence page actually read. The citation for `label`. */
+  termsUrl?: string;
+  obligation: LicenseObligation;
+  /** ISO date the terms page was manually read. "" = NOT verified. */
+  verifiedAt: string;
+  /** Conditions, restrictions, or what was found when unverified. */
+  notes?: string;
+};
+
 export type RateLimit = {
   authenticated?: number; // requests per hour
   unauthenticated?: number; // requests per hour
@@ -73,6 +115,11 @@ export type DataSource = {
   sanityCheck: SanityCheck;
   /** ISO date of last manual verification. Empty string = NOT verified → do not consume. */
   verifiedAt: string;
+  /** Data-reuse terms. Required: every source we republish must declare
+   *  what we owe its publisher, even when the honest answer is
+   *  "unverified". Absence of a licence is a fact to record, not a gap
+   *  to leave blank. */
+  license: DataLicense;
   /** Optional caveat about provenance, coverage gaps, or known limitations. */
   caveat?: string;
   /** Dashboard features that depend on this source. */
@@ -109,6 +156,14 @@ export const GITHUB_EVENTS: DataSource = {
     unit: "events per multi-page poll",
   },
   verifiedAt: "2026-04-18",
+  license: {
+    label: "GitHub ToS (API Terms)",
+    termsUrl: "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "GitHub ToS section H (API Terms) and Acceptable Use section 7 permit collection through the API and explicitly state that API collection is NOT 'scraping'. No attribution or share-alike is imposed. Prohibited uses are spam, resale of users' personal information, rate-limit evasion, and privacy breaches — none of which gawk does. Repository FILE CONTENTS carry each repo's own licence; we read config-file existence and metadata, never redistribute file bodies.",
+  },
   caveat:
     "Events do not include author geolocation; we resolve it from the user profile's optional city/country field. Typical placement coverage 15–25% of raw events. Low density between polls is filled in by GH Archive hourly dumps (see `gharchive`). The same buffer also feeds `repo-registry` via the events-backfill discovery path: every repo seen in the last 240 minutes with `meta.hasAiConfig=true` becomes a registry candidate, re-using the live pipeline's AI-config probe at zero new Search-API cost.",
   powersFeature: ["globe", "live-feed", "repo-registry"],
@@ -136,6 +191,14 @@ export const GHARCHIVE: DataSource = {
     unit: "relevant events per hour file",
   },
   verifiedAt: "2026-04-18",
+  license: {
+    label: "No dataset licence declared (project disclaims one)",
+    termsUrl: "https://github.com/igrigorik/gharchive.org/blob/master/README.md",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "GH Archive licenses its CODE as MIT and its WEBSITE content as CC-BY-4.0, but the README explicitly states the repo 'does not contain the GH Archive dataset' and that the dataset 'includes material that may be subject to third party rights'. So the hourly dumps carry NO project-granted licence: treat them as GitHub-ToS-governed event data, never as MIT or CC-BY material.",
+  },
   caveat:
     "Archive events carry sourceKind='gharchive' internally; they are real events with real created_at timestamps, not synthesised. The public /data-sources page surfaces this distinction so users can see which portion of the globe comes from live polls vs hourly dumps.",
   powersFeature: ["globe-coldstart-backfill"],
@@ -162,6 +225,14 @@ export const GITHUB_CONTENTS: DataSource = {
       "Response is 200 with file metadata (size, encoding, content) OR 404 when absent. Anything else is a source problem. Files >1MB return `encoding: 'none'` with an empty content field — verifier records 'file too large' and the repo is skipped (AI configs are rarely 1MB; we'd rather skip than follow the download_url tail).",
   },
   verifiedAt: "2026-04-18",
+  license: {
+    label: "GitHub ToS (API Terms)",
+    termsUrl: "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "GitHub ToS section H (API Terms) and Acceptable Use section 7 permit collection through the API and explicitly state that API collection is NOT 'scraping'. No attribution or share-alike is imposed. Prohibited uses are spam, resale of users' personal information, rate-limit evasion, and privacy breaches — none of which gawk does. Repository FILE CONTENTS carry each repo's own licence; we read config-file existence and metadata, never redistribute file bodies.",
+  },
   caveat:
     "Renames of config files (e.g., .cursorrules → CLAUDE.md within 7 days) are treated as 'migration signals' only when both deltas are observed within the window. Never inferred from a single snapshot. The registry verifier's shape check is deterministic pattern-match — it scores content, never interprets it.",
   powersFeature: ["globe-colouring", "migration-arcs", "repo-registry"],
@@ -190,6 +261,14 @@ export const GITHUB_CODE_SEARCH: DataSource = {
     unit: "candidate repos per full sweep",
   },
   verifiedAt: "2026-04-19",
+  license: {
+    label: "GitHub ToS (API Terms)",
+    termsUrl: "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "GitHub ToS section H (API Terms) and Acceptable Use section 7 permit collection through the API and explicitly state that API collection is NOT 'scraping'. No attribution or share-alike is imposed. Prohibited uses are spam, resale of users' personal information, rate-limit evasion, and privacy breaches — none of which gawk does. Repository FILE CONTENTS carry each repo's own licence; we read config-file existence and metadata, never redistribute file bodies.",
+  },
   caveat:
     "Search scope is every public repo the token owner can access (all public code by default for classic PATs). A candidate is not promoted to a registry entry until its content passes the deterministic shape heuristic in config-verifier.ts — Search alone is not evidence of a real config.",
   powersFeature: ["repo-registry"],
@@ -219,6 +298,14 @@ export const GITHUB_REPO_SEARCH_TOPICS: DataSource = {
     unit: "candidate repos per sweep",
   },
   verifiedAt: "2026-04-19",
+  license: {
+    label: "GitHub ToS (API Terms)",
+    termsUrl: "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "GitHub ToS section H (API Terms) and Acceptable Use section 7 permit collection through the API and explicitly state that API collection is NOT 'scraping'. No attribution or share-alike is imposed. Prohibited uses are spam, resale of users' personal information, rate-limit evasion, and privacy breaches — none of which gawk does. Repository FILE CONTENTS carry each repo's own licence; we read config-file existence and metadata, never redistribute file bodies.",
+  },
   caveat:
     "Topic tags are self-declared by repo owners and are evidence of intent, not of shape. Verifier gate still applies: a repo tagged `claude` with no recognised config file never enters the registry. Expect ~20–40% verify-pass rates on the broader topics (llm, ai-agent) vs 60–80% on the tool-specific ones (claude, cursor, aider).",
   powersFeature: ["repo-registry"],
@@ -248,6 +335,14 @@ export const ECOSYSTEMS_NPM_DEPENDENTS: DataSource = {
     unit: "candidate repos per sweep",
   },
   verifiedAt: "2026-04-19",
+  license: {
+    label: "CC-BY-SA-4.0 (data) — contradicted by a non-commercial clause in the same terms",
+    termsUrl: "https://ecosyste.ms/terms",
+    obligation: "share-alike",
+    verifiedAt: "2026-08-01",
+    notes:
+      "CONFLICT, needs a decision. Terms section 11(b) licenses 'The Data' as CC BY-SA 4.0 and requires attributing 'ecosyste.ms' when published alongside other data — which we do. But section 11(c) of the SAME terms separately forbids commercial use, redistribution, and 'data mining, robots or similar data gathering or extraction methods'. The two clauses contradict each other. Share-alike also reaches the gawk-data archive if reverse-dependency figures are ever archived there. If gawk monetises, seek written permission rather than relying on the CC notice.",
+  },
   caveat:
     "ecosyste.ms is a third-party package index that re-indexes npm on its own cadence; rows may lag live npm by hours to days. Substituted for deps.dev after research showed deps.dev's public REST API returns only a dependent count, not the list (actual list is BigQuery-only). Same provenance class as deps.dev — not npm itself — caveat applies to both. Switching to Libraries.io (with API key, 60 req/min authenticated) is a queued follow-up for broader ecosystem coverage (PyPI, RubyGems, etc.).",
   powersFeature: ["repo-registry"],
@@ -272,6 +367,14 @@ export const ANTHROPIC_STATUS: DataSource = {
       "Response includes `status.indicator` ∈ {none, minor, major, critical} and an array of components. Any other shape is a source change.",
   },
   verifiedAt: "2026-04-18",
+  license: {
+    label: "No published terms (Atlassian Statuspage)",
+    termsUrl: "https://www.atlassian.com/legal/cloud-terms-of-service",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "No published data-reuse terms exist for the status JSON. Atlassian's Statuspage terms bind the CUSTOMER and their authorised users, not a member of the public reading a public status page; the product-specific terms state public status pages 'are not confidential or private to Customer'. The Status API is documented as not rate limited. One adverse-ish artefact worth knowing: every Statuspage host serves robots.txt with 'Disallow: /api/'. That is a crawler directive, not a licence, and does not bind a server-side poller fetching a known endpoint — but it is the most concrete thing an auditor would point at, so it is recorded rather than omitted.",
+  },
   powersFeature: ["tool-health-claude-code", "tool-health-claude-api"],
 };
 
@@ -294,6 +397,14 @@ export const OPENAI_STATUS: DataSource = {
       "Response must include a `components` array with entries named exactly `Codex Web` and `Codex API` (verified literals, 2026-04-18). If either is missing on a future poll, the affected card falls to graceful degradation.",
   },
   verifiedAt: "2026-04-18",
+  license: {
+    label: "No published terms (incident.io)",
+    termsUrl: "https://incident.io/terms",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "Hosted on incident.io, NOT Atlassian Statuspage (verified via response headers and CSP). incident.io's terms bind customers, resellers and authorised users and are silent on status pages entirely. No robots.txt is served and the endpoint sets access-control-allow-origin: *. No data-reuse terms found. OpenAI's own ToS returned HTTP 403 to automated fetch and was NOT read — a genuine gap in this check.",
+  },
   caveat:
     "status.openai.com is a custom Next.js page, not Statuspage.io. It does NOT expose `incidents` in summary.json — that array is served separately at /api/v2/incidents.json (see `openai-incidents`).",
   powersFeature: [
@@ -322,6 +433,14 @@ export const OPENAI_INCIDENTS: DataSource = {
       "Response includes an `incidents` array. Each incident has `status` ∈ {investigating, identified, monitoring, resolved, postmortem}. Verified 2026-04-18: 25 historical incidents returned, 0 currently active.",
   },
   verifiedAt: "2026-04-18",
+  license: {
+    label: "No published terms (incident.io)",
+    termsUrl: "https://incident.io/terms",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "Hosted on incident.io, NOT Atlassian Statuspage (verified via response headers and CSP). incident.io's terms bind customers, resellers and authorised users and are silent on status pages entirely. No robots.txt is served and the endpoint sets access-control-allow-origin: *. No data-reuse terms found. OpenAI's own ToS returned HTTP 403 to automated fetch and was NOT read — a genuine gap in this check.",
+  },
   caveat:
     "Closes the OpenAI incidents gap flagged in session 6.1. Independent of summary.json — poll both endpoints to build full card state.",
   powersFeature: [
@@ -350,6 +469,14 @@ export const CURSOR_STATUS: DataSource = {
       "Statuspage.io v2 schema. `status.indicator` ∈ {none, minor, major, critical}. Expect ~6 components covering IDE, CLI, Cloud Agents.",
   },
   verifiedAt: "2026-07-05",
+  license: {
+    label: "No published terms (Atlassian Statuspage)",
+    termsUrl: "https://www.atlassian.com/legal/cloud-terms-of-service",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "No published data-reuse terms exist for the status JSON. Atlassian's Statuspage terms bind the CUSTOMER and their authorised users, not a member of the public reading a public status page; the product-specific terms state public status pages 'are not confidential or private to Customer'. The Status API is documented as not rate limited. One adverse-ish artefact worth knowing: every Statuspage host serves robots.txt with 'Disallow: /api/'. That is a crawler directive, not a licence, and does not bind a server-side poller fetching a known endpoint — but it is the most concrete thing an auditor would point at, so it is recorded rather than omitted.",
+  },
   powersFeature: ["tool-health-cursor"],
 };
 
@@ -372,6 +499,14 @@ export const WINDSURF_STATUS: DataSource = {
       "Statuspage.io v2 schema. `status.indicator` ∈ {none, minor, major, critical}. Response includes components (Cascade, Windsurf Tab, plus Netlify hosting plumbing) and an incidents array.",
   },
   verifiedAt: "2026-04-18",
+  license: {
+    label: "No published terms (Atlassian Statuspage)",
+    termsUrl: "https://www.atlassian.com/legal/cloud-terms-of-service",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "No published data-reuse terms exist for the status JSON. Atlassian's Statuspage terms bind the CUSTOMER and their authorised users, not a member of the public reading a public status page; the product-specific terms state public status pages 'are not confidential or private to Customer'. The Status API is documented as not rate limited. One adverse-ish artefact worth knowing: every Statuspage host serves robots.txt with 'Disallow: /api/'. That is a crawler directive, not a licence, and does not bind a server-side poller fetching a known endpoint — but it is the most concrete thing an auditor would point at, so it is recorded rather than omitted.",
+  },
   powersFeature: ["tool-health-windsurf"],
 };
 
@@ -404,6 +539,14 @@ export const VERCEL_STATUS: DataSource = {
       "Response includes `status.indicator` ∈ {none, minor, major, critical} and a non-empty components array. Verified 2026-04-29.",
   },
   verifiedAt: "2026-04-29",
+  license: {
+    label: "No published terms (Atlassian Statuspage)",
+    termsUrl: "https://www.atlassian.com/legal/cloud-terms-of-service",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "No published data-reuse terms exist for the status JSON. Atlassian's Statuspage terms bind the CUSTOMER and their authorised users, not a member of the public reading a public status page; the product-specific terms state public status pages 'are not confidential or private to Customer'. The Status API is documented as not rate limited. One adverse-ish artefact worth knowing: every Statuspage host serves robots.txt with 'Disallow: /api/'. That is a crawler directive, not a licence, and does not bind a server-side poller fetching a known endpoint — but it is the most concrete thing an auditor would point at, so it is recorded rather than omitted.",
+  },
   powersFeature: ["platform-health-vercel"],
 };
 
@@ -426,6 +569,14 @@ export const SUPABASE_STATUS: DataSource = {
       "Response includes `status.indicator` ∈ {none, minor, major, critical} and a non-empty components array. Verified 2026-04-29.",
   },
   verifiedAt: "2026-04-29",
+  license: {
+    label: "No published terms (Atlassian Statuspage)",
+    termsUrl: "https://www.atlassian.com/legal/cloud-terms-of-service",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "No published data-reuse terms exist for the status JSON. Atlassian's Statuspage terms bind the CUSTOMER and their authorised users, not a member of the public reading a public status page; the product-specific terms state public status pages 'are not confidential or private to Customer'. The Status API is documented as not rate limited. One adverse-ish artefact worth knowing: every Statuspage host serves robots.txt with 'Disallow: /api/'. That is a crawler directive, not a licence, and does not bind a server-side poller fetching a known endpoint — but it is the most concrete thing an auditor would point at, so it is recorded rather than omitted.",
+  },
   powersFeature: ["platform-health-supabase"],
 };
 
@@ -448,6 +599,14 @@ export const CLOUDFLARE_STATUS: DataSource = {
       "Response includes `status.indicator` ∈ {none, minor, major, critical}. Components array is large (300+ datacenters) and is intentionally NOT consumed component-by-component — top-line indicator is the signal we trust. Verified 2026-04-29.",
   },
   verifiedAt: "2026-04-29",
+  license: {
+    label: "No published terms (Atlassian Statuspage)",
+    termsUrl: "https://www.cloudflare.com/terms/",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "No published data-reuse terms exist for the status JSON. Atlassian's Statuspage terms bind the CUSTOMER and their authorised users, not a member of the public reading a public status page; the product-specific terms state public status pages 'are not confidential or private to Customer'. The Status API is documented as not rate limited. One adverse-ish artefact worth knowing: every Statuspage host serves robots.txt with 'Disallow: /api/'. That is a crawler directive, not a licence, and does not bind a server-side poller fetching a known endpoint — but it is the most concrete thing an auditor would point at, so it is recorded rather than omitted. Cloudflare is one of only two hosts whose status footer links the company's own ToS; that ToS bars automated agents that 'strip or mine data from the Services', but the clause is scoped to Self-Serve account holders and never mentions the status page.",
+  },
   caveat:
     "Cloudflare's summary.json is heavy (~150KB on a quiet day). Edge-cache it for 5 min via Next Data Cache; do not poll on every dashboard hit.",
   powersFeature: ["platform-health-cloudflare"],
@@ -472,6 +631,14 @@ export const UPSTASH_STATUS: DataSource = {
       "Response includes `status.indicator` ∈ {none, minor, major, critical} and a components array containing region entries. Verified 2026-04-29.",
   },
   verifiedAt: "2026-04-29",
+  license: {
+    label: "No published terms (Atlassian Statuspage)",
+    termsUrl: "https://www.atlassian.com/legal/cloud-terms-of-service",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "No published data-reuse terms exist for the status JSON. Atlassian's Statuspage terms bind the CUSTOMER and their authorised users, not a member of the public reading a public status page; the product-specific terms state public status pages 'are not confidential or private to Customer'. The Status API is documented as not rate limited. One adverse-ish artefact worth knowing: every Statuspage host serves robots.txt with 'Disallow: /api/'. That is a crawler directive, not a licence, and does not bind a server-side poller fetching a known endpoint — but it is the most concrete thing an auditor would point at, so it is recorded rather than omitted.",
+  },
   powersFeature: ["platform-health-upstash"],
 };
 
@@ -498,6 +665,12 @@ export const ARXIV_PAPERS: DataSource = {
     unit: "papers per response",
   },
   verifiedAt: "2026-04-19",
+  license: {
+    label: "CC0-1.0 (metadata)",
+    termsUrl: "https://info.arxiv.org/help/api/tou.html",
+    obligation: "none",
+    verifiedAt: "2026-08-01",
+  },
   caveat:
     "cs.AI / cs.LG are broad umbrella categories; filtering is by arxiv's own category tags as the author selected them. No institutional enrichment, no citation count, no quality filter — recency is the only signal. v2 will add citation/institution context via Semantic Scholar or OpenAlex once we're clear on the rate-limit story for those APIs.",
   powersFeature: ["research-panel"],
@@ -526,6 +699,14 @@ export const HUGGINGFACE_MODELS: DataSource = {
     unit: "models per response",
   },
   verifiedAt: "2026-04-19",
+  license: {
+    label: "No data licence declared",
+    termsUrl: "https://huggingface.co/terms-of-service",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "HuggingFace's ToS is silent on reuse of Hub-generated statistics such as download counts, and the API docs impose only rate limits. Per-repo licences govern repo CONTENT, not the counters we read. No permission granted and no prohibition found — so the honest label is unverified, not 'open'. Attribution plus link-back is the right posture.",
+  },
   caveat:
     "`downloads` is HF's own 30-day rolling count; it includes `huggingface_hub` SDK pulls, `transformers.AutoModel.from_pretrained(...)` loads, and browser fetches. It is NOT unique-user count and is NOT comparable to OpenRouter/Anthropic API usage. A spike in downloads does not imply a spike in inference traffic.",
   powersFeature: ["models-panel"],
@@ -558,6 +739,14 @@ export const OPENROUTER_RANKINGS: DataSource = {
     unit: "rows per snapshot",
   },
   verifiedAt: "2026-06-30",
+  license: {
+    label: "No data licence; ToS section 7 prohibits automated copying",
+    termsUrl: "https://openrouter.ai/terms",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "COMPLIANCE FLAG — founder decision needed. ToS section 7 prohibits using 'software, devices, scripts, robots or any other means or processes (such as crawlers...) to scrape or copy any information on the Site or the Services'. Our primary path reads openrouter.ai/api/frontend/v1/models/find, an UNDOCUMENTED frontend endpoint with no published rankings API behind it — that is the conduct the clause describes. The documented openrouter.ai/api/v1/models catalogue fallback is a public API and is materially safer. Either seek written permission, restrict to the documented v1 endpoint, or drop the rankings panel.",
+  },
   caveat:
     "UNDOCUMENTED frontend endpoint — it can move or reshape without notice, and has: the un-versioned /api/frontend/* namespace silently 404'd from ~2026-06-09 until the /v1/ move was found on 2026-06-30 (S91), during which the cron stayed green on the fallback. Rankings reflect OpenRouter's own routed traffic only — NOT global model usage, NOT comparable to HF downloads or provider-reported tokens.",
   powersFeature: ["model-usage-panel", "feed-model-mover"],
@@ -585,6 +774,14 @@ export const REDDIT_LOCALLLAMA: DataSource = {
     unit: "top-of-day posts per poll",
   },
   verifiedAt: "2026-04-30",
+  license: {
+    label: "Reddit Data API Terms — commercial use requires a separate agreement",
+    termsUrl: "https://www.redditinc.com/policies/data-api-terms",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "MOST SERIOUS COMPLIANCE FLAG — founder decision needed. The terms bind the public .json endpoints too: they cover 'any other Materials you access from our Services, whether using the Data APIs or not'. The grant is limited to copying and displaying User Content 'solely as necessary to... run your App to your App Users', and separately forbids deriving 'revenues from the use or provision of the Data APIs... unless there is express written approval from Reddit'. Commercial use requires entering a separate agreement. Options: drop Reddit as a displayed source, reduce to link-out with no cached titles or scores, or obtain a licence.",
+  },
   caveat:
     "Subreddit moderation policy can swing the topic mix; AI-relevance is presumed from the sub's charter, NOT enforced by Gawk's keyword filter. Trust contract: cards link to the Reddit comments page (the conversation), not the external link the post may carry.",
   powersFeature: ["feed-news"],
@@ -612,6 +809,14 @@ export const REDDIT_CLAUDEAI: DataSource = {
     unit: "top-of-day posts per poll",
   },
   verifiedAt: "2026-04-30",
+  license: {
+    label: "Reddit Data API Terms — commercial use requires a separate agreement",
+    termsUrl: "https://www.redditinc.com/policies/data-api-terms",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "Same finding and same decision as reddit-localllama: the Data API Terms reach the public .json endpoints, limit display to running your App to your App Users, and require a separate agreement for commercial purposes.",
+  },
   caveat:
     "Subreddit covers Claude API + Claude Code + Anthropic-adjacent topics. AI-relevance is presumed from the sub's charter. Cards link to the comments page, not the external link.",
   powersFeature: ["feed-news"],
@@ -640,6 +845,14 @@ export const HN_AI_STORIES: DataSource = {
     unit: "AI-relevant stories per 15-min poll",
   },
   verifiedAt: "2026-04-20",
+  license: {
+    label: "No data licence declared (docs repo is MIT; the data is not)",
+    termsUrl: "https://github.com/HackerNews/API",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "The HackerNews/API repo is MIT-licensed, but it contains DOCUMENTATION — that licence does not reach the item data. No terms of service, licence, or reuse restriction is published for the item data itself. Longstanding de facto open use; legally unlicensed. The Algolia HN Search endpoint likewise carries no licence or restriction text.",
+  },
   caveat:
     "Two endpoints under one logical source: (1) hn.algolia.com/api/v1/search_by_date?tags=story (list + metadata; shape verified 2026-04-20: `hits[]` with author/title/url/points/num_comments/created_at_i/created_at), (2) hacker-news.firebaseio.com/v0/user/{id}.json (location only; shape verified 2026-04-20: `about` field present on profiles). Firebase /v0/item/{id}.json is intentionally NEVER called — Algolia already returns every story field. Author locations are cached 7 days in hn:author:{username}; items live 24h in hn:item:{id}. Secondary sanity range (not representable in SanityCheck type): geocodeResolutionPct should sit in [15%, 35%]; lower values indicate HN profile `about` text that the curated geocoder dictionary doesn't cover. Privacy posture: only username + raw location string + resolved lat/lng are persisted — never the full `about` body, karma, or submission history.",
   powersFeature: ["the-wire", "flat-map", "globe"],
@@ -666,6 +879,12 @@ export const AI_LABS_REGISTRY: DataSource = {
     unit: "labs in registry",
   },
   verifiedAt: "2026-04-20",
+  license: {
+    label: "MIT (this repository)",
+    termsUrl: "https://github.com/Neelagiri65/aipulse/blob/main/LICENSE",
+    obligation: "none",
+    verifiedAt: "2026-08-01",
+  },
   caveat:
     "Curation is sourcing, not scoring. The list is editable by hand — if a notable lab is missing, add it with a verifiable HQ source. Every dot on the globe can be traced back to a row in this file, and every row cites its HQ source URL. Academic labs are represented by their most-active AI subgroup org (e.g. stanford-crfm for Stanford AI Lab) since universities don't centralise AI under one GitHub org; sibling subgroups are excluded to avoid double-counting, noted per-entry in the `notes` field.",
   powersFeature: ["ai-labs-layer", "labs-panel"],
@@ -696,6 +915,14 @@ export const GITHUB_REPO_EVENTS_LABS: DataSource = {
     unit: "7d events per lab",
   },
   verifiedAt: "2026-04-20",
+  license: {
+    label: "GitHub ToS (API Terms)",
+    termsUrl: "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "GitHub ToS section H (API Terms) and Acceptable Use section 7 permit collection through the API and explicitly state that API collection is NOT 'scraping'. No attribution or share-alike is imposed. Prohibited uses are spam, resale of users' personal information, rate-limit evasion, and privacy breaches — none of which gawk does. Repository FILE CONTENTS carry each repo's own licence; we read config-file existence and metadata, never redistribute file bodies.",
+  },
   caveat:
     "Per-repo endpoint returns the last ~300 events or the last 90 days, whichever is smaller — we filter server-side to the 7d window and the nine relevant types before summing. Repo rename/transfer will silently return 404 until `data/ai-labs.json` is updated; the repo shows `stale: true` until fixed. Aggregate only: no rescoring, no weighting, no merging across labs. The dot size is a function of the raw 7d event total with a log scale clamped at the p95 of the current run so one outlier lab can't squash the rest of the distribution.",
   powersFeature: ["ai-labs-layer", "labs-panel"],
@@ -728,6 +955,14 @@ export const GITLAB_PROJECT_EVENTS: DataSource = {
     unit: "mapped events per ingest run",
   },
   verifiedAt: "2026-07-05",
+  license: {
+    label: "GitLab API Terms of Use — restrictive, no data licence granted",
+    termsUrl: "https://handbook.gitlab.com/handbook/legal/api-terms/",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "HIGHEST-RISK SOURCE IN THE REGISTRY. Section 1.3.9 bans using the APIs 'for the bulk collection or scraping of information, including for repeated or systematic bulk exporting'. A continuously polling events ingest sits directly against that clause. Section 1.3.7 separately bans disseminating performance/uptime information about GitLab, which would forbid a GitLab status card. Section 2.1: using the APIs conveys no ownership of the content. Founder decision needed — reduce cadence and scope, seek permission, or drop.",
+  },
   caveat:
     "gitlab.com has NO global event firehose (/events is auth-gated and caller-scoped) — the pulse is a last-activity SAMPLE, so per-event completeness exists only for tracked projects. Events are namespaced end-to-end (gl: ids, gl: logins, gitlab.com/ repo paths) so they can never collide with GitHub ids, never send GitLab usernames to the GitHub users API (same-name users would attach wrong geo), and never feed the GitHub-only registry-discovery backfill (triple-fenced). Self-hosted GitLab instances (GNOME, KDE, freedesktop) are out of scope v1.",
   powersFeature: ["flat-map", "the-wire"],
@@ -758,6 +993,14 @@ export const GITHUB_REPO_EVENTS_TRACKED: DataSource = {
     unit: "events per repo per poll",
   },
   verifiedAt: "2026-07-04",
+  license: {
+    label: "GitHub ToS (API Terms); tracked-repos list is MIT (this repo)",
+    termsUrl: "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "GitHub ToS section H (API Terms) and Acceptable Use section 7 permit collection through the API and explicitly state that API collection is NOT 'scraping'. No attribution or share-alike is imposed. Prohibited uses are spam, resale of users' personal information, rate-limit evasion, and privacy breaches — none of which gawk does. Repository FILE CONTENTS carry each repo's own licence; we read config-file existence and metadata, never redistribute file bodies. The tracked-repos.json curation list itself is ours, under this repo's MIT licence.",
+  },
   caveat:
     "This is a CURATED source: presence on the map reflects the founder's tracked list, not global significance — disclosed here and in the committed JSON. Real public events only, verbatim; no re-ranking, no invented prominence (tracked events flow through the identical severity/insight pipeline as sampled events). Repo rename/transfer 404s until the JSON is updated (surfaced as a per-repo failure step). Events also caught by the firehose dedupe by event id — no double dots.",
   powersFeature: ["flat-map", "the-wire"],
@@ -796,6 +1039,14 @@ export const GITHUB_ISSUES_CLAUDE_CODE: DataSource = {
     unit: "open issues",
   },
   verifiedAt: "2026-04-18",
+  license: {
+    label: "GitHub ToS (API Terms)",
+    termsUrl: "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "GitHub ToS section H (API Terms) and Acceptable Use section 7 permit collection through the API and explicitly state that API collection is NOT 'scraping'. No attribution or share-alike is imposed. Prohibited uses are spam, resale of users' personal information, rate-limit evasion, and privacy breaches — none of which gawk does. Repository FILE CONTENTS carry each repo's own licence; we read config-file existence and metadata, never redistribute file bodies.",
+  },
   caveat:
     "Initial sanity range (50-5000) was widened after verification returned 9,635. Range adjusted to reflect observed reality, not to manufacture a result.",
   powersFeature: ["tool-health-claude-code"],
@@ -818,6 +1069,14 @@ export const GITHUB_STATUS: DataSource = {
       "Statuspage.io v2 schema. Response must include a component named exactly 'Copilot' (not a regex — verified literal). If absent, the Copilot health card falls to graceful-degradation.",
   },
   verifiedAt: "2026-04-18",
+  license: {
+    label: "No published terms (Atlassian Statuspage)",
+    termsUrl: "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "No published data-reuse terms exist for the status JSON. Atlassian's Statuspage terms bind the CUSTOMER and their authorised users, not a member of the public reading a public status page; the product-specific terms state public status pages 'are not confidential or private to Customer'. The Status API is documented as not rate limited. One adverse-ish artefact worth knowing: every Statuspage host serves robots.txt with 'Disallow: /api/'. That is a crawler directive, not a licence, and does not bind a server-side poller fetching a known endpoint — but it is the most concrete thing an auditor would point at, so it is recorded rather than omitted. GitHub's ToS section D.8 affirmatively states 'these Terms do not restrict lawful access to or use of the contents of public repositories by third parties' — but that covers repositories, not githubstatus.com, so it cannot be relied on here.",
+  },
   powersFeature: ["tool-health-copilot"],
 };
 
@@ -850,6 +1109,12 @@ export const LMARENA_LEADERBOARD: DataSource = {
     unit: "rows per snapshot",
   },
   verifiedAt: "2026-04-20",
+  license: {
+    label: "CC-BY-4.0",
+    termsUrl: "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
+    obligation: "attribution",
+    verifiedAt: "2026-08-01",
+  },
   caveat:
     "The HuggingFace dataset page declares NO license ('License: Not provided'). Gawk treats the JSON rows as publicly published numeric facts and mirrors them verbatim — no redistribution of weights or proprietary content, only (model_name, organization, rating, vote_count, category, publish_date) tuples, each row cited to the upstream dataset. Known critiques of Chatbot Arena itself: style bias (verbose answers score higher), self-selection (volunteer voters ≠ general users), category overlap — surfaced verbatim in the panel footer so users see the caveat alongside the numbers. The `text` subset is selected via the HF Datasets Server `config=` URL parameter and never appears as a row field. No map dot, no globe point — models have no location (Part 0 geotag principle: panel-only).",
   powersFeature: ["benchmarks-panel"],
@@ -890,6 +1155,12 @@ export const RSS_THE_REGISTER_AI: DataSource = {
     unit: "items per 24h",
   },
   verifiedAt: "2026-04-20",
+  license: {
+    label: "The Register linking policy — headline + link permitted",
+    termsUrl: "https://www.theregister.com/Profile/linking/",
+    obligation: "attribution",
+    verifiedAt: "2026-08-01",
+  },
   caveat:
     "Topic-scoped Atom feed (AI/ML section). UK tech press tone; skews toward enterprise IT and security angles rather than research. HQ pin is London per the publisher's Wikipedia infobox (hqSourceUrl).",
   powersFeature: ["regional-wire", "map", "wire-panel"],
@@ -917,6 +1188,14 @@ export const RSS_HEISE_AI: DataSource = {
     unit: "AI-filtered items per 24h",
   },
   verifiedAt: "2026-04-20",
+  license: {
+    label: "heise online RSS grant — revocable, no images, no frames",
+    termsUrl: "https://www.heise.de/news-extern/news.html",
+    obligation: "attribution",
+    verifiedAt: "2026-08-01",
+    notes:
+      "Heise grants free reuse of feed CONTENT with active links back, but the grant is explicitly revocable and carries two conditions: feed IMAGES may not be reproduced, and feeds must not be displayed in frames. We satisfy both — the parser reads only title/link/description, never enclosure or media:content. If feed thumbnails are ever added to the wire, this becomes a live breach.",
+  },
   caveat:
     "Heise Online does not publish a topic-scoped AI feed; the global publication Atom is used and filtered with the same deterministic keyword list applied to HN (English + German AI terms). Transparency: the filter is imperfect — a story about 'KI' used metaphorically would match; a story about a specific model that doesn't mention 'AI/KI' in the title would miss. No LLM inference is used to correct these. HQ pin is Hannover per the publisher's Wikipedia infobox.",
   powersFeature: ["regional-wire", "map", "wire-panel"],
@@ -944,6 +1223,14 @@ export const RSS_SYNCED_REVIEW: DataSource = {
     unit: "items per 24h",
   },
   verifiedAt: "2026-04-20",
+  license: {
+    label: "No published terms",
+    termsUrl: "https://syncedreview.com",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "No terms, copyright, or privacy page exists anywhere on the domain — over ten candidate URLs returned 404, and the sitemap lists only /about-us, /shop, /newsletter and a poll archive. Nothing grants permission and nothing prohibits reuse. Headline + attribution + link-back is the right posture.",
+  },
   caveat:
     "English-language publication covering Chinese and global AI research. Editorial team headquartered in Beijing per the publisher's about page (hqSourceUrl); this is a curated-and-translated layer, not a native Chinese-language primary source. Including a native zh-CN feed in a future iteration would further reduce the English-only bias — queued as AUDITOR-PENDING for a v2 pass.",
   powersFeature: ["regional-wire", "map", "wire-panel"],
@@ -971,6 +1258,14 @@ export const RSS_AIM: DataSource = {
     unit: "items per 24h",
   },
   verifiedAt: "2026-04-20",
+  license: {
+    label: "No published terms (terms page is placeholder text)",
+    termsUrl: "https://www.marktechpost.com/terms-of-use/",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "The terms-of-use page returns HTTP 200 but contains unpopulated Lorem Ipsum template text. The only intellectual-property assertion anywhere on the site is the footer copyright line. Nothing grants permission and nothing prohibits reuse.",
+  },
   caveat:
     "AI-research-focused publication with an India-based editorial team (CoFounder/Editor: Asif Razzaq, named on the publisher's About page). The publisher does not disclose a specific HQ city on its own About or Contact pages; the map pin is a Delhi NCR approximation, NOT a primary-source claim. This is flagged AUDITOR-PENDING — the lat/lng should be promoted to a verifiable primary source (a registered company address, a conference bio, or an editor interview) or the pin should be moved off the map entirely into panel-only mode per Part 0's geotag principle (null = WIRE-only).",
   powersFeature: ["regional-wire", "map", "wire-panel"],
@@ -999,6 +1294,14 @@ export const RSS_MIT_TR_AI: DataSource = {
     unit: "items per 24h",
   },
   verifiedAt: "2026-04-20",
+  license: {
+    label: "MIT Technology Review ToS — paid licensing model",
+    termsUrl: "https://www.technologyreview.com/terms-of-service/",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "COMPLIANCE FLAG — founder decision needed. The only source in the registry that CHARGES for reuse. ToS: 'You may not copy, make derivative works, resell, distribute, or make any commercial use of... any Content' and 'The Services are for personal use only'; permission is granted 'on a case-by-case basis'. Their republishing page prices syndication per-article via licensing@technologyreview.com. Headline + link is not specifically addressed, so this is not clearly a breach — but it is the one publisher with an explicit commercial-licensing posture.",
+  },
   caveat:
     "Topic-scoped AI feed from MIT's publication; US-based (Cambridge, MA) but an editorial counterweight to the SF/HN axis within the US. Included deliberately to show that 'regional' ≠ 'non-US' — the US press itself is plural, and a BostonMA primary-research angle reads differently from an SF product-launch angle.",
   powersFeature: ["regional-wire", "map", "wire-panel"],
@@ -1026,6 +1329,14 @@ export const RSS_LATENT_SPACE: DataSource = {
     unit: "items per 24h",
   },
   verifiedAt: "2026-05-03",
+  license: {
+    label: "No publication-level terms; inherits Substack ToS",
+    termsUrl: "https://substack.com/tos",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "latent.space publishes no terms of its own and inherits Substack's, which never mention RSS or syndication. Substack's ToS bars crawling or scraping 'any page, data, or portion of Substack', but that clause addresses platform users, and whether consuming a publisher-emitted first-party feed falls under it is unresolved by the text. Not inferred either way.",
+  },
   caveat:
     "Practitioner newsletter and podcast — editorial tone is technical / practitioner-led, not journalism. Suggested by user feedback (Sabari, S58). HQ pin is San Francisco (swyx is the named publisher; swyx.io is the citation-grade hqSourceUrl). This source does NOT counterweight regional bias — it sits in SF — but adds practitioner-grade signal complementary to the press feeds.",
   powersFeature: ["regional-wire", "map", "wire-panel"],
@@ -1053,6 +1364,14 @@ export const RSS_ANALYTICS_VIDHYA: DataSource = {
     unit: "items per 24h",
   },
   verifiedAt: "2026-05-03",
+  license: {
+    label: "Analytics Vidhya ToS — reproduction prohibited without consent",
+    termsUrl: "https://www.analyticsvidhya.com/terms/",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "COMPLIANCE FLAG — founder decision needed. Section 8 prohibits users who 'copy or store any significant portion of the Content' and who 'crawl, scrape, or spider any page, data, or portion of or relating to the Services or Content', and bars reproducing or displaying content not owned by you without prior consent. Headlines and RSS are not named specifically, but this is the one small publisher with real terms that broadly prohibit reproduction.",
+  },
   caveat:
     "Indian data-science / AI publisher (Analytics Vidhya Educon Pvt. Ltd, Gurgaon, NCR). Editorial scope is data-science + AI / ML — no keyword filter applied. Pin is the Gurgaon registered office. AUDITOR-PENDING: HQ citation is the publisher's own About page (analyticsvidhya.com/about-me) rather than a third-party verifiable source like Wikipedia or a registry filing.",
   powersFeature: ["regional-wire", "map", "wire-panel"],
@@ -1089,6 +1408,14 @@ export const PYPI_DOWNLOADS: DataSource = {
     unit: "downloads per package per month",
   },
   verifiedAt: "2026-04-21",
+  license: {
+    label: "CC-BY-4.0 (underlying PyPI BigQuery dataset)",
+    termsUrl: "https://docs.pypi.org/api/bigquery/",
+    obligation: "attribution",
+    verifiedAt: "2026-08-01",
+    notes:
+      "pypistats.org itself publishes no data terms; it states the figures are 'sourced from the Python Software Foundation's publicly available download stats on Google BigQuery', and PyPI documents that dataset as Creative-Commons licensed. Attribution therefore runs to PyPI/the PSF, not to pypistats. Operationally pypistats applies application-wide IP rate limiting and discourages bulk historical pulls in favour of BigQuery.",
+  },
   caveat:
     "pypistats.org is a third-party aggregator of PyPI's BigQuery download logs, same provenance class as ecosyste.ms — NOT PyPI itself. Known caveat from PyPI's own guidance: the logs include mirror hits, CI builds, and `pip install` retries, which inflate counts vs. 'real human installs' by an unknown multiplier. Gawk ships the raw numbers and surfaces this caveat alongside. Switching to Google BigQuery's `bigquery-public-data.pypi.downloads` is a queued v2 follow-up for first-party provenance (requires GCP auth + a billing account).",
   powersFeature: ["sdk-adoption-panel", "agents-panel"],
@@ -1116,6 +1443,14 @@ export const NPM_DOWNLOADS: DataSource = {
     unit: "downloads per package per week",
   },
   verifiedAt: "2026-04-21",
+  license: {
+    label: "npm Open Source Terms — replication via public API expressly permitted",
+    termsUrl: "https://docs.npmjs.com/policies/open-source-terms",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "The cleanest grant in the registry: 'You may replicate data from the Public Registry using the Public APIs per this Agreement.' No attribution clause. Volume ceiling is explicit — five million requests in a month is called out as not remotely reasonable; we are orders of magnitude below it. One carve-out that does NOT affect us: package SECURITY data is internal-use-only, and download counts are not security data.",
+  },
   caveat:
     "api.npmjs.org IS npm's own analytics endpoint (first-party), not a third-party mirror — unlike pypistats for PyPI. Known caveat per npm's own docs: downloads count every `npm install` request, including CI caches, mirror fetches, and yarn/pnpm hits that proxy through npm. Not a unique-user measure. Switching to npm's weekly-downloads API for more stable numbers is a queued follow-up once the panel design nails down the aggregation.",
   powersFeature: ["sdk-adoption-panel", "agents-panel"],
@@ -1143,6 +1478,14 @@ export const CRATES_DOWNLOADS: DataSource = {
     unit: "recent (90d) downloads per crate",
   },
   verifiedAt: "2026-04-21",
+  license: {
+    label: "No data licence declared; access policy only",
+    termsUrl: "https://crates.io/data-access",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "No CC0, ODbL or CC-BY declaration exists for the crates.io data. The CC BY 4.0 notice on their policies page covers the POLICY TEXT, not the data — an easy mis-read to avoid. What does bind us is their access policy: maximum 1 request per second and a user-agent header identifying the application. Permissive in practice, legally silent.",
+  },
   caveat:
     "First-party provenance (crates.io is the official Rust registry's own API). `downloads` counts every `cargo build` fetch including CI caches; it is not a unique-user measure. Rust AI/ML is still an early ecosystem — expect a long tail of near-zero crates. The 4-crate slate is deliberately narrow; adding a crate is a code change under Auditor review, not a config flag.",
   powersFeature: ["sdk-adoption-panel"],
@@ -1170,6 +1513,14 @@ export const DOCKER_HUB_PULLS: DataSource = {
     unit: "all-time pulls per image",
   },
   verifiedAt: "2026-04-21",
+  license: {
+    label: "Docker Terms of Use — documented APIs only, anti-mirroring clause",
+    termsUrl: "https://www.docker.com/legal/docker-terms-service/",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "Section 4 prohibits automated access 'except as permitted by Docker (for example, through documented APIs and within published limits)' — so our use is permissible only while it stays on the documented API within limits. The same section bars using the service 'to mirror or replicate content for an unauthorized commercial service', which makes bulk republication of pull counts the riskiest of the otherwise-allowed set. No clause grants republication rights to Hub statistics.",
+  },
   caveat:
     "First-party provenance (hub.docker.com's own v2 API). Known caveat per Docker's own analytics docs: `pull_count` increments on every layer request, not per unique `docker pull` invocation — CI runners that don't cache inflate the number. Also includes automated scanner / security tool pulls. Not a unique-user measure. GHCR (ghcr.io) images are deliberately out of scope — session-32 research ruled the separate OAuth handshake not worth it for one image (text-generation-inference); revisit with a dedicated fetcher if the slate grows.",
   powersFeature: ["sdk-adoption-panel"],
@@ -1198,6 +1549,14 @@ export const VSCODE_MARKETPLACE: DataSource = {
     unit: "cumulative installs per extension",
   },
   verifiedAt: "2026-04-26",
+  license: {
+    label: "Microsoft Marketplace Terms of Use — scraping expressly prohibited",
+    termsUrl: "https://marketplace.visualstudio.com",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "COMPLIANCE FLAG — founder decision needed. The most restrictive terms in the registry. Section 3: 'you may not access, search, obtain or attempt to obtain any Offerings, materials, or information from the Sites through any means other than directly from Microsoft's publicly supported interfaces (for example, harvesting, reverse-engineering, spidering or scraping... whether automated or not, is prohibited)'. Section 10b reserves all rights not expressly granted. There is no documented public stats API — the /_apis/public/gallery endpoints are not publicly documented, so reading extension install counts through them is not covered by 'publicly supported interfaces'.",
+  },
   caveat:
     "First-party provenance — Microsoft's own marketplace catalogue API. install ≠ active use: auto-installed bundle extensions, CI runners, and codespace pre-warms inflate the absolute number vs 'real human users'. updateCount is the closer active-use proxy but is not yet ingested (deferred follow-up). The `_apis/public/gallery/extensionquery` endpoint is empirically reachable and stable across the verification probe + S37 follow-up but is not formally documented as a public-API contract — the catalogue page itself uses the same path. AUDITOR-PENDING on whether to split installs vs updateCount into two SDK_TREND signals.",
   powersFeature: ["sdk-adoption-panel"],
@@ -1225,6 +1584,14 @@ export const HOMEBREW_INSTALLS: DataSource = {
     unit: "90d installs per formula",
   },
   verifiedAt: "2026-04-21",
+  license: {
+    label: "No data licence declared (site code is BSD-2-Clause; the data is not)",
+    termsUrl: "https://formulae.brew.sh/analytics/",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "No CC0, ODbL or CC-BY declaration appears on the analytics site, its API docs, the brew Analytics documentation, or the formulae.brew.sh repository. The BSD-2-Clause licence covers the site CODE, not the analytics data — the same code-vs-data trap as GH Archive. The figures are repeatedly described as 'public aggregate reports' but no licence grant accompanies them.",
+  },
   caveat:
     "First-party provenance (formulae.brew.sh is Homebrew's own analytics endpoint). Homebrew's analytics are opt-out but on by default — the counts cover every user who hasn't disabled `brew analytics off`, which Homebrew's own documentation estimates at ~95%+ of installs. Not a unique-user measure (a user reinstalling daily counts daily). The single-formula slate is deliberately narrow; adding a formula is a code change under Auditor review, not a config flag. Track A scope; SDK Adoption panel will surface this alongside PyPI/npm/crates/Docker so the Homebrew CLI-install story shows alongside the library-import story.",
   powersFeature: ["sdk-adoption-panel"],
@@ -1254,6 +1621,14 @@ export const GITHUB_REPO_META: DataSource = {
     unit: "stargazers per repo",
   },
   verifiedAt: "2026-05-03",
+  license: {
+    label: "GitHub ToS (API Terms)",
+    termsUrl: "https://docs.github.com/en/site-policy/acceptable-use-policies/github-acceptable-use-policies",
+    obligation: "see-terms",
+    verifiedAt: "2026-08-01",
+    notes:
+      "GitHub ToS section H (API Terms) and Acceptable Use section 7 permit collection through the API and explicitly state that API collection is NOT 'scraping'. No attribution or share-alike is imposed. Prohibited uses are spam, resale of users' personal information, rate-limit evasion, and privacy breaches — none of which gawk does. Repository FILE CONTENTS carry each repo's own licence; we read config-file existence and metadata, never redistribute file bodies.",
+  },
   caveat:
     "First-party provenance (api.github.com is GitHub's own REST API). `pushed_at` advances on any commit to any branch, so a recently-pushed dependabot branch can mask a long-quiet default branch — the dormant heuristic accepts this false-negative as the cost of using a single field. `archived: true` is the authoritative dormancy signal; `pushed_at > 90d` is the heuristic that catches projects that went quiet without explicit archival.",
   powersFeature: ["agents-panel"],
