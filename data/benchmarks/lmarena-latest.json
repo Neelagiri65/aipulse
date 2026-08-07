@@ -5,12 +5,12 @@
       "rank": 1,
       "modelName": "claude-opus-5-max",
       "organization": "anthropic",
-      "rating": 1507.2592252461232,
-      "ratingLower": 1498.500122852849,
-      "ratingUpper": 1516.0183276393975,
-      "voteCount": 5124,
+      "rating": 1505.6687477416358,
+      "ratingLower": 1497.9702087055853,
+      "ratingUpper": 1513.3672867776863,
+      "voteCount": 7137,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -20,14 +20,14 @@
     },
     {
       "rank": 2,
-      "modelName": "claude-opus-4-6-thinking",
+      "modelName": "claude-opus-5-high",
       "organization": "anthropic",
-      "rating": 1503.1741058399375,
-      "ratingLower": 1499.5685527883168,
-      "ratingUpper": 1506.7796588915583,
-      "voteCount": 67203,
+      "rating": 1504.0668510402675,
+      "ratingLower": 1498.2587443111286,
+      "ratingUpper": 1509.8749577694066,
+      "voteCount": 14902,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -37,14 +37,14 @@
     },
     {
       "rank": 3,
-      "modelName": "claude-opus-5-high",
+      "modelName": "claude-opus-4-6-thinking",
       "organization": "anthropic",
-      "rating": 1503.1691298475141,
-      "ratingLower": 1496.7124144779816,
-      "ratingUpper": 1509.6258452170466,
-      "voteCount": 10704,
+      "rating": 1502.4033656033519,
+      "ratingLower": 1498.8401557294703,
+      "ratingUpper": 1505.9665754772334,
+      "voteCount": 69336,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -54,14 +54,14 @@
     },
     {
       "rank": 4,
-      "modelName": "claude-opus-4-6",
-      "organization": "anthropic",
-      "rating": 1496.7577011512892,
-      "ratingLower": 1493.2496636821486,
-      "ratingUpper": 1500.2657386204298,
-      "voteCount": 70970,
+      "modelName": "qwen3.8-max",
+      "organization": "alibaba",
+      "rating": 1497.3816108993922,
+      "ratingLower": 1488.5388181322555,
+      "ratingUpper": 1506.2244036665288,
+      "voteCount": 4662,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -71,14 +71,14 @@
     },
     {
       "rank": 5,
-      "modelName": "qwen3.8-max",
-      "organization": "alibaba",
-      "rating": 1496.0832599411456,
-      "ratingLower": 1485.7416037260598,
-      "ratingUpper": 1506.4249161562313,
-      "voteCount": 3327,
+      "modelName": "claude-opus-4-6",
+      "organization": "anthropic",
+      "rating": 1497.0969933595622,
+      "ratingLower": 1493.6317282965394,
+      "ratingUpper": 1500.562258422585,
+      "voteCount": 73158,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -90,12 +90,12 @@
       "rank": 6,
       "modelName": "claude-fable-5",
       "organization": "anthropic",
-      "rating": 1495.5598826752046,
-      "ratingLower": 1489.7280211341943,
-      "ratingUpper": 1501.3917442162149,
-      "voteCount": 17799,
+      "rating": 1494.2855367823083,
+      "ratingLower": 1488.6667540126152,
+      "ratingUpper": 1499.9043195520017,
+      "voteCount": 19390,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -107,12 +107,12 @@
       "rank": 7,
       "modelName": "claude-opus-4-7-thinking",
       "organization": "anthropic",
-      "rating": 1489.1606191950673,
-      "ratingLower": 1485.1221224385272,
-      "ratingUpper": 1493.1991159516074,
-      "voteCount": 54781,
+      "rating": 1489.4413518396989,
+      "ratingLower": 1485.4700096470801,
+      "ratingUpper": 1493.4126940323176,
+      "voteCount": 57018,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -122,14 +122,14 @@
     },
     {
       "rank": 8,
-      "modelName": "claude-opus-4-7",
-      "organization": "anthropic",
-      "rating": 1480.9555714682153,
-      "ratingLower": 1476.9320234292722,
-      "ratingUpper": 1484.9791195071582,
-      "voteCount": 55992,
+      "modelName": "muse-spark-1.2 (xHigh)",
+      "organization": "meta",
+      "rating": 1487.792137725642,
+      "ratingLower": 1474.8373805946624,
+      "ratingUpper": 1500.746894856622,
+      "voteCount": 2057,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -139,14 +139,14 @@
     },
     {
       "rank": 9,
-      "modelName": "gemini-3-pro",
-      "organization": "google",
-      "rating": 1479.5739439890067,
-      "ratingLower": 1475.7558392243284,
-      "ratingUpper": 1483.392048753685,
-      "voteCount": 41241,
+      "modelName": "claude-opus-4-7",
+      "organization": "anthropic",
+      "rating": 1481.4170865519773,
+      "ratingLower": 1477.4543192477288,
+      "ratingUpper": 1485.3798538562257,
+      "voteCount": 58135,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -158,12 +158,12 @@
       "rank": 10,
       "modelName": "gemini-3.5-flash-high",
       "organization": "google",
-      "rating": 1479.2562601397963,
-      "ratingLower": 1472.792281872965,
-      "ratingUpper": 1485.7202384066275,
-      "voteCount": 10472,
+      "rating": 1480.3306967635876,
+      "ratingLower": 1475.4967730860794,
+      "ratingUpper": 1485.1646204410958,
+      "voteCount": 22797,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -173,14 +173,14 @@
     },
     {
       "rank": 11,
-      "modelName": "gemini-3.1-pro-preview",
+      "modelName": "gemini-3.6-flash",
       "organization": "google",
-      "rating": 1478.9364868609719,
-      "ratingLower": 1475.5220062137616,
-      "ratingUpper": 1482.3509675081818,
-      "voteCount": 89133,
+      "rating": 1480.300776095886,
+      "ratingLower": 1473.9442022557548,
+      "ratingUpper": 1486.6573499360172,
+      "voteCount": 10968,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -190,14 +190,14 @@
     },
     {
       "rank": 12,
-      "modelName": "gemini-3.6-flash",
+      "modelName": "gemini-3.1-pro-preview",
       "organization": "google",
-      "rating": 1477.8941208399956,
-      "ratingLower": 1470.7778047191066,
-      "ratingUpper": 1485.0104369608844,
-      "voteCount": 8575,
+      "rating": 1479.8853243269507,
+      "ratingLower": 1476.501808865157,
+      "ratingUpper": 1483.2688397887446,
+      "voteCount": 91328,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -207,14 +207,14 @@
     },
     {
       "rank": 13,
-      "modelName": "muse-spark-1.1",
-      "organization": "meta",
-      "rating": 1477.5435334111787,
-      "ratingLower": 1471.3317737022328,
-      "ratingUpper": 1483.7552931201246,
-      "voteCount": 12086,
+      "modelName": "gemini-3-pro",
+      "organization": "google",
+      "rating": 1479.4352910922087,
+      "ratingLower": 1475.6191982902508,
+      "ratingUpper": 1483.2513838941666,
+      "voteCount": 41242,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -224,14 +224,14 @@
     },
     {
       "rank": 14,
-      "modelName": "qwen3.7-max-preview",
-      "organization": "alibaba",
-      "rating": 1475.2131562802674,
-      "ratingLower": 1465.2293280497727,
-      "ratingUpper": 1485.1969845107621,
-      "voteCount": 3695,
+      "modelName": "muse-spark-1.1",
+      "organization": "meta",
+      "rating": 1475.522110764559,
+      "ratingLower": 1469.6548768927712,
+      "ratingUpper": 1481.389344636347,
+      "voteCount": 14227,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -243,12 +243,12 @@
       "rank": 15,
       "modelName": "gemini-3.5-flash-medium",
       "organization": "google",
-      "rating": 1475.0346227463676,
-      "ratingLower": 1469.5710754873414,
-      "ratingUpper": 1480.498170005394,
-      "voteCount": 18778,
+      "rating": 1475.508932839112,
+      "ratingLower": 1470.2377331488533,
+      "ratingUpper": 1480.780132529371,
+      "voteCount": 21100,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -258,14 +258,14 @@
     },
     {
       "rank": 16,
-      "modelName": "muse-spark",
-      "organization": "meta",
-      "rating": 1473.0893420370112,
-      "ratingLower": 1467.2385652823616,
-      "ratingUpper": 1478.9401187916608,
-      "voteCount": 13486,
+      "modelName": "qwen3.7-max-preview",
+      "organization": "alibaba",
+      "rating": 1475.273026828774,
+      "ratingLower": 1465.2896369325344,
+      "ratingUpper": 1485.2564167250132,
+      "voteCount": 3695,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -275,14 +275,14 @@
     },
     {
       "rank": 17,
-      "modelName": "qwen3.5-max-preview",
-      "organization": "alibaba",
-      "rating": 1470.5545416993334,
-      "ratingLower": 1465.5828690986662,
-      "ratingUpper": 1475.5262143000007,
-      "voteCount": 21286,
+      "modelName": "kimi-k3-max",
+      "organization": "moonshot",
+      "rating": 1473.5173989960565,
+      "ratingLower": 1466.9081622394074,
+      "ratingUpper": 1480.1266357527059,
+      "voteCount": 9861,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -292,14 +292,14 @@
     },
     {
       "rank": 18,
-      "modelName": "gpt-5.5-high",
-      "organization": "openai",
-      "rating": 1470.4800860912146,
-      "ratingLower": 1466.2912446941766,
-      "ratingUpper": 1474.6689274882528,
-      "voteCount": 49978,
+      "modelName": "muse-spark",
+      "organization": "meta",
+      "rating": 1473.2117139888487,
+      "ratingLower": 1467.3594873538714,
+      "ratingUpper": 1479.063940623826,
+      "voteCount": 13476,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -309,14 +309,14 @@
     },
     {
       "rank": 19,
-      "modelName": "gpt-5.4-high",
-      "organization": "openai",
-      "rating": 1469.7243759881255,
-      "ratingLower": 1465.844965697572,
-      "ratingUpper": 1473.6037862786789,
-      "voteCount": 60264,
+      "modelName": "qwen3.5-max-preview",
+      "organization": "alibaba",
+      "rating": 1470.5266033344628,
+      "ratingLower": 1465.5564927302414,
+      "ratingUpper": 1475.4967139386845,
+      "voteCount": 21274,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -326,14 +326,14 @@
     },
     {
       "rank": 20,
-      "modelName": "ernie-5.1",
-      "organization": "baidu",
-      "rating": 1467.5499204521868,
-      "ratingLower": 1462.9025556760926,
-      "ratingUpper": 1472.197285228281,
-      "voteCount": 36899,
+      "modelName": "gpt-5.5-high",
+      "organization": "openai",
+      "rating": 1470.2583636932306,
+      "ratingLower": 1466.1378797169361,
+      "ratingUpper": 1474.3788476695254,
+      "voteCount": 52142,
       "category": "overall",
-      "leaderboardPublishDate": "2026-08-03",
+      "leaderboardPublishDate": "2026-08-06",
       "rankDelta": {
         "kind": "new"
       },
@@ -343,16 +343,16 @@
     }
   ],
   "meta": {
-    "leaderboardPublishDate": "2026-08-03",
+    "leaderboardPublishDate": "2026-08-06",
     "prevPublishDate": null,
-    "totalVotes": 651793,
-    "staleDays": 3,
-    "fetchedAt": "2026-08-06T06:02:23.793Z"
+    "totalVotes": 607905,
+    "staleDays": 1,
+    "fetchedAt": "2026-08-07T05:00:33.374Z"
   },
   "sanity": {
     "ok": false,
     "warnings": [
-      "top1_rating=1507.3 outside [1300,1500]"
+      "top1_rating=1505.7 outside [1300,1500]"
     ]
   }
 }
