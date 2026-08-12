@@ -814,5 +814,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-08-12",
+    "videoId": "_EQUINTHuZI",
+    "url": "https://youtu.be/_EQUINTHuZI",
+    "title": "ollama downloads down 411.3% on brew | Gawk Daily — 12 August 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-08-12T08:27:08.577Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
