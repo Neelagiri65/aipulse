@@ -33,6 +33,7 @@
 
 import { NextResponse } from "next/server";
 import { runDepsDiscovery, TARGET_PACKAGES } from "@/lib/data/registry-deps";
+import { REGISTRY_INTEGRITY_STEPS } from "@/lib/data/repo-registry";
 import { writeCronHealth } from "@/lib/data/cron-health";
 
 export const runtime = "nodejs";
@@ -85,12 +86,20 @@ export async function POST(request: Request) {
     await writeCronHealth("registry-discover-deps", { ok: false, error: msg });
     throw e;
   }
-  await writeCronHealth("registry-discover-deps", {
-    ok: true,
-    itemsProcessed: result.written,
-  });
+  // A store-integrity failure fails the run. This used to be a hardcoded
+  // `ok: true` — a sweep could write 40 repos into a corpus that had just
+  // been evicted and still report green.
+  const integrityMessage = result.failures.find((f) =>
+    REGISTRY_INTEGRITY_STEPS.includes(f.step),
+  )?.message;
+  await writeCronHealth(
+    "registry-discover-deps",
+    integrityMessage
+      ? { ok: false, error: integrityMessage }
+      : { ok: true, itemsProcessed: result.written },
+  );
 
-  return NextResponse.json({ ok: true, result });
+  return NextResponse.json({ ok: !integrityMessage, result });
 }
 
 export async function GET(request: Request) {

@@ -26,7 +26,7 @@ import {
   VERIFIED_SOURCES,
   PENDING_SOURCES,
 } from "@/lib/data-sources";
-import { readAllEntries } from "@/lib/data/repo-registry";
+import { readAllEntriesDetailed } from "@/lib/data/repo-registry";
 import { readWindow, readMeta as readGlobeMeta } from "@/lib/data/globe-store";
 import { fetchAllStatus } from "@/lib/data/fetch-status";
 import type { BenchmarksPayload } from "@/lib/data/benchmarks-lmarena";
@@ -326,10 +326,23 @@ export async function buildDailySnapshot(
 
   const sources = summariseSources();
 
+  // A degraded read stays null. `summariseRegistry([])` returns a
+  // well-formed `{ total: 0, geocodeRate: 0, byConfigKind: {} }` that is
+  // indistinguishable from a real measurement once it reaches the
+  // snapshot, /api/history, the digest, and the gawk-data archive — which
+  // is precisely how 42 archived days came to carry a fictional
+  // `registry.total: 0`. Null is honest; zero is a claim.
   let registry: SnapshotRegistry | null = null;
   try {
-    const entries = await readAllEntries();
-    registry = summariseRegistry(entries);
+    const read = await readAllEntriesDetailed();
+    if (read.ok) {
+      registry = summariseRegistry(read.entries);
+    } else {
+      failures.push({
+        step: "registry",
+        message: `${read.reason}: ${read.message}`,
+      });
+    }
   } catch (e) {
     failures.push({
       step: "registry",
