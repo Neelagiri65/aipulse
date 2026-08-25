@@ -970,5 +970,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-08-25",
+    "videoId": "afAhRuxiBbE",
+    "url": "https://youtu.be/afAhRuxiBbE",
+    "title": "Ox Alpha holds #1 on OpenRouter | Gawk Daily — 25 August 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-08-25T07:52:52.938Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
