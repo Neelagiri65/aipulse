@@ -4,6 +4,7 @@ import {
   openDashboard,
   openFilters,
   shot,
+  skipWhenLocalAndEmpty,
   switchTab,
   waitForMapReady,
   waitForWireReady,
@@ -29,17 +30,27 @@ test.describe("interactions", () => {
     await closePanel(page, /Tool health/i, "Tools");
     await page.waitForTimeout(300);
 
-    // Prefer a cluster bubble (≥2 markers overlapping). Fall back to a
-    // leaf marker — both open the shared EventCard.
-    const cluster = page.locator(".marker-cluster").first();
+    // FlatMap renders cluster bubbles through a custom `iconCreateFunction`,
+    // so they carry `.ap-fm-cluster` and never Leaflet's stock
+    // `.marker-cluster` class. A previous version of this test branched on
+    // `.marker-cluster` first; that branch matched nothing and the test
+    // silently always took the fallback path.
     const marker = page.locator(".leaflet-marker-icon").first();
-    if ((await cluster.count()) > 0) {
-      await cluster.click({ force: true });
-    } else {
-      await marker.click({ force: true });
-    }
+    skipWhenLocalAndEmpty(
+      await page.locator(".leaflet-marker-icon").count(),
+      "map has no markers to click",
+    );
+    await marker.click({ force: true });
 
-    const card = page.getByRole("dialog", { name: /event(s)? in this region/i });
+    // Match the shared region card by the half of its label that is a
+    // contract, not the half that is data. Every variant ends in "in this
+    // region" — events, AI labs, and AI-config events all reuse the same
+    // card. Which one the first marker belongs to depends on what the
+    // feeds happen to hold: locally it is often an AI-labs cluster, on
+    // prod usually an events cluster. Asserting `/events? in this region/`
+    // pinned the test to that accident and made it fail against a local
+    // dev server while passing against gawk.dev.
+    const card = page.getByRole("dialog", { name: /in this region/i });
     await expect(card).toBeVisible({ timeout: 10_000 });
     await shot(page, "interaction-eventcard");
   });
@@ -54,6 +65,7 @@ test.describe("interactions", () => {
     const hnPill = page
       .locator("span", { hasText: /^HN · \d+/ })
       .first();
+    skipWhenLocalAndEmpty(await hnPill.count(), "The Wire has no HN stories");
     await expect(hnPill).toBeVisible({ timeout: 15_000 });
     // Computed background must be HN brand orange #ff6600 → rgb(255,102,0).
     const bg = await hnPill.evaluate(

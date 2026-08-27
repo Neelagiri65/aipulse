@@ -1,5 +1,36 @@
-import { expect, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import path from "node:path";
+
+/**
+ * True when the suite is pointed at a local dev server rather than
+ * production.
+ */
+export const IS_LOCAL = Boolean(process.env.LOCAL_URL);
+
+/**
+ * Skip a data-dependent assertion when — and only when — we are running
+ * against localhost AND the backing data really is absent.
+ *
+ * Local dev has no Upstash credentials on purpose: they are Vercel env
+ * vars only (see CLAUDE.md). So the live event map, The Wire and the
+ * Regional Wire panel all render empty against localhost, and tests that
+ * assert on that data fail for a reason that has nothing to do with the
+ * code under test.
+ *
+ * Deliberately narrow, because a skip that hides a real outage is worse
+ * than a red test. Against production the assertion ALWAYS runs, so a
+ * genuine data outage still reds the suite; and a local run that does
+ * have data still asserts normally. This exists only to stop an empty
+ * dev environment from impersonating a product regression — four of
+ * these were carried into a session as "pre-existing failures" when
+ * nothing was actually broken.
+ */
+export function skipWhenLocalAndEmpty(count: number, what: string): void {
+  test.skip(
+    IS_LOCAL && count === 0,
+    `${what}: no data on localhost (Upstash credentials are Vercel-only) — this assertion runs against gawk.dev`,
+  );
+}
 
 export const SCREENSHOT_DIR = path.join(
   process.cwd(),
