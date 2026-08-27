@@ -95,6 +95,20 @@ const META_KEY = "aipulse:registry:meta";
  */
 export const REGISTRY_SHRINK_FLOOR = 0.5;
 
+/**
+ * Fields requested per HSCAN page. COUNT is advisory in Redis, so this is
+ * a ceiling on effort rather than an exact batch size; it is set well
+ * below the point where a page could approach Upstash's 10MB response cap
+ * even if per-entry payloads grow several times their current size.
+ */
+const REGISTRY_SCAN_BATCH = 100;
+
+/**
+ * Hard stop on the scan loop. A cursor that never returns to "0" would
+ * otherwise spin forever; failing loudly beats hanging the request.
+ */
+const REGISTRY_SCAN_MAX_PAGES = 1000;
+
 let cached: Redis | null | undefined;
 
 function redis(): Redis | null {
@@ -160,9 +174,22 @@ export type RegistryRead =
  * count use this; callers that only render a map layer can keep using
  * the fail-soft version.
  *
- * A hash that exists always has at least one field, so an empty/absent
- * HGETALL result means the key is gone — never that the registry
+ * A hash that exists always has at least one field, so an empty result
+ * from a *completed* scan means the key is gone — never that the registry
  * legitimately holds zero repos.
+ *
+ * Read via HSCAN, not HGETALL. The entries hash outgrew Upstash's 10MB
+ * per-response cap (25.8MB on 2026-08-27), and HGETALL is all-or-nothing:
+ * one oversized response took down every registry reader at once —
+ * /api/registry and /api/v1/sources served `degraded` for eight days, and
+ * the fail-soft callers silently saw an empty registry, which quietly
+ * disabled `skipKnown` dedup in discovery. Paging keeps each response
+ * small enough to return whatever the hash grows to.
+ *
+ * A partial scan is never reported as success. If the loop throws
+ * halfway, the entries read so far are discarded and the failure is
+ * surfaced — half a registry is exactly the number-that-looks-like-a-
+ * measurement this function exists to prevent.
  */
 export async function readAllEntriesDetailed(): Promise<RegistryRead> {
   const r = redis();
@@ -173,9 +200,30 @@ export async function readAllEntriesDetailed(): Promise<RegistryRead> {
       message: "Redis is not configured (UPSTASH_REDIS_REST_* absent)",
     };
   }
-  let all: Record<string, unknown> | null;
+  // Keyed by field name, not pushed to a list: HSCAN may return the same
+  // field twice if the hash is written mid-scan (discovery runs every 6h),
+  // and keying collapses those duplicates instead of double-counting.
+  const byField = new Map<string, unknown>();
+  let cursor = "0";
+  let pages = 0;
   try {
-    all = await r.hgetall<Record<string, unknown>>(ENTRIES_KEY);
+    do {
+      const [next, flat] = await r.hscan(ENTRIES_KEY, cursor, {
+        count: REGISTRY_SCAN_BATCH,
+      });
+      // HSCAN returns a flat [field, value, field, value, ...] array.
+      for (let i = 0; i + 1 < flat.length; i += 2) {
+        byField.set(String(flat[i]), flat[i + 1]);
+      }
+      cursor = String(next);
+      if (++pages > REGISTRY_SCAN_MAX_PAGES) {
+        return {
+          ok: false,
+          reason: "error",
+          message: `registry scan exceeded ${REGISTRY_SCAN_MAX_PAGES} pages without completing — cursor did not return to 0`,
+        };
+      }
+    } while (cursor !== "0");
   } catch (e) {
     return {
       ok: false,
@@ -183,7 +231,7 @@ export async function readAllEntriesDetailed(): Promise<RegistryRead> {
       message: e instanceof Error ? e.message : String(e),
     };
   }
-  const fields = all ? Object.values(all) : [];
+  const fields = [...byField.values()];
   if (fields.length === 0) {
     return {
       ok: false,
