@@ -4,6 +4,10 @@ import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import type L from "leaflet";
 import type { LabActivity } from "@/lib/data/fetch-labs";
 import { CATEGORY_META, type LabKind } from "@/lib/data/labs-registry";
+import {
+  addBasemap,
+  BASEMAP_ATTRIBUTION,
+} from "@/components/map/basemap";
 
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -11,11 +15,6 @@ import "leaflet.markercluster/dist/MarkerCluster.css";
 export type EcosystemMapProps = {
   labs: LabActivity[];
 };
-
-const TILE_URL =
-  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
-const TILE_ATTR =
-  '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>';
 
 const LIGHT_COLORS: Record<LabKind, { bg: string; border: string; text: string; dot: string }> = {
   labs:    { bg: "#f3e8ff", border: "#c084fc", text: "#7c3aed", dot: "#8b5cf6" },
@@ -87,16 +86,12 @@ export function EcosystemMap({ labs }: EcosystemMapProps) {
         preferCanvas: true,
       });
 
-      Leaflet.tileLayer(TILE_URL, {
-        attribution: TILE_ATTR,
-        subdomains: "abcd",
-        maxZoom: 19,
-      }).addTo(map);
+      await addBasemap(Leaflet, map, "light");
 
       Leaflet.control.zoom({ position: "bottomright" }).addTo(map);
       Leaflet.control
         .attribution({ position: "bottomleft", prefix: false })
-        .addAttribution(TILE_ATTR)
+        .addAttribution(BASEMAP_ATTRIBUTION)
         .addTo(map);
 
       mapRef.current = map;

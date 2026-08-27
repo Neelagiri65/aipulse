@@ -21,6 +21,7 @@ import {
   RSS_INACTIVE_OPACITY,
 } from "@/components/wire/rss-to-points";
 import { pickClusterDelta, formatClusterDelta } from "@/lib/map/insights";
+import { addBasemap } from "@/components/map/basemap";
 import type { RegionalDeltasDto } from "@/components/map/TopMoversLine";
 
 import "leaflet/dist/leaflet.css";
@@ -47,7 +48,7 @@ type Selection = {
 };
 
 /**
- * Progressive-resolution 2D world map. Uses CartoDB Dark Matter raster
+ * Progressive-resolution 2D world map. Uses the OpenFreeMap dark vector
  * tiles (free, no API key) + leaflet.markercluster for the numbered
  * density bubbles. Each real GitHub event becomes a marker; clicking
  * opens the shared EventCard. Cluster click zooms in to break the
@@ -112,15 +113,7 @@ export function FlatMap({
         attributionControl: true,
       }).setView([20, 0], 2);
 
-      L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-        {
-          subdomains: "abcd",
-          attribution:
-            '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · © <a href="https://carto.com/attributions">CARTO</a>',
-          maxZoom: 19,
-        },
-      ).addTo(map);
+      await addBasemap(L, map, "dark");
 
       const cluster = (
         L as unknown as {
