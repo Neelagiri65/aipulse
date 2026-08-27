@@ -6,6 +6,7 @@ import {
   shot,
   switchTab,
   waitForMapReady,
+  skipWhenLocalAndEmpty,
 } from "./_helpers";
 
 /**
@@ -56,6 +57,12 @@ test.describe("Regional RSS layer", () => {
     // uses <li> rows same as the labs layer. Allow 1 as the floor so a
     // single-feed outage doesn't red the test.
     const rows = panel.locator("ul > li");
+    // The nav-count and panel-visible assertions above are not data
+    // dependent and still run locally; only the row count needs feeds.
+    skipWhenLocalAndEmpty(
+      await rows.count(),
+      "Regional Wire panel lists no publishers",
+    );
     await expect
       .poll(async () => await rows.count(), { timeout: 25_000 })
       .toBeGreaterThanOrEqual(1);
@@ -106,6 +113,10 @@ test.describe("Regional RSS layer", () => {
     await expect(panel).toBeVisible({ timeout: 15_000 });
 
     const firstRow = panel.locator("ul > li").first();
+    skipWhenLocalAndEmpty(
+      await panel.locator("ul > li").count(),
+      "Regional Wire panel lists no publishers to click",
+    );
     await expect(firstRow).toBeVisible({ timeout: 15_000 });
 
     // If the row itself is clickable, the SourceCard opens. Otherwise
