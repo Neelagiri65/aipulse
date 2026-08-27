@@ -1,7 +1,18 @@
 name: video-watchdog
 
 # Watchdog for the daily video pipeline.
-# Runs 2.5 hours after the main pipeline (09:30 UTC vs 07:00 UTC).
+# Runs 2.5h and 8.5h after the main pipeline (09:30 + 15:30 UTC vs 07:00).
+#
+# Two slots, because on 2026-08-27 the watchdog shared a failure mode with
+# the thing it watches: GitHub dropped that day's scheduled events, so
+# daily-video never fired at 07:00 AND this job never fired at 09:30. The
+# outage was caught by hand ~9h later. Scheduled events are best-effort
+# on GitHub's side, so a single slot is a single point of failure; a
+# second, off-the-hour slot gives a dropped morning a same-day retry.
+#
+# Re-running is safe: the job dispatches only when today's date is absent
+# from upload-log.json, so a slot that fires after a successful upload is
+# a no-op.
 #
 # Checks:
 #   1. Did today's video get uploaded? (checks upload-log.json in repo)
@@ -18,7 +29,9 @@ name: video-watchdog
 
 on:
   schedule:
-    - cron: "30 9 * * *" # 09:30 UTC daily
+    # Offset off the hour and half-hour: those slots are the most
+    # contended, and contention is what drops scheduled events.
+    - cron: "37 9,15 * * *" # 09:37 + 15:37 UTC daily
   workflow_dispatch:
 
 concurrency:
