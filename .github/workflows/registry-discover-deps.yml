@@ -78,16 +78,20 @@ jobs:
           echo "Response: $RESPONSE"
           # The route returns HTTP 200 with ok:false when an internal step
           # fails, so `curl -f` cannot see it. Not every failure deserves a
-          # red job: `search:*` entries are upstream GitHub rate limits that
-          # appear on essentially every run and clear themselves. A failure
-          # in any OTHER step means our own storage or logic is broken.
+          # red job. Two kinds are expected and self-clearing:
+          #   search:*     — upstream GitHub rate limits, present on nearly
+          #                  every run.
+          #   sweep-budget — the deps sweep deliberately stopping at its
+          #                  time budget and resuming next run.
+          # Anything else is fail-closed: an unrecognised step means our own
+          # storage or logic is broken, and goes red.
           #
           # That distinction is the point. On 2026-08-27 the entries hash
           # outgrew Upstash's 10MB response cap; `registry-read` had failed
           # on every run for eight days while this job reported success, so
           # the public registry served an empty, degraded response and
           # nobody was told.
-          BLOCKING=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); r=d.get('result') if isinstance(d.get('result'),dict) else d; fs=r.get('failures') or []; print('\n'.join(str(f.get('step'))+': '+str(f.get('message')) for f in fs if not str(f.get('step','')).startswith('search:')))" 2>/dev/null) || BLOCKING="response-unparseable — see Response above"
+          BLOCKING=$(echo "$RESPONSE" | python3 -c "import json,sys; BENIGN=('search:',); BENIGN_EXACT=('sweep-budget',); d=json.load(sys.stdin); r=d.get('result') if isinstance(d.get('result'),dict) else d; fs=r.get('failures') or []; print('\n'.join(str(f.get('step'))+': '+str(f.get('message')) for f in fs if not str(f.get('step','')).startswith(BENIGN) and str(f.get('step','')) not in BENIGN_EXACT))" 2>/dev/null) || BLOCKING="response-unparseable — see Response above"
           if [ -n "$BLOCKING" ]; then
             echo "::error::registry-discover-deps reported blocking failures — see Response above"
             echo "$BLOCKING"
