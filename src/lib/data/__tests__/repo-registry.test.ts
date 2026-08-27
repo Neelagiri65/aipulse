@@ -17,7 +17,35 @@ import type { RegistryEntry, RegistryMeta } from "@/lib/data/registry-shared";
 // caches it, so the module is re-imported per test with the env already set.
 // ---------------------------------------------------------------------------
 
-const hgetall = vi.fn();
+const hscan = vi.fn();
+
+/**
+ * Drive the `hscan` double from a plain `{field: value}` record, splitting
+ * it into pages the way Redis would. `null` models an absent key: a
+ * completed scan that yielded nothing.
+ *
+ * Reads page through HSCAN rather than calling HGETALL (the entries hash
+ * outgrew Upstash's 10MB response cap), so the double has to page too —
+ * a single-shot mock would let a pagination bug pass.
+ */
+function mockHash(record: Record<string, unknown> | null, pageSize = 2) {
+  const fields = Object.entries(record ?? {});
+  const pages: Array<[string, (string | number)[]]> = [];
+  for (let i = 0; i < fields.length; i += pageSize) {
+    const slice = fields.slice(i, i + pageSize);
+    const flat = slice.flat() as (string | number)[];
+    const isLast = i + pageSize >= fields.length;
+    // Redis signals "scan complete" by returning to cursor 0.
+    pages.push([isLast ? "0" : String(i + pageSize), flat]);
+  }
+  if (pages.length === 0) pages.push(["0", []]);
+
+  hscan.mockReset();
+  for (const page of pages) hscan.mockResolvedValueOnce(page);
+  // Any extra call past the scripted pages is a completed, empty scan.
+  hscan.mockResolvedValue(["0", []]);
+  return pages;
+}
 const hset = vi.fn(async () => 1);
 const persist = vi.fn(async () => 1);
 const expire = vi.fn(async () => 1);
@@ -28,7 +56,7 @@ const get = vi.fn<(key: string) => Promise<string | null>>();
 
 vi.mock("@upstash/redis", () => ({
   Redis: class {
-    hgetall = hgetall;
+    hscan = hscan;
     hset = hset;
     persist = persist;
     expire = expire;
@@ -93,10 +121,104 @@ afterEach(() => {
 
 // ---------------------------------------------------------------------------
 
+describe("readAllEntriesDetailed — paging survives a hash too big for one response", () => {
+  /**
+   * The 2026-08-27 incident. `HGETALL` on the entries hash returned 25.8MB
+   * against Upstash's 10MB response cap, so the call threw and every
+   * registry reader went down at once — the public API served
+   * `degraded` for eight days while discovery silently lost `skipKnown`
+   * dedup. These pin the paged read that replaced it.
+   */
+
+  it("assembles entries across multiple pages, not just the first", async () => {
+    const store = await loadStore();
+    // 5 entries at pageSize 2 => 3 pages. A single-shot read sees 2.
+    const names = ["a/1", "a/2", "a/3", "a/4", "a/5"];
+    mockHash(
+      Object.fromEntries(names.map((n) => [n, JSON.stringify(entry(n))])),
+      2,
+    );
+
+    const read = await store.readAllEntriesDetailed();
+
+    expect(read.ok).toBe(true);
+    if (!read.ok) throw new Error("unreachable");
+    expect(read.entries.map((e) => e.fullName).sort()).toEqual(names);
+    expect(hscan).toHaveBeenCalledTimes(3);
+  });
+
+  it("follows the cursor rather than stopping after one call", async () => {
+    const store = await loadStore();
+    mockHash(
+      Object.fromEntries(
+        ["a/1", "a/2", "a/3", "a/4"].map((n) => [n, JSON.stringify(entry(n))]),
+      ),
+      1,
+    );
+
+    await store.readAllEntriesDetailed();
+
+    // Cursor 0 -> 1 -> 2 -> 3, terminating when the reply returns "0".
+    expect(hscan.mock.calls.map((c) => String(c[1]))).toEqual([
+      "0",
+      "1",
+      "2",
+      "3",
+    ]);
+  });
+
+  it("counts a field returned twice mid-scan only once", async () => {
+    const store = await loadStore();
+    // Discovery writes every 6h; a concurrent write can make HSCAN emit
+    // the same field on two pages. Double-counting it would inflate a
+    // published total.
+    hscan.mockReset();
+    hscan.mockResolvedValueOnce(["1", ["a/1", JSON.stringify(entry("a/1"))]]);
+    hscan.mockResolvedValueOnce(["0", ["a/1", JSON.stringify(entry("a/1"))]]);
+
+    const read = await store.readAllEntriesDetailed();
+
+    expect(read.ok).toBe(true);
+    if (!read.ok) throw new Error("unreachable");
+    expect(read.entries).toHaveLength(1);
+  });
+
+  it("reports `error` when the scan dies partway, never a partial success", async () => {
+    const store = await loadStore();
+    hscan.mockReset();
+    hscan.mockResolvedValueOnce(["1", ["a/1", JSON.stringify(entry("a/1"))]]);
+    hscan.mockRejectedValueOnce(new Error("ERR max request size exceeded"));
+
+    const read = await store.readAllEntriesDetailed();
+
+    // Half a registry is the number-that-looks-like-a-measurement this
+    // module exists to prevent — the partial page must not surface as ok.
+    expect(read.ok).toBe(false);
+    if (read.ok) throw new Error("unreachable");
+    expect(read.reason).toBe("error");
+    expect(read.message).toContain("max request size exceeded");
+  });
+
+  it("gives up instead of spinning when the cursor never returns to 0", async () => {
+    const store = await loadStore();
+    hscan.mockReset();
+    hscan.mockResolvedValue(["99", ["a/1", JSON.stringify(entry("a/1"))]]);
+
+    const read = await store.readAllEntriesDetailed();
+
+    expect(read.ok).toBe(false);
+    if (read.ok) throw new Error("unreachable");
+    expect(read.reason).toBe("error");
+    expect(read.message).toMatch(/did not return to 0/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
 describe("readAllEntriesDetailed — an absent key is not an empty registry", () => {
   it("reports `absent` when the key is gone, instead of an empty success", async () => {
     const store = await loadStore();
-    hgetall.mockResolvedValue(null);
+    mockHash(null);
 
     const read = await store.readAllEntriesDetailed();
 
@@ -110,7 +232,7 @@ describe("readAllEntriesDetailed — an absent key is not an empty registry", ()
 
   it("treats an empty hash as absent too — a live hash always has fields", async () => {
     const store = await loadStore();
-    hgetall.mockResolvedValue({});
+    mockHash({});
 
     const read = await store.readAllEntriesDetailed();
 
@@ -121,7 +243,7 @@ describe("readAllEntriesDetailed — an absent key is not an empty registry", ()
 
   it("reports `error` when the read throws, carrying the message", async () => {
     const store = await loadStore();
-    hgetall.mockRejectedValue(new Error("max daily request limit exceeded"));
+    hscan.mockRejectedValue(new Error("max daily request limit exceeded"));
 
     const read = await store.readAllEntriesDetailed();
 
@@ -139,12 +261,12 @@ describe("readAllEntriesDetailed — an absent key is not an empty registry", ()
     expect(read.ok).toBe(false);
     if (read.ok) throw new Error("unreachable");
     expect(read.reason).toBe("unconfigured");
-    expect(hgetall).not.toHaveBeenCalled();
+    expect(hscan).not.toHaveBeenCalled();
   });
 
   it("reports `corrupt` when fields exist but none parse", async () => {
     const store = await loadStore();
-    hgetall.mockResolvedValue({
+    mockHash({
       "a/b": "{not json",
       "c/d": '{"no":"fullName"}',
     });
@@ -158,7 +280,7 @@ describe("readAllEntriesDetailed — an absent key is not an empty registry", ()
 
   it("succeeds with parsed entries, skipping individual bad fields", async () => {
     const store = await loadStore();
-    hgetall.mockResolvedValue({
+    mockHash({
       "a/b": JSON.stringify(entry("a/b")),
       "c/d": "{not json",
     });
@@ -175,10 +297,10 @@ describe("readAllEntries — fail-soft wrapper unchanged for render paths", () =
   it("still returns [] on every degraded reason", async () => {
     const store = await loadStore();
     for (const outcome of [null, {}, undefined]) {
-      hgetall.mockResolvedValue(outcome);
+      mockHash(outcome);
       expect(await store.readAllEntries()).toEqual([]);
     }
-    hgetall.mockRejectedValue(new Error("boom"));
+    hscan.mockRejectedValue(new Error("boom"));
     expect(await store.readAllEntries()).toEqual([]);
   });
 });
@@ -246,7 +368,7 @@ describe("assessRegistryShrink", () => {
 describe("finaliseRegistryMeta — the guard that makes the loss visible", () => {
   it("a degraded read does NOT overwrite meta, preserving the baseline", async () => {
     const store = await loadStore();
-    hgetall.mockResolvedValue(null); // key evicted
+    mockHash(null); // key evicted
 
     const res = await store.finaliseRegistryMeta({
       source: "code-search",
@@ -268,7 +390,7 @@ describe("finaliseRegistryMeta — the guard that makes the loss visible", () =>
 
   it("a collapse that DOES read back is written, but recorded as a failure", async () => {
     const store = await loadStore();
-    hgetall.mockResolvedValue({ "a/b": JSON.stringify(entry("a/b")) });
+    mockHash({ "a/b": JSON.stringify(entry("a/b")) });
     get.mockResolvedValue(JSON.stringify(meta(9670)));
 
     const res = await store.finaliseRegistryMeta({
@@ -293,7 +415,7 @@ describe("finaliseRegistryMeta — the guard that makes the loss visible", () =>
 
   it("a healthy run writes clean meta and adds nothing", async () => {
     const store = await loadStore();
-    hgetall.mockResolvedValue({
+    mockHash({
       "a/b": JSON.stringify(entry("a/b")),
       "c/d": JSON.stringify(entry("c/d")),
     });
@@ -316,7 +438,7 @@ describe("finaliseRegistryMeta — the guard that makes the loss visible", () =>
 
   it("carries the caller's own failures into meta alongside its own", async () => {
     const store = await loadStore();
-    hgetall.mockResolvedValue({ "a/b": JSON.stringify(entry("a/b")) });
+    mockHash({ "a/b": JSON.stringify(entry("a/b")) });
 
     await store.finaliseRegistryMeta({
       source: "deps",
