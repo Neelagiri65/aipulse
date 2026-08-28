@@ -57,6 +57,13 @@ export const CRON_WORKFLOWS = {
   "pkg-brew": { expectedIntervalMinutes: 360 },
   "pkg-vscode": { expectedIntervalMinutes: 360 },
   "openrouter-rankings": { expectedIntervalMinutes: 360 },
+  // NOT the Actions workflow of the same idea. This key is the VERCEL
+  // cron (`vercel.json` → /api/cron/video-watchdog), deliberately on a
+  // different scheduler from .github/workflows/video-watchdog.yml —
+  // which is unmonitored here and which dropped both of its slots on
+  // 2026-08-28 alongside the daily-video schedule it exists to catch.
+  // Two Vercel slots a day, so 1440 with the usual 2x staleness budget.
+  "video-watchdog-vercel": { expectedIntervalMinutes: 1440 },
   // Discord webhook for TOOL_ALERT transitions. Drift bumped 30→90 in
   // S53 (observed p95 = 140m on the */5 cron schedule).
   "notify-tool-alerts": { expectedIntervalMinutes: 90 },
