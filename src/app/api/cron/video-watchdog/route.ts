@@ -100,13 +100,19 @@ async function dispatchDailyVideo(
           "User-Agent": "gawk-video-watchdog",
           "Content-Type": "application/json",
         },
-        // No force_distribute: the dedup guard is what makes an overlap
-        // with the Actions watchdog a wasted runner rather than a
-        // duplicate upload. Forcing here would remove that safety.
-        body: JSON.stringify({
-          ref: "main",
-          inputs: { formats: "youtube", force_distribute: false },
-        }),
+        // No `inputs` at all: the workflow's own defaults are already
+        // what we want (formats "youtube", force_distribute false), and
+        // the REST dispatch endpoint validates every input value as a
+        // STRING even for inputs declared `type: boolean` — a JSON
+        // `false` here 422s. That failure would only ever appear on a
+        // day the video is missing, i.e. the one day this must work.
+        // `gh workflow run` avoids it by sending "false" as a string;
+        // sending nothing avoids it outright.
+        //
+        // force_distribute stays off deliberately: the dedup guard is
+        // what makes an overlap with the Actions watchdog a wasted
+        // runner rather than a duplicate upload.
+        body: JSON.stringify({ ref: "main" }),
         signal: AbortSignal.timeout(10_000),
       },
     );
