@@ -1018,5 +1018,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-08-29",
+    "videoId": "OL-4TmK3NUk",
+    "url": "https://youtu.be/OL-4TmK3NUk",
+    "title": "huggingface-hub downloads down 51.2% on pypi | Gawk Daily — 29 August 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-08-29T13:09:21.107Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
