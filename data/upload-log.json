@@ -1078,5 +1078,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-09-03",
+    "videoId": "MJUpiTSZGVI",
+    "url": "https://youtu.be/MJUpiTSZGVI",
+    "title": "GLM 5.3 Flash takes #1 on OpenRouter | Gawk Daily — 3 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-03T12:05:02.372Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
