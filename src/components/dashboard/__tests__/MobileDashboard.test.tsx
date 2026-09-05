@@ -11,7 +11,7 @@
  * useState boundary.
  */
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { MobileDashboard } from "@/components/dashboard/MobileDashboard";
@@ -153,5 +153,36 @@ describe("MobileDashboard — shell", () => {
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
     expect(html).toContain('href="/data-sources.md"');
     expect(html).toContain('target="_blank"');
+  });
+});
+
+describe("MobileDashboard — community link in the top bar", () => {
+  const KEY = "NEXT_PUBLIC_COMMUNITY_URL";
+  const LEGACY = "NEXT_PUBLIC_DISCORD_INVITE_URL";
+  const orig = process.env[KEY];
+  const origLegacy = process.env[LEGACY];
+
+  afterEach(() => {
+    if (orig === undefined) delete process.env[KEY];
+    else process.env[KEY] = orig;
+    if (origLegacy === undefined) delete process.env[LEGACY];
+    else process.env[LEGACY] = origLegacy;
+  });
+
+  it("mounts the compact CommunityLink inside .ap-mobile-topbar when set", () => {
+    process.env[KEY] = "https://discord.gg/test-invite";
+    const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
+    const header = html.slice(
+      html.indexOf('class="ap-mobile-topbar"'),
+      html.indexOf("</header>"),
+    );
+    expect(header).toContain('data-testid="community-link"');
+  });
+
+  it("renders no community link when the env var is unset", () => {
+    delete process.env[KEY];
+    delete process.env[LEGACY];
+    const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
+    expect(html).not.toContain("community-link");
   });
 });
