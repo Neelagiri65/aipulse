@@ -11,6 +11,7 @@
 
 import { track } from "@/lib/analytics";
 import { PRIMARY_TABS, type PrimaryTab } from "@/components/chrome/primary-tabs";
+import { DiscordMark } from "@/components/chrome/DiscordMark";
 
 /** @deprecated web v2: alias of PrimaryTab, kept for the transition. */
 export type MobileTopLevelTab = PrimaryTab;
@@ -44,6 +45,7 @@ export function MobileBottomBar({ active, onSelect }: MobileBottomBarProps) {
             track("panel_open", { panel: `top:${t.id}`, surface: "mobile" });
           }}
         >
+          {t.mark === "discord" && <DiscordMark />}
           {t.label}
         </button>
       ))}

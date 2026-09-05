@@ -2598,3 +2598,36 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
   text-shadow: 0 0 4px hsl(0 0% 0% / 0.8), 0 0 8px hsl(0 0% 0% / 0.5);
   pointer-events: none;
 }
+
+/* Tab marks (the Discord mark on Community): currentColor, never the accent. */
+.ap-tab-mark { width: 14px; height: 14px; flex: none; }
+.ap-tabs__item { display: inline-flex; align-items: center; gap: 6px; }
+.ap-mobile-bottombar__item { gap: 5px; }
+.ap-mobile-bottombar__item .ap-tab-mark { width: 16px; height: 16px; }
+
+/* Segmented switch (Feed: Stories · Wire). Ink only. */
+.ap-feedseg {
+  position: static;
+  display: inline-flex;
+  align-self: flex-start;
+  border: 1px solid var(--ap-border);
+  border-radius: 28px;
+  padding: 2px;
+  background: var(--card);
+  gap: 2px;
+}
+.ap-feedseg__item {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 28px;
+  border: 0;
+  background: transparent;
+  color: var(--ap-fg-muted);
+  cursor: pointer;
+}
+.ap-feedseg__item.is-active { background: var(--ap-fg); color: var(--ap-bg); }
+.ap-mobile-feed__switch { flex: none; padding: 10px 12px 0; }
+.ap-mobile-feed__wire { flex: 1; min-height: 0; display: flex; flex-direction: column; }

@@ -5,7 +5,7 @@ import { MobileBottomBar } from "@/components/chrome/MobileBottomBar";
 import { ROOMS_LABEL } from "@/components/chrome/primary-tabs";
 
 describe("MobileBottomBar", () => {
-  it("renders the five primary tabs in the locked order: Health, Feed, Map, Rooms, More", () => {
+  it("renders the five primary tabs in the locked order: Health, Feed, Map, Community, More", () => {
     const html = renderToStaticMarkup(
       <MobileBottomBar active="health" onSelect={() => {}} />,
     );

@@ -11,7 +11,7 @@ test.describe("chrome", () => {
     await openDashboard(page);
 
     await expect(page.getByRole("link", { name: "Gawk home" }).first()).toBeVisible();
-    for (const name of ["Health", "Feed", "Map", "Rooms", "More"]) {
+    for (const name of ["Health", "Feed", "Map", "Community", "More"]) {
       await expect(page.getByRole("tab", { name, exact: true }).first()).toBeVisible();
     }
     // Session 27 hid the Globe tab from the switcher. Assert absence so

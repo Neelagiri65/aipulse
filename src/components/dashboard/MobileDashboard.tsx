@@ -13,6 +13,8 @@ import {
 } from "@/components/chrome/MobileBottomBar";
 import { ThemeSwitch } from "@/components/chrome/ThemeSwitch";
 import { RoomsView } from "@/components/dashboard/RoomsView";
+import { FeedModeSwitch } from "@/components/feed/FeedModeSwitch";
+import type { FeedViewMode } from "@/components/chrome/primary-tabs";
 import { FeedView } from "@/components/feed/FeedView";
 import { LiveTicker } from "@/components/map/LiveTicker";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
@@ -82,6 +84,9 @@ type MobileTab = {
 export type MobileDashboardProps = {
   /** Primary surface, owned by the parent so desktop and mobile share `?tab=`. */
   topTab: MobileTopLevelTab;
+  /** Feed axis: Stories (default) or the chronological Wire. Optional so tests and older callers keep working. */
+  feedView?: FeedViewMode;
+  onFeedViewChange?: (mode: FeedViewMode) => void;
   onTopTabChange: (tab: MobileTopLevelTab) => void;
   // Map data (already filtered by parent)
   points: GlobePoint[];
@@ -160,6 +165,7 @@ export type MobileDashboardProps = {
  */
 export function MobileDashboard(props: MobileDashboardProps) {
   const topTab = props.topTab;
+  const feedView: FeedViewMode = props.feedView ?? "stories";
   const setTopTab = props.onTopTabChange;
   const [active, setActive] = useState<MobileTopTabId>("wire");
   const [modelsSub, setModelsSub] = useState<MobileModelsSubId>("downloads");
@@ -300,7 +306,30 @@ export function MobileDashboard(props: MobileDashboardProps) {
         )}
         {topTab === "feed" && (
           <div className="ap-mobile-feed">
-            <FeedView initialResponse={props.initialFeedResponse} />
+            <div className="ap-mobile-feed__switch">
+              <FeedModeSwitch mode={feedView} onChange={props.onFeedViewChange ?? (() => {})} />
+            </div>
+            {feedView === "stories" ? (
+              <FeedView initialResponse={props.initialFeedResponse} />
+            ) : (
+              <div className="ap-mobile-feed__wire">
+                <WirePage
+                  wireRows={props.wireRows}
+                  ghCoverage={
+                    props.events
+                      ? {
+                          windowMinutes: props.events.coverage.windowMinutes,
+                          windowSize: props.events.coverage.windowSize,
+                        }
+                      : undefined
+                  }
+                  hnMeta={props.hn?.meta}
+                  polledAt={props.events?.polledAt}
+                  error={props.eventsError ?? undefined}
+                  isInitialLoading={props.eventsLoading && props.hnLoading}
+                />
+              </div>
+            )}
           </div>
         )}
 

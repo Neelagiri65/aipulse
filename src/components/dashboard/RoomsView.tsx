@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Gawk — Rooms: who is building right now.
+ * Gawk — Community (canvas working title "Rooms"): who is building right now.
  *
  * Phase 2 of the web restyle shows only what main already has: public GitHub events on repos
  * that carry an AI config file (CLAUDE.md, .cursorrules, …), grouped by repo, newest first.
@@ -52,7 +52,7 @@ export function RoomsView({ rows, polledAt, windowMinutes, compact }: RoomsViewP
   const windowLabel = windowMinutes ? `in the last ${windowMinutes} min` : "in the current window";
 
   return (
-    <section className={`ap-column${compact ? " ap-column--compact" : ""}`} aria-label={"Rooms"}>
+    <section className={`ap-column${compact ? " ap-column--compact" : ""}`} aria-label="Community">
       <h2 className="ap-column__title">
         {pending
           ? "Waiting for the events poll…"

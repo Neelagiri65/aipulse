@@ -6,6 +6,7 @@ import {
   shot,
   skipWhenLocalAndEmpty,
   switchTab,
+  openFeedWire,
   waitForMapReady,
   waitForWireReady,
 } from "./_helpers";
@@ -55,12 +56,12 @@ test.describe("interactions", () => {
     await shot(page, "interaction-eventcard");
   });
 
-  // Skipped on web-v2: WirePage has no desktop entry point after phase 2 (see 01-dashboard-views).
-  test.skip("The Wire shows the HN orange pill when HN stories are present", async ({
+  test("Feed › Wire shows the HN orange pill when HN stories are present", async ({
     page,
   }) => {
     await openDashboard(page);
     await switchTab(page, "Feed");
+    await openFeedWire(page);
     await waitForWireReady(page);
 
     const hnPill = page

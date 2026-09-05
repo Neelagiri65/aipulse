@@ -5,14 +5,24 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { GlobePoint } from "@/components/globe/Globe";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
 import { FeedView } from "@/components/feed/FeedView";
+import { FeedModeSwitch } from "@/components/feed/FeedModeSwitch";
 import { RoomsView } from "@/components/dashboard/RoomsView";
 import { MoreView } from "@/components/dashboard/MoreView";
-import { DEFAULT_TAB, tabFromSearch, writeTabToUrl, type PrimaryTab } from "@/components/chrome/primary-tabs";
+import {
+  DEFAULT_FEED_VIEW,
+  DEFAULT_TAB,
+  feedViewFromSearch,
+  tabFromSearch,
+  writeFeedViewToUrl,
+  writeTabToUrl,
+  type FeedViewMode,
+  type PrimaryTab,
+} from "@/components/chrome/primary-tabs";
 
 const subscribeNever = () => () => {};
 import { LiveFeed } from "@/components/dashboard/LiveFeed";
 import { MetricsRow } from "@/components/dashboard/MetricsRow";
-import type { WireItem } from "@/components/dashboard/WirePage";
+import { WirePage, type WireItem } from "@/components/dashboard/WirePage";
 import { TopBar } from "@/components/chrome/TopBar";
 import { StatusBar, deriveSev } from "@/components/chrome/StatusBar";
 import { HeroStrip } from "@/components/chrome/HeroStrip";
@@ -457,6 +467,18 @@ export function Dashboard({
   const setActiveTab = (tab: PrimaryTab) => {
     setTabOverride(tab);
     writeTabToUrl(tab);
+  };
+  // Feed: Stories (default) or the chronological Wire; `?view=wire` deep link, same pattern.
+  const urlFeedView = useSyncExternalStore(
+    subscribeNever,
+    () => feedViewFromSearch(window.location.search),
+    () => DEFAULT_FEED_VIEW,
+  );
+  const [feedViewOverride, setFeedViewOverride] = useState<FeedViewMode | null>(null);
+  const feedView: FeedViewMode = feedViewOverride ?? urlFeedView;
+  const setFeedView = (mode: FeedViewMode) => {
+    setFeedViewOverride(mode);
+    writeFeedViewToUrl(mode);
   };
   // Map tab: live events (default) or the labs/ecosystem layer.
   const [mapLayer, setMapLayer] = useState<"events" | "labs">("events");
@@ -943,6 +965,8 @@ export function Dashboard({
       <MobileDashboard
         topTab={activeTab}
         onTopTabChange={setActiveTab}
+        feedView={feedView}
+        onFeedViewChange={setFeedView}
         points={points}
         events={events.data}
         eventsLoading={events.isInitialLoading}
@@ -1066,7 +1090,26 @@ export function Dashboard({
         {activeTab === "feed" && (
           <div className="ap-column-scroll">
             <section className="ap-column" aria-label="Feed">
-              <FeedView initialResponse={feed.data ?? initialFeedResponse} />
+              <FeedModeSwitch mode={feedView} onChange={setFeedView} />
+              {feedView === "stories" ? (
+                <FeedView initialResponse={feed.data ?? initialFeedResponse} />
+              ) : (
+                <WirePage
+                  wireRows={wireRows}
+                  ghCoverage={
+                    events.data
+                      ? {
+                          windowMinutes: events.data.coverage.windowMinutes,
+                          windowSize: events.data.coverage.windowSize,
+                        }
+                      : undefined
+                  }
+                  hnMeta={hn.data?.meta}
+                  polledAt={events.data?.polledAt}
+                  error={events.error}
+                  isInitialLoading={events.isInitialLoading && hn.isInitialLoading}
+                />
+              )}
             </section>
           </div>
         )}

@@ -69,10 +69,10 @@ describe("MobileDashboard — shell", () => {
     expect(html).toContain("ap-mobile-brand");
   });
 
-  it("renders the five primary tabs (Health, Feed, Map, Rooms, More)", () => {
+  it("renders the five primary tabs (Health, Feed, Map, Community, More)", () => {
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
     expect(html).toContain("ap-mobile-bottombar");
-    for (const label of ["Health", "Feed", "Map", "Rooms", "More"]) {
+    for (const label of ["Health", "Feed", "Map", "Community", "More"]) {
       expect(html).toContain(`>${label}<`);
     }
   });

@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import type { StatusResult } from "@/lib/data/fetch-status";
 import { VERIFIED_SOURCES, PENDING_SOURCES } from "@/lib/data-sources";
 import { ThemeSwitch } from "@/components/chrome/ThemeSwitch";
-import { PRIMARY_TABS, type PrimaryTab } from "@/components/chrome/primary-tabs";
+import { PRIMARY_TABS, type PrimaryTab, type TabMark } from "@/components/chrome/primary-tabs";
+import { DiscordMark } from "@/components/chrome/DiscordMark";
 
 export type FreshnessState = {
   /** True while the very first poll is in flight. */
@@ -56,13 +57,16 @@ export function TopBar({
         <Brand />
       </div>
 
-      <div className="pointer-events-none absolute left-1/2 -translate-x-1/2">
-        <div className="pointer-events-auto ap-tabs" role="tablist" aria-label="View">
+      {/* In flow after the brand (not centred): the right cluster is ~570px wide, so a centred
+          tablist collides with it below 1700px once "Community" carries its mark. */}
+      <div className="ml-6">
+        <div className="ap-tabs" role="tablist" aria-label="View">
           {PRIMARY_TABS.map((tab) => (
             <TabButton
               key={tab.id}
               id={tab.id}
               label={tab.label}
+              mark={tab.mark}
               active={activeTab === tab.id}
               onSelect={handleTab}
             />
@@ -87,7 +91,7 @@ export function TopBar({
           data-testid="topbar-newsletter-cta"
           className="ap-btn-hot hidden sm:inline-flex"
         >
-          Daily email
+          Subscribe to digest
         </Link>
       </div>
     </header>
@@ -97,11 +101,13 @@ export function TopBar({
 function TabButton({
   id,
   label,
+  mark,
   active,
   onSelect,
 }: {
   id: PrimaryTab;
   label: string;
+  mark?: TabMark;
   active: boolean;
   onSelect: (id: PrimaryTab) => void;
 }) {
@@ -113,6 +119,7 @@ function TabButton({
       className={`ap-tabs__item ${active ? "ap-tabs__item--active" : ""}`}
       onClick={() => onSelect(id)}
     >
+      {mark === "discord" && <DiscordMark />}
       {label}
     </button>
   );

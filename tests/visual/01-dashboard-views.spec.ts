@@ -3,6 +3,7 @@ import {
   openDashboard,
   shot,
   switchTab,
+  openFeedWire,
   waitForMapReady,
   waitForWireReady,
 } from "./_helpers";
@@ -30,12 +31,11 @@ test.describe("dashboard views", () => {
     await shot(page, "view-map");
   });
 
-  // web-v2 phase 2: the full-screen chronological Wire (WirePage) has no desktop entry point —
-  // the five primary surfaces are Health · Feed · Map · Rooms · More and the Wire board is the
-  // LiveFeed window. Restoring or retiring WirePage on desktop is the founder's call (PR #107).
-  test.skip("@wire — The Wire renders chronological feed", async ({ page }) => {
+  // web-v2: the chronological Wire lives inside Feed as the "Wire" view (`?view=wire`).
+  test("@wire — Feed › Wire renders the chronological wire", async ({ page }) => {
     await openDashboard(page);
     await switchTab(page, "Feed");
+    await openFeedWire(page);
     await waitForWireReady(page);
     await expect(page.getByText(/Chronological/).first()).toBeVisible();
     await shot(page, "view-wire", { fullPage: true });
