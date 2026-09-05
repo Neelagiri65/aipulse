@@ -34,6 +34,7 @@ export type DataSourceCategory =
   | "model-distribution" // download / adoption signals for specific models
   | "package-adoption" // download counters from package registries (PyPI, npm, etc.)
   | "community-sentiment"
+  | "community-presence" // live headcounts of a community surface (Discord widget); not sentiment
   | "press-rss" // editor-curated AI news feeds (RSS / Atom)
   | "published-research"
   | "regulatory"
@@ -1263,6 +1264,46 @@ export const GITHUB_REPO_META: DataSource = {
 // Exports
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// COMMUNITY PRESENCE — VERIFIED 2026-09-05 (AUDITOR-REVIEW: PENDING, checkpoint 1)
+// ---------------------------------------------------------------------------
+
+/**
+ * Discord server widget for the Gawk Dev server. The server id is public
+ * (it is in every invite preview) and the widget endpoint needs no auth
+ * once the founder enables "Server Widget" in Discord's server settings.
+ * Only `name` and `presence_count` are consumed; the `members` array
+ * (usernames + avatar URLs of real people) and the widget's own
+ * `instant_invite` code are dropped at the route boundary. The join link
+ * is always `NEXT_PUBLIC_COMMUNITY_URL` (the permanent invite).
+ */
+export const DISCORD_WIDGET: DataSource = {
+  id: "discord-widget",
+  name: "Discord — Gawk Dev server widget",
+  category: "community-presence",
+  url: "https://discord.com/invite/hPkVzt9DHc",
+  apiUrl: "https://discord.com/api/guilds/1500564346001031309/widget.json",
+  responseFormat: "json",
+  updateFrequency: "minutely",
+  rateLimit: {
+    note: "Undocumented. Bare 429 with no Retry-After observed on other Discord public endpoints. /api/community caches 5 min at the CDN so client fan-out never reaches Discord; a disabled widget (403 code 50004) is cached 60 s.",
+  },
+  auth: "none",
+  measures:
+    "`presence_count` = members Discord counts as online right now in the Gawk Dev server, as reported by the server widget. Includes bots. Excludes members whose roles are hidden from the widget. Says nothing about activity, messages, or sentiment.",
+  sanityCheck: {
+    description:
+      "Non-negative integer. The server has single-digit members at launch (4 on 2026-09-05, 1 online = the webhook bot). Anything above 100,000 is a parse error or a different server; treat as invalid, not as growth.",
+    expectedMin: 0,
+    expectedMax: 100_000,
+    unit: "members online now",
+  },
+  verifiedAt: "2026-09-05",
+  caveat:
+    "Requires the founder to keep the server widget enabled; when it is off Discord answers 403 code 50004 and the UI shows the join link without a count. Reuse is governed by the Discord Developer Terms of Service (no `license` field on this type yet; PR #97 carries that). The widget's `channels` list is voice channels only and is not consumed.",
+  powersFeature: ["community-card", "feed-discuss"],
+};
+
 export const ALL_SOURCES: readonly DataSource[] = [
   GITHUB_EVENTS,
   GHARCHIVE,
@@ -1306,6 +1347,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   HOMEBREW_INSTALLS,
   VSCODE_MARKETPLACE,
   GITHUB_REPO_META,
+  DISCORD_WIDGET,
 ] as const;
 
 export const VERIFIED_SOURCES: readonly DataSource[] = ALL_SOURCES.filter(

@@ -60,6 +60,9 @@ The PyPI, npm, and GitHub Repository Metadata sources also power the Agents pane
 - Reddit — r/LocalLLaMA (top-of-day, AI-themed sub)
 - Reddit — r/ClaudeAI (top-of-day, Anthropic-adjacent sub)
 
+### Community presence (1)
+- Discord — Gawk Dev server widget (members online now; includes bots)
+
 ### Model benchmarks (1)
 - Chatbot Arena — `lmarena-ai/leaderboard-dataset` (HuggingFace)
 

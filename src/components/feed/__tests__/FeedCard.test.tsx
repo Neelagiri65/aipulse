@@ -104,3 +104,36 @@ describe("FeedCard", () => {
     expect(html).not.toContain("linkedin.com");
   });
 });
+
+describe("FeedCard — discuss affordance", () => {
+  const discuss = {
+    url: "https://discord.gg/test-invite",
+    onlineCount: 3,
+    asOf: "2026-09-05T11:30:00.000Z",
+    meaning: "Members Discord counts as online right now. Includes bots.",
+  };
+
+  it("renders Discuss · n online on Discord on TOOL_ALERT cards when provided", () => {
+    const html = renderToStaticMarkup(
+      <FeedCard card={card({ type: "TOOL_ALERT", severity: 100 })} discuss={discuss} />,
+    );
+    expect(html).toContain('data-testid="feed-card-discuss"');
+    expect(html).toContain("Discuss · 3 online on Discord");
+    expect(html).toContain('href="https://discord.gg/test-invite"');
+    expect(html).toContain("As of 11:30 UTC");
+  });
+
+  it("does not render it on non-alert cards", () => {
+    const html = renderToStaticMarkup(
+      <FeedCard card={card({ type: "NEWS", severity: 40 })} discuss={discuss} />,
+    );
+    expect(html).not.toContain("feed-card-discuss");
+  });
+
+  it("does not render it when the community route is not answering", () => {
+    const html = renderToStaticMarkup(
+      <FeedCard card={card({ type: "TOOL_ALERT", severity: 100 })} discuss={null} />,
+    );
+    expect(html).not.toContain("feed-card-discuss");
+  });
+});

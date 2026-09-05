@@ -11,8 +11,23 @@
 import { FeedCardShareButton } from "@/components/feed/FeedCardShareButton";
 import type { Card } from "@/lib/feed/types";
 
+/**
+ * "Discuss · n online on Discord" affordance for TOOL_ALERT cards. Passed
+ * down only while /api/community is answering (the parent owns the poll);
+ * absent → nothing renders. The number is Discord's own presence count
+ * and the title says what it does and does not mean.
+ */
+export type FeedCardDiscuss = {
+  url: string;
+  onlineCount: number;
+  /** ISO time the count was read. */
+  asOf: string;
+  meaning: string;
+};
+
 export type FeedCardProps = {
   card: Card;
+  discuss?: FeedCardDiscuss | null;
   /** Reference time for relative-age rendering. Defaults to Date.now() at render time. */
   nowMs?: number;
   /** Hide the share affordance — used by surfaces where sharing isn't
@@ -21,7 +36,7 @@ export type FeedCardProps = {
   showShare?: boolean;
 };
 
-export function FeedCard({ card, nowMs, showShare = true }: FeedCardProps) {
+export function FeedCard({ card, nowMs, showShare = true, discuss }: FeedCardProps) {
   const ts = new Date(card.timestamp).getTime();
   const ref = nowMs ?? Date.now();
   const ageMs = Math.max(0, ref - ts);
@@ -49,6 +64,18 @@ export function FeedCard({ card, nowMs, showShare = true }: FeedCardProps) {
         >
           {card.sourceName} ↗
         </a>
+        {card.type === "TOOL_ALERT" && discuss ? (
+          <a
+            className="ap-feed-card-discuss rounded border border-border/60 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground hover:border-border hover:text-foreground"
+            href={discuss.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="feed-card-discuss"
+            title={`${discuss.meaning} As of ${formatUtcHm(discuss.asOf)} UTC.`}
+          >
+            Discuss · {discuss.onlineCount} online on Discord
+          </a>
+        ) : null}
         {showShare ? <FeedCardShareButton card={card} /> : null}
       </div>
     </article>
@@ -83,6 +110,12 @@ const LABEL: Record<Card["type"], string> = {
   RESEARCH: "RESEARCH",
   LAB_HIGHLIGHT: "LAB HIGHLIGHT",
 };
+
+function formatUtcHm(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "unknown time";
+  return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+}
 
 function formatAge(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));

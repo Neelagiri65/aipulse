@@ -28,12 +28,23 @@ export type CommunityLinkProps = {
   variant?: CommunityLinkVariant;
 };
 
+/**
+ * The community join URL, or undefined when unset. Both env vars are
+ * referenced literally so Next inlines them into client bundles. Shared
+ * with the feed "Discuss" affordance and the mobile Community card so
+ * every surface points at the same permanent invite.
+ */
+export function getCommunityUrl(): string | undefined {
+  return (
+    process.env.NEXT_PUBLIC_COMMUNITY_URL ??
+    process.env.NEXT_PUBLIC_DISCORD_INVITE_URL
+  );
+}
+
 export function CommunityLink({
   variant = "compact",
 }: CommunityLinkProps = {}): React.JSX.Element | null {
-  const url =
-    process.env.NEXT_PUBLIC_COMMUNITY_URL ??
-    process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
+  const url = getCommunityUrl();
   if (!url) return null;
 
   if (variant === "footer") {
