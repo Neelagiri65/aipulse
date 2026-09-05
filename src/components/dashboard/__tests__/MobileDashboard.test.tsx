@@ -57,33 +57,38 @@ const baseProps = {
   agentsLoading: false,
   agentsError: null,
   regionalDeltas: undefined,
+  topTab: "health" as const,
+  onTopTabChange: () => {},
 };
 
 describe("MobileDashboard — shell", () => {
-  it("renders the brand row with the GAWK wordmark", () => {
+  it("renders the brand row with the gawk lockup (Nativerse mark + wordmark)", () => {
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
-    expect(html).toContain("GAWK");
+    expect(html).toContain(">gawk<");
+    expect(html).toContain("ap-brand__mark");
     expect(html).toContain("ap-mobile-brand");
   });
 
-  it("renders the bottom-bar primary tabs (FEED, MAP, PANELS)", () => {
+  it("renders the five primary tabs (Health, Feed, Map, Community, More)", () => {
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
     expect(html).toContain("ap-mobile-bottombar");
-    for (const label of ["FEED", "MAP", "PANELS"]) {
+    for (const label of ["Health", "Feed", "Map", "Community", "More"]) {
       expect(html).toContain(`>${label}<`);
     }
   });
 
-  it("default top-level tab is FEED (per S40 PRD)", () => {
+  it("Health is the landing surface (web v2 supersedes the S40 feed default)", () => {
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
-    expect(html).toMatch(/data-top-tab="feed"/);
+    expect(html).toMatch(/data-top-tab="health"/);
     expect(html).toMatch(
-      /class="ap-mobile-bottombar__item is-active"[^>]*data-tab="feed"/,
+      /class="ap-mobile-bottombar__item is-active"[^>]*data-tab="health"/,
     );
   });
 
-  it("FEED tab renders the feed surface (loading skeleton on SSR)", () => {
-    const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
+  it("Feed tab renders the feed surface (loading skeleton on SSR)", () => {
+    const html = renderToStaticMarkup(
+      <MobileDashboard {...baseProps} topTab="feed" />,
+    );
     expect(html).toContain("ap-mobile-feed");
     expect(html).toContain('data-feed-state="loading"');
   });
@@ -98,9 +103,8 @@ describe("MobileDashboard — shell", () => {
     expect(html).not.toMatch(/class="ap-mobile-tabs__label">SDK</);
   });
 
-  it("does not render the panels sub-tab strip on the default FEED tab", () => {
-    // The 4 sub-tabs (Wire / Health / Models / More) only appear when
-    // the user has switched to the PANELS top-level tab.
+  it("does not render the panels sub-tab strip on the default Health tab", () => {
+    // The sub-tabs (Wire / Models / More) only appear on the More surface.
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
     expect(html).not.toContain("ap-mobile-tabs__item");
   });

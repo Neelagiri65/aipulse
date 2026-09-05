@@ -68,7 +68,7 @@ export async function shot(
  */
 export async function openDashboard(page: Page) {
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("tab", { name: "The Map" })).toBeVisible({
+  await expect(page.getByRole("tab", { name: "Map", exact: true })).toBeVisible({
     timeout: 20_000,
   });
   await expect(
@@ -89,7 +89,7 @@ export async function openDashboard(page: Page) {
  */
 export async function switchTab(
   page: Page,
-  label: "The Map" | "The Wire" | "The Globe",
+  label: "Health" | "Feed" | "Map" | "Community" | "More",
 ) {
   const tab = page.getByRole("tab", { name: label, exact: true });
   await expect(tab).toBeVisible();
@@ -227,6 +227,16 @@ export async function waitForGlobeReady(page: Page) {
  * Wire page readiness: header + either a row or the documented empty
  * state (both are legitimate end-states depending on upstream volume).
  */
+/** Feed › Wire: click the "Wire" segment of the Feed view switch and wait for it to select. */
+export async function openFeedWire(page: Page) {
+  const seg = page.getByRole("tablist", { name: "Feed view" }).getByRole("tab", { name: "Wire", exact: true });
+  await expect(seg).toBeVisible();
+  await expect(async () => {
+    await seg.click({ force: true });
+    await expect(seg).toHaveAttribute("aria-selected", "true", { timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
+}
+
 export async function waitForWireReady(page: Page) {
   // "Chronological" appears only on the WirePage body (either
   // "Chronological · last Xm · …" or the fallback "Chronological feed")

@@ -21,7 +21,7 @@ import {
 test.describe("dashboard panels", () => {
   test.beforeEach(async ({ page }) => {
     await openDashboard(page);
-    await switchTab(page, "The Map");
+    await switchTab(page, "Map");
     await waitForMapReady(page);
   });
 

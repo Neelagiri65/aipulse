@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { StatusResult } from "@/lib/data/fetch-status";
 import { VERIFIED_SOURCES, PENDING_SOURCES } from "@/lib/data-sources";
+import { ThemeSwitch } from "@/components/chrome/ThemeSwitch";
+import { PRIMARY_TABS, type PrimaryTab, type TabMark } from "@/components/chrome/primary-tabs";
+import { DiscordMark } from "@/components/chrome/DiscordMark";
 
 export type FreshnessState = {
   /** True while the very first poll is in flight. */
@@ -16,35 +19,34 @@ export type FreshnessState = {
   error?: string;
 };
 
-export type ViewTabId = "map" | "wire" | "globe" | "ecosystem";
+/** @deprecated web v2: the five primary surfaces live in primary-tabs.ts. Kept as an alias for the transition. */
+export type ViewTabId = PrimaryTab;
 
 export type TopBarProps = {
   status?: StatusResult;
   freshness: FreshnessState;
-  /** Current dashboard view. Defaults to "globe" if caller hasn't wired tabs yet. */
-  activeTab?: ViewTabId;
-  onTabChange?: (tab: ViewTabId) => void;
+  /** Current primary surface (Health · Feed · Map · Rooms · More). */
+  activeTab?: PrimaryTab;
+  onTabChange?: (tab: PrimaryTab) => void;
 };
 
 /**
- * Fixed-top header. Left: brand. Centre: view-tab switcher (THE MAP /
- * THE WIRE — map is the default because progressive-tile rendering
- * holds up at zoom where the 3D globe texture goes grainy). Globe view
- * is still reachable via ViewTabId="globe" but the tab is hidden from
- * the nav; the 3D surface stays in the codebase for future re-enable.
- * Right: freshness pill + severity summary + sources count + UTC clock.
+ * Fixed-top header (web v2). Left: the gawk lockup. Centre: the five primary surfaces
+ * (Health · Feed · Map · Rooms · More) from primary-tabs.ts — same ids as the mobile bottom
+ * bar, so `?tab=` deep links work on both. Right: freshness pill, sources count, UTC clock,
+ * theme switch and the one primary button.
  * Full-width (no max-w container) so the LeftNav rail can pin to the
  * literal viewport edge beneath it.
  */
 export function TopBar({
   status,
   freshness,
-  activeTab = "map",
+  activeTab = "health",
   onTabChange,
 }: TopBarProps) {
   const now = useUtcClock();
   const sev = deriveSeverity(status);
-  const handleTab = (t: ViewTabId) => onTabChange?.(t);
+  const handleTab = (t: PrimaryTab) => onTabChange?.(t);
 
   return (
     <header
@@ -55,26 +57,20 @@ export function TopBar({
         <Brand />
       </div>
 
-      <div className="pointer-events-none absolute left-1/2 -translate-x-1/2">
-        <div className="pointer-events-auto ap-tabs" role="tablist" aria-label="View">
-          <TabButton
-            id="map"
-            label="The Map"
-            active={activeTab === "map"}
-            onSelect={handleTab}
-          />
-          <TabButton
-            id="ecosystem"
-            label="Ecosystem"
-            active={activeTab === "ecosystem"}
-            onSelect={handleTab}
-          />
-          <TabButton
-            id="wire"
-            label="The Wire"
-            active={activeTab === "wire"}
-            onSelect={handleTab}
-          />
+      {/* In flow after the brand (not centred): the right cluster is ~570px wide, so a centred
+          tablist collides with it below 1700px once "Community" carries its mark. */}
+      <div className="ml-6">
+        <div className="ap-tabs" role="tablist" aria-label="View">
+          {PRIMARY_TABS.map((tab) => (
+            <TabButton
+              key={tab.id}
+              id={tab.id}
+              label={tab.label}
+              mark={tab.mark}
+              active={activeTab === tab.id}
+              onSelect={handleTab}
+            />
+          ))}
         </div>
       </div>
 
@@ -85,16 +81,17 @@ export function TopBar({
           pending={PENDING_SOURCES.length}
         />
         {now && (
-          <span className="hidden font-mono text-[11px] tracking-wider text-teal-300 sm:inline">
+          <span className="hidden font-mono text-[11px] tracking-wider text-muted-foreground sm:inline">
             {now}
           </span>
         )}
+        <ThemeSwitch className="hidden sm:inline-flex" />
         <Link
           href="/newsletter"
           data-testid="topbar-newsletter-cta"
-          className="hidden rounded-md border border-teal-300/40 px-2.5 py-1 font-mono text-[11px] tracking-wider text-teal-300 transition-colors hover:border-teal-300/70 hover:text-teal-200 sm:inline-block"
+          className="ap-btn-hot hidden sm:inline-flex"
         >
-          Daily email
+          Subscribe to digest
         </Link>
       </div>
     </header>
@@ -104,13 +101,15 @@ export function TopBar({
 function TabButton({
   id,
   label,
+  mark,
   active,
   onSelect,
 }: {
-  id: ViewTabId;
+  id: PrimaryTab;
   label: string;
+  mark?: TabMark;
   active: boolean;
-  onSelect: (id: ViewTabId) => void;
+  onSelect: (id: PrimaryTab) => void;
 }) {
   return (
     <button
@@ -120,6 +119,7 @@ function TabButton({
       className={`ap-tabs__item ${active ? "ap-tabs__item--active" : ""}`}
       onClick={() => onSelect(id)}
     >
+      {mark === "discord" && <DiscordMark />}
       {label}
     </button>
   );
@@ -172,17 +172,13 @@ function formatAge(ms: number): string {
   return `${Math.floor(h / 24)}d`;
 }
 
+/** Nativerse mark + "gawk": the lockup mcp.gawk.dev already uses (PRD web-restyle-v2 §6). */
 function Brand() {
   return (
-    <a href="/" className="flex items-center gap-2">
-      <span className="font-mono text-[11px] font-bold tracking-[0.16em] text-foreground">
-        GAWK
-      </span>
-      <span className="ap-live-dot" />
-      <span className="ap-label-sm hidden md:inline" style={{ color: "var(--ap-fg-dim)" }}>
-        BETA
-      </span>
-    </a>
+    <Link href="/" className="ap-brand" aria-label="Gawk home">
+      <span className="ap-brand__mark" aria-hidden />
+      <span>gawk</span>
+    </Link>
   );
 }
 
@@ -254,7 +250,7 @@ function SourcesCount({
       {pending > 0 ? (
         <>
           {" · "}
-          <span className="text-amber-400 tabular-nums">{pending}</span> pend
+          <span className="text-foreground tabular-nums">{pending}</span> pend
         </>
       ) : null}
     </a>

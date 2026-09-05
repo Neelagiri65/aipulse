@@ -10,9 +10,10 @@ test.describe("chrome", () => {
   test("TopBar brand + tabs + freshness pill are visible", async ({ page }) => {
     await openDashboard(page);
 
-    await expect(page.getByText("GAWK").first()).toBeVisible();
-    await expect(page.getByRole("tab", { name: "The Map" })).toBeVisible();
-    await expect(page.getByRole("tab", { name: "The Wire" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Gawk home" }).first()).toBeVisible();
+    for (const name of ["Health", "Feed", "Map", "Community", "More"]) {
+      await expect(page.getByRole("tab", { name, exact: true }).first()).toBeVisible();
+    }
     // Session 27 hid the Globe tab from the switcher. Assert absence so
     // the test catches any accidental re-add.
     await expect(page.getByRole("tab", { name: "The Globe" })).toHaveCount(0);

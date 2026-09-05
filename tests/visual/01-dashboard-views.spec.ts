@@ -3,6 +3,7 @@ import {
   openDashboard,
   shot,
   switchTab,
+  openFeedWire,
   waitForMapReady,
   waitForWireReady,
 } from "./_helpers";
@@ -22,25 +23,27 @@ import {
  */
 
 test.describe("dashboard views", () => {
-  test("@map — The Map renders leaflet tiles + markers", async ({ page }) => {
+  test("@map — Map renders leaflet tiles + markers", async ({ page }) => {
     await openDashboard(page);
-    await switchTab(page, "The Map");
+    await switchTab(page, "Map");
     await waitForMapReady(page);
     await expect(page.locator(".leaflet-container")).toBeVisible();
     await shot(page, "view-map");
   });
 
-  test("@wire — The Wire renders chronological feed", async ({ page }) => {
+  // web-v2: the chronological Wire lives inside Feed as the "Wire" view (`?view=wire`).
+  test("@wire — Feed › Wire renders the chronological wire", async ({ page }) => {
     await openDashboard(page);
-    await switchTab(page, "The Wire");
+    await switchTab(page, "Feed");
+    await openFeedWire(page);
     await waitForWireReady(page);
     await expect(page.getByText(/Chronological/).first()).toBeVisible();
     await shot(page, "view-wire", { fullPage: true });
   });
 
-  test("default tab on load is The Map", async ({ page }) => {
+  test("default tab on load is Health", async ({ page }) => {
     await openDashboard(page);
-    await expect(page.getByRole("tab", { name: "The Map" })).toHaveAttribute(
+    await expect(page.getByRole("tab", { name: "Health", exact: true })).toHaveAttribute(
       "aria-selected",
       "true",
     );

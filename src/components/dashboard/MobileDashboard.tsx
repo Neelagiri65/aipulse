@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import dynamic from "next/dynamic";
 import { useState } from "react";
 
@@ -9,6 +11,10 @@ import {
   MobileBottomBar,
   type MobileTopLevelTab,
 } from "@/components/chrome/MobileBottomBar";
+import { ThemeSwitch } from "@/components/chrome/ThemeSwitch";
+import { RoomsView } from "@/components/dashboard/RoomsView";
+import { FeedModeSwitch } from "@/components/feed/FeedModeSwitch";
+import type { FeedViewMode } from "@/components/chrome/primary-tabs";
 import { FeedView } from "@/components/feed/FeedView";
 import { LiveTicker } from "@/components/map/LiveTicker";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
@@ -76,6 +82,12 @@ type MobileTab = {
 };
 
 export type MobileDashboardProps = {
+  /** Primary surface, owned by the parent so desktop and mobile share `?tab=`. */
+  topTab: MobileTopLevelTab;
+  /** Feed axis: Stories (default) or the chronological Wire. Optional so tests and older callers keep working. */
+  feedView?: FeedViewMode;
+  onFeedViewChange?: (mode: FeedViewMode) => void;
+  onTopTabChange: (tab: MobileTopLevelTab) => void;
   // Map data (already filtered by parent)
   points: GlobePoint[];
   events: GlobeEventsResult | undefined;
@@ -152,7 +164,9 @@ export type MobileDashboardProps = {
  *                so the "More" tab isn't blank on first land.
  */
 export function MobileDashboard(props: MobileDashboardProps) {
-  const [topTab, setTopTab] = useState<MobileTopLevelTab>("feed");
+  const topTab = props.topTab;
+  const feedView: FeedViewMode = props.feedView ?? "stories";
+  const setTopTab = props.onTopTabChange;
   const [active, setActive] = useState<MobileTopTabId>("wire");
   const [modelsSub, setModelsSub] = useState<MobileModelsSubId>("downloads");
   // Default: research expanded so the More tab has visible content on
@@ -166,11 +180,6 @@ export function MobileDashboard(props: MobileDashboardProps) {
       id: "wire",
       label: "Wire",
       count: props.events?.coverage.windowSize ?? null,
-    },
-    {
-      id: "health",
-      label: "Health",
-      count: props.status ? Object.keys(props.status.data).length : null,
     },
     {
       id: "models",
@@ -219,35 +228,34 @@ export function MobileDashboard(props: MobileDashboardProps) {
     track("panel_open", { panel: `highlight:${panel}`, surface: "mobile" });
     switch (panel) {
       case "tools":
-        setTopTab("panels");
-        setActive("health");
+        setTopTab("health");
         return;
       case "wire":
-        setTopTab("panels");
+        setTopTab("more");
         setActive("wire");
         return;
       case "model-usage":
-        setTopTab("panels");
+        setTopTab("more");
         setActive("models");
         setModelsSub("usage");
         return;
       case "benchmarks":
-        setTopTab("panels");
+        setTopTab("more");
         setActive("models");
         setModelsSub("benchmarks");
         return;
       case "research":
-        setTopTab("panels");
+        setTopTab("more");
         setActive("more");
         setMoreOpen((prev) => new Set(prev).add("research"));
         return;
       case "labs":
-        setTopTab("panels");
+        setTopTab("more");
         setActive("more");
         setMoreOpen((prev) => new Set(prev).add("labs"));
         return;
       case "sdk-adoption":
-        setTopTab("panels");
+        setTopTab("more");
         setActive("more");
         setMoreOpen((prev) => new Set(prev).add("sdk-adoption"));
         return;
@@ -261,28 +269,67 @@ export function MobileDashboard(props: MobileDashboardProps) {
       data-active-tab={active}
     >
       <header className="ap-mobile-topbar">
-        <a href="/" className="ap-mobile-brand" aria-label="Gawk home">
-          <span className="ap-live-dot" aria-hidden />
-          <span className="ap-mobile-brand__name">GAWK</span>
-          <span className="ap-mobile-brand__beta">BETA</span>
-        </a>
+        <Link href="/" className="ap-brand ap-brand--compact ap-mobile-brand" aria-label="Gawk home">
+          <span className="ap-brand__mark" aria-hidden />
+          <span>gawk</span>
+        </Link>
         <FreshnessChip freshness={props.statusFreshness} />
+        <ThemeSwitch />
         <ShareButton />
       </header>
 
       <HeroStrip status={props.status} variant="mobile" />
 
       <main className="ap-mobile-body" role="tabpanel">
-        {topTab !== "feed" && (
+        {topTab !== "feed" && topTab !== "health" && (
           <HighlightsStrip
             highlights={highlights}
             onSelect={onHighlightSelect}
             variant="mobile"
           />
         )}
+        {topTab === "health" && (
+          <div className="ap-mobile-panel ap-mobile-panel--padded">
+            <HealthCardGrid data={props.status?.data} maximized={true} />
+            {props.statusError ? (
+              <p className="ap-mobile-error">Status poll error: {props.statusError}</p>
+            ) : null}
+          </div>
+        )}
+        {topTab === "rooms" && (
+          <RoomsView
+            rows={props.wireRows}
+            polledAt={props.events?.polledAt}
+            windowMinutes={props.events?.coverage.windowMinutes}
+            compact
+          />
+        )}
         {topTab === "feed" && (
           <div className="ap-mobile-feed">
-            <FeedView initialResponse={props.initialFeedResponse} />
+            <div className="ap-mobile-feed__switch">
+              <FeedModeSwitch mode={feedView} onChange={props.onFeedViewChange ?? (() => {})} />
+            </div>
+            {feedView === "stories" ? (
+              <FeedView initialResponse={props.initialFeedResponse} />
+            ) : (
+              <div className="ap-mobile-feed__wire">
+                <WirePage
+                  wireRows={props.wireRows}
+                  ghCoverage={
+                    props.events
+                      ? {
+                          windowMinutes: props.events.coverage.windowMinutes,
+                          windowSize: props.events.coverage.windowSize,
+                        }
+                      : undefined
+                  }
+                  hnMeta={props.hn?.meta}
+                  polledAt={props.events?.polledAt}
+                  error={props.eventsError ?? undefined}
+                  isInitialLoading={props.eventsLoading && props.hnLoading}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -302,7 +349,7 @@ export function MobileDashboard(props: MobileDashboardProps) {
           </div>
         )}
 
-        {topTab === "panels" && (
+        {topTab === "more" && (
           <>
             <nav
               className="ap-mobile-tabs"

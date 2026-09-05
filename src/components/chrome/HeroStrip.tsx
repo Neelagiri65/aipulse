@@ -30,7 +30,7 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
   if (variant === "mobile") {
     return (
       <div className="flex flex-col gap-2 border-b border-border/40 bg-background/90 px-4 py-3">
-        <span className="text-lg font-semibold tracking-tight text-white">
+        <span className="text-lg font-semibold tracking-tight text-foreground">
           Is your AI coding stack working right now?
         </span>
         <div className="flex items-center justify-between">
@@ -63,7 +63,7 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
       style={{ top: 76, height: 56 }}
     >
       <div className="flex flex-col gap-0.5">
-        <span style={{ fontSize: 28, lineHeight: 1.2 }} className="font-semibold tracking-tight text-white">
+        <span style={{ fontSize: 28, lineHeight: 1.2 }} className="font-semibold tracking-tight text-foreground">
           Is your AI coding stack working right now?
         </span>
         <span className="text-xs text-gray-400">

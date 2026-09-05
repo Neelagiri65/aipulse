@@ -34,7 +34,7 @@ import {
 test.describe("Regional RSS layer", () => {
   test.beforeEach(async ({ page }) => {
     await openDashboard(page);
-    await switchTab(page, "The Map");
+    await switchTab(page, "Map");
     await waitForMapReady(page);
   });
 

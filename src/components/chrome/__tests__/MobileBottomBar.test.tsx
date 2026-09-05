@@ -2,18 +2,16 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { MobileBottomBar } from "@/components/chrome/MobileBottomBar";
+import { ROOMS_LABEL } from "@/components/chrome/primary-tabs";
 
 describe("MobileBottomBar", () => {
-  it("renders three tabs in the locked order: FEED, MAP, PANELS", () => {
+  it("renders the five primary tabs in the locked order: Health, Feed, Map, Community, More", () => {
     const html = renderToStaticMarkup(
-      <MobileBottomBar active="feed" onSelect={() => {}} />,
+      <MobileBottomBar active="health" onSelect={() => {}} />,
     );
-    const feedIdx = html.indexOf(">FEED<");
-    const mapIdx = html.indexOf(">MAP<");
-    const panelsIdx = html.indexOf(">PANELS<");
-    expect(feedIdx).toBeGreaterThanOrEqual(0);
-    expect(mapIdx).toBeGreaterThan(feedIdx);
-    expect(panelsIdx).toBeGreaterThan(mapIdx);
+    const idx = ["Health", "Feed", "Map", ROOMS_LABEL, "More"].map((l) => html.indexOf(`>${l}<`));
+    expect(idx[0]).toBeGreaterThanOrEqual(0);
+    for (let i = 1; i < idx.length; i++) expect(idx[i]).toBeGreaterThan(idx[i - 1]);
   });
 
   it("marks the active tab with is-active + aria-selected", () => {
@@ -31,11 +29,11 @@ describe("MobileBottomBar", () => {
 
   it("non-active tabs render aria-selected='false'", () => {
     const html = renderToStaticMarkup(
-      <MobileBottomBar active="feed" onSelect={() => {}} />,
+      <MobileBottomBar active="health" onSelect={() => {}} />,
     );
     const mapBtn = html.match(/<button[^>]*data-tab="map"[^>]*>/)?.[0];
-    const panelsBtn = html.match(/<button[^>]*data-tab="panels"[^>]*>/)?.[0];
+    const moreBtn = html.match(/<button[^>]*data-tab="more"[^>]*>/)?.[0];
     expect(mapBtn).toContain('aria-selected="false"');
-    expect(panelsBtn).toContain('aria-selected="false"');
+    expect(moreBtn).toContain('aria-selected="false"');
   });
 });
