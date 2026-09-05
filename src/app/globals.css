@@ -896,14 +896,9 @@
    but below any chrome. Decorative only.
    ============================================================================ */
 .ap-stage-grid {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-  background-image:
-    linear-gradient(rgba(26, 35, 50, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(26, 35, 50, 0.04) 1px, transparent 1px);
-  background-size: 64px 64px;
+  /* web v2: the lattice is ambient chrome and is retired; the paper dot grid on .ap-stage-bg is the only texture.
+     The mount in Dashboard.tsx stays until phase 3 removes it. */
+  display: none;
 }
 
 /* ============================================================================
