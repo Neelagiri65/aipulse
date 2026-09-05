@@ -66,6 +66,19 @@ test.describe("chrome", () => {
     ).toBeVisible();
   });
 
+  test("Community link renders in the TopBar (env-gated, set on prod)", async ({
+    page,
+  }) => {
+    await openDashboard(page);
+    // NEXT_PUBLIC_COMMUNITY_URL is set on Vercel production + preview; the
+    // header link is the one surface that puts the community in front of
+    // dashboard readers (the footer variant only ships on non-home pages).
+    const link = page.locator("header [data-testid='community-link']");
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("href", /discord\.gg\//);
+    await expect(link).toHaveAttribute("target", "_blank");
+  });
+
   test("Sources count link in the header shows verified count", async ({
     page,
   }) => {
