@@ -118,7 +118,7 @@ describe("FeedCard — discuss affordance", () => {
       <FeedCard card={card({ type: "TOOL_ALERT", severity: 100 })} discuss={discuss} />,
     );
     expect(html).toContain('data-testid="feed-card-discuss"');
-    expect(html).toContain("Discuss · 3 online on Discord");
+    expect(html).toContain("Discuss · 3 online on Discord · incl. bots");
     expect(html).toContain('href="https://discord.gg/test-invite"');
     expect(html).toContain("As of 11:30 UTC");
   });

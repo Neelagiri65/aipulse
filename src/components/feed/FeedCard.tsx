@@ -73,7 +73,7 @@ export function FeedCard({ card, nowMs, showShare = true, discuss }: FeedCardPro
             data-testid="feed-card-discuss"
             title={`${discuss.meaning} As of ${formatUtcHm(discuss.asOf)} UTC.`}
           >
-            Discuss · {discuss.onlineCount} online on Discord
+            Discuss · {discuss.onlineCount} online on Discord · incl. bots
           </a>
         ) : null}
         {showShare ? <FeedCardShareButton card={card} /> : null}
