@@ -60,9 +60,10 @@ const baseProps = {
 };
 
 describe("MobileDashboard — shell", () => {
-  it("renders the brand row with the GAWK wordmark", () => {
+  it("renders the brand row with the gawk lockup (Nativerse mark + wordmark)", () => {
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
-    expect(html).toContain("GAWK");
+    expect(html).toContain(">gawk<");
+    expect(html).toContain("ap-brand__mark");
     expect(html).toContain("ap-mobile-brand");
   });
 

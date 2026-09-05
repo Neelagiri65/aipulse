@@ -214,6 +214,65 @@
 }
 
 /* ============================================================================
+   BRAND LOCKUP, THEME SWITCH, PRIMARY BUTTON (web v2 chrome)
+   Lockup = the Nativerse mark (mcp.gawk.dev variant, drawn in currentColor via a CSS mask)
+   + "gawk" 22px/600/-0.02em. --hot appears on exactly one button per screen.
+   ============================================================================ */
+.ap-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1;
+}
+.ap-brand--compact { font-size: 19px; gap: 8px; }
+.ap-brand__mark {
+  display: block;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  background: currentColor;
+  -webkit-mask: url("/brand/nativerse-mark-mono.svg") center / contain no-repeat;
+  mask: url("/brand/nativerse-mark-mono.svg") center / contain no-repeat;
+}
+.ap-brand--compact .ap-brand__mark { width: 26px; height: 26px; }
+.ap-theme-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 28px;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ap-theme-switch:hover { color: var(--ink); background: var(--paper3); }
+.ap-theme-switch__label { min-width: 2.6em; text-align: left; }
+.ap-btn-hot {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 28px;
+  background: var(--hot);
+  color: var(--on-hot);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.ap-btn-hot:hover { filter: brightness(0.96); }
+
+/* ============================================================================
    SEVERITY PILLS / DOTS — single source of truth for status colour language.
    ============================================================================ */
 .ap-sev-pill {
@@ -388,9 +447,9 @@
    LEFT NAV (category list bottom-left)
    ============================================================================ */
 .ap-leftnav {
-  background: rgba(10, 13, 16, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--surface);
+
+
   border: 1px solid var(--ap-border);
   padding: 6px;
   border-radius: 4px;
@@ -412,11 +471,11 @@
   background: none;
   cursor: pointer;
 }
-.ap-leftnav__item:hover { color: var(--ap-fg); background: rgba(45, 212, 191, 0.04); }
+.ap-leftnav__item:hover { color: var(--ap-fg); background: var(--paper3); }
 .ap-leftnav__item--active {
   color: var(--ap-accent);
-  background: rgba(45, 212, 191, 0.08);
-  border-color: rgba(45, 212, 191, 0.35);
+  background: var(--paper3);
+  border-color: var(--hair2);
 }
 .ap-leftnav__item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.85; }
 .ap-leftnav__item .ap-leftnav__count {
@@ -525,10 +584,10 @@
   gap: 8px;
   padding: 0 12px;
   height: 48px;
-  background: rgba(10, 13, 16, 0.92);
+  background: var(--surface);
   border-bottom: 1px solid var(--ap-border);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+
+
 }
 
 .ap-mobile-brand {
@@ -928,13 +987,13 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px 4px;
-  background: linear-gradient(to right, rgba(10, 13, 16, 0.7), rgba(10, 13, 16, 0));
+  background: none;
   border-right: 1px solid transparent;
   z-index: 50;
   transition: width 180ms ease;
 }
 .ap-icon-nav--collapsed { width: 44px; overflow: hidden; }
-.ap-icon-nav--expanded  { width: 176px; border-right-color: var(--ap-border); background: rgba(10, 13, 16, 0.88); backdrop-filter: blur(10px); }
+
 
 .ap-icon-nav__hamburger {
   display: flex;
@@ -971,11 +1030,11 @@
 }
 .ap-icon-nav__item:hover:not(:disabled) {
   color: var(--ap-fg);
-  background: rgba(45, 212, 191, 0.04);
+  background: var(--paper3);
 }
 .ap-icon-nav__item--active {
   color: var(--ap-accent);
-  background: rgba(45, 212, 191, 0.08);
+  background: var(--paper3);
   border-left-color: var(--ap-accent);
 }
 .ap-icon-nav__item:disabled {
@@ -1022,9 +1081,9 @@
 }
 .ap-tabs__item:hover { color: var(--ap-fg); }
 .ap-tabs__item--active {
-  color: var(--ap-fg);
-  background: rgba(45, 212, 191, 0.06);
-  border-bottom-color: var(--ap-accent);
+  color: var(--link);
+  background: transparent;
+  border-bottom-color: var(--link);
 }
 
 /* ============================================================================
@@ -1923,12 +1982,12 @@
   display: flex;
   align-items: stretch;
   height: 56px;
-  background: rgba(8, 10, 12, 0.95);
+  background: var(--surface);
   border-top: 1px solid var(--ap-border);
   position: sticky;
   bottom: 0;
   z-index: 50;
-  backdrop-filter: blur(8px);
+
 }
 
 .ap-mobile-bottombar__item {
@@ -1949,9 +2008,9 @@
 }
 
 .ap-mobile-bottombar__item.is-active {
-  color: var(--ap-accent);
-  border-top-color: var(--ap-accent);
-  background: rgba(45, 212, 191, 0.06);
+  color: var(--link);
+  border-top-color: var(--link);
+  background: var(--paper3);
 }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -2157,15 +2216,15 @@
   display: flex;
   align-items: center;
   height: 40px;
-  background: rgba(8, 10, 12, 0.96);
-  border-top: 1px solid rgba(45, 212, 191, 0.35);
-  box-shadow: 0 -4px 24px -8px rgba(45, 212, 191, 0.25);
+  background: var(--surface);
+  border-top: 1px solid var(--hair2);
+  box-shadow: none;
   overflow: hidden;
   position: relative;
   z-index: 5;
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 12px;
-  color: rgba(226, 232, 240, 0.92);
+  color: var(--ink);
 }
 
 .ap-live-ticker-tag {
@@ -2179,8 +2238,8 @@
   font-size: 10px;
   letter-spacing: 0.22em;
   color: var(--ap-accent);
-  background: rgba(45, 212, 191, 0.08);
-  border-right: 1px solid rgba(45, 212, 191, 0.3);
+  background: var(--paper3);
+  border-right: 1px solid var(--hair2);
 }
 
 /* Desktop refinement: compact 28px strip with a clean separator border
@@ -2192,13 +2251,13 @@
   .ap-live-ticker {
     height: 28px;
     font-size: 11px;
-    border-top: 1px solid rgba(148, 163, 184, 0.22);
+    border-top: 1px solid var(--hair);
     box-shadow: none;
   }
   .ap-live-ticker-tag {
     padding: 0 10px;
     font-size: 9px;
-    border-right: 1px solid rgba(45, 212, 191, 0.25);
+    border-right: 1px solid var(--hair2);
   }
 }
 
@@ -2207,7 +2266,7 @@
   height: 6px;
   border-radius: 50%;
   background: var(--ap-accent);
-  box-shadow: 0 0 8px var(--ap-accent);
+  box-shadow: none;
   animation: ap-ticker-pulse 1.4s ease-in-out infinite;
 }
 
@@ -2283,7 +2342,7 @@
 
 .ap-live-ticker-sep {
   margin: 0 12px;
-  color: rgba(148, 163, 184, 0.4);
+  color: var(--hollow);
 }
 
 @keyframes ap-ticker-scroll {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { StatusResult } from "@/lib/data/fetch-status";
 import { VERIFIED_SOURCES, PENDING_SOURCES } from "@/lib/data-sources";
+import { ThemeSwitch } from "@/components/chrome/ThemeSwitch";
 
 export type FreshnessState = {
   /** True while the very first poll is in flight. */
@@ -85,14 +86,15 @@ export function TopBar({
           pending={PENDING_SOURCES.length}
         />
         {now && (
-          <span className="hidden font-mono text-[11px] tracking-wider text-teal-300 sm:inline">
+          <span className="hidden font-mono text-[11px] tracking-wider text-muted-foreground sm:inline">
             {now}
           </span>
         )}
+        <ThemeSwitch className="hidden sm:inline-flex" />
         <Link
           href="/newsletter"
           data-testid="topbar-newsletter-cta"
-          className="hidden rounded-md border border-teal-300/40 px-2.5 py-1 font-mono text-[11px] tracking-wider text-teal-300 transition-colors hover:border-teal-300/70 hover:text-teal-200 sm:inline-block"
+          className="ap-btn-hot hidden sm:inline-flex"
         >
           Daily email
         </Link>
@@ -172,16 +174,12 @@ function formatAge(ms: number): string {
   return `${Math.floor(h / 24)}d`;
 }
 
+/** Nativerse mark + "gawk": the lockup mcp.gawk.dev already uses (PRD web-restyle-v2 §6). */
 function Brand() {
   return (
-    <a href="/" className="flex items-center gap-2">
-      <span className="font-mono text-[11px] font-bold tracking-[0.16em] text-foreground">
-        GAWK
-      </span>
-      <span className="ap-live-dot" />
-      <span className="ap-label-sm hidden md:inline" style={{ color: "var(--ap-fg-dim)" }}>
-        BETA
-      </span>
+    <a href="/" className="ap-brand" aria-label="Gawk home">
+      <span className="ap-brand__mark" aria-hidden />
+      <span>gawk</span>
     </a>
   );
 }
@@ -254,7 +252,7 @@ function SourcesCount({
       {pending > 0 ? (
         <>
           {" · "}
-          <span className="text-amber-400 tabular-nums">{pending}</span> pend
+          <span className="text-foreground tabular-nums">{pending}</span> pend
         </>
       ) : null}
     </a>

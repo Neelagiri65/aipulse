@@ -9,6 +9,7 @@ import {
   MobileBottomBar,
   type MobileTopLevelTab,
 } from "@/components/chrome/MobileBottomBar";
+import { ThemeSwitch } from "@/components/chrome/ThemeSwitch";
 import { FeedView } from "@/components/feed/FeedView";
 import { LiveTicker } from "@/components/map/LiveTicker";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
@@ -261,12 +262,12 @@ export function MobileDashboard(props: MobileDashboardProps) {
       data-active-tab={active}
     >
       <header className="ap-mobile-topbar">
-        <a href="/" className="ap-mobile-brand" aria-label="Gawk home">
-          <span className="ap-live-dot" aria-hidden />
-          <span className="ap-mobile-brand__name">GAWK</span>
-          <span className="ap-mobile-brand__beta">BETA</span>
+        <a href="/" className="ap-brand ap-brand--compact ap-mobile-brand" aria-label="Gawk home">
+          <span className="ap-brand__mark" aria-hidden />
+          <span>gawk</span>
         </a>
         <FreshnessChip freshness={props.statusFreshness} />
+        <ThemeSwitch />
         <ShareButton />
       </header>
 
