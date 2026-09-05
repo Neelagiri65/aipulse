@@ -1080,7 +1080,7 @@ export function Dashboard({
         {activeTab === "health" && (
           <div className="ap-column-scroll">
             <section className="ap-column" aria-label="Health">
-              <HealthCardGrid data={status.data?.data} maximized={true} />
+              <HealthCardGrid data={status.data?.data} polledAt={status.data?.polledAt} maximized={true} />
               {status.error ? (
                 <p className="ap-column__sub">Status poll error: {status.error}</p>
               ) : null}
@@ -1254,6 +1254,7 @@ export function Dashboard({
               <div className="p-3">
                 <HealthCardGrid
                   data={status.data?.data}
+                  polledAt={status.data?.polledAt}
                   maximized={maxId === "tools"}
                 />
                 {status.error && (

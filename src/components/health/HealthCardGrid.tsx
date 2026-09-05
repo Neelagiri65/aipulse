@@ -1,28 +1,49 @@
+/**
+ * Gawk — Tool health list (web v2 phase 3): one inset, incidents first. Rows whose state is an
+ * exception (any incident, anything not operational, anything unmeasured) come first and open
+ * their detail by default; working rows follow, collapsed. The head carries the count of status
+ * pages behind the list and the time of the last poll. The name `HealthCardGrid` is kept so the
+ * three call sites (desktop Health, the Tools window, the mobile shell) need no change.
+ */
+
 import { ToolHealthCard } from "./ToolHealthCard";
+import { deriveRowState } from "./row-state";
 import { TOOLS, type ToolHealthData } from "./tools";
 
 export type HealthCardGridProps = {
-  /** Map of tool id → live health data. Missing keys render awaiting/pending state. */
+  /** Map of tool id → live health data. Missing keys render the awaiting / pending state. */
   data?: Partial<Record<(typeof TOOLS)[number]["id"], ToolHealthData>>;
-  /**
-   * FIX-02 — when the Tools panel is maximised, pin the grid to 2 columns
-   * (spec-prescribed). The auto-fit rule would land at 3 columns at 80%
-   * of a 1440 viewport, which made card bodies read too narrow for the
-   * incident list + sparkline stack. Default is the restored-panel
-   * behaviour: auto-fit between 300px and 1fr so a single-column panel
-   * reflows to 2 on resize.
-   */
+  /** ISO time of the poll that produced `data`; shown as "checked hh:mm UTC". */
+  polledAt?: string;
+  /** Kept for the call sites; the list has one layout on every width. */
   maximized?: boolean;
 };
 
-export function HealthCardGrid({ data, maximized }: HealthCardGridProps) {
-  const gridClass = maximized
-    ? "grid gap-3 grid-cols-1 md:grid-cols-2"
-    : "grid gap-3 grid-cols-[repeat(auto-fit,minmax(300px,1fr))]";
+const STATUS_PAGES = new Set(TOOLS.flatMap((t) => t.sourceIds.filter((id) => id.endsWith("-status")))).size;
+
+function hhmmUtc(iso?: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
+}
+
+export function HealthCardGrid({ data, polledAt }: HealthCardGridProps) {
+  const rows = TOOLS.map((tool) => ({ tool, data: data?.[tool.id], state: deriveRowState(tool, data?.[tool.id]) }));
+  const exceptions = rows.filter((r) => r.state.exception);
+  const working = rows.filter((r) => !r.state.exception);
+  const checked = hhmmUtc(polledAt);
   return (
-    <div className={gridClass}>
-      {TOOLS.map((tool) => (
-        <ToolHealthCard key={tool.id} config={tool} data={data?.[tool.id]} />
+    <div className="ap-inset ap-health" data-testid="health-list">
+      <div className="ap-inset__head ap-inset__head--split">
+        <span>Tool health · incidents first</span>
+        <span>
+          {STATUS_PAGES} status pages{checked ? ` · checked ${checked}` : ""}
+        </span>
+      </div>
+      {[...exceptions, ...working].map((r) => (
+        <ToolHealthCard key={r.tool.id} config={r.tool} data={r.data} />
       ))}
     </div>
   );

@@ -2631,3 +2631,74 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
 .ap-feedseg__item.is-active { background: var(--ap-fg); color: var(--ap-bg); }
 .ap-mobile-feed__switch { flex: none; padding: 10px 12px 0; }
 .ap-mobile-feed__wire { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* ---- Tool health rows (web v2 phase 3, PRD §7: state by shape, colour by words) ---- */
+.ap-inset__head--split { display: flex; justify-content: space-between; gap: 12px; }
+.ap-trow { border-top: 1px solid var(--hair); }
+.ap-trow__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ap-trow__head:hover { background: var(--paper3); }
+.ap-trow__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ap-trow__title { font-size: 16px; font-weight: 500; line-height: 1.25; }
+.ap-trow__cap { font-size: 12.5px; line-height: 1.35; color: var(--ink-muted); }
+.ap-word--op { color: var(--op); }
+.ap-word--out { color: var(--out); }
+.ap-word--ink { color: var(--ink); }
+.ap-mark { width: 14px; height: 14px; flex: none; border-radius: 50%; box-sizing: border-box; }
+.ap-mark--solid { background: var(--ink); }
+.ap-mark--hatched {
+  background: repeating-linear-gradient(45deg, var(--ink) 0 2px, transparent 2px 4px);
+  border: 1px solid var(--ink);
+}
+.ap-mark--hollow { background: transparent; border: 1px solid var(--hollow, var(--ink-muted)); }
+.ap-mark--sm { width: 10px; height: 10px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+.ap-strip { display: inline-flex; gap: 2px; flex: none; }
+.ap-strip__cell { width: 8px; height: 14px; border-radius: 2px; box-sizing: border-box; }
+.ap-strip__cell--solid { background: var(--ink); }
+.ap-strip__cell--hatched { background: repeating-linear-gradient(45deg, var(--ink) 0 1.5px, transparent 1.5px 3.5px); border: 1px solid var(--ink); }
+.ap-strip__cell--hollow { border: 1px solid var(--hair2, var(--hair)); }
+.ap-chev { flex: none; width: 16px; text-align: center; font-size: 18px; line-height: 1; color: var(--ink-muted); transition: transform 120ms; }
+.ap-chev--open { transform: rotate(90deg); }
+.ap-trow__detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px 14px 42px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.ap-trow__sub { margin: 0; color: var(--ink-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.ap-trow__note { margin: 0; padding: 10px 12px; border: 1px solid var(--hair); border-radius: 10px; background: var(--paper3); }
+.ap-trow__note p { margin: 0; }
+.ap-trow__note p + p { margin-top: 4px; }
+.ap-trow__notehead { font-weight: 500; }
+.ap-trow__incidents { padding: 10px 12px; border: 1px solid var(--ink); border-radius: 10px; }
+.ap-trow__incidents p, .ap-trow__incidents ul { margin: 0; }
+.ap-trow__list { list-style: none; padding: 0; margin-top: 4px; display: flex; flex-direction: column; gap: 2px; }
+.ap-trow__kicker { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+.ap-trow__line { margin: 0; }
+.ap-trow__dim { color: var(--ink-muted); }
+.ap-trow__link { color: var(--link); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px; }
+.ap-trow__metrics { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.ap-trow__metric { display: flex; justify-content: space-between; gap: 12px; }
+.ap-trow__metric dt { color: var(--ink-muted); }
+.ap-trow__metric dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.ap-trow__src { margin: 0; display: flex; justify-content: space-between; gap: 12px; padding-top: 8px; border-top: 1px solid var(--hair); color: var(--ink-muted); font-size: 12px; }
+@media (max-width: 420px) {
+  .ap-trow__head { gap: 10px; padding: 10px 12px; }
+  .ap-strip__cell { width: 6px; height: 12px; }
+  .ap-trow__detail { padding-left: 12px; }
+}

@@ -290,7 +290,7 @@ export function MobileDashboard(props: MobileDashboardProps) {
         )}
         {topTab === "health" && (
           <div className="ap-mobile-panel ap-mobile-panel--padded">
-            <HealthCardGrid data={props.status?.data} maximized={true} />
+            <HealthCardGrid data={props.status?.data} polledAt={props.status?.polledAt} maximized={true} />
             {props.statusError ? (
               <p className="ap-mobile-error">Status poll error: {props.statusError}</p>
             ) : null}
@@ -438,7 +438,7 @@ function renderPanelsBody({
         )}
         {active === "health" && (
           <div className="ap-mobile-panel ap-mobile-panel--padded">
-            <HealthCardGrid data={props.status?.data} maximized={true} />
+            <HealthCardGrid data={props.status?.data} polledAt={props.status?.polledAt} maximized={true} />
             {props.statusError ? (
               <p className="ap-mobile-error">
                 Status poll error: {props.statusError}
