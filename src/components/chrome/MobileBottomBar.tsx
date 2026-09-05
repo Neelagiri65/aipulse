@@ -1,23 +1,21 @@
 "use client";
 
 /**
- * Gawk — Mobile bottom navigation bar.
+ * Gawk — Mobile bottom navigation bar (web v2).
  *
- * Three top-level tabs: FEED (default) | MAP | PANELS. The PANELS
- * tab opens the existing 4-tab strip (Wire / Health / Models / More)
- * — which used to be the top-level mobile nav before the feed
- * pivot. FEED is the new default mobile landing per S40 PRD.
+ * The five primary surfaces from primary-tabs.ts: Health (default) · Feed · Map · Rooms · More.
+ * Health as the landing supersedes the S40 ruling that made the feed the mobile default; the
+ * approved web v2 canvas (PRD web-restyle-v2 §1, §10) puts the answer line first on every width.
+ * "More" holds the former PANELS strip (Wire / Models / More accordion).
  */
 
 import { track } from "@/lib/analytics";
+import { PRIMARY_TABS, type PrimaryTab } from "@/components/chrome/primary-tabs";
 
-export type MobileTopLevelTab = "feed" | "map" | "panels";
+/** @deprecated web v2: alias of PrimaryTab, kept for the transition. */
+export type MobileTopLevelTab = PrimaryTab;
 
-const TABS: Array<{ id: MobileTopLevelTab; label: string }> = [
-  { id: "feed", label: "FEED" },
-  { id: "map", label: "MAP" },
-  { id: "panels", label: "PANELS" },
-];
+const TABS = PRIMARY_TABS;
 
 export type MobileBottomBarProps = {
   active: MobileTopLevelTab;

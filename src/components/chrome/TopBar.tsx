@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { StatusResult } from "@/lib/data/fetch-status";
 import { VERIFIED_SOURCES, PENDING_SOURCES } from "@/lib/data-sources";
 import { ThemeSwitch } from "@/components/chrome/ThemeSwitch";
+import { PRIMARY_TABS, type PrimaryTab } from "@/components/chrome/primary-tabs";
 
 export type FreshnessState = {
   /** True while the very first poll is in flight. */
@@ -17,35 +18,34 @@ export type FreshnessState = {
   error?: string;
 };
 
-export type ViewTabId = "map" | "wire" | "globe" | "ecosystem";
+/** @deprecated web v2: the five primary surfaces live in primary-tabs.ts. Kept as an alias for the transition. */
+export type ViewTabId = PrimaryTab;
 
 export type TopBarProps = {
   status?: StatusResult;
   freshness: FreshnessState;
-  /** Current dashboard view. Defaults to "globe" if caller hasn't wired tabs yet. */
-  activeTab?: ViewTabId;
-  onTabChange?: (tab: ViewTabId) => void;
+  /** Current primary surface (Health · Feed · Map · Rooms · More). */
+  activeTab?: PrimaryTab;
+  onTabChange?: (tab: PrimaryTab) => void;
 };
 
 /**
- * Fixed-top header. Left: brand. Centre: view-tab switcher (THE MAP /
- * THE WIRE — map is the default because progressive-tile rendering
- * holds up at zoom where the 3D globe texture goes grainy). Globe view
- * is still reachable via ViewTabId="globe" but the tab is hidden from
- * the nav; the 3D surface stays in the codebase for future re-enable.
- * Right: freshness pill + severity summary + sources count + UTC clock.
+ * Fixed-top header (web v2). Left: the gawk lockup. Centre: the five primary surfaces
+ * (Health · Feed · Map · Rooms · More) from primary-tabs.ts — same ids as the mobile bottom
+ * bar, so `?tab=` deep links work on both. Right: freshness pill, sources count, UTC clock,
+ * theme switch and the one primary button.
  * Full-width (no max-w container) so the LeftNav rail can pin to the
  * literal viewport edge beneath it.
  */
 export function TopBar({
   status,
   freshness,
-  activeTab = "map",
+  activeTab = "health",
   onTabChange,
 }: TopBarProps) {
   const now = useUtcClock();
   const sev = deriveSeverity(status);
-  const handleTab = (t: ViewTabId) => onTabChange?.(t);
+  const handleTab = (t: PrimaryTab) => onTabChange?.(t);
 
   return (
     <header
@@ -58,24 +58,15 @@ export function TopBar({
 
       <div className="pointer-events-none absolute left-1/2 -translate-x-1/2">
         <div className="pointer-events-auto ap-tabs" role="tablist" aria-label="View">
-          <TabButton
-            id="map"
-            label="The Map"
-            active={activeTab === "map"}
-            onSelect={handleTab}
-          />
-          <TabButton
-            id="ecosystem"
-            label="Ecosystem"
-            active={activeTab === "ecosystem"}
-            onSelect={handleTab}
-          />
-          <TabButton
-            id="wire"
-            label="The Wire"
-            active={activeTab === "wire"}
-            onSelect={handleTab}
-          />
+          {PRIMARY_TABS.map((tab) => (
+            <TabButton
+              key={tab.id}
+              id={tab.id}
+              label={tab.label}
+              active={activeTab === tab.id}
+              onSelect={handleTab}
+            />
+          ))}
         </div>
       </div>
 
@@ -109,10 +100,10 @@ function TabButton({
   active,
   onSelect,
 }: {
-  id: ViewTabId;
+  id: PrimaryTab;
   label: string;
   active: boolean;
-  onSelect: (id: ViewTabId) => void;
+  onSelect: (id: PrimaryTab) => void;
 }) {
   return (
     <button
@@ -177,10 +168,10 @@ function formatAge(ms: number): string {
 /** Nativerse mark + "gawk": the lockup mcp.gawk.dev already uses (PRD web-restyle-v2 §6). */
 function Brand() {
   return (
-    <a href="/" className="ap-brand" aria-label="Gawk home">
+    <Link href="/" className="ap-brand" aria-label="Gawk home">
       <span className="ap-brand__mark" aria-hidden />
       <span>gawk</span>
-    </a>
+    </Link>
   );
 }
 

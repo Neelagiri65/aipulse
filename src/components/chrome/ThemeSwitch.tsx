@@ -10,14 +10,20 @@
  * founder's ruling is light unless the reader chooses otherwise.
  */
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 export const THEME_STORAGE_KEY = "gawk-theme";
 export type Theme = "light" | "dark";
 
 function readTheme(): Theme {
-  if (typeof document === "undefined") return "light";
   return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+
+/** Every switch on the page follows the attribute, so two switches (top bar, mobile bar) never disagree. */
+function subscribeTheme(onChange: () => void) {
+  const obs = new MutationObserver(onChange);
+  obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return () => obs.disconnect();
 }
 
 export function applyTheme(theme: Theme) {
@@ -30,10 +36,9 @@ export function applyTheme(theme: Theme) {
 }
 
 export function ThemeSwitch({ className = "" }: { className?: string }) {
-  // `null` until mounted: the server render carries no label text that could disagree with
-  // the attribute the boot script has already set.
-  const [theme, setTheme] = useState<Theme | null>(null);
-  useEffect(() => setTheme(readTheme()), []);
+  // Server snapshot is `null`: the server render carries no label text that could disagree
+  // with the attribute the boot script has already set; the client snapshot is the attribute.
+  const theme = useSyncExternalStore<Theme | null>(subscribeTheme, readTheme, () => null);
 
   const next: Theme = theme === "dark" ? "light" : "dark";
   const label = theme === null ? "" : theme === "dark" ? "Light" : "Dark";
@@ -42,10 +47,7 @@ export function ThemeSwitch({ className = "" }: { className?: string }) {
     <button
       type="button"
       className={`ap-theme-switch ${className}`}
-      onClick={() => {
-        applyTheme(next);
-        setTheme(next);
-      }}
+      onClick={() => applyTheme(next)}
       aria-label={theme === null ? "Switch theme" : `Switch to ${next} theme`}
       data-theme-switch
       data-theme-current={theme ?? undefined}
