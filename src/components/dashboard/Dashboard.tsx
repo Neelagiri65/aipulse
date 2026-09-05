@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { Globe, type GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/Globe";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
 import { FeedView } from "@/components/feed/FeedView";
 import { RoomsView } from "@/components/dashboard/RoomsView";
@@ -12,8 +12,8 @@ import { DEFAULT_TAB, tabFromSearch, writeTabToUrl, type PrimaryTab } from "@/co
 const subscribeNever = () => () => {};
 import { LiveFeed } from "@/components/dashboard/LiveFeed";
 import { MetricsRow } from "@/components/dashboard/MetricsRow";
-import { WirePage, type WireItem } from "@/components/dashboard/WirePage";
-import { TopBar, type ViewTabId } from "@/components/chrome/TopBar";
+import type { WireItem } from "@/components/dashboard/WirePage";
+import { TopBar } from "@/components/chrome/TopBar";
 import { StatusBar, deriveSev } from "@/components/chrome/StatusBar";
 import { HeroStrip } from "@/components/chrome/HeroStrip";
 import { StatBar, type StatSegment } from "@/components/chrome/StatBar";
@@ -1118,7 +1118,18 @@ export function Dashboard({
         )}
         {activeTab === "more" && (
           <div className="ap-column-scroll">
-            <MoreView items={navItems} openIds={openIds} onToggle={toggle} />
+            <MoreView
+              items={navItems}
+              openIds={openIds}
+              onToggle={(id) => {
+                // Boards are the floating windows over the map stage; opening one from the
+                // index moves the reader there so the window is actually visible. Closing
+                // an open board from the index stays on More.
+                const opening = !openIds.has(id);
+                toggle(id);
+                if (opening) setActiveTab("map");
+              }}
+            />
           </div>
         )}
       </div>

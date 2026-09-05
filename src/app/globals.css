@@ -276,12 +276,25 @@
    PRIMARY SURFACES (web v2 phase 2): a reading column for Health / Feed / Rooms / More,
    insets and list rows in the system's anatomy (14px radius, hairlines, no fills but paper3).
    ============================================================================ */
-.ap-column-scroll { position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+/* Reading columns (Health / Feed / Rooms / More) sit inside the fixed stage; they must start below the
+   fixed chrome (TopBar 48 + StatusBar 28 + HeroStrip 56) and end above the live ticker (68), or the
+   first rows render under the bars and cannot be clicked. Heights mirror the Tailwind offsets those
+   components hardcode (`top-[76px]`, `bottom-[68px]`). */
+.ap-column-scroll {
+  --ap-chrome-top: 132px;
+  --ap-chrome-bottom: 68px;
+  position: absolute;
+  inset: var(--ap-chrome-top) 0 var(--ap-chrome-bottom) 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .ap-column {
   width: 100%;
   max-width: 760px;
   margin: 0 auto;
-  padding: 24px 24px 48px;
+  /* Bottom padding clears the translucent MetricsRow strip (72px, ends 68px above the viewport
+     bottom) so the last row is readable when scrolled to the end. */
+  padding: 24px 24px 128px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -661,7 +674,7 @@
   z-index: 4;
   display: flex;
   flex-direction: column;
-  background: rgba(6, 8, 10, 0.98);
+  background: var(--ap-bg);
   color: var(--ap-fg);
   font-family: var(--font-mono);
 }
@@ -727,7 +740,7 @@
   gap: 4px;
   padding: 6px 12px;
   height: 44px;
-  background: rgba(10, 13, 16, 0.85);
+  background: var(--ap-bg);
   border-bottom: 1px solid var(--ap-border);
   overflow-x: auto;
   overflow-y: hidden;
@@ -758,15 +771,15 @@
 }
 
 .ap-mobile-tabs__item.is-active {
-  color: var(--ap-accent);
-  background: rgba(45, 212, 191, 0.08);
-  border-color: rgba(45, 212, 191, 0.35);
+  color: var(--ap-fg);
+  background: var(--card);
+  border-color: var(--ap-border);
 }
 
 .ap-mobile-tabs__count {
   font-size: 9px;
   padding: 1px 5px;
-  background: rgba(148, 163, 184, 0.16);
+  background: var(--card);
   color: var(--ap-fg);
   letter-spacing: 0;
   border-radius: 2px;
@@ -775,8 +788,8 @@
 }
 
 .ap-mobile-tabs__item.is-active .ap-mobile-tabs__count {
-  background: rgba(45, 212, 191, 0.18);
-  color: var(--ap-accent);
+  background: var(--ap-bg);
+  color: var(--ap-fg);
 }
 
 .ap-mobile-body {
@@ -843,7 +856,7 @@
   gap: 12px;
   padding: 6px 12px;
   height: 32px;
-  background: rgba(10, 13, 16, 0.92);
+  background: var(--ap-bg);
   border-top: 1px solid var(--ap-border);
   font-size: 9.5px;
   letter-spacing: 0.08em;
@@ -855,7 +868,7 @@
 .ap-mobile-footer__cron--warn { color: var(--sev-degrade); }
 
 .ap-mobile-footer__link {
-  color: var(--ap-accent);
+  color: var(--link);
   text-decoration: none;
 }
 .ap-mobile-footer__link:hover { text-decoration: underline; }
@@ -868,7 +881,7 @@
   display: flex;
   gap: 4px;
   padding: 8px 12px;
-  background: rgba(10, 13, 16, 0.7);
+  background: var(--ap-bg);
   border-bottom: 1px solid var(--ap-border);
 }
 
@@ -876,7 +889,7 @@
   flex: 1 1 0;
   padding: 7px 10px;
   background: transparent;
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  border: 1px solid var(--ap-border);
   border-radius: 3px;
   color: var(--ap-fg-muted);
   font-family: var(--font-mono);
@@ -2245,9 +2258,9 @@
 }
 
 .ap-feed-quiet-banner {
-  background: rgba(45, 212, 191, 0.06);
-  border: 1px solid rgba(45, 212, 191, 0.25);
-  border-radius: 4px;
+  background: var(--card);
+  border: 1px solid var(--ap-border);
+  border-radius: 14px;
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -2257,7 +2270,7 @@
 .ap-feed-quiet-banner-headline {
   margin: 0;
   font-size: 13px;
-  color: rgba(226, 232, 240, 0.95);
+  color: var(--ap-fg);
   font-weight: 500;
 }
 
@@ -2283,11 +2296,11 @@
 
 .ap-feed-quiet-banner-row dd {
   margin: 0;
-  color: rgba(226, 232, 240, 0.92);
+  color: var(--ap-fg);
 }
 
 .ap-feed-quiet-banner-row dd a {
-  color: var(--ap-accent);
+  color: var(--link);
   text-decoration: none;
 }
 

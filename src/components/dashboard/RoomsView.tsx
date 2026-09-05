@@ -47,23 +47,30 @@ function hhmm(iso?: string): string {
 export function RoomsView({ rows, polledAt, windowMinutes, compact }: RoomsViewProps) {
   const repos = groupActiveRepos(rows);
   const total = rows.filter((r) => r.kind === "gh" && r.hasAiConfig).length;
-  const window = windowMinutes ? `${windowMinutes} min` : "the current window";
+  // No polledAt = the events poll has not answered yet. Never assert "no activity" on no data.
+  const pending = !polledAt;
+  const windowLabel = windowMinutes ? `in the last ${windowMinutes} min` : "in the current window";
 
   return (
     <section className={`ap-column${compact ? " ap-column--compact" : ""}`} aria-label={"Rooms"}>
       <h2 className="ap-column__title">
-        {repos.length > 0
-          ? `${repos.length} repos with AI config saw public activity in the last ${window}.`
-          : `No public activity on repos with AI config in the last ${window}.`}
+        {pending
+          ? "Waiting for the events poll…"
+          : repos.length > 0
+            ? `${repos.length} repos with AI config saw public activity ${windowLabel}.`
+            : `No public activity on repos with AI config ${windowLabel}.`}
       </h2>
       <p className="ap-column__sub">
-        GitHub Events API · {total} events on AI-config repos · polled {hhmm(polledAt)} · public
-        events only, so this is a floor, not a census.
+        {pending
+          ? "GitHub Events API · public events only, so this is a floor, not a census."
+          : `GitHub Events API · ${total} events on AI-config repos · polled ${hhmm(polledAt)} · public events only, so this is a floor, not a census.`}
       </p>
       <div className="ap-inset">
         <div className="ap-inset__head">Active now · repos with AI config</div>
         {repos.length === 0 ? (
-          <div className="ap-list-row ap-list-row--empty">Nothing recorded in this window.</div>
+          <div className="ap-list-row ap-list-row--empty">
+            {pending ? "Loading…" : "Nothing recorded in this window."}
+          </div>
         ) : (
           repos.map((r) => (
             <a
