@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme inline {
   --color-background: var(--background);
@@ -39,115 +39,148 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-sm: 14px;
+  --radius-md: 14px;
+  --radius-lg: 14px;
+  --radius-xl: 28px;
+  --radius-2xl: 28px;
+  --radius-3xl: 28px;
+  --radius-4xl: 28px;
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* ---- web v2 base set: mcp.gawk.dev skin (PRD web-restyle-v2 §6, §7, §11, §12). Every colour below resolves to one of these. ---- */
+  color-scheme: light;
+  --paper: #FAFAF6;        /* page ground */
+  --surface: #FFFFFF;      /* cards, insets */
+  --paper3: #F2F1EA;       /* second neutral: chips, muted fills */
+  --ink: #16160F;          /* text */
+  --ink2: #3A3A30;         /* secondary text, degraded state word */
+  --ink-muted: #6B6B5E;    /* captions, source lines (5.2:1 on paper) */
+  --hollow: #B8B7AC;       /* hollow marks only — never text */
+  --hair: #E7E6DE;         /* hairlines */
+  --hair2: #D8D7CC;        /* stronger hairlines, inputs */
+  --hot: #E8502B;          /* the one primary button (phase 2) */
+  --on-hot: #140A06;       /* text on --hot (5.2:1) */
+  --link: #C8401F;         /* links, active tab (phase 2) — never on a mark, strip or state word */
+  --tint: rgba(200, 64, 31, 0.07); /* one callout inset; selected row */
+  --op: #157A40;           /* the word "operational" only */
+  --out: #C0392B;          /* the word "outage" only */
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--paper3);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper3);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--paper3);
+  --accent-foreground: var(--ink);
+  --destructive: var(--out);
+  --border: var(--hair);
+  --input: var(--hair2);
+  --ring: var(--ink2);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 14px;
+  --sidebar: var(--paper);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--paper3);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--hair);
+  --sidebar-ring: var(--ink2);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+[data-theme="dark"] {
+  /* ---- dark set (PRD §11: words re-stepped to ≥6.2:1 on #15181C) ---- */
+  color-scheme: dark;
+  --paper: #15181C;
+  --surface: #1F2226;
+  --paper3: #0F1114;
+  --ink: #FAFAF6;
+  --ink2: #D8D7CC;
+  --ink-muted: #A8A79A;
+  --hollow: #5A5C62;
+  --hair: #2A2D33;
+  --hair2: #2A2D33;
+  --link: #EE7A57;
+  --tint: rgba(238, 122, 87, 0.10);
+  --op: #3FB876;
+  --out: #E9786E;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--paper3);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper3);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--paper3);
+  --accent-foreground: var(--ink);
+  --destructive: var(--out);
+  --border: var(--hair);
+  --input: var(--hair2);
+  --ring: var(--ink2);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar: var(--paper);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--paper3);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--hair);
+  --sidebar-ring: var(--ink2);
 }
 
-/* ---------- Gawk design system tokens (lifted from wmsample) ---------- */
+/* ---------- Legacy token names (--ap-*, --sev-*) aliased to the web v2 base set.
+   Kept until phase 3 rewrites the 23 consumer files. --eco-* removed: zero consumers (founder ruling 5 Sep).
+   --ap-accent → ink2 in phase 1: today it colours status dots, feed-card stripes and ticker marks,
+   where the accent must never sit; --link is wired to links and the active tab in phase 2. ---------- */
 :root {
-  --ap-bg:           #06080a;
-  --ap-bg-panel:     #0b0f12;
-  --ap-bg-panel-2:   #0d1115;
-  --ap-bg-head:      #0a0d10;
-  --ap-border:       #1a2026;
-  --ap-border-strong:#2b343b;
-  --ap-border-hair:  #121619;
-  --ap-fg:           #d8e2e6;
-  --ap-fg-muted:     #7a8a90;
-  --ap-fg-dim:       #4a565c;
+  --ap-bg:            var(--paper);
+  --ap-bg-panel:      var(--surface);
+  --ap-bg-panel-2:    var(--paper3);
+  --ap-bg-head:       var(--paper);
+  --ap-border:        var(--hair);
+  --ap-border-strong: var(--hair2);
+  --ap-border-hair:   var(--hair);
+  --ap-fg:            var(--ink);
+  --ap-fg-muted:      var(--ink2);
+  --ap-fg-dim:        var(--ink-muted);
 
-  --ap-accent:       #2dd4bf;
-  --ap-accent-dim:   #0d9488;
-  --ap-accent-glow:  rgba(45, 212, 191, 0.35);
+  --ap-accent:        var(--ink2);
+  --ap-accent-dim:    var(--ink2);
+  --ap-accent-glow:   transparent;
+  --ap-win-accent:    var(--ink2);
+  --ap-win-accent-glow: transparent;
 
-  /* Severity (semantic, never decorative) */
-  --sev-outage:      #ef4444;
-  --sev-degrade:     #f59e0b;
-  --sev-regress:     #eab308;
-  --sev-op:          #22c55e;
-  --sev-unknown:     #71717a;
-  --sev-pending:     #52525b;
-
-  /* Ecosystem tints */
-  --eco-anthropic:   #2dd4bf;
-  --eco-openai:      #4ade80;
-  --eco-google:      #60a5fa;
-  --eco-meta:        #a78bfa;
-  --eco-ms:          #f59e0b;
+  /* State: colour only as the words operational / outage; degraded and regress read in ink2 (shape carries state from phase 3) */
+  --sev-outage:       var(--out);
+  --sev-degrade:      var(--ink2);
+  --sev-regress:      var(--ink2);
+  --sev-op:           var(--op);
+  --sev-unknown:      var(--hollow);
+  --sev-pending:      var(--hollow);
+  --sev-info:         var(--ink2);
 }
 
 @layer base {
