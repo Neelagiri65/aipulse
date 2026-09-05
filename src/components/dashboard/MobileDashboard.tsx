@@ -5,7 +5,9 @@ import { useState } from "react";
 
 import { WirePage, type WireItem } from "@/components/dashboard/WirePage";
 import { ShareButton } from "@/components/chrome/ShareButton";
-import { CommunityLink } from "@/components/chrome/CommunityLink";
+import { CommunityLink, getCommunityUrl } from "@/components/chrome/CommunityLink";
+import { CommunityCard } from "@/components/community/CommunityCard";
+import { useCommunity, type CommunityState } from "@/lib/community/use-community";
 import {
   MobileBottomBar,
   type MobileTopLevelTab,
@@ -68,7 +70,8 @@ export type MobileMoreSectionId =
   | "labs"
   | "regional-wire"
   | "sdk-adoption"
-  | "agents";
+  | "agents"
+  | "community";
 
 type MobileTab = {
   id: MobileTopTabId;
@@ -154,6 +157,9 @@ export type MobileDashboardProps = {
  */
 export function MobileDashboard(props: MobileDashboardProps) {
   const [topTab, setTopTab] = useState<MobileTopLevelTab>("feed");
+  // One /api/community poll for the whole shell — feed "Discuss" links and
+  // the Community card in More both read it.
+  const community = useCommunity();
   const [active, setActive] = useState<MobileTopTabId>("wire");
   const [modelsSub, setModelsSub] = useState<MobileModelsSubId>("downloads");
   // Default: research expanded so the More tab has visible content on
@@ -284,7 +290,10 @@ export function MobileDashboard(props: MobileDashboardProps) {
         )}
         {topTab === "feed" && (
           <div className="ap-mobile-feed">
-            <FeedView initialResponse={props.initialFeedResponse} />
+            <FeedView
+              initialResponse={props.initialFeedResponse}
+              community={community}
+            />
           </div>
         )}
 
@@ -327,7 +336,7 @@ export function MobileDashboard(props: MobileDashboardProps) {
                 </button>
               ))}
             </nav>
-            {renderPanelsBody({ active, modelsSub, handleModelsSub, moreOpen, toggleMore, props })}
+            {renderPanelsBody({ active, modelsSub, handleModelsSub, moreOpen, toggleMore, props, community })}
           </>
         )}
       </main>
@@ -362,6 +371,7 @@ function renderPanelsBody({
   moreOpen,
   toggleMore,
   props,
+  community,
 }: {
   active: MobileTopTabId;
   modelsSub: MobileModelsSubId;
@@ -369,6 +379,7 @@ function renderPanelsBody({
   moreOpen: Set<MobileMoreSectionId>;
   toggleMore: (id: MobileMoreSectionId) => void;
   props: MobileDashboardProps;
+  community: CommunityState;
 }) {
   return (
     <>
@@ -413,6 +424,7 @@ function renderPanelsBody({
             open={moreOpen}
             onToggle={toggleMore}
             props={props}
+            community={community}
           />
         )}
     </>
@@ -535,11 +547,14 @@ function MoreTabBody({
   open,
   onToggle,
   props,
+  community,
 }: {
   open: Set<MobileMoreSectionId>;
   onToggle: (id: MobileMoreSectionId) => void;
   props: MobileDashboardProps;
+  community: CommunityState;
 }) {
+  const communityLive = community.data && !community.error ? community.data : undefined;
   const sections: Array<{
     id: MobileMoreSectionId;
     label: string;
@@ -606,6 +621,21 @@ function MoreTabBody({
           data={props.agents ?? undefined}
           error={props.agentsError ?? undefined}
           isInitialLoading={props.agentsLoading}
+        />
+      ),
+    },
+    {
+      id: "community",
+      label: "Community",
+      // Header count = members online now (Discord widget); null while
+      // the route is not answering so the header never shows a stale 0.
+      count: communityLive ? communityLive.onlineCount : null,
+      body: (
+        <CommunityCard
+          data={community.data}
+          error={community.error}
+          isInitialLoading={community.isInitialLoading}
+          joinUrl={getCommunityUrl()}
         />
       ),
     },

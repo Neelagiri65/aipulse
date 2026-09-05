@@ -16,7 +16,9 @@
 
 import { useEffect, useState } from "react";
 
-import { FeedCard } from "@/components/feed/FeedCard";
+import { getCommunityUrl } from "@/components/chrome/CommunityLink";
+import { FeedCard, type FeedCardDiscuss } from "@/components/feed/FeedCard";
+import type { CommunityState } from "@/lib/community/use-community";
 import { QuietDayBanner } from "@/components/feed/QuietDayBanner";
 import type { FeedResponse } from "@/lib/feed/types";
 
@@ -30,9 +32,16 @@ export type FeedViewProps = {
    * a fixed FeedResponse without dealing with timers or network mocks.
    */
   disablePolling?: boolean;
+  /**
+   * Shared /api/community poll owned by the dashboard shell. When it is
+   * answering (data present, no error) TOOL_ALERT cards get a
+   * "Discuss · n online on Discord" link; otherwise nothing renders.
+   */
+  community?: CommunityState;
 };
 
-export function FeedView({ initialResponse, disablePolling }: FeedViewProps) {
+export function FeedView({ initialResponse, disablePolling, community }: FeedViewProps) {
+  const discuss = deriveDiscuss(community);
   const [data, setData] = useState<FeedResponse | undefined>(initialResponse);
   const [error, setError] = useState<string | undefined>(undefined);
   const [, force] = useState(0);
@@ -110,12 +119,24 @@ export function FeedView({ initialResponse, disablePolling }: FeedViewProps) {
       <ul className="ap-feed-list">
         {data.cards.map((card) => (
           <li key={card.id} className="ap-feed-list-item">
-            <FeedCard card={card} />
+            <FeedCard card={card} discuss={discuss} />
           </li>
         ))}
       </ul>
     </div>
   );
+}
+
+/** Only while the community route answers; a failed latest poll hides it. */
+function deriveDiscuss(community: CommunityState | undefined): FeedCardDiscuss | null {
+  const url = getCommunityUrl();
+  if (!url || !community || !community.data || community.error) return null;
+  return {
+    url,
+    onlineCount: community.data.onlineCount,
+    asOf: community.data.fetchedAt,
+    meaning: community.data.countMeaning,
+  };
 }
 
 function StaleSourcesNotice({
