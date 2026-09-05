@@ -68,7 +68,7 @@ export async function shot(
  */
 export async function openDashboard(page: Page) {
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("tab", { name: "The Map" })).toBeVisible({
+  await expect(page.getByRole("tab", { name: "Map", exact: true })).toBeVisible({
     timeout: 20_000,
   });
   await expect(
@@ -89,7 +89,7 @@ export async function openDashboard(page: Page) {
  */
 export async function switchTab(
   page: Page,
-  label: "The Map" | "The Wire" | "The Globe",
+  label: "Health" | "Feed" | "Map" | "Rooms" | "More",
 ) {
   const tab = page.getByRole("tab", { name: label, exact: true });
   await expect(tab).toBeVisible();
