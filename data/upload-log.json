@@ -1114,5 +1114,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-09-06",
+    "videoId": "AC-rHecSFgU",
+    "url": "https://youtu.be/AC-rHecSFgU",
+    "title": "LLMs as a Cognitive Virus | Gawk Daily — 6 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-06T11:39:09.765Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
