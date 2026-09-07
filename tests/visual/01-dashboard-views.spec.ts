@@ -7,6 +7,7 @@ import {
   openFeedWire,
   waitForMapReady,
   waitForWireReady,
+  openPanelViaNav,
 } from "./_helpers";
 
 /**
@@ -48,6 +49,19 @@ test.describe("dashboard views", () => {
       "aria-selected",
       "true",
     );
+  });
+
+  test("the rail opens a board from the Health landing tab by moving to Map", async ({ page }) => {
+    await openDashboard(page);
+    // Boards mount on the Map stage only; from Health a rail click must land the reader there
+    // with the board visible — not a lit button and nothing else.
+    await openPanelViaNav(page, "Tools");
+    await expect(page.getByRole("tab", { name: "Map", exact: true })).toHaveAttribute("aria-selected", "true", { timeout: 10_000 });
+    const win = page.locator(".ap-win", { has: page.getByText(/Tool health/i) }).first();
+    await expect(win).toBeVisible({ timeout: 15_000 });
+    // A second click on Map is the plain toggle: the board closes.
+    await openPanelViaNav(page, "Tools");
+    await expect(win).toHaveCount(0);
   });
 
   test("Health carries four tiles under the band, each with a source and a time", async ({ page }) => {

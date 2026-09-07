@@ -725,6 +725,24 @@ export function Dashboard({
     }
   };
 
+  /**
+   * The boards are floating windows over the Map stage — they mount only when the Map tab is
+   * active. From any other tab a rail or highlight click therefore has to bring the reader to
+   * Map with the board open (found live after the restyle: on Health, the landing tab, a rail
+   * click lit the button and showed nothing). On Map the rail keeps its plain toggle.
+   */
+  const reveal = (id: string) => {
+    if (activeTab === "map") {
+      toggle(id);
+      return;
+    }
+    const pid = id as PanelId;
+    const isOpen = panels[pid]?.open === true && panels[pid]?.min === false;
+    if (isOpen) focus(pid);
+    else toggle(id);
+    setActiveTab("map");
+  };
+
   const openIds = new Set<string>(
     (Object.keys(panels) as PanelId[])
       .filter((id) => panels[id].open && !panels[id].min)
@@ -952,12 +970,12 @@ export function Dashboard({
    */
   const openHighlightPanel = (panel: HighlightPanelId) => {
     const isOpen = panels[panel]?.open === true && panels[panel]?.min === false;
-    if (isOpen) {
-      // Already open: bring to front instead of toggling closed.
+    if (isOpen && activeTab === "map") {
+      // Already open and in view: bring to front instead of toggling closed.
       focus(panel);
       return;
     }
-    toggle(panel);
+    reveal(panel);
   };
 
   const isMobile = useIsMobile();
@@ -1194,7 +1212,7 @@ export function Dashboard({
       </div>
 
       {/* Left-edge icon nav */}
-      <LeftNav items={navItems} openIds={openIds} onToggle={toggle} />
+      <LeftNav items={navItems} openIds={openIds} onToggle={reveal} />
 
       {/* Right-edge filter panel — renders on both map + globe (they share
           the filtered point set). Wire view has its own filter semantics. */}
