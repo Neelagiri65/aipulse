@@ -2895,3 +2895,38 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
     overflow-y: auto;
   }
 }
+
+/* ---- The Wire (web v2 phase 3, PRD §13): rows in the row anatomy, detail right on desktop ---- */
+.ap-wire { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.ap-wire__pane { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ap-wire__coverage { margin: 0; padding: 0 16px 8px; font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.02em; color: var(--ink-muted); }
+.ap-wire__stamp { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); text-transform: none; letter-spacing: 0; }
+.ap-wire__list { list-style: none; margin: 0; padding: 0; }
+.ap-wirerow { text-decoration: none; color: inherit; }
+.ap-wirerow__title { font-size: 15px; word-break: break-word; }
+.ap-wirerow__kicker { color: var(--ink-muted); text-transform: none; letter-spacing: 0.02em; font-size: 11.5px; }
+.ap-hnpill {
+  flex: none;
+  display: inline-flex; align-items: center;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
+  color: #fff;
+  background-color: #ff6600; /* the Hacker News brand mark — the one sanctioned non-ink mark (PRD §7) */
+}
+.ap-wire__empty { margin: 8px 16px 16px; padding: 24px; border: 1px dashed var(--hair2); border-radius: 10px; text-align: center; font-family: var(--font-mono); font-size: 12px; color: var(--ink-muted); }
+.ap-wire__empty--error { border-style: solid; border-color: var(--out); color: var(--out); }
+.ap-wire__more { display: flex; align-items: center; gap: 12px; padding: 10px 16px 14px; border-top: 1px solid var(--hair); font-size: 12.5px; color: var(--ink-muted); }
+.ap-wire__foot { margin: 0; padding: 0 4px; font-size: 12.5px; line-height: 1.4; color: var(--ink-muted); }
+.ap-wiredetail__headline { font-size: 28px; word-break: break-word; }
+.ap-wiredetail__facts { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: 13.5px; }
+.ap-wiredetail__facts dt { color: var(--ink-muted); }
+.ap-wiredetail__facts dd { margin: 0; color: var(--ink2); }
+@media (min-width: 1180px) {
+  .ap-column--feed .ap-wire[data-variant="desktop"][data-wire-state="ready"] {
+    display: grid;
+    grid-template-columns: minmax(0, 12fr) minmax(0, 17fr);
+    gap: 18px 40px;
+    align-items: start;
+  }
+}

@@ -410,7 +410,7 @@ export function Dashboard({
               repo?: string;
               createdAt?: string;
               hasAiConfig?: boolean;
-              sourceKind?: "events-api" | "gharchive";
+              sourceKind?: "events-api" | "gharchive" | "tracked-repo" | "gitlab";
             }
           | undefined;
         if (

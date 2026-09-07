@@ -322,6 +322,7 @@ export function MobileDashboard(props: MobileDashboardProps) {
             ) : (
               <div className="ap-mobile-feed__wire">
                 <WirePage
+                  variant="mobile"
                   wireRows={props.wireRows}
                   ghCoverage={
                     props.events
@@ -428,6 +429,7 @@ function renderPanelsBody({
         {active === "wire" && (
           <div className="ap-mobile-panel">
             <WirePage
+              variant="mobile"
               wireRows={props.wireRows}
               ghCoverage={
                 props.events
