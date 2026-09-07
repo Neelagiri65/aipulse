@@ -64,10 +64,18 @@ test.describe("interactions", () => {
     await openFeedWire(page);
     await waitForWireReady(page);
 
-    const hnPill = page
-      .locator("span", { hasText: /^HN · \d+/ })
-      .first();
-    skipWhenLocalAndEmpty(await hnPill.count(), "The Wire has no HN stories");
+    // The coverage line is the truth about the window: "N rows (g gh · h hn)".
+    const coverage = await page.locator(".ap-wire__coverage").first().textContent();
+    const hnInWindow = Number(coverage?.match(/(\d+) hn\)/)?.[1] ?? "0");
+    skipWhenLocalAndEmpty(hnInWindow, "The Wire has no HN stories");
+    // The wire pages at 200 rows, newest first — HN stories may sit past the first page.
+    const hnPill = page.locator("span.ap-hnpill").first();
+    for (let i = 0; i < 10 && (await hnPill.count()) === 0; i++) {
+      const more = page.getByRole("button", { name: /^Show \d+ more$/ });
+      if ((await more.count()) === 0) break;
+      await more.click();
+    }
+    await hnPill.scrollIntoViewIfNeeded();
     await expect(hnPill).toBeVisible({ timeout: 15_000 });
     // Computed background must be HN brand orange #ff6600 → rgb(255,102,0).
     const bg = await hnPill.evaluate(

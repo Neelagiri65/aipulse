@@ -93,7 +93,8 @@ test.describe("dashboard views", () => {
       await solid.first().click({ force: true });
       const region = page.getByTestId("world-region");
       await expect(region).toBeVisible();
-      await expect(region).toContainText("located events in the window");
+      // The caption counts honestly: "1 located event" for a one-event cell.
+      await expect(region).toContainText(/located events? in the window/);
       expect(await region.locator("li").count()).toBeGreaterThan(0);
       await shot(page, "health-world-region");
       await region.getByRole("button", { name: "Close" }).click();
