@@ -172,12 +172,12 @@ function formatAge(ms: number): string {
   return `${Math.floor(h / 24)}d`;
 }
 
-/** Nativerse mark + "gawk": the lockup mcp.gawk.dev already uses (PRD web-restyle-v2 §6). */
+/** Nativerse mark + "gawk.dev": the founder's call (7 Sep 2026, "it should be gawk.dev everywhere"), superseding the mcp.gawk.dev "gawk" lockup in PRD §6. */
 function Brand() {
   return (
-    <Link href="/" className="ap-brand" aria-label="Gawk home">
+    <Link href="/" className="ap-brand" aria-label="gawk.dev home">
       <span className="ap-brand__mark" aria-hidden />
-      <span>gawk</span>
+      <span>gawk.dev</span>
     </Link>
   );
 }

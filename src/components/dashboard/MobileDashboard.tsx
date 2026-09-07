@@ -270,9 +270,9 @@ export function MobileDashboard(props: MobileDashboardProps) {
       data-active-tab={active}
     >
       <header className="ap-mobile-topbar">
-        <Link href="/" className="ap-brand ap-brand--compact ap-mobile-brand" aria-label="Gawk home">
+        <Link href="/" className="ap-brand ap-brand--compact ap-mobile-brand" aria-label="gawk.dev home">
           <span className="ap-brand__mark" aria-hidden />
-          <span>gawk</span>
+          <span>gawk.dev</span>
         </Link>
         <FreshnessChip freshness={props.statusFreshness} />
         <ThemeSwitch />

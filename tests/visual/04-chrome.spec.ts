@@ -10,7 +10,7 @@ test.describe("chrome", () => {
   test("TopBar brand + tabs + freshness pill are visible", async ({ page }) => {
     await openDashboard(page);
 
-    await expect(page.getByRole("link", { name: "Gawk home" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "gawk.dev home" }).first()).toBeVisible();
     for (const name of ["Health", "Feed", "Map", "Community", "More"]) {
       await expect(page.getByRole("tab", { name, exact: true }).first()).toBeVisible();
     }
