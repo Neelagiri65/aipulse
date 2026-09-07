@@ -22,8 +22,8 @@ function baseInput(
 ): Parameters<typeof sendDigest>[0] {
   return {
     recipients,
-    from: "Gawk <digest@gawk.dev>",
-    subject: "Gawk — 2026-04-22",
+    from: "gawk.dev <digest@gawk.dev>",
+    subject: "gawk.dev — 2026-04-22",
     unsubBaseUrl: "https://gawk.dev/api/subscribe/unsubscribe",
     unsubMailto: "mailto:unsub@gawk.dev",
     listId: "digest-2026-04-22.gawk.dev",

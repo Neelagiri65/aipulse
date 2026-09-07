@@ -17,7 +17,7 @@
  *     change, that's one file, one PR, no migration.
  *
  * Tone calibration: a smart-generalist developer / CTO who already
- * subscribed to Gawk. They know the basics; they want the lens.
+ * subscribed to gawk.dev. They know the basics; they want the lens.
  */
 
 import type { DigestSectionId } from "@/lib/digest/types";

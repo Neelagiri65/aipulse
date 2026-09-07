@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Gawk — Mobile bottom navigation bar (web v2).
+ * gawk.dev — Mobile bottom navigation bar (web v2).
  *
  * The five primary surfaces from primary-tabs.ts: Health (default) · Feed · Map · Rooms · More.
  * Health as the landing supersedes the S40 ruling that made the feed the mobile default; the

@@ -5,7 +5,7 @@
  * ADMIN_PREVIEW_PASS). Surfaces operational state at a glance:
  *
  *   1. Platform health — Vercel, Supabase, Cloudflare, Upstash status pages.
- *      The 4 services Gawk itself runs on. Public Tool Health stays AI-only.
+ *      The 4 services gawk.dev itself runs on. Public Tool Health stays AI-only.
  *   2. Cron health — count of healthy / stale workflows, link to detail.
  *   3. Email pipeline — Resend domain configured, last digest send timestamp.
  *   4. Outbound channels — Discord webhook configured y/n.
@@ -64,7 +64,7 @@ export default async function AdminIndexPage() {
           Admin · Operator Dashboard
         </p>
         <h1 className="mt-1 font-mono text-xl tracking-tight">
-          Gawk operations
+          gawk.dev operations
         </h1>
         <p className="mt-2 text-xs text-muted-foreground">
           Operator-facing state. Public Tool Health card grid stays

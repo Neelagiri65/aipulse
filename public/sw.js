@@ -98,7 +98,7 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: "Gawk", body: event.data.text() };
+    payload = { title: "gawk.dev", body: event.data.text() };
   }
   const options = {
     body: payload.body || "",
@@ -108,7 +108,7 @@ self.addEventListener("push", (event) => {
     data: { url: payload.url || "/" },
     vibrate: [100, 50, 100],
   };
-  event.waitUntil(self.registration.showNotification(payload.title || "Gawk", options));
+  event.waitUntil(self.registration.showNotification(payload.title || "gawk.dev", options));
 });
 
 self.addEventListener("notificationclick", (event) => {

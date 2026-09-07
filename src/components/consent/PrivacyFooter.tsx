@@ -17,7 +17,7 @@ export function PrivacyFooter() {
           className="hover:text-foreground"
           data-testid="footer-home"
         >
-          Gawk
+          gawk.dev
         </Link>
         <Link
           href="/privacy"

@@ -25,7 +25,7 @@ export function middleware(request: NextRequest): NextResponse {
       return new NextResponse("admin not configured on this deploy", {
         status: 401,
         headers: {
-          "www-authenticate": 'Basic realm="Gawk admin"',
+          "www-authenticate": 'Basic realm="gawk.dev admin"',
           "cache-control": "no-store",
         },
       });
@@ -34,7 +34,7 @@ export function middleware(request: NextRequest): NextResponse {
       return new NextResponse("Unauthorized", {
         status: 401,
         headers: {
-          "www-authenticate": 'Basic realm="Gawk admin"',
+          "www-authenticate": 'Basic realm="gawk.dev admin"',
           "cache-control": "no-store",
         },
       });

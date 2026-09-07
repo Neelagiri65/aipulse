@@ -4,7 +4,7 @@
  * slot, sibling to the `StatBar` counts row).
  *
  * Trust contract (CLAUDE.md non-negotiables):
- *   - Gawk aggregates, it does not score. Every line here is a pure
+ *   - gawk.dev aggregates, it does not score. Every line here is a pure
  *     aggregation/selection over the panel's own polled payload — no
  *     ranking is invented, no LLM is called, nothing is editorialised.
  *   - Every number traces to a public source. Each `PanelInsight` carries

@@ -46,17 +46,17 @@ const JSON_LD = {
     {
       "@type": "Organization",
       "@id": `${SITE_ORIGIN}/#org`,
-      name: "Gawk",
+      name: "gawk.dev",
       url: SITE_ORIGIN,
       logo: `${SITE_ORIGIN}/icon-512.png`,
       description:
-        "Gawk is a real-time observatory for the global AI ecosystem — live status and activity for AI coding tools and AI labs, where every number cites its public source.",
+        "gawk.dev is a real-time observatory for the global AI ecosystem — live status and activity for AI coding tools and AI labs, where every number cites its public source.",
     },
     {
       "@type": "WebSite",
       "@id": `${SITE_ORIGIN}/#website`,
-      name: "Gawk",
-      alternateName: "Gawk — AI ecosystem observatory",
+      name: "gawk.dev",
+      alternateName: "gawk.dev — AI ecosystem observatory",
       url: SITE_ORIGIN,
       description: SITE_DESCRIPTION,
       publisher: { "@id": `${SITE_ORIGIN}/#org` },
@@ -67,7 +67,7 @@ const JSON_LD = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),
-  title: "Gawk — live status & activity monitor for AI coding tools",
+  title: "gawk.dev — live status & activity monitor for AI coding tools",
   description: SITE_DESCRIPTION,
   // Self-canonical to the apex origin so the apex/www split doesn't fragment
   // ranking signals (pair with the host redirect in Vercel).
@@ -78,7 +78,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Gawk",
+    title: "gawk.dev",
   },
   icons: {
     icon: [
@@ -90,8 +90,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    siteName: "Gawk",
-    title: "Gawk — live status & activity monitor for AI coding tools",
+    siteName: "gawk.dev",
+    title: "gawk.dev — live status & activity monitor for AI coding tools",
     description: SITE_DESCRIPTION,
     url: SITE_ORIGIN,
     locale: "en_GB",
@@ -101,7 +101,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Gawk — live status & activity monitor for AI coding tools",
+    title: "gawk.dev — live status & activity monitor for AI coding tools",
     description: SITE_DESCRIPTION,
   },
 };
@@ -128,7 +128,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-hidden">
         {/* Structured data — helps Google rich results + AI answer engines
-            understand what Gawk is and disambiguate it from GNU gawk (awk). */}
+            understand what gawk.dev is and disambiguate it from GNU gawk (awk). */}
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger

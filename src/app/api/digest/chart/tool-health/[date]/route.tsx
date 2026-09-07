@@ -18,7 +18,7 @@
  * Email-safety:
  *   - PNG (not SVG) — Gmail strips inline SVG.
  *   - Public, no auth, no cookies — must load when an email client
- *     fetches the URL from a server with no Gawk session.
+ *     fetches the URL from a server with no gawk.dev session.
  *   - Fixed dimensions matched in the email's `<img width height>` so
  *     mail clients lay out without flicker before the image lands.
  */

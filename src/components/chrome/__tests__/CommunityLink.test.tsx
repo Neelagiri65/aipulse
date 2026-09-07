@@ -96,7 +96,7 @@ describe("CommunityLink", () => {
   it("uses a channel-neutral aria-label so it works for Discord OR GitHub Discussions", () => {
     process.env[NEW_KEY] = "https://github.com/Neelagiri65/aipulse/discussions";
     const html = renderToStaticMarkup(<CommunityLink />);
-    expect(html).toContain('aria-label="Join the Gawk community discussion"');
+    expect(html).toContain('aria-label="Join the gawk.dev community discussion"');
     // Channel-specific copy must NOT leak into accessible names — the URL
     // can flip from Discord to GitHub Discussions to anything else without
     // the screen-reader announcement going stale.

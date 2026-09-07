@@ -33,7 +33,7 @@ export default function ConfirmEmail({ confirmUrl }: ConfirmEmailProps) {
       </Preview>
       <Body style={body}>
         <Container style={container}>
-          <Text style={brand}>Gawk · daily AI digest</Text>
+          <Text style={brand}>gawk.dev · daily AI digest</Text>
 
           <Text style={lead}>Confirm your subscription.</Text>
 
@@ -81,7 +81,7 @@ export default function ConfirmEmail({ confirmUrl }: ConfirmEmailProps) {
           </Text>
 
           <Text style={footer}>
-            Gawk is built with data from public APIs. Every number on the
+            gawk.dev is built with data from public APIs. Every number on the
             dashboard traces to a source.
           </Text>
         </Container>

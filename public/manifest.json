@@ -1,6 +1,6 @@
 {
-  "name": "Gawk — live AI ecosystem observatory",
-  "short_name": "Gawk",
+  "name": "gawk.dev — live AI ecosystem observatory",
+  "short_name": "gawk.dev",
   "description": "Real-time aggregator for the global AI ecosystem. Every number cites its source.",
   "start_url": "/",
   "scope": "/",

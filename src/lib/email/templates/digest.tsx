@@ -117,7 +117,7 @@ export function DigestEmail({
     countryCode: countryCode ?? null,
   });
   const permalink = `${baseUrl}/digest/${digest.date}`;
-  const shareText = composeShareText("Gawk daily digest", digest.subject);
+  const shareText = composeShareText("gawk.dev daily digest", digest.subject);
   const liUrl = buildShareUrl({
     platform: "linkedin",
     url: permalink,
@@ -279,7 +279,7 @@ export function DigestEmail({
           <Section style={styles.ctaBlock}>
             <Text style={styles.ctaRow}>
               <Link href={permalink} style={styles.primaryButton}>
-                Read today&rsquo;s full brief on Gawk →
+                Read today&rsquo;s full brief on gawk.dev →
               </Link>
             </Text>
             <Text className="ge-mut" style={styles.shareRow}>
@@ -391,7 +391,7 @@ function SectionBlock({
         <p className="ge-mut" style={leanStyles.overflow}>
           {`+${overflow} more in this section · `}
           <a href={sectionUrl} className="ge-link" style={leanStyles.a}>
-            View all on Gawk →
+            View all on gawk.dev →
           </a>
         </p>
       ) : null}
@@ -412,7 +412,7 @@ function SectionBlock({
           </>
         ) : null}
         <a href={sectionUrl} className="ge-link" style={leanStyles.a}>
-          View on Gawk →
+          View on gawk.dev →
         </a>
       </p>
     </Section>
@@ -526,7 +526,7 @@ function ItemRow({
                     className="ge-link"
                     style={leanStyles.a}
                   >
-                    View on Gawk →
+                    View on gawk.dev →
                   </a>
                 ) : null}
               </p>

@@ -112,7 +112,7 @@ export function loadToolIncidents30dBlock(
   const rows: GenesisBlockRow[] = candidates.map(([id, days]) => {
     const src = STATUS_PAGE_URL[id] ?? {
       url: `https://gawk.dev/sources`,
-      label: "Gawk sources",
+      label: "gawk.dev sources",
     };
     return {
       label: id,

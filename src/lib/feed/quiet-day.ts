@@ -1,5 +1,5 @@
 /**
- * Gawk — Quiet-day decision
+ * gawk.dev — Quiet-day decision
  *
  * Returns true when zero cards with severity >= 40 exist in the
  * last 24 hours. The threshold of 40 = NEWS tier; anything below

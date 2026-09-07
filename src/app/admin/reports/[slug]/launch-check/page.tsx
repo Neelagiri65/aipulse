@@ -104,7 +104,7 @@ export default async function ReportLaunchCheckPage({
           href="/"
           className="underline decoration-dotted underline-offset-2 hover:text-foreground"
         >
-          Gawk
+          gawk.dev
         </Link>
         <span aria-hidden="true"> · </span>
         <span>Admin · Launch readiness · {slug}</span>

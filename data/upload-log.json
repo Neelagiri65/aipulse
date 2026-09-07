@@ -1102,5 +1102,41 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-09-05",
+    "videoId": "CcXsl98qwiA",
+    "url": "https://youtu.be/CcXsl98qwiA",
+    "title": "Hy4 preview takes #1 on OpenRouter | Gawk Daily — 5 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-05T11:16:23.317Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-09-06",
+    "videoId": "AC-rHecSFgU",
+    "url": "https://youtu.be/AC-rHecSFgU",
+    "title": "LLMs as a Cognitive Virus | Gawk Daily — 6 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-06T11:39:09.765Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-09-07",
+    "videoId": "rr4tYlIMg_Y",
+    "url": "https://youtu.be/rr4tYlIMg_Y",
+    "title": "Hy4 preview holds #1 on OpenRouter | Gawk Daily — 7 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-07T13:28:15.263Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]

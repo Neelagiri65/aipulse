@@ -1,5 +1,5 @@
 /**
- * Gawk — TOOL_ALERT deriver
+ * gawk.dev — TOOL_ALERT deriver
  *
  * Pure function over `StatusResult`. Emits one Card per tool that the
  * StatusBar would render as anything other than green: a non-operational

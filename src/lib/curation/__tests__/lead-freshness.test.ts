@@ -15,11 +15,11 @@ import {
 
 // Verbatim from data/upload-log.json, newest first.
 const REAL_RECENT_TITLES = [
-  "DeepSeek V4 Flash holds #1 on OpenRouter | Gawk Daily — 4 July 2026",
-  "DeepSeek V4 Flash holds #1 on OpenRouter | Gawk Daily — 3 July 2026",
-  "DeepSeek V4 Flash holds #1 on OpenRouter | Gawk Daily — 2 July 2026",
-  "DeepSeek V4 Flash holds #1 on OpenRouter | Gawk Daily — 1 July 2026",
-  "DeepSeek V4 Flash takes #1 on OpenRouter | Gawk Daily — 30 June 2026",
+  "DeepSeek V4 Flash holds #1 on OpenRouter | gawk.dev Daily — 4 July 2026",
+  "DeepSeek V4 Flash holds #1 on OpenRouter | gawk.dev Daily — 3 July 2026",
+  "DeepSeek V4 Flash holds #1 on OpenRouter | gawk.dev Daily — 2 July 2026",
+  "DeepSeek V4 Flash holds #1 on OpenRouter | gawk.dev Daily — 1 July 2026",
+  "DeepSeek V4 Flash takes #1 on OpenRouter | gawk.dev Daily — 30 June 2026",
 ];
 
 const n = (headline: string) => ({ headline });
@@ -43,9 +43,9 @@ describe("sameLead — wording drift still counts as the same story", () => {
     ).toBe(false);
   });
 
-  it("the Gawk Daily date suffix never affects matching", () => {
+  it("the gawk.dev Daily date suffix never affects matching", () => {
     expect(
-      leadTokens("X | Gawk Daily — 5 July 2026").has("july"),
+      leadTokens("X | gawk.dev Daily — 5 July 2026").has("july"),
     ).toBe(false);
   });
 });
@@ -111,7 +111,7 @@ describe("rotateLeadForFreshness", () => {
     const result = rotateLeadForFreshness(
       [n("DeepSeek V4 Flash holds #1 on OpenRouter"), n("Other story")],
       [
-        "Anthropic ships Claude Opus 4.8 | Gawk Daily — 4 July 2026",
+        "Anthropic ships Claude Opus 4.8 | gawk.dev Daily — 4 July 2026",
         ...REAL_RECENT_TITLES,
       ],
     );

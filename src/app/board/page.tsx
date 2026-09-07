@@ -23,7 +23,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Gawk — State of the AI Ecosystem (board)",
+  title: "gawk.dev — State of the AI Ecosystem (board)",
   description:
     "A condensed, source-grouped view of real-time AI-ecosystem activity. Prototype.",
   robots: { index: false },
