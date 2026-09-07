@@ -59,8 +59,29 @@ test.describe("dashboard views", () => {
     await expect(band).toContainText("© OpenStreetMap contributors");
     await expect(band).toContainText("solid = an event landed here");
     // A cell is drawn for every land cell even before the poll answers, so the SVG is never empty.
-    expect(await band.locator("svg circle").count()).toBeGreaterThan(500);
+    const svg = band.locator("svg.ap-worldband__svg");
+    expect(await svg.locator("circle").count()).toBeGreaterThan(500);
     await shot(page, "health-world-band");
+    // Pointing at the band opens the lens on the region under the pointer (here: the middle of the
+    // band, which is land or sea — either way the lens names it).
+    await svg.hover({ position: { x: 300, y: 120 } });
+    const lens = page.getByTestId("world-lens");
+    await expect(lens).toBeVisible();
+    await expect(lens).toContainText(/events|nothing recorded|Sea/);
+    await shot(page, "health-world-lens");
+    // A click on a cell that recorded events opens the drilldown — only with real events (prod).
+    const solid = svg.locator("circle.ap-worldband__solid");
+    const solidCount = await solid.count();
+    if (solidCount > 0) {
+      await solid.first().click({ force: true });
+      const region = page.getByTestId("world-region");
+      await expect(region).toBeVisible();
+      await expect(region).toContainText("located events in the window");
+      expect(await region.locator("li").count()).toBeGreaterThan(0);
+      await shot(page, "health-world-region");
+      await region.getByRole("button", { name: "Close" }).click();
+      await expect(region).toHaveCount(0);
+    }
     await band.getByRole("button", { name: "Open the full map" }).click();
     await expect(page.getByRole("tab", { name: "Map", exact: true })).toHaveAttribute(
       "aria-selected",

@@ -7,8 +7,11 @@ import {
   cellMark,
   cellOf,
   gridWithCols,
+  groupByCell,
   isLand,
+  neighbourhood,
   projectToRender,
+  regionSummary,
 } from "../world-grid";
 
 /**
@@ -89,5 +92,42 @@ describe("world-grid", () => {
     const g60 = gridWithCols(60);
     const pts = (labs as Array<{ lng: number; lat: number }>).map(({ lng, lat }) => ({ lng, lat }));
     expect(bucketEvents(g60, pts).placed).toBe(bucketEvents(g90, pts).placed);
+  });
+
+  it("groupByCell keeps every placed point under its cell, in input order", () => {
+    const g = gridWithCols(90);
+    const pts = [
+      { lng: -0.1278, lat: 51.5074, meta: { repo: "a/a" } },
+      { lng: 0, lat: 80, meta: { repo: "out" } },
+      { lng: -0.1325, lat: 51.5175, meta: { repo: "b/b" } },
+    ];
+    const by = groupByCell(g, pts);
+    const london = cellOf(g, -0.1278, 51.5074);
+    expect(by.get(london)?.map((p) => p.meta.repo)).toEqual(["a/a", "b/b"]);
+    expect([...by.values()].flat()).toHaveLength(2);
+  });
+
+  it("neighbourhood is (2r+1)² inside the grid and clips at the edges", () => {
+    const g = gridWithCols(90);
+    const mid = 20 * g.cols + 40;
+    expect(neighbourhood(g, mid, 2)).toHaveLength(25);
+    expect(neighbourhood(g, mid, 2)).toContain(mid);
+    expect(neighbourhood(g, 0, 2)).toHaveLength(9); // top-left corner
+    expect(neighbourhood(g, g.cols - 1, 1)).toHaveLength(4); // top-right corner
+    expect(neighbourhood(g, -1, 2)).toEqual([]);
+  });
+
+  it("regionSummary counts only what the points carry, ranked most-first", () => {
+    const s = regionSummary([
+      { lng: 0, lat: 0, meta: { hasAiConfig: true, country: "Germany", type: "PushEvent", repo: "x/y" } },
+      { lng: 0, lat: 0, meta: { hasAiConfig: false, country: "Germany", type: "IssuesEvent", repo: "x/y" } },
+      { lng: 0, lat: 0, meta: { hasAiConfig: true, country: "France", type: "PushEvent", repo: "p/q" } },
+      { lng: 0, lat: 0, meta: {} },
+    ]);
+    expect(s.count).toBe(4);
+    expect(s.aiConfig).toBe(2);
+    expect(s.countries).toEqual([["Germany", 2], ["France", 1]]);
+    expect(s.types).toEqual([["PushEvent", 2], ["IssuesEvent", 1]]);
+    expect(s.repos).toEqual([["x/y", 2], ["p/q", 1]]);
   });
 });

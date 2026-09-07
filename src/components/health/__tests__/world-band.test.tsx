@@ -4,7 +4,8 @@
  */
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { WorldBand } from "@/components/health/WorldBand";
+import { RegionDetail, WorldBand } from "@/components/health/WorldBand";
+import { cellOf, groupByCell, gridWithCols } from "@/lib/world-grid";
 import type { GlobeEventsResult } from "@/lib/data/fetch-events";
 
 const noop = () => {};
@@ -119,5 +120,35 @@ describe("WorldBand", () => {
     const html = renderToStaticMarkup(<WorldBand events={result([])} loading={false} cols={60} onOpenMap={noop} />);
     expect(html).toContain('viewBox="0 0 480 248"');
     expect(html).toContain("© OpenStreetMap contributors");
+  });
+
+  it("RegionDetail lists every located event around the cell, newest first, with durable links", () => {
+    const g = gridWithCols(90);
+    const pts = [
+      { lat: 51.5074, lng: -0.1278, color: "", meta: { eventId: "1", type: "PushEvent", actor: "alice", repo: "alice/one", createdAt: "2026-09-07T07:00:00Z", hasAiConfig: true, sourceKind: "events-api", country: "United Kingdom", region: "England" } },
+      { lat: 51.5175, lng: -0.1325, color: "", meta: { eventId: "gl:2", type: "IssuesEvent", actor: "gl:bob", repo: "gitlab.com/bob/two", createdAt: "2026-09-07T07:30:00Z", hasAiConfig: false, sourceKind: "gitlab", country: "United Kingdom", region: null } },
+      { lat: 37.7749, lng: -122.4194, color: "", meta: { eventId: "3", type: "PushEvent", actor: "carol", repo: "carol/far", createdAt: "2026-09-07T07:10:00Z", hasAiConfig: true, sourceKind: "events-api", country: "United States" } },
+    ];
+    const byCell = groupByCell(g, pts);
+    const html = renderToStaticMarkup(
+      <RegionDetail grid={g} byCell={byCell} cell={cellOf(g, -0.1278, 51.5074)} now={Date.parse("2026-09-07T08:00:00Z")} onClose={() => {}} />,
+    );
+    expect(html).toContain("Events around United Kingdom<");
+    expect(html).toContain("2 located events in the window · 1 on repos with AI config · 2 repos");
+    expect(html.indexOf("bob/two")).toBeLessThan(html.indexOf("alice/one")); // newest first
+    expect(html).toContain('href="https://github.com/alice/one"');
+    expect(html).toContain("gitlab.com/bob/two");
+    expect(html).toContain("1h ago");
+    expect(html).toContain("United Kingdom, England");
+    expect(html).not.toContain("carol/far"); // San Francisco is not in a London neighbourhood
+    expect(html).toContain("PUSH · ai-cfg");
+    expect(html).toContain("ISSUE · no-cfg");
+  });
+
+  it("the band renders no lens or region until the reader points at it", () => {
+    const html = renderToStaticMarkup(<WorldBand events={result([{ lat: 48.86, lng: 2.35 }])} loading={false} onOpenMap={noop} />);
+    expect(html).not.toContain("world-lens");
+    expect(html).not.toContain("world-region");
+    expect(html).toContain("Open the full map");
   });
 });

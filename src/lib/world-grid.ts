@@ -115,3 +115,72 @@ export function cellMark(grid: WorldGrid, counts: ReadonlyMap<number, number>, c
   if ((counts.get(cell) ?? 0) > 0) return "solid";
   return isLand(grid, cell) ? "hollow" : "none";
 }
+
+/** Points grouped by the cell they fall in (same projection as bucketEvents). */
+export function groupByCell<P extends { lng: number; lat: number }>(
+  grid: WorldGrid,
+  points: ReadonlyArray<P>,
+): Map<number, P[]> {
+  const out = new Map<number, P[]>();
+  for (const p of points) {
+    const c = cellOf(grid, p.lng, p.lat);
+    if (c < 0) continue;
+    const list = out.get(c);
+    if (list) list.push(p);
+    else out.set(c, [p]);
+  }
+  return out;
+}
+
+/** The (2r+1)² cells around `cell`, clipped to the grid; row-major, the centre included. */
+export function neighbourhood(grid: WorldGrid, cell: number, radius: number): number[] {
+  if (cell < 0) return [];
+  const cx = cell % grid.cols;
+  const ry = Math.floor(cell / grid.cols);
+  const out: number[] = [];
+  for (let y = ry - radius; y <= ry + radius; y++) {
+    if (y < 0 || y >= grid.rows) continue;
+    for (let x = cx - radius; x <= cx + radius; x++) {
+      if (x < 0 || x >= grid.cols) continue;
+      out.push(y * grid.cols + x);
+    }
+  }
+  return out;
+}
+
+export type RegionPoint = { lng: number; lat: number; meta?: Record<string, unknown> };
+
+export type RegionSummary = {
+  count: number;
+  aiConfig: number;
+  /** country → count, most first */
+  countries: Array<[string, number]>;
+  /** event type → count, most first */
+  types: Array<[string, number]>;
+  /** repo → count, most first */
+  repos: Array<[string, number]>;
+};
+
+function tally(m: Map<string, number>, key: unknown): void {
+  if (typeof key !== "string" || key.length === 0) return;
+  m.set(key, (m.get(key) ?? 0) + 1);
+}
+function ranked(m: Map<string, number>): Array<[string, number]> {
+  return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+
+/** What the lens says about a set of points: counts only, every one from the points themselves. */
+export function regionSummary(points: ReadonlyArray<RegionPoint>): RegionSummary {
+  const countries = new Map<string, number>();
+  const types = new Map<string, number>();
+  const repos = new Map<string, number>();
+  let aiConfig = 0;
+  for (const p of points) {
+    const m = p.meta ?? {};
+    if (m.hasAiConfig === true) aiConfig += 1;
+    tally(countries, m.country);
+    tally(types, m.type);
+    tally(repos, m.repo);
+  }
+  return { count: points.length, aiConfig, countries: ranked(countries), types: ranked(types), repos: ranked(repos) };
+}
