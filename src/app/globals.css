@@ -2778,3 +2778,21 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
 .ap-worldband__attr { margin: 0; font-size: 12px; line-height: 1.35; color: var(--ink-muted); }
 .ap-worldband[data-state="pending"] .ap-worldband__cap,
 .ap-worldband[data-state="unavailable"] .ap-worldband__cap { color: var(--ink-muted); font-style: italic; }
+
+/* ---- Health at desktop width: two columns (canvas Main board, PRD §7 rebalance) ----
+   Rows left (480), the world in marks with its caption and legend right (680), gap 40, together 1200.
+   The reading column otherwise centres on the viewport and leaves the space right of the rail empty
+   (founder, 7 Sep: "in the right side of the map there is a lot of empty space"). Below 1180px the
+   column stays single, band under the rows. */
+@media (min-width: 1180px) {
+  .ap-column-scroll--wide { padding-left: 200px; }
+  .ap-column--health {
+    max-width: 1240px;
+    display: grid;
+    grid-template-columns: minmax(0, 12fr) minmax(0, 17fr);
+    gap: 18px 40px;
+    align-items: start;
+  }
+  .ap-column--health > * { min-width: 0; }
+  .ap-column--health > .ap-column__sub { grid-column: 1 / -1; }
+}

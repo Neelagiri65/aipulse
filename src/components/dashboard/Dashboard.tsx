@@ -1079,8 +1079,8 @@ export function Dashboard({
         style={{ paddingTop: stagePaddingTop, paddingBottom: 140, zIndex: 3 }}
       >
         {activeTab === "health" && (
-          <div className="ap-column-scroll">
-            <section className="ap-column" aria-label="Health">
+          <div className="ap-column-scroll ap-column-scroll--wide">
+            <section className="ap-column ap-column--health" aria-label="Health">
               <HealthCardGrid data={status.data?.data} polledAt={status.data?.polledAt} maximized={true} />
               <WorldBand
                 events={events.data}
