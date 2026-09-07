@@ -261,7 +261,7 @@ export function MobileDashboard(props: MobileDashboardProps) {
       data-active-tab={active}
     >
       <header className="ap-mobile-topbar">
-        <a href="/" className="ap-mobile-brand" aria-label="Gawk home">
+        <a href="/" className="ap-mobile-brand" aria-label="gawk.dev home">
           <span className="ap-live-dot" aria-hidden />
           <span className="ap-mobile-brand__name">GAWK</span>
           <span className="ap-mobile-brand__beta">BETA</span>

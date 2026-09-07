@@ -1,5 +1,5 @@
 /**
- * Gawk — Single feed card.
+ * gawk.dev — Single feed card.
  *
  * Renders one Card from the feed. Headline + optional detail +
  * source citation (clickable, new tab, rel="noreferrer") + relative

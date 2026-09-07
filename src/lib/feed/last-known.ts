@@ -1,5 +1,5 @@
 /**
- * Gawk — Last-known cache wrapper for live-fetch feed sources.
+ * gawk.dev — Last-known cache wrapper for live-fetch feed sources.
  *
  * Wraps an upstream fetch so that a successful response is written to
  * Upstash Redis under `feed:lk:{key}` and a failed response falls back

@@ -1,6 +1,6 @@
 /**
  * Agents-panel framework registry — the single editorial source for which
- * agent frameworks Gawk tracks. Every downstream concern (fetcher, view
+ * agent frameworks gawk.dev tracks. Every downstream concern (fetcher, view
  * assembler, digest section, dashboard panel) reads from this one array.
  *
  * Adding or removing a framework is a code change under Auditor review,

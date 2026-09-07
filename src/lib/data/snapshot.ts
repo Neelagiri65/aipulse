@@ -1,5 +1,5 @@
 /**
- * Daily snapshot archival — captures the observable state of Gawk
+ * Daily snapshot archival — captures the observable state of gawk.dev
  * once per UTC day so trend charts have a past to draw from.
  *
  * Design:

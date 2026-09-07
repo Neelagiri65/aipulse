@@ -32,38 +32,38 @@ describe("v1-middleware", () => {
       expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");
     });
 
-    it("adds X-Gawk-Generated-At header", async () => {
+    it("adds X-gawk.dev-Generated-At header", async () => {
       const res = await handleV1Request(makeRequest(), async () => ({
         body: { ok: true },
         meta: { generatedAt: "2026-05-08T12:00:00Z" },
       }));
-      expect(res.headers.get("X-Gawk-Generated-At")).toBe(
+      expect(res.headers.get("X-gawk.dev-Generated-At")).toBe(
         "2026-05-08T12:00:00Z",
       );
     });
 
-    it("adds X-Gawk-Source-Count when provided", async () => {
+    it("adds X-gawk.dev-Source-Count when provided", async () => {
       const res = await handleV1Request(makeRequest(), async () => ({
         body: { items: [] },
         meta: { generatedAt: "2026-05-08T00:00:00Z", sourceCount: 42 },
       }));
-      expect(res.headers.get("X-Gawk-Source-Count")).toBe("42");
+      expect(res.headers.get("X-gawk.dev-Source-Count")).toBe("42");
     });
 
-    it("omits X-Gawk-Source-Count when not provided", async () => {
+    it("omits X-gawk.dev-Source-Count when not provided", async () => {
       const res = await handleV1Request(makeRequest(), async () => ({
         body: { items: [] },
         meta: { generatedAt: "2026-05-08T00:00:00Z" },
       }));
-      expect(res.headers.has("X-Gawk-Source-Count")).toBe(false);
+      expect(res.headers.has("X-gawk.dev-Source-Count")).toBe(false);
     });
 
-    it("adds X-Gawk-Cache-Age when provided", async () => {
+    it("adds X-gawk.dev-Cache-Age when provided", async () => {
       const res = await handleV1Request(makeRequest(), async () => ({
         body: {},
         meta: { generatedAt: "2026-05-08T00:00:00Z", cacheMaxAge: 300 },
       }));
-      expect(res.headers.get("X-Gawk-Cache-Age")).toBe("300");
+      expect(res.headers.get("X-gawk.dev-Cache-Age")).toBe("300");
     });
 
     it("sets Cache-Control from handler result", async () => {

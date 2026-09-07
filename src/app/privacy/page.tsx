@@ -3,9 +3,9 @@ import Link from "next/link";
 import { PrivacyFooter } from "@/components/consent/PrivacyFooter";
 
 export const metadata: Metadata = {
-  title: "Privacy — Gawk",
+  title: "Privacy — gawk.dev",
   description:
-    "What data Gawk collects, why, how to opt out, and where to delete your record.",
+    "What data gawk.dev collects, why, how to opt out, and where to delete your record.",
 };
 
 /**
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
           What we collect
         </h2>
         <p>
-          When you visit Gawk, we log HTTP request metadata (path,
+          When you visit gawk.dev, we log HTTP request metadata (path,
           referrer, anonymised IP) on Vercel&apos;s edge — the standard
           request log every website keeps. None of that is sold or shared.
         </p>

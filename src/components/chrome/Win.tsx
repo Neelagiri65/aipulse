@@ -57,7 +57,7 @@ export type WinProps = {
 };
 
 /**
- * Floating draggable / resizable window with the Gawk window-chrome look.
+ * Floating draggable / resizable window with the gawk.dev window-chrome look.
  * Headless about content — pass the panel body as children. Pure client state;
  * does not persist position (intentional — panels reset on reload like a HUD).
  */

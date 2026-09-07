@@ -36,7 +36,7 @@ export function buildDigestRssXml(
     .map((d) => {
       const link = `${origin}/digest/${d.date}`;
       const pubDate = new Date(d.generatedAt).toUTCString();
-      const description = d.tldr ?? "Daily brief from the Gawk observatory.";
+      const description = d.tldr ?? "Daily brief from the gawk.dev observatory.";
       return [
         "    <item>",
         `      <title>${escapeXml(d.subject)}</title>`,
@@ -53,7 +53,7 @@ export function buildDigestRssXml(
     `<?xml version="1.0" encoding="UTF-8"?>`,
     `<rss version="2.0">`,
     `  <channel>`,
-    `    <title>The Daily Gawk</title>`,
+    `    <title>The Daily gawk.dev</title>`,
     `    <link>${escapeXml(`${origin}/newsletter`)}</link>`,
     `    <description>One email a day on what actually moved in the AI ecosystem. Every number cites its public source.</description>`,
     `    <language>en</language>`,

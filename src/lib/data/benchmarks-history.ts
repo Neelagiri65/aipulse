@@ -1,5 +1,5 @@
 /**
- * Gawk — Per-row Elo history for the Benchmarks panel sparkline.
+ * gawk.dev — Per-row Elo history for the Benchmarks panel sparkline.
  *
  * Reads the most-recent N daily snapshots and projects them to a
  * per-modelName array of Elo values, oldest → newest, with `null` for

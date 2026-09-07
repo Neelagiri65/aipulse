@@ -35,9 +35,9 @@ import type { AgentsViewDto } from "@/lib/data/agents-view";
 // Diff-mode greeting is unused at render time — the template prints
 // `tldr` instead — but kept populated for archive re-rendering and as a
 // fallback when no diff content surfaces.
-const GREETING_TEMPLATE = "Good morning from Gawk — here's what moved in {geoCountry} in the last 24h.";
-const GREETING_TEMPLATE_QUIET = "Good morning from Gawk — all quiet in the AI ecosystem in {geoCountry}.";
-const GREETING_TEMPLATE_BOOTSTRAP = "Welcome to Gawk. Here's where the AI ecosystem stands right now, as seen from {geoCountry}.";
+const GREETING_TEMPLATE = "Good morning from gawk.dev — here's what moved in {geoCountry} in the last 24h.";
+const GREETING_TEMPLATE_QUIET = "Good morning from gawk.dev — all quiet in the AI ecosystem in {geoCountry}.";
+const GREETING_TEMPLATE_BOOTSTRAP = "Welcome to gawk.dev. Here's where the AI ecosystem stands right now, as seen from {geoCountry}.";
 
 export type ComposeDigestInput = {
   today: DailySnapshot;
@@ -235,13 +235,13 @@ function buildSubject(
   incidentCount24h: number,
 ): string {
   if (mode === "bootstrap") {
-    return `Gawk — ${date} · where things stand`;
+    return `gawk.dev — ${date} · where things stand`;
   }
   if (mode === "quiet") {
-    return `Gawk — ${date} · all quiet in the AI ecosystem`;
+    return `gawk.dev — ${date} · all quiet in the AI ecosystem`;
   }
   const hook = pickLeadHook(sections, incidentCount24h);
-  return hook ? `Gawk — ${date} · ${hook}` : `Gawk — ${date}`;
+  return hook ? `gawk.dev — ${date} · ${hook}` : `gawk.dev — ${date}`;
 }
 
 /** Choose the most newsworthy hook from today's sections for the subject

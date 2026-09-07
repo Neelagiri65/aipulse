@@ -23,7 +23,7 @@
 export const LEAD_MAX_CONSECUTIVE_DAYS = 2;
 const SAME_LEAD_JACCARD = 0.6;
 
-/** Strip the "| Gawk Daily — date" suffix and reduce to a comparable
+/** Strip the "| gawk.dev Daily — date" suffix and reduce to a comparable
  *  token set. Tokens shorter than 2 chars are dropped (dates, "#1"'s
  *  digit) so rank numbers and punctuation don't mask sameness. */
 export function leadTokens(title: string): Set<string> {
@@ -103,7 +103,7 @@ export function rotateScriptForFreshness<
 /**
  * @param narratives ranked narratives, best first (order otherwise preserved)
  * @param recentLeadTitles previous days' video titles, NEWEST FIRST
- *   (straight from upload-log; the Gawk Daily suffix is handled here)
+ *   (straight from upload-log; the gawk.dev Daily suffix is handled here)
  */
 export function rotateLeadForFreshness<T extends { headline: string }>(
   narratives: T[],

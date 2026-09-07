@@ -7,15 +7,15 @@ const SUBSCRIBE_DESCRIPTION =
   "Track AI tool outages, model rankings, and SDK adoption in real time. One daily email — every number cites its public source. No ads, no hype.";
 
 export const metadata: Metadata = {
-  title: "Subscribe — Gawk daily digest",
+  title: "Subscribe — gawk.dev daily digest",
   description: SUBSCRIBE_DESCRIPTION,
   openGraph: {
-    title: "Subscribe — Gawk daily digest",
+    title: "Subscribe — gawk.dev daily digest",
     description: SUBSCRIBE_DESCRIPTION,
     images: ["/opengraph-image"],
   },
   twitter: {
-    title: "Subscribe — Gawk daily digest",
+    title: "Subscribe — gawk.dev daily digest",
     description: SUBSCRIBE_DESCRIPTION,
   },
 };
@@ -35,7 +35,7 @@ export default function SubscribePage() {
   return (
     <main className="mx-auto max-w-md px-6 py-16 text-foreground">
       <h1 className="mb-2 font-mono text-2xl tracking-tight">
-        Daily Gawk
+        Daily gawk.dev
       </h1>
       <p className="mb-6 text-sm text-muted-foreground">
         One email a day. Models released, benchmarks shifted, regulator

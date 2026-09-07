@@ -10,7 +10,7 @@ describe("evaluateVideo", () => {
       latest: { date: "2026-06-28", url: "https://youtu.be/APxMGkUsBM0" },
       now: NOW,
       maxAgeMinutes: 2 * DAY,
-      oembedTitle: "Sakana: Fugu Ultra takes #1 | Gawk Daily — 28 June 2026",
+      oembedTitle: "Sakana: Fugu Ultra takes #1 | gawk.dev Daily — 28 June 2026",
     });
     expect(r.verdict).toBe("OK");
   });

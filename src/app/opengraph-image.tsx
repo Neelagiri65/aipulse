@@ -1,5 +1,5 @@
 /**
- * Gawk — Site-wide OG image for the dashboard root.
+ * gawk.dev — Site-wide OG image for the dashboard root.
  *
  * Rendered when someone shares https://gawk.dev directly (no /feed/{id}
  * suffix). The per-card OG at /feed/[cardId]/opengraph-image.tsx wins
@@ -13,7 +13,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "nodejs";
-export const alt = "Gawk — live observatory for the global AI ecosystem";
+export const alt = "gawk.dev — live observatory for the global AI ecosystem";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

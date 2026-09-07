@@ -1,5 +1,5 @@
 /**
- * Gawk — degraded-source detection
+ * gawk.dev — degraded-source detection
  *
  * Pure projection from loaded snapshots to the set of sources currently
  * serving a DEGRADED fallback. Kept separate from `load.ts` (which does

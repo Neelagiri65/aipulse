@@ -1,5 +1,5 @@
 /**
- * Gawk — NEW_RELEASE deriver
+ * gawk.dev — NEW_RELEASE deriver
  *
  * Pure function over a HuggingFace `?sort=createdAt&direction=-1&full=true`
  * response. Emits one Card per model that:

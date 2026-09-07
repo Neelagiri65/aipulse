@@ -1,5 +1,5 @@
 /**
- * Gawk — Product Hunt source
+ * gawk.dev — Product Hunt source
  *
  * Fetches the day's top launches in Product Hunt's "Artificial Intelligence"
  * topic via the PH API v2 GraphQL endpoint. Keeps gawk AI-focused (the raw PH
