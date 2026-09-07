@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Gawk — Feed view switch: Stories (news + research cards) or Wire (the chronological
+ * gawk.dev — Feed view switch: Stories (news + research cards) or Wire (the chronological
  * GitHub-events + HN wire). Deep-linked as `?view=wire`. Ink-only segmented control: the accent
  * belongs to the primary tab and the one hot button, never here.
  */

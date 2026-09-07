@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Gawk — More: the index. Boards (the existing panels, opened as the floating windows they
+ * gawk.dev — More: the index. Boards (the existing panels, opened as the floating windows they
  * already are on desktop) and the "about the numbers" rows. Phase 2 of the web restyle wires
  * the surface; phase 3 restyles the panels themselves.
  */

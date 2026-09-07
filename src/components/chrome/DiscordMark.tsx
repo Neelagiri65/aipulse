@@ -1,5 +1,5 @@
 /**
- * Gawk — Discord mark (the "Clyde" logo, Discord brand asset) drawn in currentColor so it
+ * gawk.dev — Discord mark (the "Clyde" logo, Discord brand asset) drawn in currentColor so it
  * follows the tab's ink/link colour. Decorative: the tab's accessible name is its text.
  */
 export function DiscordMark({ className = "ap-tab-mark" }: { className?: string }) {

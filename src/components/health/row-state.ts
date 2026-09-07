@@ -1,5 +1,5 @@
 /**
- * Gawk — Health row state (web v2 phase 3, PRD web-restyle-v2 §7).
+ * gawk.dev — Health row state (web v2 phase 3, PRD web-restyle-v2 §7).
  *
  * State is carried by SHAPE, colour by WORDS: a solid mark = working at the last check, a hatched
  * mark = an incident or a non-operational declaration, a hollow mark = nothing measured. Green is

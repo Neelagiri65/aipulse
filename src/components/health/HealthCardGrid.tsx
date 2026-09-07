@@ -1,5 +1,5 @@
 /**
- * Gawk — Tool health list (web v2 phase 3): one inset, incidents first. Rows whose state is an
+ * gawk.dev — Tool health list (web v2 phase 3): one inset, incidents first. Rows whose state is an
  * exception (any incident, anything not operational, anything unmeasured) come first and open
  * their detail by default; working rows follow, collapsed. The head carries the count of status
  * pages behind the list and the time of the last poll. The name `HealthCardGrid` is kept so the

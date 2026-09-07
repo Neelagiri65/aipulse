@@ -1,5 +1,5 @@
 /**
- * Gawk — the five primary surfaces (web v2, PRD web-restyle-v2 §1 / §9).
+ * gawk.dev — the five primary surfaces (web v2, PRD web-restyle-v2 §1 / §9).
  *
  * One list for desktop TopBar and the mobile bottom bar so both shells share ids, order and
  * labels, and `?tab=` deep links work on either. Flow: Glance (Health) → Drill (Feed, Map,

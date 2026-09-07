@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Gawk — light / dark switch (web v2, PRD web-restyle-v2 §6: light default with a switch).
+ * gawk.dev — light / dark switch (web v2, PRD web-restyle-v2 §6: light default with a switch).
  *
  * Source of truth is the `data-theme` attribute on <html>, which the inline boot script in
  * `app/layout.tsx` sets before first paint from `localStorage["gawk-theme"]`. This component

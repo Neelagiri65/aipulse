@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Gawk — Tool health row (web v2 phase 3). The row is the card's collapsed state, not a
+ * gawk.dev — Tool health row (web v2 phase 3). The row is the card's collapsed state, not a
  * replacement: mark (state by shape) · name · caption (the state word, the last incident, the
  * source) · 7-day strip · chevron. The chevron opens an inline detail that carries every trust
  * item the card had — active incidents with the declared-vs-incident disclosure (#63), the
