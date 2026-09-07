@@ -19,7 +19,7 @@
  * reason:"resend-not-configured" and 200 so the cron stays green):
  *   - RESEND_API_KEY             — batch send + domains.get().
  *   - RESEND_DOMAIN_ID           — the registered domain on Resend.
- *   - EMAIL_FROM_ADDRESS         — "gawk.dev <digest@gawk.dev>" format.
+ *   - EMAIL_FROM_ADDRESS         — "gawk.dev <noreply@gawk.dev>" format (no reply-to is set, so replies land on this address).
  *   - EMAIL_UNSUB_MAILTO         — mailto for the List-Unsubscribe header.
  *
  * Optional envs:
