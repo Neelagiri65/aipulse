@@ -27,7 +27,7 @@ import {
 test.describe("AI Labs layer", () => {
   test.beforeEach(async ({ page }) => {
     await openDashboard(page);
-    await switchTab(page, "The Map");
+    await switchTab(page, "Map");
     await waitForMapReady(page);
   });
 

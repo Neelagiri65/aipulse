@@ -39,6 +39,7 @@ export function deriveModelMoverCards(dto: ModelUsageDto): Card[] {
       timestamp: dto.fetchedAt,
       meta: {
         slug: row.slug,
+        name: row.name,
         currentRank: row.rank,
         previousRank: row.previousRank,
         delta,

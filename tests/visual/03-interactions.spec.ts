@@ -6,6 +6,7 @@ import {
   shot,
   skipWhenLocalAndEmpty,
   switchTab,
+  openFeedWire,
   waitForMapReady,
   waitForWireReady,
 } from "./_helpers";
@@ -19,7 +20,7 @@ import {
 test.describe("interactions", () => {
   test("Map cluster click opens the EventCard", async ({ page }) => {
     await openDashboard(page);
-    await switchTab(page, "The Map");
+    await switchTab(page, "Map");
     await waitForMapReady(page);
 
     // Close the default Wire + Tools panels so they don't occlude the
@@ -55,11 +56,12 @@ test.describe("interactions", () => {
     await shot(page, "interaction-eventcard");
   });
 
-  test("The Wire shows the HN orange pill when HN stories are present", async ({
+  test("Feed › Wire shows the HN orange pill when HN stories are present", async ({
     page,
   }) => {
     await openDashboard(page);
-    await switchTab(page, "The Wire");
+    await switchTab(page, "Feed");
+    await openFeedWire(page);
     await waitForWireReady(page);
 
     const hnPill = page
@@ -79,7 +81,7 @@ test.describe("interactions", () => {
     page,
   }) => {
     await openDashboard(page);
-    await switchTab(page, "The Map");
+    await switchTab(page, "Map");
     await waitForMapReady(page);
     const metrics = page.locator('[aria-label="Headline metrics"]').first();
     await expect(metrics).toBeVisible();
@@ -93,7 +95,7 @@ test.describe("interactions", () => {
 
   test("Bottom live event ticker is visible", async ({ page }) => {
     await openDashboard(page);
-    await switchTab(page, "The Map");
+    await switchTab(page, "Map");
     await waitForMapReady(page);
     // The bottom-pinned strip on map/globe views is the LiveTicker
     // ("Live event ticker"). The older MetricTicker ("Dashboard metric
@@ -106,7 +108,7 @@ test.describe("interactions", () => {
 
   test("Globe filters panel opens on Map view", async ({ page }) => {
     await openDashboard(page);
-    await switchTab(page, "The Map");
+    await switchTab(page, "Map");
     await waitForMapReady(page);
     // FilterPanel collapses to a "Show filters" trigger by default;
     // opening it mounts the labelled "Globe filters" complementary.
@@ -124,7 +126,7 @@ test.describe("interactions", () => {
     // layer is gated by a filter toggle, so unchecking all 11 filters
     // leaves the map with zero leaflet markers / clusters.
     await openDashboard(page);
-    await switchTab(page, "The Map");
+    await switchTab(page, "Map");
     await waitForMapReady(page);
 
     // FilterPanel collapses to a "Show filters" trigger by default — open

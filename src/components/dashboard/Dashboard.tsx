@@ -1,13 +1,31 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
-import { Globe, type GlobePoint } from "@/components/globe/Globe";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import type { GlobePoint } from "@/components/globe/Globe";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
+import { WorldBand } from "@/components/health/WorldBand";
+import { HealthTiles } from "@/components/health/HealthTiles";
+import { FeedView } from "@/components/feed/FeedView";
+import { FeedModeSwitch } from "@/components/feed/FeedModeSwitch";
+import { RoomsView } from "@/components/dashboard/RoomsView";
+import { MoreView } from "@/components/dashboard/MoreView";
+import {
+  DEFAULT_FEED_VIEW,
+  DEFAULT_TAB,
+  feedViewFromSearch,
+  tabFromSearch,
+  writeFeedViewToUrl,
+  writeTabToUrl,
+  type FeedViewMode,
+  type PrimaryTab,
+} from "@/components/chrome/primary-tabs";
+
+const subscribeNever = () => () => {};
 import { LiveFeed } from "@/components/dashboard/LiveFeed";
 import { MetricsRow } from "@/components/dashboard/MetricsRow";
 import { WirePage, type WireItem } from "@/components/dashboard/WirePage";
-import { TopBar, type ViewTabId } from "@/components/chrome/TopBar";
+import { TopBar } from "@/components/chrome/TopBar";
 import { StatusBar, deriveSev } from "@/components/chrome/StatusBar";
 import { HeroStrip } from "@/components/chrome/HeroStrip";
 import { StatBar, type StatSegment } from "@/components/chrome/StatBar";
@@ -393,7 +411,7 @@ export function Dashboard({
               repo?: string;
               createdAt?: string;
               hasAiConfig?: boolean;
-              sourceKind?: "events-api" | "gharchive";
+              sourceKind?: "events-api" | "gharchive" | "tracked-repo" | "gitlab";
             }
           | undefined;
         if (
@@ -438,7 +456,34 @@ export function Dashboard({
   // tiles stay crisp at every zoom level, where the 3D globe texture goes
   // grainy. Globe stays as a secondary view; Wire is the chronological
   // feed without any geospatial stage.
-  const [activeTab, setActiveTab] = useState<ViewTabId>("map");
+  // Web v2: five primary surfaces, shared with the mobile shell; `?tab=` deep links in both.
+  // The URL is read through useSyncExternalStore so hydration renders the default and the
+  // client snapshot takes over without a state-setting effect; a click overrides and writes back.
+  const urlTab = useSyncExternalStore(
+    subscribeNever,
+    () => tabFromSearch(window.location.search),
+    () => DEFAULT_TAB,
+  );
+  const [tabOverride, setTabOverride] = useState<PrimaryTab | null>(null);
+  const activeTab: PrimaryTab = tabOverride ?? urlTab;
+  const setActiveTab = (tab: PrimaryTab) => {
+    setTabOverride(tab);
+    writeTabToUrl(tab);
+  };
+  // Feed: Stories (default) or the chronological Wire; `?view=wire` deep link, same pattern.
+  const urlFeedView = useSyncExternalStore(
+    subscribeNever,
+    () => feedViewFromSearch(window.location.search),
+    () => DEFAULT_FEED_VIEW,
+  );
+  const [feedViewOverride, setFeedViewOverride] = useState<FeedViewMode | null>(null);
+  const feedView: FeedViewMode = feedViewOverride ?? urlFeedView;
+  const setFeedView = (mode: FeedViewMode) => {
+    setFeedViewOverride(mode);
+    writeFeedViewToUrl(mode);
+  };
+  // Map tab: live events (default) or the labs/ecosystem layer.
+  const [mapLayer, setMapLayer] = useState<"events" | "labs">("events");
 
   // Floating panel layout state. All panels start closed so first load
   // is map-only — the observatory stage reads before any panel chrome
@@ -920,6 +965,10 @@ export function Dashboard({
   if (isMobile) {
     return (
       <MobileDashboard
+        topTab={activeTab}
+        onTopTabChange={setActiveTab}
+        feedView={feedView}
+        onFeedViewChange={setFeedView}
         points={points}
         events={events.data}
         eventsLoading={events.isInitialLoading}
@@ -971,6 +1020,7 @@ export function Dashboard({
             : undefined
         }
         initialFeedResponse={initialFeedResponse}
+        feed={feed.data ?? initialFeedResponse}
       />
     );
   }
@@ -1030,45 +1080,116 @@ export function Dashboard({
         className="fixed inset-0"
         style={{ paddingTop: stagePaddingTop, paddingBottom: 140, zIndex: 3 }}
       >
+        {activeTab === "health" && (
+          <div className="ap-column-scroll ap-column-scroll--wide">
+            <section className="ap-column ap-column--health" aria-label="Health">
+              <HealthCardGrid data={status.data?.data} polledAt={status.data?.polledAt} maximized={true} />
+              <WorldBand
+                events={events.data}
+                loading={events.isInitialLoading}
+                error={events.error}
+                cols={90}
+                onOpenMap={() => setActiveTab("map")}
+              />
+              <HealthTiles
+                feed={feed.data ?? initialFeedResponse}
+                status={status.data}
+                events={events.data}
+                labs={labs.data}
+              />
+              {status.error ? (
+                <p className="ap-column__sub">Status poll error: {status.error}</p>
+              ) : null}
+            </section>
+          </div>
+        )}
+        {activeTab === "feed" && (
+          <div className="ap-column-scroll ap-column-scroll--wide">
+            <section className="ap-column ap-column--feed" aria-label="Feed">
+              <FeedModeSwitch mode={feedView} onChange={setFeedView} />
+              {feedView === "stories" ? (
+                <FeedView initialResponse={feed.data ?? initialFeedResponse} />
+              ) : (
+                <WirePage
+                  wireRows={wireRows}
+                  ghCoverage={
+                    events.data
+                      ? {
+                          windowMinutes: events.data.coverage.windowMinutes,
+                          windowSize: events.data.coverage.windowSize,
+                        }
+                      : undefined
+                  }
+                  hnMeta={hn.data?.meta}
+                  polledAt={events.data?.polledAt}
+                  error={events.error}
+                  isInitialLoading={events.isInitialLoading && hn.isInitialLoading}
+                />
+              )}
+            </section>
+          </div>
+        )}
         {activeTab === "map" && (
           <div className="relative h-full w-full">
-            <FlatMap
-              points={points}
-              lastUpdatedAt={lastUpdatedAt}
-              regionalDeltas={regionalDeltas.data ?? null}
+            {mapLayer === "events" ? (
+              <>
+                <FlatMap
+                  points={points}
+                  lastUpdatedAt={lastUpdatedAt}
+                  regionalDeltas={regionalDeltas.data ?? null}
+                />
+                <CoverageBadge events={events.data} />
+                <MapLegend filters={filters} />
+                {aiConfigStranded && <AiConfigStrandedNote />}
+              </>
+            ) : (
+              <EcosystemMap labs={labs.data?.labs ?? []} />
+            )}
+            <div className="ap-seg" role="tablist" aria-label="Map layer">
+              {(
+                [
+                  ["events", "Events"],
+                  ["labs", "Labs"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={mapLayer === id}
+                  className={`ap-seg__item${mapLayer === id ? " is-active" : ""}`}
+                  onClick={() => setMapLayer(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {activeTab === "rooms" && (
+          <div className="ap-column-scroll">
+            <RoomsView
+              rows={wireRows}
+              polledAt={events.data?.polledAt}
+              windowMinutes={events.data?.coverage.windowMinutes}
             />
-            <CoverageBadge events={events.data} />
-            <MapLegend filters={filters} />
-            {aiConfigStranded && <AiConfigStrandedNote />}
           </div>
         )}
-        {activeTab === "ecosystem" && (
-          <EcosystemMap labs={labs.data?.labs ?? []} />
-        )}
-        {activeTab === "globe" && (
-          <div className="relative h-full w-full">
-            <Globe points={points} lastUpdatedAt={lastUpdatedAt} />
-            <CoverageBadge events={events.data} />
-            <MapLegend filters={filters} />
-            {aiConfigStranded && <AiConfigStrandedNote />}
+        {activeTab === "more" && (
+          <div className="ap-column-scroll">
+            <MoreView
+              items={navItems}
+              openIds={openIds}
+              onToggle={(id) => {
+                // Boards are the floating windows over the map stage; opening one from the
+                // index moves the reader there so the window is actually visible. Closing
+                // an open board from the index stays on More.
+                const opening = !openIds.has(id);
+                toggle(id);
+                if (opening) setActiveTab("map");
+              }}
+            />
           </div>
-        )}
-        {activeTab === "wire" && (
-          <WirePage
-            wireRows={wireRows}
-            ghCoverage={
-              events.data
-                ? {
-                    windowMinutes: events.data.coverage.windowMinutes,
-                    windowSize: events.data.coverage.windowSize,
-                  }
-                : undefined
-            }
-            hnMeta={hn.data?.meta}
-            polledAt={events.data?.polledAt}
-            error={events.error}
-            isInitialLoading={events.isInitialLoading && hn.isInitialLoading}
-          />
         )}
       </div>
 
@@ -1077,7 +1198,7 @@ export function Dashboard({
 
       {/* Right-edge filter panel — renders on both map + globe (they share
           the filtered point set). Wire view has its own filter semantics. */}
-      {(activeTab === "map" || activeTab === "globe" || activeTab === "ecosystem") && (
+      {activeTab === "map" && (
         <FilterPanel
           filters={filters}
           onToggle={toggleFilter}
@@ -1088,13 +1209,12 @@ export function Dashboard({
       {/* Floating panels — renders on map + globe (geospatial views where
           side panels add context). Wire is its own full-screen feed, so
           floating panels would be redundant. */}
-      {(activeTab === "map" || activeTab === "globe" || activeTab === "ecosystem") && (
+      {activeTab === "map" && (
         <>
           {initialPos && panels.wire.open && (
             <Win
               id="wire"
               title="Live feed · gh-events"
-              accent="teal"
               statBar={wireStatBar}
               insight={wireInsightNode}
               initial={initialPos.wire}
@@ -1126,7 +1246,6 @@ export function Dashboard({
             <Win
               id="tools"
               title="Tool health"
-              accent="green"
               statBar={toolsStatBar}
               initial={initialPos.tools}
               zIndex={z("tools")}
@@ -1149,6 +1268,7 @@ export function Dashboard({
               <div className="p-3">
                 <HealthCardGrid
                   data={status.data?.data}
+                  polledAt={status.data?.polledAt}
                   maximized={maxId === "tools"}
                 />
                 {status.error && (
@@ -1164,7 +1284,6 @@ export function Dashboard({
             <Win
               id="models"
               title="Top models · hf-downloads"
-              accent="teal"
               statBar={modelsStatBar}
               insight={modelsInsightNode}
               initial={initialPos.models}
@@ -1196,7 +1315,6 @@ export function Dashboard({
             <Win
               id="research"
               title="Recent papers · arxiv"
-              accent="violet"
               statBar={researchStatBar}
               initial={initialPos.research}
               zIndex={z("research")}
@@ -1232,7 +1350,6 @@ export function Dashboard({
             <Win
               id="benchmarks"
               title="Chatbot Arena · top 20 · lmarena-leaderboard"
-              accent="amber"
               statBar={benchmarksStatBar}
               insight={benchmarksInsightNode}
               initial={initialPos.benchmarks}
@@ -1270,7 +1387,6 @@ export function Dashboard({
             <Win
               id="labs"
               title="AI Labs · 7d activity · curated registry"
-              accent="violet"
               statBar={labsStatBar}
               initial={initialPos.labs}
               zIndex={z("labs")}
@@ -1301,7 +1417,6 @@ export function Dashboard({
             <Win
               id="regional-wire"
               title="Regional Wire · non-SV publishers · 24h activity"
-              accent="orange"
               statBar={regionalWireStatBar}
               initial={initialPos["regional-wire"]}
               zIndex={z("regional-wire")}
@@ -1342,7 +1457,6 @@ export function Dashboard({
             <Win
               id="sdk-adoption"
               title="SDK Adoption · within-package daily Δ vs 30d baseline"
-              accent="violet"
               initial={initialPos["sdk-adoption"]}
               zIndex={z("sdk-adoption")}
               minimized={panels["sdk-adoption"].min}
@@ -1383,7 +1497,6 @@ export function Dashboard({
             <Win
               id="model-usage"
               title="Model Usage · OpenRouter request volume, weekly"
-              accent="teal"
               initial={initialPos["model-usage"]}
               zIndex={z("model-usage")}
               minimized={panels["model-usage"].min}
@@ -1424,7 +1537,6 @@ export function Dashboard({
             <Win
               id="agents"
               title="Agents · weekly downloads + maintenance state, 8 frameworks"
-              accent="teal"
               initial={initialPos.agents}
               zIndex={z("agents")}
               minimized={panels.agents.min}
@@ -1459,7 +1571,6 @@ export function Dashboard({
             <Win
               id="launches"
               title="Launches · top AI launches on Product Hunt this week"
-              accent="teal"
               initial={initialPos.launches}
               zIndex={z("launches")}
               minimized={panels.launches.min}
@@ -1492,20 +1603,21 @@ export function Dashboard({
         </>
       )}
 
-      {/* Four-card glance row, sitting above the live ticker strip. */}
-      <MetricsRow
+      {/* Four-card glance row above the ticker — the Map stage only; the reading columns carry
+          their own tiles (phase 3, canvas Health board). */}
+      {activeTab === "map" && <MetricsRow
         status={status.data}
         events={events.data}
         statusLoading={status.isInitialLoading}
         eventsLoading={events.isInitialLoading}
-      />
+      />}
 
       {/* Bottom-pinned stack: live event ticker on top of the metric
           ticker. The live ticker is its own dedicated 28px strip so it
           doesn't visually compete with MetricsRow above. Map+globe views
           only — the wire view is its own full-screen feed. */}
       <div className="fixed bottom-0 left-0 right-0 z-40 flex flex-col">
-        {(activeTab === "map" || activeTab === "globe") && (
+        {activeTab === "map" && mapLayer === "events" && (
           <>
             <TopMoversLine
               points={livePoints}
