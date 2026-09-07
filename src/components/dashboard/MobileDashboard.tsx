@@ -318,7 +318,7 @@ export function MobileDashboard(props: MobileDashboardProps) {
               <FeedModeSwitch mode={feedView} onChange={props.onFeedViewChange ?? (() => {})} />
             </div>
             {feedView === "stories" ? (
-              <FeedView initialResponse={props.initialFeedResponse} />
+              <FeedView initialResponse={props.initialFeedResponse} variant="mobile" />
             ) : (
               <div className="ap-mobile-feed__wire">
                 <WirePage

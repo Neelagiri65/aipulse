@@ -1096,8 +1096,8 @@ export function Dashboard({
           </div>
         )}
         {activeTab === "feed" && (
-          <div className="ap-column-scroll">
-            <section className="ap-column" aria-label="Feed">
+          <div className="ap-column-scroll ap-column-scroll--wide">
+            <section className="ap-column ap-column--feed" aria-label="Feed">
               <FeedModeSwitch mode={feedView} onChange={setFeedView} />
               {feedView === "stories" ? (
                 <FeedView initialResponse={feed.data ?? initialFeedResponse} />

@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   openDashboard,
   shot,
+  skipWhenLocalAndEmpty,
   switchTab,
   openFeedWire,
   waitForMapReady,
@@ -87,6 +88,34 @@ test.describe("dashboard views", () => {
       "aria-selected",
       "true",
     );
+  });
+
+  test("Feed: rows left, the selected card's reading surface right; a row click swaps it", async ({ page }) => {
+    await openDashboard(page);
+    await switchTab(page, "Feed");
+    const rows = page.getByTestId("feed-rows").locator("li.ap-trow");
+    await expect(page.getByTestId("feed-rows")).toBeVisible();
+    const count = await rows.count();
+    skipWhenLocalAndEmpty(count, "the feed has no cards");
+    const reading = page.getByTestId("feed-reading");
+    await expect(reading).toBeVisible();
+    const firstTitle = await rows.first().locator(".ap-trow__title").textContent();
+    await expect(reading.locator(".ap-reading__headline")).toHaveText(firstTitle ?? "");
+    await expect(reading).toContainText("Why this surfaced");
+    if (count > 1) {
+      await rows.nth(1).locator("button").click();
+      const secondTitle = await rows.nth(1).locator(".ap-trow__title").textContent();
+      await expect(reading.locator(".ap-reading__headline")).toHaveText(secondTitle ?? "");
+      await expect(rows.nth(1)).toHaveClass(/is-selected/);
+    }
+    // A kind chip narrows the list to that kind.
+    const chips = page.getByRole("tab", { name: /^(Tool alerts|Model movers|New releases|SDK trends|Product launches|News|Research|Lab highlights) \d+$/ });
+    if (await chips.count()) {
+      await chips.first().click();
+      const kinds = await rows.evaluateAll((els) => new Set(els.map((e) => e.getAttribute("data-card-type"))).size);
+      expect(kinds).toBe(1);
+    }
+    await shot(page, "feed-reading-surface");
   });
 
   test("on touch, a tap does nothing and a press-and-hold opens the lens", async ({ browser, baseURL }) => {

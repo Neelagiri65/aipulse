@@ -289,7 +289,8 @@
    bars themselves (TopBar, StatusBar, .ap-hero--desktop, .ap-metrics) and by this inset. */
 .ap-column-scroll {
   position: absolute;
-  inset: var(--ap-chrome-top) 0 var(--ap-chrome-bottom) 0;
+  /* + the highlights strip when the feed carries highlights (body[data-highlights="1"]) */
+  inset: calc(var(--ap-chrome-top) + var(--ap-strip-h, 0px)) 0 var(--ap-chrome-bottom) 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -2827,3 +2828,70 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
 .ap-region__cap { font-size: 12px; color: var(--ink-muted); }
 .ap-region__cap a { color: inherit; text-decoration: underline; text-decoration-color: var(--hair2); }
 .ap-region__more { margin: 0; padding: 4px 16px 12px; font-size: 12px; color: var(--ink-muted); }
+
+/* ---- Feed tab (web v2 phase 3): kind chips, rows in the row anatomy, the reading surface ---- */
+.ap-feed-pane { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.ap-kchips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px; }
+.ap-kchip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--hair2);
+  border-radius: 28px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit; font-size: 13px;
+  cursor: pointer;
+}
+.ap-kchip:hover { background: var(--paper3); }
+.ap-kchip.is-on { border-color: var(--ink); }
+.ap-kchip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ap-kchip__n { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.ap-kchip.is-on .ap-kchip__n { color: var(--ink); }
+.ap-feedrows .ap-feed-list { list-style: none; margin: 0; padding: 0; display: block; gap: 0; }
+.ap-feedrows .ap-feed-list-item { margin: 0; padding: 0; }
+.ap-feedrow { text-decoration: none; }
+.ap-feedrow .ap-trow__title { font-size: 15.5px; }
+.ap-trow.is-selected > .ap-trow__head { background: var(--tint); }
+.ap-trow__chev { flex: none; color: var(--ink-muted); font-size: 18px; line-height: 1; }
+.ap-feedrows__empty { padding: 14px 16px; color: var(--ink-muted); font-size: 13px; }
+.ap-feedrows__foot { margin: 0; padding: 0 4px; font-size: 12.5px; line-height: 1.4; color: var(--ink-muted); }
+.ap-howbuilt { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.ap-howbuilt__head { font-size: 15px; font-weight: 500; }
+.ap-howbuilt__body { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink2); }
+.ap-howbuilt__src { margin: 0; font-size: 12.5px; color: var(--ink-muted); }
+.ap-howbuilt__src a, .ap-reading__src a { color: var(--link); }
+.ap-reading { padding: 26px 28px 24px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.ap-reading__kicker { color: var(--ink-muted); }
+.ap-reading__headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 34px;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.ap-reading__body { margin: 0; font-size: 16px; line-height: 1.5; color: var(--ink2); }
+.ap-reading__src { margin: 0; font-size: 13px; font-style: italic; color: var(--ink-muted); }
+.ap-reading__why { background: var(--tint); border-radius: 14px; padding: 14px 16px; }
+.ap-reading__whyhead { font-size: 12px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 4px; }
+.ap-reading__why p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--ink); }
+.ap-reading__actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ap-reading__open { display: inline-flex; align-items: center; padding: 8px 16px; font-size: 14px; text-decoration: none; }
+@media (min-width: 1180px) {
+  .ap-column--feed { max-width: 1240px; }
+  .ap-column--feed .ap-feed-view[data-feed-state="ready"][data-variant="desktop"] {
+    display: grid;
+    grid-template-columns: minmax(0, 12fr) minmax(0, 17fr);
+    gap: 18px 40px;
+    align-items: start;
+  }
+  /* The reading surface stays in view while the list scrolls (the column is the scroller). */
+  .ap-column--feed .ap-reading {
+    position: sticky;
+    top: 0;
+    max-height: calc(100vh - var(--ap-chrome-top) - var(--ap-strip-h, 0px) - var(--ap-chrome-bottom) - 48px);
+    overflow-y: auto;
+  }
+}
