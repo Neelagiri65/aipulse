@@ -50,6 +50,22 @@ test.describe("dashboard views", () => {
     );
   });
 
+  test("Health carries four tiles under the band, each with a source and a time", async ({ page }) => {
+    await openDashboard(page);
+    const tiles = page.getByTestId("health-tiles");
+    await expect(tiles).toBeVisible();
+    const each = tiles.locator(".ap-htile");
+    await expect(each).toHaveCount(4);
+    for (const id of ["mover", "tools", "aicfg", "labs"]) {
+      const t = tiles.locator(`[data-tile="${id}"]`);
+      await expect(t.locator(".ap-htile__src a")).toBeVisible();
+      await expect(t.locator(".ap-htile__src")).not.toBeEmpty();
+    }
+    // The status poll answers on every environment: the tools tile is live with a UTC stamp.
+    await expect(tiles.locator('[data-tile="tools"]')).not.toHaveAttribute("data-pending", "1", { timeout: 20_000 });
+    await expect(tiles.locator('[data-tile="tools"] .ap-htile__src')).toContainText("UTC");
+  });
+
   test("Health carries the world-in-marks band; tapping it opens Map", async ({ page }) => {
     await openDashboard(page);
     const band = page.getByTestId("world-band");

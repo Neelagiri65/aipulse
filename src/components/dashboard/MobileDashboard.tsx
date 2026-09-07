@@ -19,6 +19,7 @@ import { FeedView } from "@/components/feed/FeedView";
 import { LiveTicker } from "@/components/map/LiveTicker";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
 import { WorldBand } from "@/components/health/WorldBand";
+import { HealthTiles } from "@/components/health/HealthTiles";
 import { ModelsPanel } from "@/components/models/ModelsPanel";
 import { ResearchPanel } from "@/components/research/ResearchPanel";
 import { BenchmarksPanel } from "@/components/benchmarks/BenchmarksPanel";
@@ -117,6 +118,8 @@ export type MobileDashboardProps = {
   benchmarksEloHistory?: Record<string, Array<number | null>>;
   // Labs
   labs: LabsPayload | undefined;
+  /** The polled feed (or the SSR response) — the Health tiles name the same mover as the strip. */
+  feed?: FeedResponse;
   labsLoading: boolean;
   labsError: string | null;
   // Regional wire
@@ -299,6 +302,7 @@ export function MobileDashboard(props: MobileDashboardProps) {
               cols={60}
               onOpenMap={() => setTopTab("map")}
             />
+            <HealthTiles feed={props.feed} status={props.status} events={props.events} labs={props.labs} />
             {props.statusError ? (
               <p className="ap-mobile-error">Status poll error: {props.statusError}</p>
             ) : null}

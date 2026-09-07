@@ -99,6 +99,21 @@ export type Highlight = {
  * beat three MODEL_MOVERs, even if the three movers are technically
  * higher-severity within MODEL_MOVER's tier.
  */
+/** The strip's order: severity desc, then newest first. Shared so every surface names the same card. */
+export function bySeverityThenNewest(a: Card, b: Card): number {
+  if (b.severity !== a.severity) return b.severity - a.severity;
+  return b.timestamp.localeCompare(a.timestamp);
+}
+
+/**
+ * The card of one type the highlights strip would show first (same sort, same quiet-day rule).
+ * A tile that names a mover must name THIS one, never a re-derivation from the raw payload.
+ */
+export function topCardOfType(response: FeedResponse | undefined, type: CardType): Card | null {
+  if (!response || response.quietDay) return null;
+  return [...response.cards].sort(bySeverityThenNewest).find((c) => c.type === type) ?? null;
+}
+
 export function pickTopHighlights(
   response: FeedResponse | undefined,
   limit = 3,
@@ -106,10 +121,7 @@ export function pickTopHighlights(
   if (!response) return [];
   if (response.quietDay) return [];
 
-  const sorted = [...response.cards].sort((a, b) => {
-    if (b.severity !== a.severity) return b.severity - a.severity;
-    return b.timestamp.localeCompare(a.timestamp);
-  });
+  const sorted = [...response.cards].sort(bySeverityThenNewest);
 
   const out: Highlight[] = [];
   const usedCardIds = new Set<string>();

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { actorHref, actorLabel, repoHref } from "@/lib/data/event-links";
 import { shortEventType } from "@/components/globe/event-types";
 import { useNow } from "@/lib/hooks/use-now";
+import { stampUtc } from "@/lib/format/utc-stamp";
 
 /**
  * The Wire: GitHub public events and Hacker News stories on one clock, newest first (PRD
@@ -331,13 +332,6 @@ function formatClock(iso: string): string {
   } catch {
     return iso;
   }
-}
-
-function stampUtc(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}/${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
 }
 
 function formatRelative(iso: string, nowMs: number): string {

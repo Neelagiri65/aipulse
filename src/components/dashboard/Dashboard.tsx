@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { GlobePoint } from "@/components/globe/Globe";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
 import { WorldBand } from "@/components/health/WorldBand";
+import { HealthTiles } from "@/components/health/HealthTiles";
 import { FeedView } from "@/components/feed/FeedView";
 import { FeedModeSwitch } from "@/components/feed/FeedModeSwitch";
 import { RoomsView } from "@/components/dashboard/RoomsView";
@@ -1019,6 +1020,7 @@ export function Dashboard({
             : undefined
         }
         initialFeedResponse={initialFeedResponse}
+        feed={feed.data ?? initialFeedResponse}
       />
     );
   }
@@ -1088,6 +1090,12 @@ export function Dashboard({
                 error={events.error}
                 cols={90}
                 onOpenMap={() => setActiveTab("map")}
+              />
+              <HealthTiles
+                feed={feed.data ?? initialFeedResponse}
+                status={status.data}
+                events={events.data}
+                labs={labs.data}
               />
               {status.error ? (
                 <p className="ap-column__sub">Status poll error: {status.error}</p>

@@ -2892,3 +2892,17 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
     align-items: start;
   }
 }
+
+/* ---- Health tiles (web v2 phase 3): four compact tiles under the world band ---- */
+.ap-healthtiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ap-htile { min-height: 118px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; min-width: 0; }
+.ap-htile__num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.1; color: var(--ink); overflow-wrap: anywhere; }
+.ap-htile__label { margin-top: 3px; font-size: 12px; line-height: 1.35; color: var(--ink-muted); }
+.ap-htile__src { display: flex; flex-direction: column; gap: 1px; font-size: 12px; line-height: 1.35; color: var(--ink-muted); }
+.ap-htile__src a { color: var(--ink2); text-decoration: underline; text-decoration-color: var(--hair2); text-underline-offset: 2px; }
+.ap-htile__src a:hover { color: var(--link); }
+@media (min-width: 1180px) {
+  .ap-column--health > .ap-healthtiles { grid-column: 2; }
+}
+.ap-mobile-panel .ap-healthtiles { margin-top: 12px; }
+.ap-mobile-panel .ap-htile__label, .ap-mobile-panel .ap-htile__src { font-family: var(--font-sans); }
