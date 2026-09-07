@@ -12,7 +12,7 @@
  * Trust contract:
  *   - When showing translated text, render a "via Google Translate"
  *     attribution next to the text. The reader must know the
- *     translation is third-party, not Gawk-authored.
+ *     translation is third-party, not gawk.dev-authored.
  *   - On any failure (fetch error, parse error, AbortError that isn't
  *     a navigation), surface a "translation failed" badge + a fallback
  *     link to the legacy Google Translate redirect URL. The original

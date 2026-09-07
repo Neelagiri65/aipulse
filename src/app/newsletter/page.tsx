@@ -6,19 +6,19 @@ import { listDigestDates } from "@/lib/digest/archive";
 import { VERIFIED_SOURCES } from "@/lib/data-sources";
 
 const NEWSLETTER_DESCRIPTION =
-  "The Daily Gawk — one email a day on what actually moved in the AI ecosystem. Tool outages, model ranking moves, SDK adoption shifts. Every number cites its public source.";
+  "The Daily gawk.dev — one email a day on what actually moved in the AI ecosystem. Tool outages, model ranking moves, SDK adoption shifts. Every number cites its public source.";
 
 export const metadata: Metadata = {
-  title: "The Daily Gawk — newsletter",
+  title: "The Daily gawk.dev — newsletter",
   description: NEWSLETTER_DESCRIPTION,
   alternates: { canonical: "https://gawk.dev/newsletter" },
   openGraph: {
-    title: "The Daily Gawk — newsletter",
+    title: "The Daily gawk.dev — newsletter",
     description: NEWSLETTER_DESCRIPTION,
     images: ["/opengraph-image"],
   },
   twitter: {
-    title: "The Daily Gawk — newsletter",
+    title: "The Daily gawk.dev — newsletter",
     description: NEWSLETTER_DESCRIPTION,
   },
 };
@@ -47,7 +47,7 @@ export default async function NewsletterPage() {
         Free daily email
       </p>
       <h1 className="mb-3 font-mono text-3xl tracking-tight">
-        The Daily Gawk
+        The Daily gawk.dev
       </h1>
       <p className="mb-8 font-mono text-sm text-teal-300">
         ~2 minutes · {sourceCount} verified sources · zero noise

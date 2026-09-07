@@ -54,9 +54,9 @@ describe("FeedCardShareButton — SSR markup", () => {
         })}
       />,
     );
-    // composeShareText pattern: "{type-label}: {headline} — via Gawk"
+    // composeShareText pattern: "{type-label}: {headline} — via gawk.dev"
     expect(html).toContain("Model+mover");
-    expect(html).toContain("via+Gawk");
+    expect(html).toContain("via+gawk.dev");
   });
 
   it("emits a stable test id keyed by card id so tests can target rows", () => {

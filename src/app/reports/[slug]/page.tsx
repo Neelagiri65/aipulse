@@ -46,23 +46,23 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const config = getReportConfig(slug);
-  if (!config) return { title: "Report not found · Gawk" };
+  if (!config) return { title: "Report not found · gawk.dev" };
   const titleText = isEditorialPlaceholder(config.title)
-    ? `Gawk AI Genesis Report · ${config.window}`
-    : `${config.title} · Gawk`;
+    ? `gawk.dev AI Genesis Report · ${config.window}`
+    : `${config.title} · gawk.dev`;
   const subtitleText = isEditorialPlaceholder(config.subtitle)
-    ? `Gawk AI Genesis Report covering ${config.window}. Every number cites its public source.`
+    ? `gawk.dev AI Genesis Report covering ${config.window}. Every number cites its public source.`
     : config.subtitle;
   // S62g.3: meta description must be ≥100 chars per LinkedIn's
   // unfurl-quality bar. The visible page subtitle stays operator-
   // written and short; the META description appends the report
-  // window + the Gawk-Report kicker so it lands well over 100 chars
+  // window + the gawk.dev-Report kicker so it lands well over 100 chars
   // without touching operator copy. Falls back to subtitle alone if
   // the operator copy is already long enough.
   const descriptionText =
     subtitleText.length >= 100
       ? subtitleText
-      : `${subtitleText} Gawk AI Genesis Report — ${config.window}. Source-cited AI tooling intelligence.`;
+      : `${subtitleText} gawk.dev AI Genesis Report — ${config.window}. Source-cited AI tooling intelligence.`;
   // S62g.4: pin og:image to a STATIC pre-baked PNG in /public/og/.
   // Why: the dynamic /reports/[slug]/opengraph-image route built
   // via next/og + ImageResponse is throwing on prod for this route
@@ -121,13 +121,13 @@ export async function generateMetadata({
       // resolves the author through their own graph.
       authors: [REPORT_AUTHOR_URL],
       url: `https://gawk.dev/reports/${slug}`,
-      siteName: "Gawk",
+      siteName: "gawk.dev",
       images: [
         {
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: `Gawk AI Genesis Report — ${config.window}`,
+          alt: `gawk.dev AI Genesis Report — ${config.window}`,
           type: "image/png",
         },
       ],
@@ -135,7 +135,7 @@ export async function generateMetadata({
   };
 }
 
-/** Author byline used on every Gawk AI Genesis Report. The operator
+/** Author byline used on every gawk.dev AI Genesis Report. The operator
  *  owns the editorial framing; the engine generates the numbers.
  *  Surfaces in the HTML5 `<meta name="author">` tag + the JSON-LD
  *  `Person.name`. Updating this single constant updates every report. */
@@ -160,7 +160,7 @@ const REPORT_AUTHOR_URL =
  * authoritative enough for LinkedIn to override its cache.
  *
  * Schema.org NewsArticle is the right type for a date-bound editorial
- * artifact like the Gawk AI Genesis Report.
+ * artifact like the gawk.dev AI Genesis Report.
  */
 function ArticleJsonLd({
   config,
@@ -172,10 +172,10 @@ function ArticleJsonLd({
   publishedIso: string;
 }) {
   const headline = isEditorialPlaceholder(config.title)
-    ? `Gawk AI Genesis Report · ${config.window}`
+    ? `gawk.dev AI Genesis Report · ${config.window}`
     : config.title;
   const description = isEditorialPlaceholder(config.subtitle)
-    ? `Gawk AI Genesis Report covering ${config.window}. Every number cites its public source.`
+    ? `gawk.dev AI Genesis Report covering ${config.window}. Every number cites its public source.`
     : config.subtitle;
   const ld = {
     "@context": "https://schema.org",
@@ -193,7 +193,7 @@ function ArticleJsonLd({
     ],
     publisher: {
       "@type": "Organization",
-      name: "Gawk",
+      name: "gawk.dev",
       url: "https://gawk.dev",
     },
     image: [`https://gawk.dev/og/${slug}.png`],
@@ -235,10 +235,10 @@ export default async function ReportPage({
           href="/"
           className="underline decoration-dotted underline-offset-2 hover:text-foreground"
         >
-          Gawk
+          gawk.dev
         </Link>
         <span aria-hidden="true"> · </span>
-        <span>Gawk AI Genesis Report · {config.window}</span>
+        <span>gawk.dev AI Genesis Report · {config.window}</span>
         {config.publishedAt !== "DRAFT" && (
           <>
             <span aria-hidden="true"> · </span>
@@ -289,7 +289,7 @@ export default async function ReportPage({
 
 function ReportHeader({ config }: { config: GenesisReportConfig }) {
   const titleText = isEditorialPlaceholder(config.title)
-    ? `Gawk AI Genesis Report · ${config.window}`
+    ? `gawk.dev AI Genesis Report · ${config.window}`
     : config.title;
   const subtitleText = isEditorialPlaceholder(config.subtitle)
     ? `[subtitle pending — operator-editable]`

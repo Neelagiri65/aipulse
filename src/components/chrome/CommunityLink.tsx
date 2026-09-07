@@ -56,7 +56,7 @@ export function CommunityLink({
       target="_blank"
       rel="noopener noreferrer"
       data-testid="community-link"
-      aria-label="Join the Gawk community discussion"
+      aria-label="Join the gawk.dev community discussion"
       className="inline-flex items-center rounded border border-border/60 bg-background/60 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
     >
       Community

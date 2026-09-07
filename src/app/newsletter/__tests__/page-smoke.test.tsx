@@ -25,7 +25,7 @@ describe("/newsletter page", () => {
   it("renders with a sample-issue link when the archive has issues", async () => {
     listDigestDates.mockResolvedValue(["2026-07-05", "2026-07-04"]);
     const html = renderToStaticMarkup(await NewsletterPage());
-    expect(html).toContain("The Daily Gawk");
+    expect(html).toContain("The Daily gawk.dev");
     expect(html).toContain("/digest/2026-07-05");
     expect(html).not.toContain("/digest/2026-07-04");
   });
@@ -33,7 +33,7 @@ describe("/newsletter page", () => {
   it("empty archive → no sample link, never a fabricated one", async () => {
     listDigestDates.mockResolvedValue([]);
     const html = renderToStaticMarkup(await NewsletterPage());
-    expect(html).toContain("The Daily Gawk");
+    expect(html).toContain("The Daily gawk.dev");
     expect(html).not.toContain("/digest/");
   });
 

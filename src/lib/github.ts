@@ -1,5 +1,5 @@
 /**
- * Thin typed wrappers over the GitHub REST API calls Gawk uses.
+ * Thin typed wrappers over the GitHub REST API calls gawk.dev uses.
  * All fetches go through Next.js's Data Cache via `next.revalidate`.
  */
 

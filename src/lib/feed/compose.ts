@@ -1,5 +1,5 @@
 /**
- * Gawk — Feed composition (pure)
+ * gawk.dev — Feed composition (pure)
  *
  * Takes the six existing snapshots and returns a fully-formed
  * FeedResponse. Pure function — no IO, no clock reads (nowMs is

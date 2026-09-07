@@ -128,13 +128,13 @@ function chipAnchor(label: string): string | null {
   return null;
 }
 
-/** The composed subject is "Gawk — {date} · {payload}". The masthead
+/** The composed subject is "gawk.dev — {date} · {payload}". The masthead
  *  already carries the wordmark and the date, so the band headline shows
  *  only the payload — display de-duplication, the stored subject is
  *  untouched (and the email, where it IS the subject line, keeps it). */
 function bandHeadline(subject: string, date: string): string {
   const stripped = subject.replace(
-    new RegExp(`^Gawk\\s*—\\s*${date}\\s*·\\s*`),
+    new RegExp(`^gawk.dev\\s*—\\s*${date}\\s*·\\s*`),
     "",
   );
   return stripped.length > 0 ? stripped : subject;
@@ -717,7 +717,7 @@ function ItemList({
                 <>
                   {item.sourceUrl ? " · " : ""}
                   <a href={`${baseUrl}${item.panelHref}`} style={{ color: C.blue }}>
-                    View on Gawk →
+                    View on gawk.dev →
                   </a>
                 </>
               ) : null}

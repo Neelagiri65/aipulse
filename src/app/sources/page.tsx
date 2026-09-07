@@ -1,5 +1,5 @@
 /**
- * Gawk — /sources transparency page.
+ * gawk.dev — /sources transparency page.
  *
  * Server component. Lists every data source feeding the dashboard,
  * grouped into 8 user-facing categories. For each source we surface:
@@ -43,9 +43,9 @@ import labsData from "../../../data/ai-labs.json";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Sources · Gawk",
+  title: "Sources · gawk.dev",
   description:
-    "Every data source feeding the Gawk dashboard. Grouped by category with the last successful poll timestamp and a live / stale badge per source.",
+    "Every data source feeding the gawk.dev dashboard. Grouped by category with the last successful poll timestamp and a live / stale badge per source.",
 };
 
 const LAST_KNOWN_KEYS = ["status", "research", "labs"] as const;
@@ -88,7 +88,7 @@ export default async function SourcesPage() {
         </p>
         <h1 className="text-2xl font-semibold tracking-tight">Sources</h1>
         <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
-          Every number on Gawk traces to a public source. This page lists
+          Every number on gawk.dev traces to a public source. This page lists
           all {totals.sourceCount} data sources currently feeding the
           dashboard, plus {totals.labCount} curated AI labs that compose
           the AI Labs layer. Each row shows what the source tracks, how
@@ -139,7 +139,7 @@ export default async function SourcesPage() {
           href="/"
           className="text-[var(--ap-accent,#2dd4bf)] underline text-sm"
         >
-          ← back to Gawk
+          ← back to gawk.dev
         </Link>
       </p>
 

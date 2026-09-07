@@ -104,7 +104,7 @@ describe("sendUnsubscribeReceipt", () => {
 
 describe("extractSenderDomain", () => {
   it('parses "Name <user@domain>" form', () => {
-    expect(extractSenderDomain('Gawk <digest@gawk.dev>')).toBe(
+    expect(extractSenderDomain('gawk.dev <digest@gawk.dev>')).toBe(
       "gawk.dev",
     );
   });

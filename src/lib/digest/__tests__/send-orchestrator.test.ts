@@ -130,7 +130,7 @@ function mkBaseInput(opts: {
     input: {
       date: "2026-04-22",
       now: new Date("2026-04-22T08:00:00Z"),
-      from: "Gawk <digest@gawk.dev>",
+      from: "gawk.dev <digest@gawk.dev>",
       unsubBaseUrl: "https://gawk.dev/api/subscribe/unsubscribe",
       unsubMailto: "mailto:unsub@gawk.dev",
       baseUrl: "https://gawk.dev",
@@ -415,7 +415,7 @@ describe("sendDigestForDate — idempotency (S62 bug fix: duplicate digest fires
     expect(date).toBe("2026-04-22");
     expect(marker!.recipientCount).toBe(2);
     expect(marker!.deliveredCount).toBe(2);
-    expect(marker!.subject).toMatch(/Gawk/);
+    expect(marker!.subject).toMatch(/gawk.dev/);
     expect(typeof marker!.sentAt).toBe("string");
   });
 

@@ -1,5 +1,5 @@
 /**
- * Gawk — SDK_TREND deriver
+ * gawk.dev — SDK_TREND deriver
  *
  * Pure function over `SdkAdoptionDto`. Emits one Card per package
  * whose most-recent daily delta exceeds the locked threshold

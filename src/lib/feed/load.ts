@@ -1,5 +1,5 @@
 /**
- * Gawk — Feed snapshot loader
+ * gawk.dev — Feed snapshot loader
  *
  * Loads the six snapshots that compose the ranked feed, with per-source
  * last-known caching for the three live-HTTP sources (status, research,

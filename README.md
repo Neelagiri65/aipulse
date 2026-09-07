@@ -1,4 +1,4 @@
-# Gawk
+# gawk.dev
 
 Live observatory for the global AI ecosystem. Aggregates 30+ public data sources — model adoption, lab activity, benchmark scores, package downloads, OpenRouter spend rankings, regional news — onto one dashboard. Every number cites its source. Nothing is invented, nothing is scored by an LLM pretending to be objective.
 
