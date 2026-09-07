@@ -1598,13 +1598,14 @@ export function Dashboard({
         </>
       )}
 
-      {/* Four-card glance row, sitting above the live ticker strip. */}
-      <MetricsRow
+      {/* Four-card glance row above the ticker — the Map stage only; the reading columns carry
+          their own tiles (phase 3, canvas Health board). */}
+      {activeTab === "map" && <MetricsRow
         status={status.data}
         events={events.data}
         statusLoading={status.isInitialLoading}
         eventsLoading={events.isInitialLoading}
-      />
+      />}
 
       {/* Bottom-pinned stack: live event ticker on top of the metric
           ticker. The live ticker is its own dedicated 28px strip so it

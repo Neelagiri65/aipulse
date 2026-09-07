@@ -51,7 +51,7 @@ export function TopBar({
   return (
     <header
       className="fixed left-0 right-0 top-0 z-40 flex items-center border-b border-border/60 bg-background/80 backdrop-blur-md"
-      style={{ height: 48 }}
+      style={{ height: "var(--ap-topbar-h)" }}
     >
       <div className="flex items-center pl-4 pr-2">
         <Brand />
