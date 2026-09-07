@@ -415,97 +415,60 @@
    ============================================================================ */
 .ap-win {
   position: absolute;
-  background: rgba(11, 15, 18, 0.94);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--ap-border-strong);
-  box-shadow:
-    0 0 0 1px rgba(45, 212, 191, 0.06),
-    0 20px 60px -20px rgba(0, 0, 0, 0.8),
-    0 0 60px -20px var(--ap-accent-glow);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--hair);
+  box-shadow: 0 24px 60px -28px rgba(22, 22, 15, 0.45);
   display: flex;
   flex-direction: column;
   min-width: 300px;
   min-height: 140px;
-  border-radius: 6px;
+  border-radius: 14px;
 }
 .ap-win--minimized { height: auto !important; min-height: 0; }
 .ap-win--minimized .ap-win__body { display: none; }
 
-/* ----------------------------------------------------------------------------
-   Panel accent — identity, not state (docs/design-spec-v2.md § Principle 1.5).
-   `--ap-win-accent` and `--ap-win-accent-glow` are set per accent class below;
-   the titledot + topmost glow read from them. Even a degraded Tools panel keeps
-   its green accent — the stat bar carries state, not the chrome.
-   ------------------------------------------------------------------------- */
-.ap-win--accent-teal   { --ap-win-accent: #2dd4bf; --ap-win-accent-glow: rgba(45, 212, 191, 0.35); }
-.ap-win--accent-green  { --ap-win-accent: #22c55e; --ap-win-accent-glow: rgba(34, 197, 94, 0.35); }
-.ap-win--accent-amber  { --ap-win-accent: #f59e0b; --ap-win-accent-glow: rgba(245, 158, 11, 0.35); }
-.ap-win--accent-violet { --ap-win-accent: #a855f7; --ap-win-accent-glow: rgba(168, 85, 247, 0.35); }
-.ap-win--accent-orange { --ap-win-accent: #f97316; --ap-win-accent-glow: rgba(249, 115, 22, 0.35); }
-
-/* Topmost panel keeps the full accent glow + crisp border; rest dim. */
-.ap-win--topmost {
-  border-color: var(--ap-border-strong);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 26px 70px -18px rgba(0, 0, 0, 0.9),
-    0 0 70px -18px var(--ap-win-accent-glow, var(--ap-accent-glow));
-}
-.ap-win--behind {
-  opacity: 0.86;
-  border-color: var(--ap-border);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.02),
-    0 12px 32px -18px rgba(0, 0, 0, 0.7);
-}
-.ap-win--behind:hover {
-  opacity: 0.96;
-}
+/* A floating panel is an inset on the skin (PRD web-restyle-v2 §2, §7): surface + hairline +
+   radius 14, no per-panel accent, no glow, no blur. The topmost panel has the stronger hairline;
+   the rest sit back by opacity alone. */
+.ap-win--topmost { border-color: var(--hair2); }
+.ap-win--behind { opacity: 0.82; }
+.ap-win--behind:hover { opacity: 0.96; }
 
 .ap-win__titlebar {
-  height: 32px;
+  height: 36px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 8px 0 12px;
-  background: var(--ap-bg-head);
-  border-bottom: 1px solid var(--ap-border);
+  padding: 0 8px 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--hair);
   cursor: grab;
   user-select: none;
-  font-family: var(--font-mono);
-  font-size: 14px;
-  letter-spacing: 0.12em;
+  font-size: 12px;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--ap-fg);
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
+  color: var(--ink-muted);
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
 }
 .ap-win__titlebar:active { cursor: grabbing; }
-.ap-win__titledot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--ap-win-accent, var(--ap-accent));
-  box-shadow: 0 0 6px var(--ap-win-accent-glow, var(--ap-accent-glow));
-  flex-shrink: 0;
-}
-/* Master-detail stat bar — 10px mono, sits between titlebar and body.
-   Kept divider-free here; the StatBar helper renders "·" separators so the
-   Win frame stays content-agnostic. */
+.ap-win__titlebar .ap-mark { margin: 0; }
+/* Master-detail stat bar — sits between titlebar and body; the StatBar helper renders "·"
+   separators so the Win frame stays content-agnostic. */
 .ap-win__statbar {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--ap-border);
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--hair);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.2;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--ap-fg-dim);
-  background: rgba(255, 255, 255, 0.015);
+  color: var(--ink-muted);
+  background: var(--paper3);
   flex-shrink: 0;
   min-height: 24px;
 }
@@ -513,27 +476,25 @@
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  padding: 5px 12px;
-  border-bottom: 1px solid var(--ap-border);
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--hair);
   font-family: var(--font-mono);
-  font-size: 10px;
-  line-height: 1.3;
-  letter-spacing: 0.04em;
-  background: rgba(255, 255, 255, 0.01);
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
   flex-shrink: 0;
 }
-.ap-win__insight-text { color: var(--ap-fg-dim); }
-.ap-win__insight-source { color: var(--ap-fg-dim); opacity: 0.6; }
-.ap-win__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ap-win__insight-text { color: var(--ink2); }
+.ap-win__insight-source { color: var(--ink-muted); }
+.ap-win__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
 .ap-win__buttons { display: flex; gap: 0; margin-right: -4px; }
 .ap-win__btn {
-  width: 22px; height: 22px;
+  width: 24px; height: 24px;
   display: inline-flex; align-items: center; justify-content: center;
-  color: var(--ap-fg-dim);
-  background: none; border: 0; cursor: pointer;
+  color: var(--ink-muted);
+  background: none; border: 0; border-radius: 6px; cursor: pointer;
 }
-.ap-win__btn:hover { color: var(--ap-fg); background: rgba(255, 255, 255, 0.04); }
-.ap-win__btn--close:hover { color: var(--sev-outage); }
+.ap-win__btn:hover { color: var(--ink); background: var(--paper3); }
 .ap-win__body {
   flex: 1;
   overflow: auto;
@@ -544,9 +505,10 @@
   right: 0; bottom: 0;
   width: 14px; height: 14px;
   cursor: nwse-resize;
+  border-bottom-right-radius: 14px;
   background:
-    linear-gradient(135deg, transparent 45%, var(--ap-border-strong) 46%, var(--ap-border-strong) 52%, transparent 53%),
-    linear-gradient(135deg, transparent 65%, var(--ap-border-strong) 66%, var(--ap-border-strong) 72%, transparent 73%);
+    linear-gradient(135deg, transparent 45%, var(--hair2) 46%, var(--hair2) 52%, transparent 53%),
+    linear-gradient(135deg, transparent 65%, var(--hair2) 66%, var(--hair2) 72%, transparent 73%);
 }
 
 /* ============================================================================

@@ -2,14 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-/**
- * Panel-identity accent. Drives the titlebar dot colour and the topmost
- * glow. Identity, not state — a Tools panel with a degraded tool keeps
- * its green accent; state is carried by the per-panel stat bar + global
- * StatusBar. See `docs/design-spec-v2.md` → Principle 1.5.
- */
-export type WinAccent = "teal" | "amber" | "green" | "violet" | "orange";
-
 export type WinProps = {
   id: string;
   title: string;
@@ -23,8 +15,6 @@ export type WinProps = {
    * stack of open panels is visually parseable without closing any.
    */
   topmost?: boolean;
-  /** Panel-identity accent (default teal). See `WinAccent`. */
-  accent?: WinAccent;
   /**
    * Maximise geometry (FIX-02).
    *
@@ -57,7 +47,8 @@ export type WinProps = {
 };
 
 /**
- * Floating draggable / resizable window with the Gawk window-chrome look.
+ * Floating draggable / resizable window drawn as an inset on the skin (surface, hairline, radius
+ * 14). No per-panel accent: identity is the title, state lives in the stat bar (PRD §7).
  * Headless about content — pass the panel body as children. Pure client state;
  * does not persist position (intentional — panels reset on reload like a HUD).
  */
@@ -69,7 +60,6 @@ export function Win({
   minimized,
   maximized,
   topmost,
-  accent = "teal",
   maximizedLayout = "default",
   statBar,
   insight,
@@ -171,7 +161,7 @@ export function Win({
 
   return (
     <div
-      className={`ap-win ap-win--accent-${accent} ${minimized ? "ap-win--minimized" : ""} ${topmost === false ? "ap-win--behind" : "ap-win--topmost"}`}
+      className={`ap-win ${minimized ? "ap-win--minimized" : ""} ${topmost === false ? "ap-win--behind" : "ap-win--topmost"}`}
       style={{
         left: pos.x,
         top: pos.y,
@@ -182,7 +172,7 @@ export function Win({
       onMouseDown={() => onFocus?.(id)}
     >
       <div className="ap-win__titlebar" onMouseDown={onTitleDown}>
-        <span className="ap-win__titledot" />
+        <span className="ap-mark ap-mark--solid ap-mark--sm" aria-hidden />
         <span className="ap-win__title">{title}</span>
         <div className="ap-win__buttons">
           {onMinimize && (

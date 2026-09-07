@@ -1207,7 +1207,6 @@ export function Dashboard({
             <Win
               id="wire"
               title="Live feed · gh-events"
-              accent="teal"
               statBar={wireStatBar}
               insight={wireInsightNode}
               initial={initialPos.wire}
@@ -1239,7 +1238,6 @@ export function Dashboard({
             <Win
               id="tools"
               title="Tool health"
-              accent="green"
               statBar={toolsStatBar}
               initial={initialPos.tools}
               zIndex={z("tools")}
@@ -1278,7 +1276,6 @@ export function Dashboard({
             <Win
               id="models"
               title="Top models · hf-downloads"
-              accent="teal"
               statBar={modelsStatBar}
               insight={modelsInsightNode}
               initial={initialPos.models}
@@ -1310,7 +1307,6 @@ export function Dashboard({
             <Win
               id="research"
               title="Recent papers · arxiv"
-              accent="violet"
               statBar={researchStatBar}
               initial={initialPos.research}
               zIndex={z("research")}
@@ -1346,7 +1342,6 @@ export function Dashboard({
             <Win
               id="benchmarks"
               title="Chatbot Arena · top 20 · lmarena-leaderboard"
-              accent="amber"
               statBar={benchmarksStatBar}
               insight={benchmarksInsightNode}
               initial={initialPos.benchmarks}
@@ -1384,7 +1379,6 @@ export function Dashboard({
             <Win
               id="labs"
               title="AI Labs · 7d activity · curated registry"
-              accent="violet"
               statBar={labsStatBar}
               initial={initialPos.labs}
               zIndex={z("labs")}
@@ -1415,7 +1409,6 @@ export function Dashboard({
             <Win
               id="regional-wire"
               title="Regional Wire · non-SV publishers · 24h activity"
-              accent="orange"
               statBar={regionalWireStatBar}
               initial={initialPos["regional-wire"]}
               zIndex={z("regional-wire")}
@@ -1456,7 +1449,6 @@ export function Dashboard({
             <Win
               id="sdk-adoption"
               title="SDK Adoption · within-package daily Δ vs 30d baseline"
-              accent="violet"
               initial={initialPos["sdk-adoption"]}
               zIndex={z("sdk-adoption")}
               minimized={panels["sdk-adoption"].min}
@@ -1497,7 +1489,6 @@ export function Dashboard({
             <Win
               id="model-usage"
               title="Model Usage · OpenRouter request volume, weekly"
-              accent="teal"
               initial={initialPos["model-usage"]}
               zIndex={z("model-usage")}
               minimized={panels["model-usage"].min}
@@ -1538,7 +1529,6 @@ export function Dashboard({
             <Win
               id="agents"
               title="Agents · weekly downloads + maintenance state, 8 frameworks"
-              accent="teal"
               initial={initialPos.agents}
               zIndex={z("agents")}
               minimized={panels.agents.min}
@@ -1573,7 +1563,6 @@ export function Dashboard({
             <Win
               id="launches"
               title="Launches · top AI launches on Product Hunt this week"
-              accent="teal"
               initial={initialPos.launches}
               zIndex={z("launches")}
               minimized={panels.launches.min}
