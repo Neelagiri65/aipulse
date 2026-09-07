@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { GlobePoint } from "@/components/globe/Globe";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
+import { WorldBand } from "@/components/health/WorldBand";
 import { FeedView } from "@/components/feed/FeedView";
 import { FeedModeSwitch } from "@/components/feed/FeedModeSwitch";
 import { RoomsView } from "@/components/dashboard/RoomsView";
@@ -1081,6 +1082,13 @@ export function Dashboard({
           <div className="ap-column-scroll">
             <section className="ap-column" aria-label="Health">
               <HealthCardGrid data={status.data?.data} polledAt={status.data?.polledAt} maximized={true} />
+              <WorldBand
+                events={events.data}
+                loading={events.isInitialLoading}
+                error={events.error}
+                cols={90}
+                onOpenMap={() => setActiveTab("map")}
+              />
               {status.error ? (
                 <p className="ap-column__sub">Status poll error: {status.error}</p>
               ) : null}

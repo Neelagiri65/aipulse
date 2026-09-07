@@ -2636,7 +2636,8 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
 .ap-mobile-feed__wire { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 
 /* ---- Tool health rows (web v2 phase 3, PRD §7: state by shape, colour by words) ---- */
-.ap-inset__head--split { display: flex; justify-content: space-between; gap: 12px; }
+.ap-inset__head--split { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; }
+.ap-inset__head--split > span:last-child { text-align: right; }
 .ap-trow { border-top: 1px solid var(--hair); }
 .ap-trow__head {
   display: flex;
@@ -2755,3 +2756,25 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
 }
 .ap-tile .ap-type-metric { color: var(--ink); }
 .ap-tile__value--pending { color: var(--ink-muted); font-style: italic; font-weight: 400; }
+
+/* ---- The world in marks (web v2 phase 3, Health) ---- */
+.ap-worldband__stage {
+  display: block;
+  width: 100%;
+  padding: 6px 16px 4px;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.ap-worldband__stage:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: 10px; }
+.ap-worldband__svg { display: block; width: 100%; height: auto; }
+.ap-worldband__solid { fill: var(--ink); }
+.ap-worldband__hollow { fill: var(--surface); stroke: var(--hollow, var(--ink-muted)); stroke-width: 0.7; }
+.ap-worldband__foot { padding: 2px 16px 12px; display: flex; flex-direction: column; gap: 4px; font-family: var(--font-sans); }
+.ap-worldband__cap { margin: 0; font-size: 12.5px; line-height: 1.35; color: var(--ink); }
+.ap-worldband__legend,
+.ap-worldband__attr { margin: 0; font-size: 12px; line-height: 1.35; color: var(--ink-muted); }
+.ap-worldband[data-state="pending"] .ap-worldband__cap,
+.ap-worldband[data-state="unavailable"] .ap-worldband__cap { color: var(--ink-muted); font-style: italic; }

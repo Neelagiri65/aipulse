@@ -18,6 +18,7 @@ import type { FeedViewMode } from "@/components/chrome/primary-tabs";
 import { FeedView } from "@/components/feed/FeedView";
 import { LiveTicker } from "@/components/map/LiveTicker";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
+import { WorldBand } from "@/components/health/WorldBand";
 import { ModelsPanel } from "@/components/models/ModelsPanel";
 import { ResearchPanel } from "@/components/research/ResearchPanel";
 import { BenchmarksPanel } from "@/components/benchmarks/BenchmarksPanel";
@@ -291,6 +292,13 @@ export function MobileDashboard(props: MobileDashboardProps) {
         {topTab === "health" && (
           <div className="ap-mobile-panel ap-mobile-panel--padded">
             <HealthCardGrid data={props.status?.data} polledAt={props.status?.polledAt} maximized={true} />
+            <WorldBand
+              events={props.events}
+              loading={props.eventsLoading}
+              error={props.eventsError ?? undefined}
+              cols={60}
+              onOpenMap={() => setTopTab("map")}
+            />
             {props.statusError ? (
               <p className="ap-mobile-error">Status poll error: {props.statusError}</p>
             ) : null}

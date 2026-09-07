@@ -48,4 +48,23 @@ test.describe("dashboard views", () => {
       "true",
     );
   });
+
+  test("Health carries the world-in-marks band; tapping it opens Map", async ({ page }) => {
+    await openDashboard(page);
+    const band = page.getByTestId("world-band");
+    await expect(band).toBeVisible();
+    // The band never claims without its provenance: caption, legend and the ODbL land-mask
+    // attribution are visible text, not a title attribute.
+    await expect(band).toContainText("Where events landed");
+    await expect(band).toContainText("© OpenStreetMap contributors");
+    await expect(band).toContainText("solid = an event landed here");
+    // A cell is drawn for every land cell even before the poll answers, so the SVG is never empty.
+    expect(await band.locator("svg circle").count()).toBeGreaterThan(500);
+    await shot(page, "health-world-band");
+    await band.getByRole("button", { name: "Open the full map" }).click();
+    await expect(page.getByRole("tab", { name: "Map", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
 });
