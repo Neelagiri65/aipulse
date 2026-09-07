@@ -2788,7 +2788,7 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
 
 /* ---- The world in marks: lens + region drilldown ---- */
 .ap-worldband__stage { position: relative; padding: 6px 16px 4px; }
-.ap-worldband__svg { touch-action: pan-y; cursor: crosshair; outline: none; border-radius: 6px; }
+.ap-worldband__svg { touch-action: pan-y; cursor: crosshair; outline: none; border-radius: 6px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .ap-worldband__svg:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .ap-worldband__focus { fill: none; stroke: var(--ink); stroke-width: 0.9; }
 .ap-lens {

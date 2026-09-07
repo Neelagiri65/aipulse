@@ -88,4 +88,39 @@ test.describe("dashboard views", () => {
       "true",
     );
   });
+
+  test("on touch, a tap does nothing and a press-and-hold opens the lens", async ({ browser, baseURL }) => {
+    const ctx = await browser.newContext({
+      baseURL,
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      isMobile: true,
+    });
+    const page = await ctx.newPage();
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const band = page.getByTestId("world-band");
+    await expect(band).toBeVisible({ timeout: 20_000 });
+    await page.waitForTimeout(500);
+    await band.scrollIntoViewIfNeeded();
+    const svg = band.locator("svg.ap-worldband__svg");
+    const box = await svg.boundingBox();
+    if (!box) throw new Error("band has no box");
+    const x = box.x + box.width * 0.55;
+    const y = box.y + box.height * 0.3;
+    // A plain tap: no lens, no drilldown.
+    await page.touchscreen.tap(x, y);
+    await page.waitForTimeout(300);
+    await expect(page.getByTestId("world-lens")).toHaveCount(0);
+    await expect(page.getByTestId("world-region")).toHaveCount(0);
+    // Press and hold (the touchscreen API has no hold, so drive the touch events directly).
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    await page.waitForTimeout(700);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    const lens = page.getByTestId("world-lens");
+    await expect(lens).toBeVisible();
+    await expect(lens).toContainText(/tap for the events|tap to close/);
+    await shot(page, "health-world-lens-touch");
+    await ctx.close();
+  });
 });

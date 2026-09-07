@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type MouseEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type MouseEvent } from "react";
 import type { GlobeEventsResult } from "@/lib/data/fetch-events";
 import type { GlobePoint } from "@/components/globe/Globe";
 import { shortEventType } from "@/components/globe/event-types";
@@ -36,6 +36,9 @@ const LENS_RADIUS = 2;
 const LENS_PITCH = 14;
 const LENS_W = 268;
 const DETAIL_CAP = 40;
+/** touch: the lens opens after the finger has rested this long; a shorter touch is a tap */
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_SLOP_PX = 8;
 
 function hhmmUtc(iso?: string): string | null {
   if (!iso) return null;
@@ -84,6 +87,7 @@ function Lens({
   x,
   y,
   stageW,
+  touch,
 }: {
   grid: WorldGrid;
   byCell: ByCell;
@@ -91,6 +95,8 @@ function Lens({
   x: number;
   y: number;
   stageW: number;
+  /** opened by a long-press: the hints say tap, and a tap can close it */
+  touch: boolean;
 }) {
   const cells = neighbourhood(grid, cell, LENS_RADIUS);
   const s = regionSummary(pointsAround(grid, byCell, cell));
@@ -137,7 +143,11 @@ function Lens({
       <div className="ap-lens__text">
         <div className="ap-lens__where">{whereLabel(grid, cell, s.countries)}</div>
         <div className="ap-lens__line">{line}</div>
-        {s.count > 0 ? <div className="ap-lens__hint">click for the events</div> : null}
+        {s.count > 0 ? (
+          <div className="ap-lens__hint">{touch ? "tap for the events" : "click for the events"}</div>
+        ) : touch ? (
+          <div className="ap-lens__hint">tap to close</div>
+        ) : null}
       </div>
     </div>
   );
@@ -315,12 +325,87 @@ export const WorldBand = memo(function WorldBand({
     [grid],
   );
 
-  const onPointerMove = (e: PointerEvent<SVGSVGElement>) => setHover(locate(e.clientX, e.clientY));
-  const onPointerLeave = () => setHover(null);
+  // ---- touch: long-press opens the lens, a tap then opens the events (or closes the lens) ----
+  const [touchLens, setTouchLens] = useState(false);
+  const pressTimer = useRef<number | null>(null);
+  const pressAt = useRef<{ x: number; y: number } | null>(null);
+  const longPressed = useRef(false);
+  const lastPointerType = useRef<string>("mouse");
+  const clearPress = useCallback(() => {
+    if (pressTimer.current !== null) {
+      window.clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+  }, []);
+  useEffect(() => clearPress, [clearPress]);
+
+  const onPointerDown = (e: PointerEvent<SVGSVGElement>) => {
+    lastPointerType.current = e.pointerType;
+    if (e.pointerType !== "touch") {
+      setHover(locate(e.clientX, e.clientY));
+      return;
+    }
+    clearPress();
+    longPressed.current = false;
+    pressAt.current = { x: e.clientX, y: e.clientY };
+    const { clientX, clientY } = e;
+    pressTimer.current = window.setTimeout(() => {
+      pressTimer.current = null;
+      const at = locate(clientX, clientY);
+      if (!at) return;
+      longPressed.current = true;
+      setHover(at);
+      setTouchLens(true);
+    }, LONG_PRESS_MS);
+  };
+  const onPointerMove = (e: PointerEvent<SVGSVGElement>) => {
+    if (e.pointerType !== "touch") {
+      setHover(locate(e.clientX, e.clientY));
+      return;
+    }
+    if (pressTimer.current !== null && pressAt.current) {
+      const moved = Math.hypot(e.clientX - pressAt.current.x, e.clientY - pressAt.current.y);
+      if (moved > LONG_PRESS_SLOP_PX) clearPress(); // it is a scroll or a drag, not a press
+      return;
+    }
+    // a pinned lens follows the finger
+    if (touchLens && longPressed.current) {
+      const at = locate(e.clientX, e.clientY);
+      if (at) setHover(at);
+    }
+  };
+  const onPointerEnd = (e: PointerEvent<SVGSVGElement>) => {
+    if (e.pointerType === "touch") clearPress();
+  };
+  const onPointerLeave = (e: PointerEvent<SVGSVGElement>) => {
+    if (e.pointerType === "touch") {
+      clearPress();
+      return; // the pinned lens stays until a tap
+    }
+    setHover(null);
+  };
+  const closeTouchLens = () => {
+    setTouchLens(false);
+    setHover(null);
+  };
   const onClick = (e: MouseEvent<SVGSVGElement>) => {
+    if (lastPointerType.current === "touch") {
+      if (longPressed.current) {
+        // the click that follows a long-press release is not a tap
+        longPressed.current = false;
+        return;
+      }
+      if (!touchLens || !hover) return; // a plain tap without a lens does nothing
+      if (pointsAround(grid, byCell, hover.cell).length > 0) open(hover.cell);
+      closeTouchLens();
+      return;
+    }
     const at = locate(e.clientX, e.clientY);
     if (!at) return;
     if (pointsAround(grid, byCell, at.cell).length > 0) open(at.cell);
+  };
+  const onContextMenu = (e: MouseEvent<SVGSVGElement>) => {
+    if (lastPointerType.current === "touch") e.preventDefault(); // long-press must not open the browser menu
   };
   const onKeyDown = (e: KeyboardEvent<SVGSVGElement>) => {
     const step: Record<string, [number, number]> = {
@@ -341,7 +426,7 @@ export const WorldBand = memo(function WorldBand({
       e.preventDefault();
       if (pointsAround(grid, byCell, hover.cell).length > 0) open(hover.cell);
     } else if (e.key === "Escape") {
-      setHover(null);
+      closeTouchLens();
       setSelected(null);
     }
   };
@@ -401,10 +486,13 @@ export const WorldBand = memo(function WorldBand({
           role="img"
           aria-label={`${caption} Use the arrow keys to move the lens, Enter to open the events under it.`}
           tabIndex={0}
+          onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
-          onPointerDown={onPointerMove}
+          onPointerUp={onPointerEnd}
+          onPointerCancel={onPointerEnd}
           onPointerLeave={onPointerLeave}
           onClick={onClick}
+          onContextMenu={onContextMenu}
           onKeyDown={onKeyDown}
         >
           {cells}
@@ -418,13 +506,15 @@ export const WorldBand = memo(function WorldBand({
             />
           ) : null}
         </svg>
-        {hover ? <Lens grid={grid} byCell={byCell} cell={hover.cell} x={hover.x} y={hover.y} stageW={stageW} /> : null}
+        {hover ? (
+          <Lens grid={grid} byCell={byCell} cell={hover.cell} x={hover.x} y={hover.y} stageW={stageW} touch={touchLens} />
+        ) : null}
       </div>
       <div className="ap-worldband__foot">
         <p className="ap-worldband__cap">{caption}</p>
         <p className="ap-worldband__legend">
-          solid = an event landed here · hollow = land, nothing recorded · point or touch a cell for its
-          region, click for the events ·{" "}
+          solid = an event landed here · hollow = land, nothing recorded · point at a cell (press and hold
+          on touch) for its region, click or tap for the events ·{" "}
           <button type="button" className="ap-link-btn" onClick={onOpenMap}>
             Open the full map
           </button>
