@@ -49,7 +49,7 @@ test.describe("containment quarantine actuation", () => {
     // The board still renders the rest of the page (containment is
     // surgical, not a site outage).
     await expect(
-      page.getByText("Gawk — State of the AI Ecosystem"),
+      page.getByText("gawk.dev — State of the AI Ecosystem"),
     ).toBeVisible();
 
     await page.screenshot({
