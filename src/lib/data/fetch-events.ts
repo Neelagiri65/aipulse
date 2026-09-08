@@ -27,7 +27,7 @@ import {
   probeAIConfig,
   type GitHubEvent,
 } from "@/lib/github";
-import { geocode } from "@/lib/geocoding";
+import { geocode, precisionForCoords } from "@/lib/geocoding";
 import { placeFromCoords } from "@/lib/geocoding-places";
 import type { GlobePoint } from "@/components/globe/Globe";
 import {
@@ -268,7 +268,14 @@ function toGlobePoint(p: StoredGlobePoint): GlobePoint {
   void _eventAt;
   void _eventId;
   void _sourceKind;
-  return pub;
+  // Grade the placement on the way out. Points written before precision was
+  // recorded are the whole rolling window, and the map must not keep drawing
+  // a country centroid in the same ink as a city for the hours it takes that
+  // window to turn over. The coordinate came from the dictionary, so the
+  // coordinate identifies the band.
+  const precision =
+    pub.meta?.precision ?? precisionForCoords(pub.lat, pub.lng) ?? undefined;
+  return precision ? { ...pub, meta: { ...pub.meta, precision } } : pub;
 }
 
 // ---------------------------------------------------------------------------
@@ -516,6 +523,10 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
         sourceKind: r.source,
         country: place?.country ?? null,
         region: place?.region ?? null,
+        // How precisely the actor's profile string resolved. "country" means
+        // the dot is a national centroid standing in for "somewhere in this
+        // country" — a real event, an approximate place, and the map says so.
+        precision: precisionForCoords(coords[0], coords[1]) ?? undefined,
       },
     };
   });

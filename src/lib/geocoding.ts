@@ -17,7 +17,11 @@
 
 type Coords = [lat: number, lng: number];
 
-const CITY_COORDS: Array<[string, Coords]> = [
+/**
+ * The city band: a dictionary entry that names an actual settlement. A match
+ * here is the most precise thing this geocoder can say.
+ */
+const CITY_ENTRIES: Array<[string, Coords]> = [
   // North America
   ["san francisco", [37.7749, -122.4194]],
   ["sf bay area", [37.7749, -122.4194]],
@@ -330,6 +334,14 @@ const CITY_COORDS: Array<[string, Coords]> = [
   ["taichung", [24.1477, 120.6736]],
   ["tainan", [22.9999, 120.2269]],
 
+];
+
+/**
+ * The region band: US state suffixes, resolving to a state's geographic
+ * centre. Consulted ONLY when nothing in the city band matched — writing
+ * ", ca" is not the same claim as writing "san francisco".
+ */
+const REGION_ENTRIES: Array<[string, Coords]> = [
   // US state suffixes — only fire when the city before isn't in the dict.
   // Comma-prefix is the safety net so we don't false-match substrings of
   // unrelated city/country names. Centroids are state geographic centers.
@@ -376,6 +388,14 @@ const CITY_COORDS: Array<[string, Coords]> = [
   [", hi", [19.8968, -155.5828]],   // Hawaii
   [", ak", [64.2008, -149.4937]],   // Alaska
 
+];
+
+/**
+ * The country band: a whole country's approximate centroid. Consulted last,
+ * and a match here means we know the country and NOTHING more precise — the
+ * point is a stand-in for "somewhere in Germany", not a place anyone is.
+ */
+const COUNTRY_ENTRIES: Array<[string, Coords]> = [
   // ---------- Country-level centroids ----------
   // Used as fallbacks when the user writes only the country. Centroids are
   // approximate. Longer city names sort first, so "Berlin, Germany" still
@@ -450,7 +470,16 @@ const CITY_COORDS: Array<[string, Coords]> = [
 ];
 
 // Longest keys first so "cambridge, ma" wins over "cambridge".
-CITY_COORDS.sort((a, b) => b[0].length - a[0].length);
+// Longest keys first WITHIN each band, so "cambridge, ma" wins over
+// "cambridge". Sorting across bands was the bug: one flat list put
+// "germany" (7 chars) ahead of "berlin" (6), so every "Berlin, Germany"
+// profile landed on the German centroid — a field near Kassel — and the
+// comment above the country block asserted the opposite for months. Bands
+// are now tried in order of precision, and length only breaks ties inside a
+// band.
+for (const band of [CITY_ENTRIES, REGION_ENTRIES, COUNTRY_ENTRIES]) {
+  band.sort((a, b) => b[0].length - a[0].length);
+}
 
 /**
  * Bio strings that users commonly write in GitHub / HN profile fields
@@ -628,25 +657,97 @@ const ZIP3_COORDS: Record<string, Coords> = {
 
 const ZIP_PATTERN = /^\d{5}(?:-\d{4})?$/;
 
-export function geocode(locationString: string | null | undefined): Coords | null {
+/**
+ * How precisely a location string was resolved.
+ *
+ * The map draws every placed event as the same dot, so this is the difference
+ * between "this happened in Seattle" and "this happened somewhere in Germany,
+ * and the dot is the middle of the country". Both are honest inputs; only one
+ * of them is a place, and a surface that cannot tell them apart is claiming
+ * precision the data never had.
+ */
+export type GeoPrecision = "city" | "region" | "country";
+
+export type PlacedLocation = { coords: Coords; precision: GeoPrecision };
+
+/**
+ * Resolve a location string, saying how precisely it resolved.
+ *
+ * Bands are tried in precision order — city, then US state, then country —
+ * so a longer country needle can no longer beat the city sitting next to it
+ * in the same string.
+ */
+export function geocodePlaced(
+  locationString: string | null | undefined,
+): PlacedLocation | null {
   if (!locationString) return null;
   const haystack = locationString.toLowerCase().trim();
   if (LOCATION_STOPLIST.has(haystack)) return null;
-  for (const [needle, coords] of CITY_COORDS) {
-    if (needleMatches(haystack, needle)) return coords;
+
+  const bands: Array<[GeoPrecision, Array<[string, Coords]>]> = [
+    ["city", CITY_ENTRIES],
+    ["region", REGION_ENTRIES],
+    ["country", COUNTRY_ENTRIES],
+  ];
+  for (const [precision, entries] of bands) {
+    for (const [needle, coords] of entries) {
+      if (needleMatches(haystack, needle)) return { coords, precision };
+    }
   }
   // Bare US ZIP fallback. Only fires when the *entire* string is a ZIP
   // (with optional ZIP+4 suffix) — never on substring matches inside
-  // longer strings like phone numbers or addresses.
+  // longer strings like phone numbers or addresses. A ZIP-3 prefix is a
+  // metro, so it is city-precision.
   if (ZIP_PATTERN.test(haystack)) {
     const zip3 = haystack.slice(0, 3);
     const z = ZIP3_COORDS[zip3];
-    if (z) return z;
+    if (z) return { coords: z, precision: "city" };
   }
   return null;
 }
 
-export const DICTIONARY_SIZE = CITY_COORDS.length;
+export function geocode(locationString: string | null | undefined): Coords | null {
+  return geocodePlaced(locationString)?.coords ?? null;
+}
+
+/**
+ * Reverse lookup: what precision does a coordinate imply?
+ *
+ * Events already stored in Redis were placed before precision was recorded,
+ * and the whole rolling window would otherwise have to expire before the map
+ * could tell the bands apart. Because every placement comes from the
+ * dictionary, the coordinate itself identifies the band. City wins ties —
+ * Singapore and Hong Kong are in both the city and country bands, and they
+ * are cities.
+ */
+export function precisionForCoords(
+  lat: number,
+  lng: number,
+): GeoPrecision | null {
+  const key = coordKey(lat, lng);
+  if (CITY_KEYS.has(key)) return "city";
+  if (REGION_KEYS.has(key)) return "region";
+  if (COUNTRY_KEYS.has(key)) return "country";
+  return null;
+}
+
+function coordKey(lat: number, lng: number): string {
+  return `${lat.toFixed(4)},${lng.toFixed(4)}`;
+}
+
+const CITY_KEYS: ReadonlySet<string> = new Set([
+  ...CITY_ENTRIES.map(([, c]) => coordKey(c[0], c[1])),
+  ...Object.values(ZIP3_COORDS).map((c) => coordKey(c[0], c[1])),
+]);
+const REGION_KEYS: ReadonlySet<string> = new Set(
+  REGION_ENTRIES.map(([, c]) => coordKey(c[0], c[1])),
+);
+const COUNTRY_KEYS: ReadonlySet<string> = new Set(
+  COUNTRY_ENTRIES.map(([, c]) => coordKey(c[0], c[1])),
+);
+
+export const DICTIONARY_SIZE =
+  CITY_ENTRIES.length + REGION_ENTRIES.length + COUNTRY_ENTRIES.length;
 
 // Re-export so consumers have one import for the full place chain.
 export { placeFromCoords, type Place } from "@/lib/geocoding-places";
@@ -670,13 +771,15 @@ export type RichGeocode = {
   lng: number;
   country: string;
   region?: string;
+  precision: GeoPrecision;
 };
 
 export function geocodeRich(
   locationString: string | null | undefined,
 ): RichGeocode | null {
-  const coords = geocode(locationString);
-  if (!coords) return null;
+  const placed = geocodePlaced(locationString);
+  if (!placed) return null;
+  const { coords, precision } = placed;
   const place = _placeFromCoords(coords[0], coords[1]);
   if (!place) return null;
   return {
@@ -684,6 +787,7 @@ export function geocodeRich(
     lng: coords[1],
     country: place.country,
     region: place.region,
+    precision,
   };
 }
 
@@ -691,8 +795,9 @@ export function geocodeRich(
  * Reverse map: lat,lng pair → canonical city name. Built once at module
  * load. When multiple dictionary entries share the same coords (e.g.
  * "san francisco" + "sf bay area" + "bay area" all → [37.7749, -122.4194]),
- * the FIRST occurrence in CITY_COORDS wins — that's the canonical name
- * by dictionary ordering.
+ * the FIRST occurrence wins — that's the canonical name by dictionary
+ * ordering. Bands are walked in precision order so a coordinate that is both
+ * a city and a country centroid gets the city's name.
  *
  * Used by the dashboard's "Most active" line to label live event clusters
  * with the city the geocoder rounded them into. No new geocoding, no
@@ -701,7 +806,11 @@ export function geocodeRich(
  */
 const COORDS_TO_CITY: Map<string, string> = (() => {
   const m = new Map<string, string>();
-  for (const [needle, coords] of CITY_COORDS) {
+  for (const [needle, coords] of [
+    ...CITY_ENTRIES,
+    ...REGION_ENTRIES,
+    ...COUNTRY_ENTRIES,
+  ]) {
     const key = `${coords[0]},${coords[1]}`;
     if (!m.has(key)) m.set(key, titleCase(needle));
   }

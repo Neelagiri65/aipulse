@@ -11,7 +11,12 @@
 
 import { describe, it, expect } from "vitest";
 import { placeFromCoords } from "@/lib/geocoding-places";
-import { geocode, geocodeRich } from "@/lib/geocoding";
+import {
+  geocode,
+  geocodeRich,
+  geocodePlaced,
+  precisionForCoords,
+} from "@/lib/geocoding";
 
 describe("placeFromCoords", () => {
   it("returns null for ocean / outside any tracked bbox", () => {
@@ -88,6 +93,7 @@ describe("geocodeRich", () => {
       lng: 77.5946,
       country: "India",
       region: undefined,
+      precision: "city",
     });
   });
 
@@ -110,6 +116,54 @@ describe("geocodeRich", () => {
       expect(rich).not.toBeNull();
       expect(rich?.lat).toBe(coords?.[0]);
       expect(rich?.lng).toBe(coords?.[1]);
+    }
+  });
+});
+
+describe("precision bands", () => {
+  // The bug this band split exists to kill: one flat dictionary sorted
+  // longest-needle-first put "germany" (7 chars) ahead of "berlin" (6), so a
+  // profile reading "Berlin, Germany" was placed on the German centroid — a
+  // field near Kassel — and 44% of the marks on the live map were country
+  // centroids as a result. The comment above the country block claimed the
+  // opposite and had done since the dictionary was written.
+  it("a city beats the country it sits in, whatever the needle lengths", () => {
+    expect(geocode("Berlin, Germany")).toEqual([52.52, 13.405]);
+    expect(geocode("Munich, Germany")).toEqual([48.1351, 11.582]);
+    expect(geocode("Amsterdam, Netherlands")).toEqual([52.3676, 4.9041]);
+    expect(geocode("Paris, France")).toEqual([48.8566, 2.3522]);
+  });
+
+  it("says how precisely it resolved", () => {
+    expect(geocodePlaced("Berlin, Germany")?.precision).toBe("city");
+    expect(geocodePlaced("Germany")?.precision).toBe("country");
+    expect(geocodePlaced("Some Town, CA")?.precision).toBe("region");
+    expect(geocodePlaced("94107")?.precision).toBe("city");
+    expect(geocodePlaced("remote")).toBeNull();
+  });
+
+  it("a city that is also a country is a city", () => {
+    for (const cityState of ["Singapore", "Hong Kong"]) {
+      expect(geocodePlaced(cityState)?.precision).toBe("city");
+    }
+  });
+
+  it("a coordinate identifies its own band, so stored events can be graded", () => {
+    // Read-time enrichment: events already in Redis were placed before
+    // precision was recorded, and the map cannot wait a rolling window to
+    // stop drawing country centroids like cities.
+    expect(precisionForCoords(52.52, 13.405)).toBe("city");
+    expect(precisionForCoords(51.17, 10.45)).toBe("country");
+    expect(precisionForCoords(36.7783, -119.4179)).toBe("region");
+    expect(precisionForCoords(0, 0)).toBeNull();
+  });
+
+  it("every stored placement can be graded — no coordinate falls between bands", () => {
+    for (const s of ["Berlin", "Germany", ", ca", "94107", "Tokyo", "Brazil"]) {
+      const placed = geocodePlaced(s);
+      expect(placed).not.toBeNull();
+      const graded = precisionForCoords(placed!.coords[0], placed!.coords[1]);
+      expect(graded).toBe(placed!.precision);
     }
   });
 });
