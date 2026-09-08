@@ -145,4 +145,15 @@ test.describe("theme", () => {
     await switchTab(page, "Map");
     await expect.poll(() => styles, { timeout: 30_000 }).toContain("dark");
   });
+
+  test("a link written from the label lands on the Community tab", async ({ page }) => {
+    // The tab reads "Community" and its id is "rooms"; ?tab=community used to fall back to
+    // Health silently, which is the worst kind of broken link — it looks like a working page.
+    await page.goto("/?tab=community", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("tablist").first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("tab", { name: "Community", exact: true })).toHaveClass(
+      /ap-tabs__item--active/,
+    );
+    await expect(page.getByTestId("community-discord")).toBeVisible({ timeout: 20_000 });
+  });
 });
