@@ -69,6 +69,9 @@ export async function generateMetadata({
   return {
     title,
     description,
+    // Self-canonical — inherited `canonical: "/"` from the root layout used to
+    // hand this page's ranking to the homepage.
+    alternates: { canonical: `/lab/${slug}` },
     openGraph: { title, description },
   };
 }

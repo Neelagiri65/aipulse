@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
+  // Self-canonical. The root layout used to declare `canonical: "/"`,
+  // which every page inherited — telling Google to drop this page and credit
+  // the homepage instead.
+  alternates: { canonical: "/docs/api" },
   title: "API Documentation · gawk.dev",
   description:
     "Public API v1 for gawk.dev — real-time AI tool status, model rankings, SDK adoption, and more. Free, no auth required.",

@@ -43,6 +43,10 @@ import labsData from "../../../data/ai-labs.json";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
+  // Self-canonical. The root layout used to declare `canonical: "/"`,
+  // which every page inherited — telling Google to drop this page and credit
+  // the homepage instead.
+  alternates: { canonical: "/sources" },
   title: "Sources · gawk.dev",
   description:
     "Every data source feeding the gawk.dev dashboard. Grouped by category with the last successful poll timestamp and a live / stale badge per source.",

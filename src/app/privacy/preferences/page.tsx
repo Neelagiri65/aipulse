@@ -3,6 +3,10 @@ import { PreferencesClient } from "@/components/consent/PreferencesClient";
 import { PrivacyFooter } from "@/components/consent/PrivacyFooter";
 
 export const metadata: Metadata = {
+  // Self-canonical. The root layout used to declare `canonical: "/"`,
+  // which every page inherited — telling Google to drop this page and credit
+  // the homepage instead.
+  alternates: { canonical: "/privacy/preferences" },
   title: "Consent preferences — gawk.dev",
   description: "Change what gawk.dev is allowed to remember about you.",
 };

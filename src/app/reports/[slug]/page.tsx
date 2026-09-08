@@ -92,6 +92,7 @@ export async function generateMetadata({
       ? new Date().toISOString()
       : `${config.publishedAt}T00:00:00.000Z`;
   return {
+    alternates: { canonical: `/reports/${slug}` },
     title: titleText,
     description: descriptionText,
     // S62g.8: NOT setting `metadata.authors`. Next 16 auto-generates

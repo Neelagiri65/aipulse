@@ -28,15 +28,36 @@ const AI_CRAWLERS = [
   "CCBot",
 ];
 
+/**
+ * The read-only JSON endpoints the client fetches on mount.
+ *
+ * The homepage is a static shell: the real numbers arrive on the first client
+ * poll. Blanket-disallowing `/api/` meant Googlebot rendered the page, tried
+ * those fetches, was refused by our own robots.txt, and indexed
+ * "connecting… / awaiting first poll" as the content of the site. These four
+ * are public, cacheable GETs — the same data the dashboard shows and the
+ * `/docs/api` page documents — so a crawler is allowed to read them.
+ *
+ * They are NOT meant to be indexed as pages: every `/api/` response carries
+ * `X-Robots-Tag: noindex` (see next.config), which is the honest pairing —
+ * crawl it to render the page, do not list the JSON as a result.
+ */
+const CRAWLABLE_API = [
+  "/api/status",
+  "/api/globe-events",
+  "/api/feed",
+  "/api/panels",
+];
+
 const DISALLOW = ["/admin", "/api/", "/subscribe/confirm", "/privacy/preferences"];
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
-      { userAgent: "*", allow: "/", disallow: DISALLOW },
+      { userAgent: "*", allow: ["/", ...CRAWLABLE_API], disallow: DISALLOW },
       ...AI_CRAWLERS.map((userAgent) => ({
         userAgent,
-        allow: "/",
+        allow: ["/", ...CRAWLABLE_API],
         disallow: DISALLOW,
       })),
     ],
