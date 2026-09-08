@@ -22,6 +22,8 @@
  * intent, and the destination platform measures actual visits.
  */
 
+import { DISCORD_WIDGET } from "@/lib/data-sources";
+
 export type CommunityLinkVariant = "compact" | "footer";
 
 export type CommunityLinkProps = {
@@ -34,10 +36,19 @@ export type CommunityLinkProps = {
  * with the feed "Discuss" affordance and the mobile Community card so
  * every surface points at the same permanent invite.
  */
+/**
+ * The invite, from the env var if one is set, otherwise from the source registry entry for the
+ * Discord widget — the same server the count is read from, so the door and the number can never
+ * point at two different places. The env var stays first so the invite can be rotated without a
+ * deploy; `data-sources.ts` is the fallback and the record of which server this is.
+ */
 export function getCommunityUrl(): string | undefined {
+  // An env var set to "" is a var that was cleared, not an instruction to hide the door.
+  const set = (v: string | undefined) => (v && v.trim() ? v.trim() : undefined);
   return (
-    process.env.NEXT_PUBLIC_COMMUNITY_URL ??
-    process.env.NEXT_PUBLIC_DISCORD_INVITE_URL
+    set(process.env.NEXT_PUBLIC_COMMUNITY_URL) ??
+    set(process.env.NEXT_PUBLIC_DISCORD_INVITE_URL) ??
+    set(DISCORD_WIDGET.url)
   );
 }
 

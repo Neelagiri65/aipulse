@@ -106,13 +106,16 @@ describe("FeedView — community discuss", () => {
     expect(html).not.toContain("feed-reading-discuss");
   });
 
-  it("hides the link when no community URL is configured", () => {
+  it("still links with no env var set — the invite is a registry fact, not configuration", () => {
+    // getCommunityUrl falls back to DISCORD_WIDGET.url, the same server the count is read from,
+    // so the door and the number cannot disagree. The live poll remains the only gate.
     delete process.env[KEY];
     delete process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
     const html = renderToStaticMarkup(
       <FeedView initialResponse={response} disablePolling community={answering} />,
     );
-    expect(html).not.toContain("feed-reading-discuss");
+    expect(html).toContain("feed-reading-discuss");
+    expect(html).toContain("2 online on Discord");
   });
 
   it("renders unchanged when no community state is passed", () => {
