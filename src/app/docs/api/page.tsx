@@ -136,14 +136,14 @@ export default function ApiDocsPage() {
         </h2>
         <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
           <li>
-            <code>X-gawk.dev-Generated-At</code> — ISO timestamp when this data was
+            <code>X-Gawk-Generated-At</code> — ISO timestamp when this data was
             generated
           </li>
           <li>
-            <code>X-gawk.dev-Source-Count</code> — number of items in the response
+            <code>X-Gawk-Source-Count</code> — number of items in the response
           </li>
           <li>
-            <code>X-gawk.dev-Cache-Age</code> — CDN cache max-age in seconds
+            <code>X-Gawk-Cache-Age</code> — CDN cache max-age in seconds
           </li>
           <li>
             <code>Access-Control-Allow-Origin: *</code> — CORS enabled for all
@@ -220,7 +220,7 @@ export default function ApiDocsPage() {
             for the full registry.
           </li>
           <li>
-            Responses are CDN-cached. The <code>X-gawk.dev-Cache-Age</code> header
+            Responses are CDN-cached. The <code>X-Gawk-Cache-Age</code> header
             tells you the max-age.
           </li>
           <li>
