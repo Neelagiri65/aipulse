@@ -68,7 +68,7 @@ vi.mock("@/lib/data/subscribers", () => ({
 vi.mock("@/lib/digest/archive", () => ({
   readDigestBody: vi.fn().mockResolvedValue({
     date: "2026-04-29",
-    subject: "Gawk daily — 2026-04-29",
+    subject: "gawk.dev daily — 2026-04-29",
     mode: "live",
     greetingTemplate: "g",
     generatedAt: "2026-04-29T08:00:00.000Z",
@@ -81,7 +81,7 @@ const ORIG_ENV = { ...process.env };
 beforeEach(() => {
   process.env.RESEND_API_KEY = "rsd_test";
   process.env.RESEND_DOMAIN_ID = "1dc77174-test";
-  process.env.EMAIL_FROM_ADDRESS = "Gawk <noreply@gawk.dev>";
+  process.env.EMAIL_FROM_ADDRESS = "gawk.dev <noreply@gawk.dev>";
   delete process.env.DISCORD_TOOL_ALERTS_WEBHOOK_URL;
 });
 

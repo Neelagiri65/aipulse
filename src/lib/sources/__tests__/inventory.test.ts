@@ -63,7 +63,7 @@ describe("sources inventory", () => {
     expect(grouped.get("sdk-adoption")?.length).toBe(6);
     expect(grouped.get("agents")?.length).toBe(1);
     expect(grouped.get("ai-publishers")?.length).toBe(7);
-    expect(grouped.get("discussion")?.length).toBe(3);
+    expect(grouped.get("discussion")?.length).toBe(4);
     expect(grouped.get("research")?.length).toBe(2);
     expect(grouped.get("models")?.length).toBe(3);
     expect(grouped.get("platform-infrastructure")?.length).toBe(4);

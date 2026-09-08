@@ -1,7 +1,7 @@
 /**
  * Public Sources inventory — user-facing groupings + freshness wiring.
  *
- * `data-sources.ts` is the typed registry of every endpoint Gawk
+ * `data-sources.ts` is the typed registry of every endpoint gawk.dev
  * consumes (sanity ranges, caveats, verifiedAt). This file is its
  * public-facing companion: it groups the same sources into the
  * eight user-readable categories surfaced on `/sources`, and pins
@@ -54,7 +54,7 @@ export const CATEGORIES: readonly CategoryDescriptor[] = [
     id: "platform-infrastructure",
     label: "Platform Infrastructure",
     blurb:
-      "Public status pages for the four services Gawk itself runs on. Surfaced operator-side at /admin only — the public Tool Health card grid stays AI-focused.",
+      "Public status pages for the four services gawk.dev itself runs on. Surfaced operator-side at /admin only — the public Tool Health card grid stays AI-focused.",
   },
   {
     id: "code-activity",
@@ -66,7 +66,7 @@ export const CATEGORIES: readonly CategoryDescriptor[] = [
     id: "discussion",
     label: "Discussion",
     blurb:
-      "Community chatter — currently Hacker News with the deterministic AI-keyword filter applied before ingest.",
+      "Community chatter — Hacker News and two subreddits with deterministic filters applied before ingest, plus the live headcount of the Gawk Dev Discord.",
   },
   {
     id: "models",
@@ -90,7 +90,7 @@ export const CATEGORIES: readonly CategoryDescriptor[] = [
     id: "research",
     label: "Research",
     blurb:
-      "arXiv submissions in the cs.AI + cs.LG categories. Recency-only — Gawk does not re-rank papers.",
+      "arXiv submissions in the cs.AI + cs.LG categories. Recency-only — gawk.dev does not re-rank papers.",
   },
   {
     id: "labs",
@@ -198,6 +198,8 @@ const TRACKS: Record<string, string> = {
     "Top-of-day posts from r/LocalLLaMA via Reddit's Atom feed. AI-relevance presumed from the sub's charter (no keyword filter applied).",
   "reddit-claudeai":
     "Top-of-day posts from r/ClaudeAI via Reddit's Atom feed. Anthropic-adjacent discussion; AI-relevance presumed from the sub's charter.",
+  "discord-widget":
+    "How many members Discord counts as online right now in the Gawk Dev server (public server widget). Includes bots; not a measure of activity or sentiment.",
   "lmarena-leaderboard":
     "Top 20 models by Chatbot Arena Elo for the `text` overall split.",
   "ai-labs-registry":
@@ -260,6 +262,7 @@ const POWERED_FEATURE: Record<string, string> = {
   "hn-ai-stories": "Wire panel · Feed",
   "reddit-localllama": "Feed · NEWS cards",
   "reddit-claudeai": "Feed · NEWS cards",
+  "discord-widget": "Feed · TOOL ALERT cards (Discuss) · Community card",
   "lmarena-leaderboard": "Benchmarks panel · Feed",
   "ai-labs-registry": "AI Labs panel + globe layer",
   "gh-repo-events-labs": "AI Labs panel · sizes lab dots",
@@ -309,6 +312,7 @@ const CATEGORY_OF: Record<string, CategoryId> = {
   "hn-ai-stories": "discussion",
   "reddit-localllama": "discussion",
   "reddit-claudeai": "discussion",
+  "discord-widget": "discussion",
   // Models
   "hf-models": "models",
   "lmarena-leaderboard": "models",
@@ -363,6 +367,7 @@ const FRESHNESS_OF: Record<string, FreshnessSource> = {
   "hn-ai-stories": { kind: "cron", workflow: "wire-ingest-hn" },
   "reddit-localllama": { kind: "cron", workflow: "wire-ingest-reddit" },
   "reddit-claudeai": { kind: "cron", workflow: "wire-ingest-reddit" },
+  "discord-widget": { kind: "on-demand" },
   "lmarena-leaderboard": { kind: "cron", workflow: "benchmarks-ingest" },
   "ai-labs-registry": { kind: "last-known", key: "labs" },
   "gh-repo-events-labs": { kind: "last-known", key: "labs" },

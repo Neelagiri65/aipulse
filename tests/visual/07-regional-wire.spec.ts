@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 import {
   openDashboard,
-  openPanelViaNav,
-  panelByTitle,
+  openBoardViaMore,
+  boardByTitle,
   shot,
   switchTab,
   waitForMapReady,
@@ -34,23 +34,15 @@ import {
 test.describe("Regional RSS layer", () => {
   test.beforeEach(async ({ page }) => {
     await openDashboard(page);
-    await switchTab(page, "The Map");
+    await switchTab(page, "Map");
     await waitForMapReady(page);
   });
 
-  test("Regional Wire panel opens from LeftNav with publisher rows", async ({
+  test("Regional Wire opens as a board from the More index with publisher rows", async ({
     page,
   }) => {
-    const nav = page.getByRole("navigation", { name: "Panel navigation" });
-    // LeftNav is now 9 buttons; a ≥ 9 visible assertion guards against a
-    // regression that hides the Regional Wire entry.
-    const buttons = nav.locator("button").filter({ hasText: /./ });
-    await expect
-      .poll(async () => await buttons.count(), { timeout: 10_000 })
-      .toBeGreaterThanOrEqual(9);
-
-    await openPanelViaNav(page, "Regional Wire");
-    const panel = panelByTitle(page, /Regional Wire · non-SV publishers/i);
+    await openBoardViaMore(page, "Regional Wire");
+    const panel = boardByTitle(page, /Regional Wire · non-SV publishers/i);
     await expect(panel).toBeVisible({ timeout: 15_000 });
 
     // At least one publisher row rendered. The panel's source layout
@@ -69,36 +61,23 @@ test.describe("Regional RSS layer", () => {
     await shot(page, "regional-wire-panel-rows");
   });
 
-  test("either an amber map dot OR a non-US country pill is visible", async ({
+  test("a non-US country pill is visible on the Regional Wire board", async ({
     page,
   }) => {
-    // RSS_AMBER = #f97316 = rgb(249,115,22). Rendered via hexA() → the
-    // inline style attributes carry "249,115,22". Both singleton amber
-    // markers and rss-majority cluster icons match this needle.
-    const amberMarkers = page.locator(
-      '.leaflet-marker-icon [style*="249,115,22"]',
-    );
-
-    // Parallel fallback: open the panel and check for a non-US country
-    // pill among the 5 publisher rows. Heise=DE, Synced=CN,
-    // MarkTechPost=IN, The Register=UK — any of these disproves the
-    // SV-monoculture read, which is the point of the whole layer.
-    await openPanelViaNav(page, "Regional Wire");
-    const panel = panelByTitle(page, /Regional Wire · non-SV publishers/i);
+    // The board is the home of this signal now: the publisher rows carry a country pill, and a
+    // non-US one (Heise=DE, Synced=CN, MarkTechPost=IN, The Register=UK) is what disproves the
+    // SV-monoculture read the whole layer exists to test. The amber map marker used to be the
+    // other half of an OR here; it lived on the Map stage that the board no longer floats over,
+    // so asserting it from here would be asserting nothing.
+    await openBoardViaMore(page, "Regional Wire");
+    const panel = boardByTitle(page, /Regional Wire · non-SV publishers/i);
     await expect(panel).toBeVisible({ timeout: 15_000 });
-    const nonUsPill = panel.getByText(/^(DE|CN|IN|UK|GB)$/);
-
-    // OR-assertion: wait up to 25s for either signal.
-    const ok = await Promise.race([
-      amberMarkers.first().waitFor({ state: "attached", timeout: 25_000 })
-        .then(() => "amber")
-        .catch(() => null),
-      nonUsPill.first().waitFor({ state: "visible", timeout: 25_000 })
-        .then(() => "pill")
-        .catch(() => null),
-    ]);
-    expect(ok).not.toBeNull();
-    await shot(page, "regional-wire-amber-or-pill");
+    const rows = panel.locator("ul > li");
+    await page.waitForTimeout(1_500);
+    skipWhenLocalAndEmpty(await rows.count(), "Regional Wire has no publisher rows");
+    const nonUsPill = panel.getByText(/^(DE|CN|IN|UK|GB)$/).first();
+    await expect(nonUsPill).toBeVisible({ timeout: 25_000 });
+    await shot(page, "regional-wire-non-us-pill");
   });
 
   test("clicking a publisher row surfaces a source dialog", async ({
@@ -108,8 +87,8 @@ test.describe("Regional RSS layer", () => {
     // and LabCard). We drive the card open from the panel row because
     // clicking the amber dot on the map is flakier at world zoom (the
     // dot may sit inside a teal cluster due to the majority-wins rule).
-    await openPanelViaNav(page, "Regional Wire");
-    const panel = panelByTitle(page, /Regional Wire · non-SV publishers/i);
+    await openBoardViaMore(page, "Regional Wire");
+    const panel = boardByTitle(page, /Regional Wire · non-SV publishers/i);
     await expect(panel).toBeVisible({ timeout: 15_000 });
 
     const firstRow = panel.locator("ul > li").first();

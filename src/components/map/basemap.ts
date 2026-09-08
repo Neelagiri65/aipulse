@@ -110,3 +110,19 @@ export async function addBasemap(
     return null;
   }
 }
+
+/**
+ * Swap the basemap style in place when the reader flips the theme. Cheaper and less jarring than
+ * tearing the layer down: MapLibre keeps the camera, Leaflet keeps its panes and markers.
+ * Non-fatal by the same reasoning as `addBasemap` — a failed swap leaves the previous ground.
+ */
+export function setBasemapVariant(layer: L.Layer | null, variant: BasemapVariant): void {
+  if (!layer) return;
+  try {
+    const gl = (layer as unknown as { getMaplibreMap?: () => { setStyle: (u: string) => void } })
+      .getMaplibreMap?.();
+    gl?.setStyle(STYLE_URL[variant]);
+  } catch (e) {
+    console.error("[basemap] style swap failed — keeping the current ground", e);
+  }
+}

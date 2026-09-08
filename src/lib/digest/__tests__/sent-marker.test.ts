@@ -11,7 +11,7 @@ const MARKER: SentMarker = {
   sentAt: "2026-05-04T08:00:00.000Z",
   recipientCount: 3,
   deliveredCount: 3,
-  subject: "Gawk — 2026-05-04 · 1 tool incident",
+  subject: "gawk.dev — 2026-05-04 · 1 tool incident",
 };
 
 function fakeClient(initial?: Record<string, string>): SentMarkerClient & {

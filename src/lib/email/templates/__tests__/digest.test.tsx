@@ -5,10 +5,10 @@ import type { DigestBody } from "@/lib/digest/types";
 function mkDigest(overrides: Partial<DigestBody> = {}): DigestBody {
   return {
     date: "2026-04-22",
-    subject: "Gawk — 2026-04-22 · 1 tool incident",
+    subject: "gawk.dev — 2026-04-22 · 1 tool incident",
     mode: "diff",
     greetingTemplate:
-      "Good morning from Gawk — here's what moved in {geoCountry} and beyond in the last 24h.",
+      "Good morning from gawk.dev — here's what moved in {geoCountry} and beyond in the last 24h.",
     generatedAt: "2026-04-22T08:00:00.000Z",
     sections: [
       {
@@ -65,7 +65,7 @@ describe("renderDigestHtml — greeting", () => {
 describe("renderDigestHtml — sections", () => {
   it("renders the subject as the H1", async () => {
     const html = await renderDigestHtml(BASE);
-    expect(html).toContain("Gawk — 2026-04-22");
+    expect(html).toContain("gawk.dev — 2026-04-22");
   });
 
   it("renders each section title and headline", async () => {
@@ -84,7 +84,7 @@ describe("renderDigestHtml — sections", () => {
 });
 
 describe("renderDigestHtml — per-section links", () => {
-  it("emits a 'View on Gawk' deep link with the section anchor", async () => {
+  it("emits a 'View on gawk.dev' deep link with the section anchor", async () => {
     const html = await renderDigestHtml(BASE);
     expect(html).toContain(
       "https://gawk.dev/digest/2026-04-22#tool-health",
@@ -92,7 +92,7 @@ describe("renderDigestHtml — per-section links", () => {
     expect(html).toContain(
       "https://gawk.dev/digest/2026-04-22#benchmarks",
     );
-    expect(html).toContain("View on Gawk");
+    expect(html).toContain("View on gawk.dev");
   });
 
   it("emits LinkedIn and X share links per section", async () => {
@@ -130,7 +130,7 @@ describe("renderDigestHtml — TL;DR + chrome", () => {
   it("renders the Direction-A masthead band: GAWK wordmark + issue date", async () => {
     const html = await renderDigestHtml(BASE);
     // The dark masthead band is the brand anchor (a16z lesson: every
-    // issue unmistakably Gawk before a word is read). Wordmark + mono
+    // issue unmistakably gawk.dev before a word is read). Wordmark + mono
     // date, once, at the top.
     expect(html).toMatch(/>GAWK</);
     expect(html.match(/>GAWK</g)).toHaveLength(1);
@@ -149,21 +149,21 @@ describe("renderDigestHtml — TL;DR + chrome", () => {
     expect(html).toContain("5");
     expect(html).toContain("HN stories");
     expect(html).toContain("benchmark movers");
-    expect(html).not.toContain("Good morning from Gawk");
+    expect(html).not.toContain("Good morning from gawk.dev");
   });
 
   it("falls back to the greeting when tldr is undefined (bootstrap/quiet modes)", async () => {
     const html = await renderDigestHtml(BASE);
-    expect(html).toContain("Good morning from Gawk");
+    expect(html).toContain("Good morning from gawk.dev");
   });
 
   it("renders exactly ONE primary CTA button for the whole issue", async () => {
     const html = await renderDigestHtml(BASE);
     // Direction A CTA discipline: sections keep small anchor text links,
     // but the button appears once, in the footer block.
-    expect(html.match(/Read today.{1,8}s full brief on Gawk/g)).toHaveLength(1);
+    expect(html.match(/Read today.{1,8}s full brief on gawk.dev/g)).toHaveLength(1);
     // Per-section anchor deep links survive as text links.
-    expect(html).toContain("View on Gawk →");
+    expect(html).toContain("View on gawk.dev →");
   });
 });
 
@@ -300,9 +300,9 @@ describe("renderDigestHtml — quiet mode", () => {
   it("renders a quiet-day digest without crashing on zero items", async () => {
     const quiet = mkDigest({
       mode: "quiet",
-      subject: "Gawk — 2026-04-22 · all quiet in the AI ecosystem",
+      subject: "gawk.dev — 2026-04-22 · all quiet in the AI ecosystem",
       greetingTemplate:
-        "Good morning from Gawk — all quiet in the AI ecosystem in {geoCountry} and beyond.",
+        "Good morning from gawk.dev — all quiet in the AI ecosystem in {geoCountry} and beyond.",
       sections: [
         {
           id: "tool-health",

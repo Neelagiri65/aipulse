@@ -1006,5 +1006,137 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-08-28",
+    "videoId": "ag5l4VasMbM",
+    "url": "https://youtu.be/ag5l4VasMbM",
+    "title": "DeepSeek V4 Flash 0731 holds #1 on OpenRouter | Gawk Daily — 28 August 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-08-28T16:49:06.369Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-08-29",
+    "videoId": "OL-4TmK3NUk",
+    "url": "https://youtu.be/OL-4TmK3NUk",
+    "title": "huggingface-hub downloads down 51.2% on pypi | Gawk Daily — 29 August 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-08-29T13:09:21.107Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-08-30",
+    "videoId": "f0zhSQFOkQc",
+    "url": "https://youtu.be/f0zhSQFOkQc",
+    "title": "DeepSeek V4 Flash 0731 holds #1 on OpenRouter | Gawk Daily — 30 August 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-08-30T12:45:38.430Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-08-31",
+    "videoId": "yM-pwwU7aG4",
+    "url": "https://youtu.be/yM-pwwU7aG4",
+    "title": "DeepSeek V4 Flash 0731 holds #1 on OpenRouter | Gawk Daily — 31 August 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-08-31T15:03:42.714Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-09-01",
+    "videoId": "wPT4945Qqh0",
+    "url": "https://youtu.be/wPT4945Qqh0",
+    "title": "sponsors/f trending on GitHub (115 stars today) | Gawk Daily — 1 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-01T12:32:29.418Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-09-02",
+    "videoId": "nYjl9fQKYNU",
+    "url": "https://youtu.be/nYjl9fQKYNU",
+    "title": "DeepSeek V4 Flash 0731 holds #1 on OpenRouter | Gawk Daily — 2 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-02T12:06:03.342Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-09-03",
+    "videoId": "MJUpiTSZGVI",
+    "url": "https://youtu.be/MJUpiTSZGVI",
+    "title": "GLM 5.3 Flash takes #1 on OpenRouter | Gawk Daily — 3 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-03T12:05:02.372Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-09-04",
+    "videoId": "ikFAbGn_Zfk",
+    "url": "https://youtu.be/ikFAbGn_Zfk",
+    "title": "Hy4 preview takes #1 on OpenRouter | Gawk Daily — 4 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-04T12:07:01.918Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-09-05",
+    "videoId": "CcXsl98qwiA",
+    "url": "https://youtu.be/CcXsl98qwiA",
+    "title": "Hy4 preview takes #1 on OpenRouter | Gawk Daily — 5 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-05T11:16:23.317Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-09-06",
+    "videoId": "AC-rHecSFgU",
+    "url": "https://youtu.be/AC-rHecSFgU",
+    "title": "LLMs as a Cognitive Virus | Gawk Daily — 6 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-06T11:39:09.765Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-09-07",
+    "videoId": "rr4tYlIMg_Y",
+    "url": "https://youtu.be/rr4tYlIMg_Y",
+    "title": "Hy4 preview holds #1 on OpenRouter | Gawk Daily — 7 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-07T13:28:15.263Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]

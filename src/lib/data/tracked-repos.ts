@@ -1,5 +1,5 @@
 /**
- * Gawk — tracked repos (complete per-repo event streams).
+ * gawk.dev — tracked repos (complete per-repo event streams).
  *
  * The map's firehose source (`api.github.com/events`) is a heavily sampled
  * rolling window of global activity — any specific repo's events are

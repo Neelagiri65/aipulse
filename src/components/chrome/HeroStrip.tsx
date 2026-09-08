@@ -16,41 +16,27 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
   const allOp = total > 0 && sev.operational === total;
   const hasOutage = sev.outage > 0;
 
-  const pillColor = hasOutage
-    ? "var(--sev-outage)"
-    : !allOp
-      ? "var(--sev-degrade)"
-      : "var(--sev-op)";
-
-  const pillLabel =
-    total === 0
-      ? "Checking..."
-      : `${sev.operational}/${total} Operational`;
+  // State by shape, colour by word (PRD §7): the mark is solid when everything is operational,
+  // hatched otherwise, hollow before the first poll; only the words "operational" / "outage" carry
+  // colour, "degraded" stays ink.
+  const mark = total === 0 ? "hollow" : allOp ? "solid" : "hatched";
+  const word = total === 0 ? "checking" : hasOutage ? "outage" : allOp ? "operational" : "degraded";
+  const tone = total === 0 ? "ink" : hasOutage ? "out" : allOp ? "op" : "ink";
+  const count = total === 0 ? "" : `${sev.operational}/${total}`;
+  const pill = (
+    <span className="ap-answer-pill" data-testid="hero-answer-pill">
+      <span className={`ap-mark ap-mark--${mark}`} aria-hidden />
+      {count && <span className="ap-answer-pill__count">{count}</span>}
+      <span className={`ap-word ap-word--${tone}`}>{word}</span>
+    </span>
+  );
 
   if (variant === "mobile") {
     return (
-      <div className="flex flex-col gap-2 border-b border-border/40 bg-background/90 px-4 py-3">
-        <span className="text-lg font-semibold tracking-tight text-white">
-          Is your AI coding stack working right now?
-        </span>
+      <div className="ap-hero ap-hero--mobile">
+        <span className="ap-hero__q">Is your AI coding stack working right now?</span>
         <div className="flex items-center justify-between">
-          <span
-            className="flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tabular-nums"
-            style={{
-              color: pillColor,
-              border: `1px solid color-mix(in srgb, ${pillColor} 40%, transparent)`,
-              boxShadow: `0 0 12px color-mix(in srgb, ${pillColor} 15%, transparent)`,
-            }}
-          >
-            <span
-              className="inline-block h-2 w-2 rounded-full"
-              style={{
-                background: pillColor,
-                boxShadow: `0 0 6px ${pillColor}`,
-              }}
-            />
-            {pillLabel}
-          </span>
+          {pill}
           <PushAlertToggle />
         </div>
       </div>
@@ -58,42 +44,17 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
   }
 
   return (
-    <div
-      className="fixed left-0 right-0 z-[38] flex items-center justify-between border-b border-border/40 bg-background/90 px-6 backdrop-blur-md"
-      style={{ top: 76, height: 56 }}
-    >
+    <div className="ap-hero ap-hero--desktop">
       <div className="flex flex-col gap-0.5">
-        <span style={{ fontSize: 28, lineHeight: 1.2 }} className="font-semibold tracking-tight text-white">
-          Is your AI coding stack working right now?
-        </span>
-        <span className="text-xs text-gray-400">
+        <span className="ap-hero__q ap-hero__q--lg">Is your AI coding stack working right now?</span>
+        <span className="ap-hero__sub">
           Claude · Cursor · Copilot · Windsurf · OpenAI — tracked from{" "}
           {VERIFIED_SOURCES.length} verified sources.
         </span>
       </div>
-
       <div className="flex items-center gap-5">
-        <span
-          className="flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-semibold tabular-nums"
-          style={{
-            color: pillColor,
-            border: `1px solid color-mix(in srgb, ${pillColor} 40%, transparent)`,
-            boxShadow: `0 0 12px color-mix(in srgb, ${pillColor} 15%, transparent)`,
-          }}
-        >
-          <span
-            className="inline-block h-2.5 w-2.5 rounded-full"
-            style={{
-              background: pillColor,
-              boxShadow: `0 0 8px ${pillColor}`,
-            }}
-          />
-          {pillLabel}
-        </span>
-
-        <div className="scale-[1.35]">
-          <PushAlertToggle />
-        </div>
+        {pill}
+        <PushAlertToggle />
       </div>
     </div>
   );

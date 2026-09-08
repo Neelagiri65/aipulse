@@ -8,7 +8,7 @@ const URL = "https://gawk.dev/api/subscribe/confirm?token=abc.def";
 describe("ConfirmEmail", () => {
   it("renders the brand line, the confirm button, and the cadence promise", () => {
     const html = renderToStaticMarkup(ConfirmEmail({ confirmUrl: URL }));
-    expect(html).toContain("Gawk");
+    expect(html).toContain("gawk.dev");
     expect(html).toContain("daily AI digest");
     expect(html).toContain("Confirm");
     expect(html).toContain("One email a day. Never more.");

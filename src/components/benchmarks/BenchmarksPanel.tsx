@@ -149,7 +149,7 @@ function BenchmarkRow({
         <EloDeltaBadge delta={row.eloDelta} />
       </td>
       <td
-        className="px-1 py-1 text-right text-emerald-300/70"
+        className="px-1 py-1 text-right text-emerald-700 dark:text-emerald-300"
         data-testid="benchmark-trend-cell"
       >
         <TrendCell history={history} modelName={row.modelName} />
@@ -177,7 +177,7 @@ function TrendCell({
   if (nonNull < 2) {
     return (
       <span
-        className="inline-block h-[14px] w-[48px] text-center text-[10px] text-muted-foreground/60"
+        className="inline-block h-[14px] w-[48px] text-center text-[10px] text-muted-foreground"
         title="Insufficient history"
       >
         —
@@ -203,20 +203,20 @@ function TrendCell({
 
 function RankDeltaBadge({ delta }: { delta: RankDelta }) {
   if (delta.kind === "new") {
-    return <span className="font-mono text-[9px] uppercase tracking-wider text-sky-300/90">NEW</span>;
+    return <span className="font-mono text-[9px] uppercase tracking-wider text-sky-700 dark:text-sky-300">NEW</span>;
   }
   if (delta.kind === "same") {
-    return <span className="font-mono text-muted-foreground/60">—</span>;
+    return <span className="font-mono text-muted-foreground">—</span>;
   }
   if (delta.kind === "up") {
     return (
-      <span className="font-mono tabular-nums text-emerald-400/90">
+      <span className="font-mono tabular-nums text-emerald-700 dark:text-emerald-400">
         ▲{delta.amount}
       </span>
     );
   }
   return (
-    <span className="font-mono tabular-nums text-rose-400/90">
+    <span className="font-mono tabular-nums text-rose-700 dark:text-rose-400">
       ▼{delta.amount}
     </span>
   );
@@ -224,15 +224,15 @@ function RankDeltaBadge({ delta }: { delta: RankDelta }) {
 
 function EloDeltaBadge({ delta }: { delta: EloDelta }) {
   if (delta.kind === "new") {
-    return <span className="font-mono text-[9px] uppercase tracking-wider text-sky-300/90">NEW</span>;
+    return <span className="font-mono text-[9px] uppercase tracking-wider text-sky-700 dark:text-sky-300">NEW</span>;
   }
   if (delta.kind === "same") {
-    return <span className="font-mono text-muted-foreground/60">—</span>;
+    return <span className="font-mono text-muted-foreground">—</span>;
   }
   const positive = delta.amount > 0;
   return (
     <span
-      className={`font-mono tabular-nums ${positive ? "text-emerald-400/90" : "text-rose-400/90"}`}
+      className={`font-mono tabular-nums ${positive ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}
     >
       {positive ? "+" : "−"}
       {Math.abs(delta.amount)}
@@ -243,7 +243,7 @@ function EloDeltaBadge({ delta }: { delta: EloDelta }) {
 function StalenessBanner({ days }: { days: number }) {
   return (
     <div
-      className="border-b border-amber-500/30 bg-amber-500/5 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-amber-300/90"
+      className="border-b border-amber-500/30 bg-amber-500/5 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-300"
       role="status"
     >
       Last updated {days} days ago — source has not refreshed
@@ -265,7 +265,8 @@ function FooterCaveat({ meta }: { meta: BenchmarksMeta }) {
           Chatbot Arena (lmarena.ai)
         </a>{" "}
         — Bradley-Terry scores computed from{" "}
-        <span className="tabular-nums text-foreground/80">
+        {/* Full ink, not /80: at 80% this number sat at 4.2:1 on paper, under the 4.5 floor. */}
+        <span className="tabular-nums text-foreground">
           {meta.totalVotes.toLocaleString()}
         </span>{" "}
         pairwise human preference votes. Dataset:{" "}
@@ -290,7 +291,7 @@ function FooterCaveat({ meta }: { meta: BenchmarksMeta }) {
 
 function AwaitingBody({ message }: { message?: string }) {
   return (
-    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5 text-xs text-amber-200/90">
+    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5 text-xs text-amber-800 dark:text-amber-200">
       <p className="ap-label-sm" style={{ color: "var(--sev-degrade)" }}>
         Awaiting first poll
       </p>

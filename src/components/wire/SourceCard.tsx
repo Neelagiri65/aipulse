@@ -117,7 +117,7 @@ function SourceBody({ source }: { source: RssSourcePanel }) {
           >
             rss ↗
           </a>
-          <span className="text-foreground/30">·</span>
+          <span className="text-muted-foreground">·</span>
           <a
             href={source.hqSourceUrl}
             target="_blank"
@@ -132,7 +132,7 @@ function SourceBody({ source }: { source: RssSourcePanel }) {
             if (!url) return null;
             return (
               <>
-                <span className="text-foreground/30">·</span>
+                <span className="text-muted-foreground">·</span>
                 <a
                   href={url}
                   target="_blank"
@@ -153,12 +153,12 @@ function SourceBody({ source }: { source: RssSourcePanel }) {
         <span className="ap-type-label text-foreground/60">
           Activity
         </span>
-        <span className="font-mono tabular-nums text-foreground/80">
+        <span className="font-mono tabular-nums text-foreground">
           <span className="ap-type-metric text-foreground">
             {source.itemsLast24h}
           </span>
           <span className="text-[10px] text-foreground/50"> · 24h</span>
-          <span className="mx-1 text-[10px] text-foreground/30">/</span>
+          <span className="mx-1 text-[10px] text-muted-foreground">/</span>
           <span className="ap-type-metric text-foreground">
             {source.itemsLast7d}
           </span>
@@ -168,7 +168,7 @@ function SourceBody({ source }: { source: RssSourcePanel }) {
 
       {source.stale && (
         <div
-          className="mt-2 rounded-sm border border-amber-500/40 bg-amber-500/10 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-amber-400"
+          className="mt-2 rounded-sm border border-amber-500/40 bg-amber-500/10 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-amber-700 dark:text-amber-400"
           title={
             source.lastFetchOkTs
               ? `Last OK fetch ${source.staleHours}h ago`

@@ -1,5 +1,5 @@
 /**
- * /api/feed — ranked card stream over the existing Gawk snapshots.
+ * /api/feed — ranked card stream over the existing gawk.dev snapshots.
  *
  * Pure derivation: delegates to the shared loader (`@/lib/feed/load`)
  * which fetches the six existing snapshots in parallel, applies

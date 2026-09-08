@@ -11,9 +11,9 @@ vi.mock("@/lib/analytics", () => ({ track: () => {} }));
 function mkDigest(overrides: Partial<DigestBody> = {}): DigestBody {
   return {
     date: "2026-04-22",
-    subject: "Gawk — 2026-04-22 · 1 tool incident",
+    subject: "gawk.dev — 2026-04-22 · 1 tool incident",
     mode: "diff",
-    greetingTemplate: "Good morning from Gawk.",
+    greetingTemplate: "Good morning from gawk.dev.",
     generatedAt: "2026-04-22T08:00:00.000Z",
     sections: [
       {
@@ -55,7 +55,7 @@ function render(digest: DigestBody, baseUrl = "https://gawk.dev"): string {
 describe("DigestPageView — header", () => {
   it("renders the subject as H1", () => {
     const html = render(mkDigest());
-    expect(html).toContain("Gawk — 2026-04-22 · 1 tool incident");
+    expect(html).toContain("gawk.dev — 2026-04-22 · 1 tool incident");
   });
 
   it("shows a diff-mode description by default", () => {

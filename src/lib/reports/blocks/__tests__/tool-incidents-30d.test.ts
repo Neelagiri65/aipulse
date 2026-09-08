@@ -71,7 +71,7 @@ describe("loadToolIncidents30dBlock — happy path", () => {
     expect(result.rows[0].sourceLabel).toBe("status.anthropic.com");
   });
 
-  it("falls back to a Gawk-sources placeholder for unknown tool ids", () => {
+  it("falls back to a gawk.dev-sources placeholder for unknown tool ids", () => {
     const snapshots = days(2, (date) =>
       snap(date, [
         { id: "future-tool", status: "operational", activeIncidents: 1 },
@@ -83,7 +83,7 @@ describe("loadToolIncidents30dBlock — happy path", () => {
       now: FIXED_NOW,
     });
     expect(result.rows[0].sourceUrl).toBe("https://gawk.dev/sources");
-    expect(result.rows[0].sourceLabel).toBe("Gawk sources");
+    expect(result.rows[0].sourceLabel).toBe("gawk.dev sources");
   });
 
   it("renders singular vs plural unit correctly (1 incident-day vs N incident-days)", () => {
