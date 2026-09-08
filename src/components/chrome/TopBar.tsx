@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MCP_URL } from "@/lib/mcp-prompt";
 import { useEffect, useState } from "react";
 import type { StatusResult } from "@/lib/data/fetch-status";
 import { VERIFIED_SOURCES, PENDING_SOURCES } from "@/lib/data-sources";
@@ -86,6 +87,19 @@ export function TopBar({
           </span>
         )}
         <ThemeSwitch className="hidden sm:inline-flex" />
+        {/* mcpgawk is the other half of the house: gawk.dev watches the
+            ecosystem, mcpgawk sits in front of the MCP servers an agent calls.
+            Quieter than the digest button on purpose — it is a door to another
+            product, not the action this page is asking for. */}
+        <a
+          href={MCP_URL}
+          target="_blank"
+          rel="noopener"
+          data-testid="topbar-mcp-cta"
+          className="ap-btn-ghost hidden items-center gap-1 sm:inline-flex"
+        >
+          MCP gateway ↗
+        </a>
         <Link
           href="/newsletter"
           data-testid="topbar-newsletter-cta"
