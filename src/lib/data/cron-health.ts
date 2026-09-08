@@ -39,10 +39,30 @@ export const CRON_WORKFLOWS = {
   // though it's not failing. Five-workflow re-label below (S53) was
   // sized from observed p95 over the last 30 runs, same surgical move
   // S35 (globe-ingest 5→30), S39+S49 (wire-ingest-hn 15→60→120) used.
+  //
+  // S113 re-sized four more the same way, after `23/25 crons · 2 stale` on the public chip
+  // turned out to be one cron that had never run yet and one that was simply mislabelled.
+  // Method: `gh run list --limit 25`, successful runs only, gaps between consecutive runs.
+  // A declared value is wrong when 2× it (the stale threshold) sits below the OBSERVED p95 —
+  // then the chip reports a workflow as stale while every one of its runs succeeded.
+  // Each new value puts the stale threshold just above the observed max, so a genuine stall
+  // still shows: 7h of silence on a 30-minute schedule is a real finding, 5h is Tuesday.
+  //
+  //   workflow                    was  now  p50  p95  max
+  //   wire-ingest-hn              120  210  212  313  345
+  //   registry-backfill-events    150  210  218  342  368
+  //   notify-tool-alerts           90  150   73  219  234
+  //   wire-ingest-reddit          120  210  173  337  364
+  //
+  // Left alone on purpose: globe-ingest (p95 118, one 232-min outlier) and
+  // registry-discover-deps (p95 579, one 738-min outlier) are inside their thresholds at p95 —
+  // widening them would cost real sensitivity to buy nothing. daily-snapshot's p95 reads 12304
+  // because the July Upstash outage is still inside a 25-run window; its p50 is 1442 and it is
+  // not mislabelled.
   "globe-ingest": { expectedIntervalMinutes: 90 },
-  "wire-ingest-hn": { expectedIntervalMinutes: 120 },
+  "wire-ingest-hn": { expectedIntervalMinutes: 210 }, // S113: p50 212 / p95 313 / max 345 over 25 runs
   "wire-ingest-rss": { expectedIntervalMinutes: 30 },
-  "registry-backfill-events": { expectedIntervalMinutes: 150 },
+  "registry-backfill-events": { expectedIntervalMinutes: 210 }, // S113: p50 218 / p95 342 / max 368
   "registry-discover-topics": { expectedIntervalMinutes: 240 },
   "registry-discover": { expectedIntervalMinutes: 360 },
   "registry-discover-deps": { expectedIntervalMinutes: 360 },
@@ -66,7 +86,7 @@ export const CRON_WORKFLOWS = {
   "video-watchdog-vercel": { expectedIntervalMinutes: 1440 },
   // Discord webhook for TOOL_ALERT transitions. Drift bumped 30→90 in
   // S53 (observed p95 = 140m on the */5 cron schedule).
-  "notify-tool-alerts": { expectedIntervalMinutes: 90 },
+  "notify-tool-alerts": { expectedIntervalMinutes: 150 }, // S113: p50 73 / p95 219 / max 234
   // Push notifications broadcast — piggybacked on notify-tool-alerts.
   // EVENT-TRIGGERED: fires only when a tool status transition happens,
   // which can legitimately be days apart. An interval-staleness gate on
@@ -78,7 +98,7 @@ export const CRON_WORKFLOWS = {
   // Curated Reddit subs (r/LocalLLaMA + r/ClaudeAI) feed NEWS cards.
   // Drift bumped 30→120 in S53 (observed p95 = 208m, the worst of the
   // short-cadence workflows).
-  "wire-ingest-reddit": { expectedIntervalMinutes: 120 },
+  "wire-ingest-reddit": { expectedIntervalMinutes: 210 }, // S113: p50 173 / p95 337 / max 364
   // Agents-panel ingest: per-framework PyPI + npm + GH meta. Daily at
   // 06:30 UTC; 1440-min declared interval allows for ~1h GitHub Actions
   // drift on long schedules without flapping stale.
