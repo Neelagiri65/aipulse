@@ -8,23 +8,18 @@
  * reads that attribute after mount (never a default, so the label cannot flip on hydration),
  * and on click writes both the attribute and the stored choice. No OS media query: the
  * founder's ruling is light unless the reader chooses otherwise.
+ *
+ * The attribute is read through `lib/hooks/use-theme` — the one resolver every theme-aware
+ * surface uses (map basemap, legend, filter swatches), so the switch and the map can never
+ * disagree about what "the theme" is.
  */
 
 import { useSyncExternalStore } from "react";
 
+import { resolveTheme, subscribeTheme, type Theme } from "@/lib/hooks/use-theme";
+
 export const THEME_STORAGE_KEY = "gawk-theme";
-export type Theme = "light" | "dark";
-
-function readTheme(): Theme {
-  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
-}
-
-/** Every switch on the page follows the attribute, so two switches (top bar, mobile bar) never disagree. */
-function subscribeTheme(onChange: () => void) {
-  const obs = new MutationObserver(onChange);
-  obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  return () => obs.disconnect();
-}
+export type { Theme };
 
 export function applyTheme(theme: Theme) {
   document.documentElement.setAttribute("data-theme", theme);
@@ -38,7 +33,7 @@ export function applyTheme(theme: Theme) {
 export function ThemeSwitch({ className = "" }: { className?: string }) {
   // Server snapshot is `null`: the server render carries no label text that could disagree
   // with the attribute the boot script has already set; the client snapshot is the attribute.
-  const theme = useSyncExternalStore<Theme | null>(subscribeTheme, readTheme, () => null);
+  const theme = useSyncExternalStore<Theme | null>(subscribeTheme, resolveTheme, () => null);
 
   const next: Theme = theme === "dark" ? "light" : "dark";
   const label = theme === null ? "" : theme === "dark" ? "Light" : "Dark";

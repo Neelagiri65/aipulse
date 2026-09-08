@@ -2072,6 +2072,11 @@
   color: var(--ap-accent);
   background: var(--paper3);
   border-right: 1px solid var(--hair2);
+  /* The track's `will-change: transform` composites it into its own layer, which painted over
+     this static cap: on prod the scrolling rows ran straight through the word LIVE. An opaque
+     background is not enough — the cap has to be in the stacking order too. */
+  position: relative;
+  z-index: 1;
 }
 
 /* Desktop refinement: compact 28px strip with a clean separator border

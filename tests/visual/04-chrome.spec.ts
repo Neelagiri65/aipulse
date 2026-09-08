@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { boardRow, openDashboard, shot, switchTab } from "./_helpers";
 
 /**
@@ -77,5 +77,59 @@ test.describe("chrome", () => {
     // 11 verified as of session 18, 16 at time of harness build; allow ≥ 5
     // to stay forward/backward-compatible.
     expect(n).toBeGreaterThanOrEqual(5);
+  });
+});
+
+/**
+ * The theme is one decision. `globals.css` has no `prefers-color-scheme` block — light unless the
+ * reader flips the switch (PRD web-restyle-v2 §6, restated in ThemeSwitch) — so no surface may
+ * resolve the OS preference on its own. After #111 the map did: with OS dark and no stored choice,
+ * prod served the dark basemap under light chrome. The whole suite runs `colorScheme: "dark"`
+ * (playwright.config.ts), which is why nothing caught it; these tests assert the agreement.
+ *
+ * The ground is read from the style OpenFreeMap is asked for (`positron` light, `dark` dark) —
+ * the Leaflet container keeps its own grey behind the WebGL canvas either way, so its computed
+ * background says nothing about what was painted.
+ */
+test.describe("theme", () => {
+  const bodyLuminance = (page: Page) =>
+    page.evaluate(() => {
+      const [r, g, b] = (
+        getComputedStyle(document.body).backgroundColor.match(/[\d.]+/g) ?? ["255", "255", "255"]
+      ).map(Number);
+      return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    });
+
+  function watchBasemapStyles(page: Page) {
+    const styles: string[] = [];
+    page.on("request", (req) => {
+      const m = req.url().match(/openfreemap\.org\/styles\/([a-z]+)/);
+      if (m) styles.push(m[1]);
+    });
+    return styles;
+  }
+
+  test("with the OS preferring dark and no stored choice, chrome and basemap are both light", async ({
+    page,
+  }) => {
+    const styles = watchBasemapStyles(page);
+    await openDashboard(page);
+    await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.*/);
+    expect(await bodyLuminance(page)).toBeGreaterThan(0.6);
+
+    await switchTab(page, "Map");
+    await expect.poll(() => styles, { timeout: 30_000 }).toContain("positron");
+    expect(styles).not.toContain("dark");
+  });
+
+  test("the switch takes the chrome and the basemap to dark together", async ({ page }) => {
+    const styles = watchBasemapStyles(page);
+    await openDashboard(page);
+    await page.locator("[data-theme-switch]").first().click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    expect(await bodyLuminance(page)).toBeLessThan(0.4);
+
+    await switchTab(page, "Map");
+    await expect.poll(() => styles, { timeout: 30_000 }).toContain("dark");
   });
 });
