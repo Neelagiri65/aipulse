@@ -44,6 +44,18 @@ export type WithIngestConfig<TResult> = {
    *  decide what "ok" means (e.g. ok:true iff at least one item written,
    *  or iff no sub-step failed, or always true as long as no throw). */
   toOutcome: (result: TResult) => CronHealthOutcome;
+  /** Also accept Vercel's own cron authentication: `Authorization:
+   *  Bearer $CRON_SECRET`. Vercel cron jobs cannot set a custom header,
+   *  so a route driven by `vercel.json` crons can't present
+   *  x-ingest-secret. Off by default — every existing route keeps
+   *  x-ingest-secret as its only key. When on, x-ingest-secret still
+   *  works, so manual/CI invocation is unchanged.
+   *
+   *  Note: Vercel only sends the Bearer header when CRON_SECRET is set
+   *  in the project's environment. If it is unset here, this branch is
+   *  inert and the route falls back to x-ingest-secret only — it never
+   *  degrades to "no auth". */
+  acceptCronSecret?: boolean;
   /** Translate the result into the HTTP response. Default is
    *  `{ ok: true, result }` to match the existing API contract of most
    *  registry routes. Routes with a different shape (e.g. /api/ingest
@@ -63,7 +75,19 @@ export function withIngest<TResult>(
       );
     }
     const provided = request.headers.get("x-ingest-secret");
-    if (provided !== requiredSecret) {
+    let authorised = provided === requiredSecret;
+
+    if (!authorised && config.acceptCronSecret) {
+      const cronSecret = process.env.CRON_SECRET;
+      // An unset CRON_SECRET must never authorise — otherwise a missing
+      // env var silently opens the route to any caller sending no header.
+      authorised =
+        typeof cronSecret === "string" &&
+        cronSecret.length > 0 &&
+        request.headers.get("authorization") === `Bearer ${cronSecret}`;
+    }
+
+    if (!authorised) {
       return NextResponse.json(
         { ok: false, error: "unauthorized" },
         { status: 401 },

@@ -133,6 +133,10 @@ describe("CRON_WORKFLOWS registry", () => {
     expect(CRON_WORKFLOWS["pkg-docker"].expectedIntervalMinutes).toBe(360);
     expect(CRON_WORKFLOWS["pkg-brew"].expectedIntervalMinutes).toBe(360);
     expect(CRON_WORKFLOWS["pkg-vscode"].expectedIntervalMinutes).toBe(360);
+    // Vercel cron, twice a day — the off-GitHub video watchdog.
+    expect(
+      CRON_WORKFLOWS["video-watchdog-vercel"].expectedIntervalMinutes,
+    ).toBe(1440);
   });
 
   it("has all documented workflows — nothing silently dropped", () => {
@@ -159,6 +163,7 @@ describe("CRON_WORKFLOWS registry", () => {
       "registry-discover",
       "registry-discover-deps",
       "registry-discover-topics",
+      "video-watchdog-vercel",
       "wire-ingest-hn",
       "wire-ingest-reddit",
       "wire-ingest-rss",
