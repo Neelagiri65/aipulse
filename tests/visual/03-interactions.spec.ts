@@ -108,6 +108,32 @@ test.describe("interactions", () => {
     await shot(page, "interaction-live-ticker");
   });
 
+  test("the ticker's LIVE cap is not painted over by the scrolling rows", async ({ page }) => {
+    // The track composites itself (`will-change: transform`) and used to paint over the cap, so
+    // prod showed a row's text and the word LIVE on the same pixels. Occlusion, not colour: ask
+    // the document what is actually on top at the cap's centre.
+    await openDashboard(page);
+    await switchTab(page, "Map");
+    const tag = page.locator(".ap-live-ticker-tag").first();
+    await expect(tag).toBeVisible({ timeout: 20_000 });
+
+    const seen = await tag.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return {
+        positioned: cs.position !== "static",
+        zIndex: Number(cs.zIndex),
+        onTop: hit ? hit.closest(".ap-live-ticker-tag") !== null : false,
+      };
+    });
+    // The stacking assertions bite anywhere; the occlusion one only bites when the ticker has
+    // rows to scroll — i.e. against gawk.dev, which is where the defect was seen.
+    expect(seen.positioned).toBe(true);
+    expect(seen.zIndex).toBeGreaterThanOrEqual(1);
+    expect(seen.onTop).toBe(true);
+  });
+
   test("Globe filters panel opens on Map view", async ({ page }) => {
     await openDashboard(page);
     await switchTab(page, "Map");
