@@ -123,7 +123,7 @@ export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
         onClick={() => setOpenPersist(true)}
         aria-label="Show filters"
         title="Show filters"
-        className="ap-filter-panel-trigger fixed right-3 z-40 ap-panel-surface flex h-10 items-center gap-2 px-3 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground/90 transition-colors hover:text-[var(--ap-accent)] border border-[var(--ap-accent)]/40 shadow-[0_0_12px_-4px_rgba(45,212,191,0.4)]"
+        className="ap-filter-panel-trigger fixed right-3 z-40 ap-panel-surface flex h-10 items-center gap-2 px-3 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors hover:text-[var(--link)]"
         style={{ top: "calc(156px + var(--ap-strip-h, 0px))" }}
       >
         <FunnelIcon />
@@ -324,7 +324,7 @@ function FilterRow({
         }}
       >
         {enabled && (
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0a0e14" strokeWidth="3">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--surface)" strokeWidth="3">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         )}

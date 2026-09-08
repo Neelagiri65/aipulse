@@ -883,13 +883,15 @@
    PANEL SURFACE — translucent card shared by FilterPanel, MetricsRow cards,
    and any floating HUD element that isn't a full Win.
    ============================================================================ */
+/* Chrome that floats over the map (filter panel and its trigger, coverage badge). It sits on the
+   basemap, so it takes the skin's own surface rather than a dark literal — otherwise it reads as a
+   dark box punched into positron. */
 .ap-panel-surface {
-  background: rgba(11, 15, 18, 0.88);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--ap-border);
-  border-radius: 4px;
-  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+  background: var(--surface);
+  border: 1px solid var(--hair2);
+  border-radius: 14px;
+  color: var(--ink);
+  box-shadow: 0 10px 30px -14px rgba(22, 22, 15, 0.35);
 }
 
 /* ============================================================================
@@ -932,20 +934,20 @@
   border: 0;
 }
 .ap-fm-root .leaflet-control-attribution {
-  background: rgba(8, 14, 20, 0.8) !important;
-  color: rgba(226, 232, 240, 0.55);
+  background: color-mix(in srgb, var(--surface) 88%, transparent) !important;
+  color: var(--ink-muted);
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.08em;
   padding: 2px 6px;
 }
 .ap-fm-root .leaflet-control-attribution a {
-  color: rgba(226, 232, 240, 0.75);
+  color: var(--ink2);
 }
 .ap-fm-root .leaflet-control-zoom a {
-  background: rgba(8, 14, 20, 0.85);
-  color: #e2e8f0;
-  border-color: rgba(148, 163, 184, 0.25);
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--hair2);
 }
 .ap-fm-root .leaflet-control-zoom a:hover {
   background: rgba(45, 212, 191, 0.12);
@@ -2211,9 +2213,8 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
   z-index: 37;
   height: 36px;
   padding: 0 16px;
-  border-bottom: 1px solid var(--ap-border-strong, rgba(120, 145, 165, 0.2));
-  background: rgba(8, 11, 14, 0.78);
-  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--hair2);
+  background: var(--paper3);
   -webkit-backdrop-filter: blur(10px);
   overflow-x: auto;
   overflow-y: hidden;
@@ -2231,7 +2232,7 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
   white-space: nowrap;
   scrollbar-width: none;
   border-bottom: 1px solid var(--ap-border, rgba(80, 100, 120, 0.18));
-  background: rgba(8, 11, 14, 0.66);
+  background: var(--paper3);
 }
 .ap-highlights-strip--mobile::-webkit-scrollbar { display: none; }
 
@@ -2241,13 +2242,13 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
   gap: 8px;
   padding: 5px 10px;
   border-radius: 999px;
-  border: 1px solid var(--chip-ring, rgba(120, 145, 165, 0.25));
-  background: rgba(13, 17, 21, 0.85);
+  border: 1px solid var(--hair2);
+  background: var(--surface);
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
   font-size: 11px;
   line-height: 1;
-  color: var(--ap-fg, #d8e2e6);
+  color: var(--ink);
   cursor: pointer;
   transition: border-color 120ms ease, transform 120ms ease, background 120ms ease;
   flex-shrink: 0;

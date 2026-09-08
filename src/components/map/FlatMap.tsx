@@ -347,7 +347,9 @@ export function FlatMap({
     <div
       ref={containerRef}
       className="relative h-full w-full overflow-hidden"
-      style={{ background: "#06080a" }}
+      // The ground behind the tiles while they stream in: the page's own paper, not a dark
+      // literal, so a slow tile load does not flash a black rectangle into a light page.
+      style={{ background: "var(--paper3)" }}
     >
       <div ref={mapDivRef} className="absolute inset-0 ap-fm-root" />
 
@@ -979,7 +981,9 @@ function MapStatus({
     const ageMs = Date.now() - new Date(lastUpdatedAt).getTime();
     return (
       <div
-        className="pointer-events-none absolute right-3 top-3 rounded-md border border-border/40 bg-background/70 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-emerald-400 backdrop-blur-sm"
+        // Below the filter trigger, which is pinned to the same right edge — the two used to
+        // overlap. Ink, not green: the state is carried by the word (PRD web-restyle-v2 §7).
+        className="ap-panel-surface pointer-events-none absolute right-3 top-16 px-2 py-1 font-mono text-[10px] uppercase tracking-wider"
         style={{ zIndex: 1000 }}
       >
         Live · {count} evt · {formatAge(ageMs)}
@@ -988,7 +992,7 @@ function MapStatus({
   }
   return (
     <div
-      className="pointer-events-none absolute right-3 top-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-amber-400 backdrop-blur-sm"
+      className="ap-panel-surface pointer-events-none absolute right-3 top-16 px-2 py-1 font-mono text-[10px] uppercase tracking-wider"
       style={{ zIndex: 1000 }}
     >
       Awaiting data · polling…
