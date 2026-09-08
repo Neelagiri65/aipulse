@@ -1,5 +1,7 @@
 "use client";
 
+import { kindPillStyle } from "@/components/labs/kind-pill-palette";
+import { useTheme } from "@/lib/hooks/use-theme";
 import type { LabActivity, LabsPayload } from "@/lib/data/fetch-labs";
 import { CATEGORY_META, type LabKind } from "@/lib/data/labs-registry";
 
@@ -92,7 +94,7 @@ function LabRow({
           {lab.total.toLocaleString()} · 7d
         </span>
       </div>
-      <div className="mt-0.5 flex items-center gap-1.5 pl-7 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80">
+      <div className="mt-0.5 flex items-center gap-1.5 pl-7 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
         <KindPill kind={lab.kind} />
         <span className="truncate">{loc || "—"}</span>
         <span className="ml-auto shrink-0">
@@ -100,7 +102,7 @@ function LabRow({
         </span>
         {lab.stale && (
           <span
-            className="shrink-0 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-[1px] text-[8px] tracking-wider text-amber-400"
+            className="shrink-0 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-[1px] text-[8px] tracking-wider text-amber-700 dark:text-amber-400"
             title="At least one tracked repo returned stale"
           >
             stale
@@ -124,17 +126,11 @@ function LabRow({
   );
 }
 
-function KindPill({
-  kind,
-}: {
-  kind: LabKind;
-}) {
+function KindPill({ kind }: { kind: LabKind }) {
   const meta = CATEGORY_META[kind];
+  // The map hue is unreadable as pill text on paper; the board has its own per-theme table.
   return (
-    <span
-      className="ap-sev-pill"
-      style={{ backgroundColor: meta.color + "22", color: meta.color, borderColor: meta.color + "44" }}
-    >
+    <span className="ap-sev-pill" style={kindPillStyle(kind, useTheme())}>
       {meta.short}
     </span>
   );
@@ -177,7 +173,7 @@ function SourceFooter({
       <span className="ml-2">· refreshed {t}Z</span>
       {failureCount > 0 && (
         <span
-          className="ml-2 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-[1px] text-amber-400"
+          className="ml-2 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-[1px] text-amber-700 dark:text-amber-400"
           title={`${failureCount} repo fetch(es) failed this run`}
         >
           {failureCount} stale
@@ -189,9 +185,9 @@ function SourceFooter({
 
 function AwaitingBody() {
   return (
-    <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-amber-500/40 bg-amber-500/5 px-6 py-8 text-center font-mono text-[10px] uppercase tracking-wider text-amber-400/90">
+    <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-amber-500/40 bg-amber-500/5 px-6 py-8 text-center font-mono text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-400">
       <span>awaiting first labs poll</span>
-      <span className="text-amber-400/70">
+      <span className="text-amber-700 dark:text-amber-400">
         /api/labs · 6h upstream cache
       </span>
     </div>
@@ -200,9 +196,9 @@ function AwaitingBody() {
 
 function ErrorBody({ message }: { message: string }) {
   return (
-    <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-rose-500/40 bg-rose-500/5 px-6 py-8 text-center font-mono text-[10px] uppercase tracking-wider text-rose-400/90">
+    <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-rose-500/40 bg-rose-500/5 px-6 py-8 text-center font-mono text-[10px] uppercase tracking-wider text-rose-700 dark:text-rose-400">
       <span>labs feed unavailable</span>
-      <span className="text-rose-400/70">{message}</span>
+      <span className="text-rose-700 dark:text-rose-400">{message}</span>
     </div>
   );
 }

@@ -104,7 +104,7 @@ export function UptimeSparkline({ days, hasSamples }: UptimeSparklineProps) {
         )}
       </div>
       {!hasSamples && (
-        <p className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70">
+        <p className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
           Incident-derived · poll-sample history unavailable (no Upstash Redis configured)
         </p>
       )}

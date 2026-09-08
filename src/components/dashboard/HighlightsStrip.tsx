@@ -123,7 +123,7 @@ function RotatingTicker({
         )}
       </button>
       {highlights.length > 1 && (
-        <span className="ml-auto font-mono text-[9px] text-muted-foreground/50">
+        <span className="ml-auto font-mono text-[9px] text-muted-foreground">
           {safeIdx + 1}/{highlights.length}
         </span>
       )}

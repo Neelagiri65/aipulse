@@ -156,7 +156,7 @@ function ToggleControl({
 }) {
   const baseBtn =
     controlClassName ??
-    "shrink-0 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70 hover:text-[#f97316] hover:underline";
+    "shrink-0 font-mono text-[9px] uppercase tracking-wider text-muted-foreground hover:text-[#f97316] hover:underline";
 
   if (state === "loading") {
     return (
@@ -183,7 +183,7 @@ function ToggleControl({
           🌐 Original
         </button>
         <span
-          className="shrink-0 font-mono text-[8px] uppercase tracking-wider text-muted-foreground/50"
+          className="shrink-0 font-mono text-[8px] uppercase tracking-wider text-muted-foreground"
           data-testid="translate-attribution"
         >
           via Google Translate
@@ -199,7 +199,7 @@ function ToggleControl({
     return (
       <>
         <span
-          className="shrink-0 font-mono text-[9px] uppercase tracking-wider text-amber-400/80"
+          className="shrink-0 font-mono text-[9px] uppercase tracking-wider text-amber-700 dark:text-amber-400"
           data-testid="translate-failed"
         >
           translation failed

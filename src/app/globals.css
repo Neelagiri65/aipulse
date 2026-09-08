@@ -192,6 +192,42 @@
   --sev-info:         var(--ink2);
 }
 
+/* ------------------------------------------------------------------------
+   Registry + badge hues for the SDK Adoption and Model Usage boards.
+
+   These board bodies were written when every board floated over the dark map,
+   so they are light-on-dark by origin: 300/400-level text on an assumed dark
+   ground. Once boards became reading surfaces on paper (#111) the same values
+   sat on white — 34 text elements below 4.5:1, several at 1.04, i.e. invisible.
+
+   The hues live here, in both themes, for the same reason the map's palette
+   moved into event-palette.ts: a colour table copied into a rule body drifts.
+   Light values are 700-level (each ≥4.5:1 on --surface); dark values are the
+   300-level set these boards already used.
+   ------------------------------------------------------------------------ */
+:root {
+  --chip-pypi: #0369A1;
+  --chip-npm: #B91C1C;
+  --chip-crates: #B45309;
+  --chip-docker: #1D4ED8;
+  --chip-brew: #A16207;
+  --chip-agg: #A16207;
+  --chip-oss: #15803D;
+  /* Neutral chip / pill ground: ink at low alpha, so it follows the paper. */
+  --chip-fill: rgba(22, 22, 15, 0.05);
+}
+
+[data-theme="dark"] {
+  --chip-pypi: #7DD3FC;
+  --chip-npm: #FCA5A5;
+  --chip-crates: #FDBA74;
+  --chip-docker: #93C5FD;
+  --chip-brew: #FCD34D;
+  --chip-agg: #FCD34D;
+  --chip-oss: #86EFAC;
+  --chip-fill: rgba(250, 250, 246, 0.08);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -970,7 +1006,7 @@
   gap: 12px;
   padding: 12px 16px 16px;
   font-family: var(--font-mono);
-  color: rgba(226, 232, 240, 0.92);
+  color: var(--ink2);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -979,7 +1015,7 @@
   display: inline-flex;
   gap: 4px;
   padding: 2px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  border: 1px solid var(--hair);
   border-radius: 4px;
   align-self: flex-start;
 }
@@ -987,7 +1023,7 @@
 .sdk-adoption-panel .sdk-view-toggle {
   background: transparent;
   border: 0;
-  color: rgba(226, 232, 240, 0.55);
+  color: var(--ink-muted);
   font: inherit;
   font-size: 10px;
   text-transform: uppercase;
@@ -998,22 +1034,22 @@
 }
 
 .sdk-adoption-panel .sdk-view-toggle.is-active {
-  background: rgba(45, 212, 191, 0.12);
-  color: rgba(240, 253, 250, 0.95);
+  background: var(--tint);
+  color: var(--ink);
 }
 
 .sdk-adoption-panel .sdk-list-since {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(226, 232, 240, 0.5);
+  color: var(--ink-muted);
   margin: 0;
 }
 
 .sdk-adoption-panel .sdk-list-empty {
   padding: 24px 0;
   text-align: center;
-  color: rgba(226, 232, 240, 0.55);
+  color: var(--ink-muted);
 }
 
 .sdk-adoption-panel .sdk-list-group { margin-top: 4px; }
@@ -1023,7 +1059,7 @@
   align-items: baseline;
   justify-content: space-between;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  border-bottom: 1px solid var(--hair);
   margin-bottom: 4px;
 }
 
@@ -1031,13 +1067,13 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: rgba(167, 139, 250, 0.85);
+  color: var(--ink2);
   margin: 0;
 }
 
 .sdk-adoption-panel .sdk-list-group-count {
   font-size: 10px;
-  color: rgba(226, 232, 240, 0.5);
+  color: var(--ink-muted);
 }
 
 .sdk-adoption-panel .sdk-list-rows {
@@ -1057,12 +1093,12 @@
 }
 
 .sdk-adoption-panel .sdk-list-row:hover {
-  background: rgba(45, 212, 191, 0.06);
+  background: var(--tint);
 }
 
 .sdk-adoption-panel .sdk-list-row.row-focused {
-  background: rgba(45, 212, 191, 0.1);
-  outline: 1px solid rgba(45, 212, 191, 0.3);
+  background: var(--tint);
+  outline: 1px solid var(--hair2);
 }
 
 .sdk-adoption-panel .sdk-list-row.row-stale {
@@ -1080,7 +1116,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: rgba(240, 253, 250, 0.95);
+  color: var(--ink);
 }
 
 .sdk-adoption-panel .registry-chip {
@@ -1092,11 +1128,11 @@
   flex: none;
 }
 
-.sdk-adoption-panel .registry-chip-pypi   { background: rgba(56, 189, 248, 0.14); color: #7dd3fc; }
-.sdk-adoption-panel .registry-chip-npm    { background: rgba(239, 68, 68, 0.14);  color: #fca5a5; }
-.sdk-adoption-panel .registry-chip-crates { background: rgba(251, 146, 60, 0.14); color: #fdba74; }
-.sdk-adoption-panel .registry-chip-docker { background: rgba(96, 165, 250, 0.14); color: #93c5fd; }
-.sdk-adoption-panel .registry-chip-brew   { background: rgba(245, 158, 11, 0.14); color: #fcd34d; }
+.sdk-adoption-panel .registry-chip-pypi   { background: var(--chip-fill); color: var(--chip-pypi); }
+.sdk-adoption-panel .registry-chip-npm    { background: var(--chip-fill);  color: var(--chip-npm); }
+.sdk-adoption-panel .registry-chip-crates { background: var(--chip-fill); color: var(--chip-crates); }
+.sdk-adoption-panel .registry-chip-docker { background: var(--chip-fill); color: var(--chip-docker); }
+.sdk-adoption-panel .registry-chip-brew   { background: var(--chip-fill); color: var(--chip-brew); }
 
 .sdk-adoption-panel .badge {
   font-size: 9px;
@@ -1107,13 +1143,13 @@
 }
 
 .sdk-adoption-panel .badge-aggregator {
-  background: rgba(245, 158, 11, 0.12);
-  color: rgba(252, 211, 77, 0.95);
+  background: var(--chip-fill);
+  color: var(--chip-agg);
 }
 
 .sdk-adoption-panel .badge-first-party {
-  background: rgba(34, 197, 94, 0.12);
-  color: rgba(134, 239, 172, 0.95);
+  background: var(--chip-fill);
+  color: var(--chip-oss);
 }
 
 .sdk-adoption-panel .row-stale-pill {
@@ -1122,14 +1158,14 @@
   letter-spacing: 0.08em;
   padding: 1px 5px;
   border-radius: 2px;
-  background: rgba(148, 163, 184, 0.15);
-  color: rgba(203, 213, 225, 0.75);
+  background: var(--chip-fill);
+  color: var(--ink-muted);
 }
 
 .sdk-adoption-panel .sdk-list-row-latest {
   text-align: right;
   font-variant-numeric: tabular-nums;
-  color: rgba(226, 232, 240, 0.85);
+  color: var(--ink2);
 }
 
 .sdk-adoption-panel .sdk-list-row-delta {
@@ -1140,11 +1176,12 @@
 
 .sdk-adoption-panel .delta-pos { color: var(--sev-op); }
 .sdk-adoption-panel .delta-neg { color: var(--sev-outage); }
-.sdk-adoption-panel .delta-flat { color: rgba(148, 163, 184, 0.6); }
-.sdk-adoption-panel .delta-null { color: rgba(148, 163, 184, 0.3); }
+.sdk-adoption-panel .delta-flat { color: var(--ink-muted); }
+/* --hollow is for hollow marks, never text; the em dash is text. */
+.sdk-adoption-panel .delta-null { color: var(--ink-muted); }
 
 .sdk-adoption-panel .sdk-list-row-trend {
-  color: rgba(45, 212, 191, 0.75);
+  color: var(--ink2);
   display: flex;
   align-items: center;
 }
@@ -1155,7 +1192,7 @@
   align-items: flex-end;
   gap: 3px;
   font-size: 10px;
-  color: rgba(148, 163, 184, 0.6);
+  color: var(--ink-muted);
 }
 
 .sdk-adoption-panel .coverage-dots {
@@ -1170,15 +1207,15 @@
   border-radius: 1px;
 }
 
-.sdk-adoption-panel .coverage-dot-on  { background: rgba(45, 212, 191, 0.8); }
-.sdk-adoption-panel .coverage-dot-off { background: rgba(148, 163, 184, 0.18); }
+.sdk-adoption-panel .coverage-dot-on  { background: var(--ink2); }
+.sdk-adoption-panel .coverage-dot-off { background: var(--hair); }
 
 /* Matrix view — secondary, accessed via the toggle. */
 .sdk-adoption-panel .sdk-matrix {
   border-collapse: separate;
   border-spacing: 1px;
   font-size: 10px;
-  color: rgba(226, 232, 240, 0.85);
+  color: var(--ink2);
 }
 
 .sdk-adoption-panel .sdk-matrix th,
@@ -1194,14 +1231,15 @@
   white-space: nowrap;
   position: sticky;
   left: 0;
-  background: rgba(8, 14, 20, 0.85);
+  background: var(--surface);
   z-index: 1;
 }
 
 .sdk-adoption-panel .sdk-matrix .row-stale td { opacity: 0.55; }
 
-.sdk-adoption-panel .cell-null { background: rgba(148, 163, 184, 0.06); }
-.sdk-adoption-panel .cell-zero { background: rgba(148, 163, 184, 0.15); }
+/* null = never measured, zero = measured and flat. They must not read alike. */
+.sdk-adoption-panel .cell-null { background: transparent; }
+.sdk-adoption-panel .cell-zero { background: var(--chip-fill); }
 .sdk-adoption-panel .cell-pos-low  { background: rgba(34, 197, 94, 0.18); }
 .sdk-adoption-panel .cell-pos-mid  { background: rgba(34, 197, 94, 0.4); }
 .sdk-adoption-panel .cell-pos-high { background: rgba(34, 197, 94, 0.7); color: #06140b; }
@@ -1212,7 +1250,7 @@
 .sdk-adoption-panel .matrix-empty {
   padding: 24px 0;
   text-align: center;
-  color: rgba(226, 232, 240, 0.55);
+  color: var(--ink-muted);
 }
 
 .sdk-adoption-panel .cell-sr {
@@ -1231,14 +1269,14 @@
 .sdk-adoption-panel .sdk-adoption-error {
   padding: 32px 16px;
   text-align: center;
-  color: rgba(226, 232, 240, 0.65);
+  color: var(--ink-muted);
 }
 
 .sdk-adoption-panel .sdk-adoption-retry {
   margin-top: 12px;
   background: transparent;
-  border: 1px solid rgba(45, 212, 191, 0.4);
-  color: rgba(240, 253, 250, 0.9);
+  border: 1px solid var(--hair2);
+  color: var(--ink);
   font: inherit;
   font-size: 11px;
   padding: 4px 12px;
@@ -1247,7 +1285,7 @@
 }
 
 .sdk-adoption-panel .sdk-adoption-retry:hover {
-  background: rgba(45, 212, 191, 0.12);
+  background: var(--tint);
 }
 
 /* Drawer — opens on row click in either view. */
@@ -1366,7 +1404,7 @@
 /* SDK panel legend + toolbar gating note. */
 .sdk-adoption-panel .sdk-adoption-toolbar-note {
   font-size: 10px;
-  color: rgba(148, 163, 184, 0.6);
+  color: var(--ink-muted);
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1379,7 +1417,7 @@
   font-size: 12px;
   line-height: 1.4;
   font-style: italic;
-  color: rgba(148, 163, 184, 0.85);
+  color: var(--ink-muted);
   margin: 6px 0 10px;
 }
 
@@ -1390,7 +1428,7 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(148, 163, 184, 0.7);
+  color: var(--ink-muted);
   padding: 6px 0 0;
 }
 
@@ -1402,7 +1440,7 @@
 }
 
 .sdk-adoption-panel .legend-sample-neg  { background: rgba(239, 68, 68, 0.7); }
-.sdk-adoption-panel .legend-sample-flat { background: rgba(148, 163, 184, 0.3); }
+.sdk-adoption-panel .legend-sample-flat { background: var(--hollow); }
 .sdk-adoption-panel .legend-sample-pos  { background: rgba(34, 197, 94, 0.7); }
 
 /* ---------------------------------------------------------------------------
@@ -1421,7 +1459,7 @@
 
 .model-usage-header {
   padding: 8px 10px 6px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  border-bottom: 1px solid var(--hair);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1430,16 +1468,16 @@
 .model-usage-caveat {
   font-size: 10.5px;
   line-height: 1.45;
-  color: rgba(203, 213, 225, 0.7);
+  color: var(--ink-muted);
   margin: 0;
 }
 
 .model-usage-fallback-banner {
   font-size: 10.5px;
   line-height: 1.4;
-  color: rgba(252, 211, 77, 0.85);
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: var(--chip-agg);
+  background: var(--chip-fill);
+  border: 1px solid var(--hair2);
   border-radius: 3px;
   padding: 4px 8px;
   margin: 0;
@@ -1447,12 +1485,12 @@
 
 .model-usage-trending-note {
   font-size: 10.5px;
-  color: rgba(148, 163, 184, 0.85);
+  color: var(--ink-muted);
   margin: 0;
 }
 
 .model-usage-trending-link {
-  color: rgba(45, 212, 191, 0.95);
+  color: var(--link);
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: 2px;
@@ -1462,14 +1500,14 @@
 .model-usage-empty {
   padding: 20px;
   font-size: 12px;
-  color: rgba(203, 213, 225, 0.7);
+  color: var(--ink-muted);
   text-align: center;
 }
 
 .model-usage-error {
   padding: 16px 20px;
   font-size: 12px;
-  color: rgba(252, 165, 165, 0.95);
+  color: var(--sev-outage);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1481,15 +1519,15 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 4px 10px;
-  border: 1px solid rgba(252, 165, 165, 0.6);
+  border: 1px solid var(--sev-outage);
   border-radius: 3px;
   background: transparent;
-  color: rgba(252, 165, 165, 0.95);
+  color: var(--sev-outage);
   cursor: pointer;
 }
 
 .model-usage-retry:hover {
-  background: rgba(239, 68, 68, 0.08);
+  background: var(--chip-fill);
 }
 
 .model-usage {
@@ -1503,7 +1541,7 @@
   display: flex;
   gap: 4px;
   padding: 6px 10px 4px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+  border-bottom: 1px solid var(--hair);
 }
 
 .model-usage-sort-btn {
@@ -1513,21 +1551,21 @@
   padding: 3px 7px;
   border-radius: 3px;
   background: transparent;
-  color: rgba(148, 163, 184, 0.75);
+  color: var(--ink-muted);
   border: 1px solid transparent;
   cursor: pointer;
   font-family: inherit;
 }
 
 .model-usage-sort-btn:hover {
-  color: rgba(226, 232, 240, 0.9);
-  background: rgba(148, 163, 184, 0.08);
+  color: var(--ink2);
+  background: var(--hair);
 }
 
 .model-usage-sort-btn.is-active {
-  color: rgba(45, 212, 191, 0.95);
-  border-color: rgba(45, 212, 191, 0.35);
-  background: rgba(45, 212, 191, 0.08);
+  color: var(--link);
+  border-color: var(--hair2);
+  background: var(--tint);
 }
 
 .model-usage-header-row {
@@ -1541,8 +1579,8 @@
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(148, 163, 184, 0.55);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  color: var(--ink-muted);
+  border-bottom: 1px solid var(--hair);
 }
 
 .model-usage-header-row .model-usage-rank-bar-head {
@@ -1563,20 +1601,20 @@
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  border-top: 1px solid var(--hair);
   font-size: 10.5px;
-  color: rgba(148, 163, 184, 0.7);
+  color: var(--ink-muted);
   cursor: help;
 }
 
 .model-usage-footer-icon {
-  color: rgba(45, 212, 191, 0.7);
+  color: var(--ink2);
   font-size: 11px;
   flex: none;
 }
 
 .model-usage-footer-link {
-  color: rgba(45, 212, 191, 0.9);
+  color: var(--link);
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: 2px;
@@ -1587,20 +1625,20 @@
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  border-top: 1px solid var(--hair);
   font-size: 10.5px;
-  color: rgba(148, 163, 184, 0.7);
+  color: var(--ink-muted);
   cursor: help;
 }
 
 .sdk-adoption-footer-icon {
-  color: rgba(45, 212, 191, 0.7);
+  color: var(--ink2);
   font-size: 11px;
   flex: none;
 }
 
 .sdk-adoption-footer-link {
-  color: rgba(45, 212, 191, 0.9);
+  color: var(--link);
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: 2px;
@@ -1620,34 +1658,34 @@
 }
 
 .model-usage-row:hover {
-  background: rgba(45, 212, 191, 0.06);
+  background: var(--tint);
 }
 
 .model-usage-row.row-focused {
-  background: rgba(45, 212, 191, 0.12);
-  outline: 1px solid rgba(45, 212, 191, 0.35);
+  background: var(--tint);
+  outline: 1px solid var(--hair2);
 }
 
 /* Top-3 tint: subtle gradient that stays visible on hover. */
 .model-usage-row.row-top3 {
   background: linear-gradient(
     90deg,
-    rgba(45, 212, 191, 0.07) 0%,
-    rgba(45, 212, 191, 0) 60%
+    var(--tint) 0%,
+    transparent 60%
   );
 }
 
 .model-usage-row.row-top3:hover {
   background:
-    linear-gradient(90deg, rgba(45, 212, 191, 0.07) 0%, rgba(45, 212, 191, 0) 60%),
-    rgba(45, 212, 191, 0.06);
+    linear-gradient(90deg, var(--tint) 0%, transparent 60%),
+    var(--tint);
 }
 
 .model-usage-rank {
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 10px;
   letter-spacing: 0.04em;
-  color: rgba(148, 163, 184, 0.85);
+  color: var(--ink-muted);
   text-align: right;
   font-variant-numeric: tabular-nums;
   display: inline-flex;
@@ -1666,19 +1704,19 @@
   line-height: 1;
 }
 
-.rank-change-up   { color: #34d399; background: rgba(52, 211, 153, 0.1); }
-.rank-change-down { color: #f87171; background: rgba(248, 113, 113, 0.1); }
-.rank-change-flat { color: rgba(148, 163, 184, 0.55); }
+.rank-change-up   { color: var(--sev-op); background: var(--chip-fill); }
+.rank-change-down { color: var(--sev-outage); background: var(--chip-fill); }
+.rank-change-flat { color: var(--ink-muted); }
 .rank-change-new  {
-  color: #2dd4bf;
-  background: rgba(45, 212, 191, 0.12);
+  color: var(--link);
+  background: var(--tint);
   font-size: 8px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .model-usage-row.row-top3 .model-usage-rank {
-  color: rgba(45, 212, 191, 0.95);
+  color: var(--link);
   font-weight: 600;
 }
 
@@ -1693,11 +1731,11 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: rgba(240, 253, 250, 0.95);
+  color: var(--ink);
 }
 
 .model-usage-row.row-top3 .model-usage-name {
-  color: rgba(240, 253, 250, 1);
+  color: var(--ink);
   font-weight: 500;
 }
 
@@ -1711,9 +1749,9 @@
   margin-left: 6px;
   padding: 1px 5px;
   border-radius: 3px;
-  border: 1px solid rgba(34, 197, 94, 0.4);
-  background: rgba(34, 197, 94, 0.12);
-  color: rgb(110, 231, 183);
+  border: 1px solid var(--hair2);
+  background: var(--chip-fill);
+  color: var(--chip-oss);
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
   font-size: 8.5px;
@@ -1727,7 +1765,7 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(148, 163, 184, 0.7);
+  color: var(--ink-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1771,7 +1809,7 @@
   display: block;
   height: 6px;
   width: 100%;
-  background: rgba(148, 163, 184, 0.12);
+  background: var(--hair);
   border-radius: 2px;
   overflow: hidden;
   cursor: help;
@@ -1782,8 +1820,8 @@
   height: 100%;
   background: linear-gradient(
     90deg,
-    rgba(45, 212, 191, 0.6) 0%,
-    rgba(45, 212, 191, 0.3) 100%
+    var(--ink2) 0%,
+    var(--hair2) 100%
   );
   border-radius: 2px;
 }
@@ -1791,15 +1829,15 @@
 .model-usage-row.row-top3 .model-usage-rank-bar-fill {
   background: linear-gradient(
     90deg,
-    rgba(45, 212, 191, 0.85) 0%,
-    rgba(45, 212, 191, 0.45) 100%
+    var(--ink2) 0%,
+    var(--hair2) 100%
   );
 }
 
 .model-usage-pricing {
   text-align: right;
   font-variant-numeric: tabular-nums;
-  color: rgba(226, 232, 240, 0.9);
+  color: var(--ink2);
   font-size: 11px;
   white-space: nowrap;
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { kindPillStyle } from "@/components/labs/kind-pill-palette";
+import { useTheme } from "@/lib/hooks/use-theme";
 import { forwardRef } from "react";
 import type { EventMeta } from "@/components/globe/event-detail";
 import { shortEventType } from "@/components/globe/event-detail";
@@ -199,13 +201,13 @@ function LabBody({ lab }: { lab: EventMeta }) {
                   href={r.sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="truncate text-foreground/80 hover:text-[#a855f7] hover:underline"
+                  className="truncate text-foreground hover:text-[#a855f7] hover:underline"
                 >
                   {r.owner}/{r.repo}
                 </a>
                 <span className="flex shrink-0 items-center gap-1.5">
                   {r.stale && (
-                    <span className="rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-[1px] text-[8px] uppercase tracking-wider text-amber-400">
+                    <span className="rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-[1px] text-[8px] uppercase tracking-wider text-amber-700 dark:text-amber-400">
                       stale
                     </span>
                   )}
@@ -232,7 +234,7 @@ function LabBody({ lab }: { lab: EventMeta }) {
               >
                 {o}
               </a>
-              {i < orgs.length - 1 && <span className="text-foreground/30">, </span>}
+              {i < orgs.length - 1 && <span className="text-muted-foreground">, </span>}
             </span>
           ))}
         </div>
@@ -243,11 +245,9 @@ function LabBody({ lab }: { lab: EventMeta }) {
 
 function KindPill({ kind }: { kind: LabKind }) {
   const meta = CATEGORY_META[kind];
+  // The map hue is unreadable as pill text on paper; the board has its own per-theme table.
   return (
-    <span
-      className="ap-sev-pill"
-      style={{ backgroundColor: meta.color + "22", color: meta.color, borderColor: meta.color + "44" }}
-    >
+    <span className="ap-sev-pill" style={kindPillStyle(kind, useTheme())}>
       {meta.label}
     </span>
   );
