@@ -986,7 +986,10 @@ function MapStatus({
         className="ap-panel-surface pointer-events-none absolute right-3 top-16 px-2 py-1 font-mono text-[10px] uppercase tracking-wider"
         style={{ zIndex: 1000 }}
       >
-        Live · {count} evt · {formatAge(ageMs)}
+        {/* "evt" read as the event count, which it is not: this is every mark on the stage —
+            events, AI-config repos, lab HQs, publishers — while the metrics row below counts
+            events in the poll window. Two numbers a reader took for one. */}
+        Live · {count.toLocaleString("en-GB")} marks, all layers · {formatAge(ageMs)}
       </div>
     );
   }

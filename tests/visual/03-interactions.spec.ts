@@ -191,4 +191,28 @@ test.describe("interactions", () => {
     expect(await clusters.count()).toBe(0);
     await shot(page, "interaction-filters-off-empty-map");
   });
+
+  test("the Map stage counts marks, and the digest prompt stays off the ticker", async ({
+    page,
+  }) => {
+    await openDashboard(page);
+    await switchTab(page, "Map");
+
+    // The stage pill counts every mark on the map — events, AI-config repos, labs, publishers —
+    // while the metrics row below counts events in the poll window. It used to say "evt", which
+    // read as the same number, in smaller type, disagreeing by an order of magnitude.
+    const status = page.getByText(/marks, all layers/i).first();
+    await expect(status).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/\d+ evt ·/)).toHaveCount(0);
+
+    // The digest prompt is a floating panel; the ticker is content in motion underneath it.
+    // It only appears after its own gates pass, so this asserts the geometry when it is there.
+    const ticker = page.locator(".ap-live-ticker");
+    await expect(ticker).toBeVisible();
+    const modal = page.locator('[data-testid="subscribe-modal"], .fixed.right-6.z-40').first();
+    if (await modal.isVisible().catch(() => false)) {
+      const [m, t] = [await modal.boundingBox(), await ticker.boundingBox()];
+      if (m && t) expect(m.y + m.height).toBeLessThanOrEqual(t.y + 1);
+    }
+  });
 });

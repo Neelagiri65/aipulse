@@ -130,7 +130,11 @@ export function SubscribeModal(): React.JSX.Element | null {
       role="dialog"
       aria-label="Subscribe to the gawk.dev daily digest"
       data-testid="subscribe-modal"
-      className="fixed bottom-6 right-6 z-40 w-[min(360px,calc(100%-3rem))] rounded-xl border border-border bg-background/95 p-4 shadow-2xl backdrop-blur-md"
+      // Above the bottom chrome, not on top of it: at `bottom-6` this sat over the live ticker,
+      // which is content in motion — a prompt covering the thing the reader came to watch. The
+      // token is the same one the metrics row anchors to, so the two move together.
+      className="fixed right-6 z-40 w-[min(360px,calc(100%-3rem))] rounded-xl border border-border bg-background/95 p-4 shadow-2xl backdrop-blur-md"
+      style={{ bottom: "calc(var(--ap-chrome-bottom, 24px) + 16px)" }}
     >
       <div className="mb-2 flex items-start justify-between gap-2">
         <div>
