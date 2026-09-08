@@ -19,6 +19,13 @@ describe("primary-tabs", () => {
   it("reads ?tab= and falls back to the default on anything unknown", () => {
     expect(tabFromSearch("?tab=feed")).toBe("feed");
     expect(tabFromSearch("?tab=rooms")).toBe("rooms");
+    // The tab reads "Community"; its id stayed "rooms". A link written from the label used to
+    // land on Health without saying so.
+    expect(tabFromSearch("?tab=community")).toBe("rooms");
+    expect(tabFromSearch("?tab=Community")).toBe("rooms");
+    expect(tabFromSearch("?tab=discord")).toBe("rooms");
+    // Anything genuinely unknown still falls back rather than erroring.
+    expect(tabFromSearch("?tab=nonsense")).toBe("health");
     expect(tabFromSearch("?tab=globe")).toBe(DEFAULT_TAB);
     expect(tabFromSearch("")).toBe(DEFAULT_TAB);
   });

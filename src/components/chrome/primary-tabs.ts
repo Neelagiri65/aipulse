@@ -34,10 +34,27 @@ export function isPrimaryTab(v: unknown): v is PrimaryTab {
   return PRIMARY_TABS.some((t) => t.id === v);
 }
 
-/** Reads `?tab=` from a search string; anything unknown falls back to the default. */
+/**
+ * Ids that stayed put while a label moved, so a link written from what the reader sees still
+ * lands. "rooms" is the canvas working title kept as the id (renaming it would churn state,
+ * tests and anyone's saved links, the same call made for the `globe*` identifiers); the tab has
+ * read "Community" since S109, so `?tab=community` is what anyone writes by hand — and it was
+ * silently landing on Health.
+ */
+const TAB_ALIASES: Readonly<Record<string, PrimaryTab>> = {
+  community: "rooms",
+  discord: "rooms",
+};
+// Deliberately NOT aliased: `?tab=globe`. The 3D globe tab was removed in S27 and its own test
+// pins that the id falls back rather than resolving to anything — an old link should land on the
+// default, not be quietly re-pointed at a surface that is not what it asked for.
+
+/** Reads `?tab=`, resolving label aliases; anything unknown falls back to the default. */
 export function tabFromSearch(search: string): PrimaryTab {
   const v = new URLSearchParams(search).get(TAB_PARAM);
-  return isPrimaryTab(v) ? v : DEFAULT_TAB;
+  if (isPrimaryTab(v)) return v;
+  const alias = v ? TAB_ALIASES[v.trim().toLowerCase()] : undefined;
+  return alias ?? DEFAULT_TAB;
 }
 
 /** Writes `?tab=` without a navigation; the default tab keeps the URL clean. */
