@@ -19,10 +19,10 @@ export default function UnsubscribeReceipt({
   return (
     <Html>
       <Head />
-      <Preview>You have unsubscribed from Gawk</Preview>
+      <Preview>You have unsubscribed from gawk.dev</Preview>
       <Body style={body}>
         <Container style={container}>
-          <Text style={h1}>Gawk</Text>
+          <Text style={h1}>gawk.dev</Text>
           <Text style={lead}>You&rsquo;ve been unsubscribed.</Text>
           <Text style={para}>
             We won&rsquo;t email you again. This action took effect
@@ -38,7 +38,7 @@ export default function UnsubscribeReceipt({
           </Text>
           <Hr style={hr} />
           <Text style={footer}>
-            Gawk never sends re-engagement emails to unsubscribed
+            gawk.dev never sends re-engagement emails to unsubscribed
             addresses.
           </Text>
         </Container>

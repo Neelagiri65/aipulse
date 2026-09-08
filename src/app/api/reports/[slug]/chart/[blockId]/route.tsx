@@ -5,7 +5,7 @@
  * theme PNG (`next/og` ImageResponse) showing the block's rows as
  * a horizontal bar chart with the brand palette. Same primitive as
  * the S62b daily-digest tool-health chart; consistent visual style
- * across all of Gawk's PNG surfaces.
+ * across all of gawk.dev's PNG surfaces.
  *
  * Why per-block PNGs (not inline SVG): the page render already shows
  * the row tables verbatim. The PNG is for share-surface consumption —

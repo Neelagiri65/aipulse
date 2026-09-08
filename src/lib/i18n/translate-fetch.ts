@@ -11,7 +11,7 @@
  *     Redis, never lands in a snapshot, never feeds the ingest pipeline.
  *     The "no LLM in ingest" constraint is satisfied by construction.
  *   - The translated text MUST display a "via Google Translate"
- *     attribution at the call site so a reader doesn't think Gawk
+ *     attribution at the call site so a reader doesn't think gawk.dev
  *     authored the translation.
  *   - On any failure (HTTP non-2xx, parse error, network drop) the
  *     caller is expected to fall back to the original text + a link

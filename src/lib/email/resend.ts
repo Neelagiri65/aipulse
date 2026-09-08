@@ -62,11 +62,11 @@ export async function sendConfirm(input: SendInput): Promise<SendResult> {
   if (!sender) {
     return { ok: false, queued: true, error: "RESEND_API_KEY not configured" };
   }
-  const from = process.env.EMAIL_FROM_ADDRESS ?? "Gawk <digest@example.invalid>";
+  const from = process.env.EMAIL_FROM_ADDRESS ?? "gawk.dev <digest@example.invalid>";
   return sender.send({
     from,
     to: input.to,
-    subject: "Confirm your Gawk subscription",
+    subject: "Confirm your gawk.dev subscription",
     react: ConfirmEmail({
       confirmUrl: input.confirmUrl,
       unsubUrl: input.unsubUrl,
@@ -87,11 +87,11 @@ export async function sendUnsubscribeReceipt(
   if (!sender) {
     return { ok: false, queued: true, error: "RESEND_API_KEY not configured" };
   }
-  const from = process.env.EMAIL_FROM_ADDRESS ?? "Gawk <digest@example.invalid>";
+  const from = process.env.EMAIL_FROM_ADDRESS ?? "gawk.dev <digest@example.invalid>";
   return sender.send({
     from,
     to: input.to,
-    subject: "You have unsubscribed from Gawk",
+    subject: "You have unsubscribed from gawk.dev",
     react: UnsubscribeReceipt({ resubscribeUrl: input.resubscribeUrl }),
   });
 }

@@ -1,5 +1,5 @@
 /**
- * Gawk — Quiet-day banner.
+ * gawk.dev — Quiet-day banner.
  *
  * Renders the locked banner copy + a minimal current-state summary
  * (top model, tool health green/total, latest paper). Used at the

@@ -68,12 +68,12 @@ export async function shot(
  */
 export async function openDashboard(page: Page) {
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("tab", { name: "The Map" })).toBeVisible({
+  await expect(page.getByRole("tab", { name: "Map", exact: true })).toBeVisible({
     timeout: 20_000,
   });
-  await expect(
-    page.getByRole("navigation", { name: "Panel navigation" }),
-  ).toBeVisible();
+  // The boards moved under More; the left icon rail is retired. The primary tablist is the
+  // dashboard-ready signal now — it is the first interactive chrome on every tab.
+  await expect(page.getByRole("tablist").first()).toBeVisible();
   // Ensure React handlers are wired before we start synthesising clicks.
   // `networkidle` is too strict on the live site (polling never idles);
   // a short settle delay catches the hydration window instead.
@@ -89,7 +89,7 @@ export async function openDashboard(page: Page) {
  */
 export async function switchTab(
   page: Page,
-  label: "The Map" | "The Wire" | "The Globe",
+  label: "Health" | "Feed" | "Map" | "Community" | "More",
 ) {
   const tab = page.getByRole("tab", { name: label, exact: true });
   await expect(tab).toBeVisible();
@@ -103,42 +103,34 @@ export async function switchTab(
   }).toPass({ timeout: 15_000 });
 }
 
-/**
- * LeftNav buttons have accessible names like "Wire 52" / "Models 20" /
- * "Agents soon" (icon + label + count-or-soon-badge all join into the
- * accessible name). The stable identifier is the `title` attribute,
- * which is exactly `n.label` for enabled items and `"{label} · coming
- * soon"` for soon-flagged items.
- */
-export function navButton(
-  page: Page,
-  label:
-    | "Wire"
-    | "Tools"
-    | "Models"
-    | "Agents"
-    | "Research"
-    | "Benchmarks"
-    | "Audit",
-): Locator {
-  const nav = page.getByRole("navigation", { name: "Panel navigation" });
-  // Title is either the bare label or "{label} · coming soon".
-  const regex = new RegExp(`^${label}(?: ·|$)`);
-  return nav.locator(`button[title^="${label}"]`).filter({
-    hasNot: page.locator(`button:not([title^="${label}"])`),
-  }).first().or(
-    nav.locator("button").filter({ hasText: regex }),
-  ).first();
+/** Label → board id, so specs can name boards the way the index shows them. */
+export const BOARD_ROW_ID: Record<string, string> = {
+  Wire: "wire",
+  Tools: "tools",
+  Models: "models",
+  Research: "research",
+  Benchmarks: "benchmarks",
+  "AI Labs": "labs",
+  "Regional Wire": "regional-wire",
+  "SDK Adoption": "sdk-adoption",
+  "Model Usage": "model-usage",
+  Agents: "agents",
+  Launches: "launches",
+  Audit: "audit",
+};
+
+/** A board row on the More index, addressed by its label. */
+export function boardRow(page: Page, label: string): Locator {
+  return page.locator(`[data-board-row="${BOARD_ROW_ID[label] ?? label}"]`);
 }
 
 /**
- * Toggle a panel via its LeftNav button. Uses `title` attribute match
- * which is stable regardless of count/soon badges.
+ * Open a board the way a reader does: More, then its row. Boards are reading surfaces under More
+ * since the floating windows retired, so there is no rail and no window to address.
  */
-export async function openPanelViaNav(
+export async function openBoardViaMore(
   page: Page,
   label:
-    | "Wire"
     | "Tools"
     | "Models"
     | "Research"
@@ -146,50 +138,30 @@ export async function openPanelViaNav(
     | "AI Labs"
     | "Regional Wire"
     | "SDK Adoption"
-    | "Model Usage",
+    | "Model Usage"
+    | "Agents"
+    | "Launches",
 ) {
-  const nav = page.getByRole("navigation", { name: "Panel navigation" });
-  const btn = nav.locator(`button[title="${label}"]`);
-  await expect(btn).toBeVisible();
-  await btn.click({ force: true });
+  await switchTab(page, "More");
+  // The row's accessible name carries its live count ("Tools 6"), so the stable handle is the
+  // data attribute, not the label.
+  const row = page.locator(`[data-board-row="${BOARD_ROW_ID[label]}"]`);
+  await expect(row).toBeVisible({ timeout: 15_000 });
+  await row.click();
+  await expect(page.getByTestId("board-view")).toBeVisible({ timeout: 20_000 });
 }
 
-/**
- * Close a panel (if open) by toggling its LeftNav button. The close
- * button on the Win chrome also works, but the LeftNav toggle is the
- * exact same state transition the user drives — and it sidesteps any
- * event-propagation subtleties on the title-bar close glyph.
- */
-export async function closePanel(
-  page: Page,
-  titleFragment: string | RegExp,
-  navLabel: "Wire" | "Tools" | "Models" | "Research" | "Benchmarks",
-) {
-  const panel = panelByTitle(page, titleFragment);
-  if ((await panel.count()) === 0) return;
-  await openPanelViaNav(page, navLabel);
-  await expect(panel).toHaveCount(0, { timeout: 5_000 });
+/** The open board's column, addressed by its title. */
+export function boardByTitle(page: Page, title: string | RegExp) {
+  return page.getByTestId("board-view").filter({ hasText: title });
 }
 
-/**
- * A panel is a `.ap-win` window with a `.ap-win__title` matching the
- * given title fragment. Returns the Locator for that window.
- */
-export function panelByTitle(page: Page, titleFragment: string | RegExp) {
-  const titleLocator = page.locator(".ap-win__title", {
-    hasText: titleFragment,
-  });
-  return page.locator(".ap-win").filter({ has: titleLocator });
+/** Back to the More index from an open board. */
+export async function closeBoard(page: Page) {
+  await page.getByRole("link", { name: "‹ More" }).click();
+  await expect(page.getByTestId("board-view")).toHaveCount(0);
 }
 
-/**
- * The FilterPanel ("Globe filters") collapses to a "Show filters" trigger
- * by default — the labelled `complementary` aside only mounts once opened.
- * Click the trigger (if present) and return the visible panel. Idempotent:
- * if it's already open the trigger is absent and we resolve the panel
- * directly. At ≥1440px the full 220px variant renders; the icon-rail
- * sibling is `display:none` so `getByRole` resolves to a single node.
- */
 export async function openFilters(page: Page): Promise<Locator> {
   const trigger = page.getByRole("button", { name: "Show filters" });
   if ((await trigger.count()) > 0) {
@@ -227,6 +199,16 @@ export async function waitForGlobeReady(page: Page) {
  * Wire page readiness: header + either a row or the documented empty
  * state (both are legitimate end-states depending on upstream volume).
  */
+/** Feed › Wire: click the "Wire" segment of the Feed view switch and wait for it to select. */
+export async function openFeedWire(page: Page) {
+  const seg = page.getByRole("tablist", { name: "Feed view" }).getByRole("tab", { name: "Wire", exact: true });
+  await expect(seg).toBeVisible();
+  await expect(async () => {
+    await seg.click({ force: true });
+    await expect(seg).toHaveAttribute("aria-selected", "true", { timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
+}
+
 export async function waitForWireReady(page: Page) {
   // "Chronological" appears only on the WirePage body (either
   // "Chronological · last Xm · …" or the fallback "Chronological feed")

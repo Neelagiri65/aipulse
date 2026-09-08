@@ -1,7 +1,7 @@
 /**
  * Public `/digest/{date}` page — read-only archive of a single daily
  * digest. Reached from:
- *   - the "View on Gawk" link in an email,
+ *   - the "View on gawk.dev" link in an email,
  *   - shared LinkedIn/X posts (share-offsite resolves og: tags here).
  *
  * Server component. Reads the `DigestBody` from Redis via
@@ -40,13 +40,13 @@ export async function generateMetadata({
   const { date } = await params;
   const digest = await loadDigest(date);
   if (!digest) {
-    return { title: "Gawk — archive not found", robots: { index: false } };
+    return { title: "gawk.dev — archive not found", robots: { index: false } };
   }
   const baseUrl = await inferBaseUrl();
   const url = `${baseUrl}/digest/${digest.date}`;
   const description =
     digest.mode === "quiet"
-      ? "A quiet day in the AI ecosystem. Baseline metrics from Gawk."
+      ? "A quiet day in the AI ecosystem. Baseline metrics from gawk.dev."
       : "Five verifiable things that moved in the AI ecosystem. Every number traces to a public source.";
   return {
     title: digest.subject,

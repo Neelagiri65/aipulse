@@ -4,7 +4,7 @@ import { PrivacyFooter } from "@/components/consent/PrivacyFooter";
 import { ymdUtc } from "@/lib/data/snapshot";
 
 export const metadata: Metadata = {
-  title: "Subscription confirmation — Gawk",
+  title: "Subscription confirmation — gawk.dev",
 };
 
 type ConfirmState = "ok" | "expired" | "invalid" | "not-found" | "error";

@@ -1,13 +1,37 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
-import { Globe, type GlobePoint } from "@/components/globe/Globe";
+import { useEffect, useMemo, useState, useSyncExternalStore, useRef } from "react";
+import type { GlobePoint } from "@/components/globe/Globe";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
+import { WorldBand } from "@/components/health/WorldBand";
+import { BoardView } from "@/components/dashboard/BoardView";
+import { HealthTiles } from "@/components/health/HealthTiles";
+import { FeedView } from "@/components/feed/FeedView";
+import { FeedModeSwitch } from "@/components/feed/FeedModeSwitch";
+import { RoomsView } from "@/components/dashboard/RoomsView";
+import { useCommunity } from "@/lib/community/use-community";
+import { MoreView } from "@/components/dashboard/MoreView";
+import {
+  DEFAULT_FEED_VIEW,
+  DEFAULT_TAB,
+  feedViewFromSearch,
+  tabFromSearch,
+  writeFeedViewToUrl,
+  writeTabToUrl,
+  type FeedViewMode,
+  type PrimaryTab,
+  type BoardId,
+  boardFromSearch,
+  isBoardId,
+  writeBoardToUrl,
+} from "@/components/chrome/primary-tabs";
+
+const subscribeNever = () => () => {};
 import { LiveFeed } from "@/components/dashboard/LiveFeed";
 import { MetricsRow } from "@/components/dashboard/MetricsRow";
 import { WirePage, type WireItem } from "@/components/dashboard/WirePage";
-import { TopBar, type ViewTabId } from "@/components/chrome/TopBar";
+import { TopBar } from "@/components/chrome/TopBar";
 import { StatusBar, deriveSev } from "@/components/chrome/StatusBar";
 import { HeroStrip } from "@/components/chrome/HeroStrip";
 import { StatBar, type StatSegment } from "@/components/chrome/StatBar";
@@ -15,10 +39,6 @@ import {
   topCategoryCounts,
   topCountryCounts,
 } from "@/lib/stats/panel-stats";
-import {
-  capForViewportWidth,
-  togglePanelWithCap,
-} from "@/lib/panels/panel-cap";
 
 // Leaflet is client-only (touches `window` at import). Lazy-load with
 // ssr:false so the map bundle + its CSS only ship to the browser.
@@ -44,14 +64,13 @@ const EcosystemMap = dynamic(
     ),
   },
 );
-import { Win } from "@/components/chrome/Win";
 import { InsightLine } from "@/components/chrome/InsightLine";
 import {
   wireInsight,
   modelsInsight,
   benchmarksInsight,
 } from "@/lib/panels/insights";
-import { LeftNav, type NavItem } from "@/components/chrome/LeftNav";
+import type { NavItem } from "@/components/chrome/nav-items";
 import {
   FilterPanel,
   DEFAULT_FILTERS,
@@ -232,6 +251,9 @@ export function Dashboard({
     REGISTRY_POLL_MS,
   );
   const models = usePolledEndpoint<ModelsResult>("/api/models", MODELS_POLL_MS);
+  // One /api/community read for the shell: the Community tab's server panel and the feed's
+  // "Discuss" link both show the same number, because they are the same read.
+  const community = useCommunity();
   const research = usePolledEndpoint<ResearchResult>(
     "/api/research",
     RESEARCH_POLL_MS,
@@ -393,7 +415,7 @@ export function Dashboard({
               repo?: string;
               createdAt?: string;
               hasAiConfig?: boolean;
-              sourceKind?: "events-api" | "gharchive";
+              sourceKind?: "events-api" | "gharchive" | "tracked-repo" | "gitlab";
             }
           | undefined;
         if (
@@ -438,139 +460,68 @@ export function Dashboard({
   // tiles stay crisp at every zoom level, where the 3D globe texture goes
   // grainy. Globe stays as a secondary view; Wire is the chronological
   // feed without any geospatial stage.
-  const [activeTab, setActiveTab] = useState<ViewTabId>("map");
-
-  // Floating panel layout state. All panels start closed so first load
-  // is map-only — the observatory stage reads before any panel chrome
-  // occludes it. Every panel opens on demand via the left nav.
-  const [panels, setPanels] = useState<Record<PanelId, { open: boolean; min: boolean }>>(
-    {
-      wire: { open: false, min: false },
-      tools: { open: false, min: false },
-      models: { open: false, min: false },
-      research: { open: false, min: false },
-      benchmarks: { open: false, min: false },
-      labs: { open: false, min: false },
-      "regional-wire": { open: false, min: false },
-      "sdk-adoption": { open: false, min: false },
-      "model-usage": { open: false, min: false },
-      agents: { open: false, min: false },
-      launches: { open: false, min: false },
-    },
+  // Web v2: five primary surfaces, shared with the mobile shell; `?tab=` deep links in both.
+  // The URL is read through useSyncExternalStore so hydration renders the default and the
+  // client snapshot takes over without a state-setting effect; a click overrides and writes back.
+  const urlTab = useSyncExternalStore(
+    subscribeNever,
+    () => tabFromSearch(window.location.search),
+    () => DEFAULT_TAB,
   );
-  const [zorder, setZorder] = useState<PanelId[]>([
-    "wire",
-    "tools",
-    "models",
-    "research",
-    "benchmarks",
-    "labs",
-    "regional-wire",
-    "sdk-adoption",
-    "model-usage",
-    "agents",
-    "launches",
-  ]);
-  const [maxId, setMaxId] = useState<PanelId | null>(null);
+  const [tabOverride, setTabOverride] = useState<PrimaryTab | null>(null);
+  const activeTab: PrimaryTab = tabOverride ?? urlTab;
+  const setActiveTab = (tab: PrimaryTab) => {
+    setTabOverride(tab);
+    writeTabToUrl(tab);
+  };
+  // Feed: Stories (default) or the chronological Wire; `?view=wire` deep link, same pattern.
+  const urlFeedView = useSyncExternalStore(
+    subscribeNever,
+    () => feedViewFromSearch(window.location.search),
+    () => DEFAULT_FEED_VIEW,
+  );
+  const [feedViewOverride, setFeedViewOverride] = useState<FeedViewMode | null>(null);
+  const feedView: FeedViewMode = feedViewOverride ?? urlFeedView;
+  const setFeedView = (mode: FeedViewMode) => {
+    setFeedViewOverride(mode);
+    writeFeedViewToUrl(mode);
+  };
+  // More › board: the boards are reading surfaces under More; `?board=` deep-links one.
+  const urlBoard = useSyncExternalStore(
+    subscribeNever,
+    () => boardFromSearch(window.location.search),
+    () => null,
+  );
+  const [boardOverride, setBoardOverride] = useState<BoardId | null | undefined>(undefined);
+  const board: BoardId | null = boardOverride === undefined ? urlBoard : boardOverride;
+  const openBoard = (id: BoardId) => {
+    setActiveTab("more");
+    setBoardOverride(id);
+    writeBoardToUrl(id);
+    track("panel_open", { panel: id, surface: "board" });
+  };
+  const closeBoard = () => {
+    setBoardOverride(null);
+    writeBoardToUrl(null);
+  };
+  const boardRef = useRef<BoardId | null>(null);
+  boardRef.current = board;
+  const openBoardRef = useRef(openBoard);
+  openBoardRef.current = openBoard;
+  const closeBoardRef = useRef(closeBoard);
+  closeBoardRef.current = closeBoard;
+  const openWire = () => {
+    closeBoard();
+    setActiveTab("feed");
+    setFeedView("wire");
+  };
+  // Map tab: live events (default) or the labs/ecosystem layer.
+  const [mapLayer, setMapLayer] = useState<"events" | "labs">("events");
 
-  // Initial panel positions — set after mount (window-relative). Moved
-  // right to sit inside the viewport once the left rail claims 44px.
-  const [initialPos, setInitialPos] = useState<{
-    wire: { x: number; y: number; w: number; h: number };
-    tools: { x: number; y: number; w: number; h: number };
-    models: { x: number; y: number; w: number; h: number };
-    research: { x: number; y: number; w: number; h: number };
-    benchmarks: { x: number; y: number; w: number; h: number };
-    labs: { x: number; y: number; w: number; h: number };
-    "regional-wire": { x: number; y: number; w: number; h: number };
-    "sdk-adoption": { x: number; y: number; w: number; h: number };
-    "model-usage": { x: number; y: number; w: number; h: number };
-    agents: { x: number; y: number; w: number; h: number };
-    launches: { x: number; y: number; w: number; h: number };
-  } | null>(null);
-  useEffect(() => {
-    const W = typeof window !== "undefined" ? window.innerWidth : 1440;
-    // Win y-values sit below TopBar (48px) + StatusBar (28px) + HeroStrip (56px) = 132px
-    // total chrome, with a 24px safety margin before the first panel.
-    const filterReserve = W >= 1440 ? 240 : 64;
-    const rightAnchor = (panelW: number, floor: number) =>
-      Math.max(floor, W - panelW - filterReserve);
-    const stripOffset =
-      typeof document !== "undefined" &&
-      document.body.dataset.highlights === "1"
-        ? 36
-        : 0;
-    const dy = (y: number) => y + 56 + stripOffset;
-    setInitialPos({
-      wire: { x: 64, y: dy(100), w: 380, h: 540 },
-      tools: { x: rightAnchor(376, 460), y: dy(100), w: 376, h: 540 },
-      // Models floats slightly down-left of Tools so opening it doesn't
-      // stack directly on top of the default layout. Still anchored to
-      // the right half; Wire owns the left.
-      models: { x: rightAnchor(376, 440), y: dy(160), w: 376, h: 520 },
-      // Research opens beside Wire on the left half so paper rows (long
-      // titles) get comfortable width without clashing with Models on
-      // the right. Staggered so a two-panel open doesn't stack.
-      research: { x: 92, y: dy(188), w: 420, h: 540 },
-      // Benchmarks is a 7-column table — needs a wider default than
-      // Models. Centres on the viewport so it reads as the "rank table"
-      // view; staggered so opening alongside Wire/Tools doesn't stack
-      // on top of either.
-      benchmarks: {
-        x: Math.max(120, Math.floor((W - 540) / 2)),
-        y: dy(228),
-        w: 540,
-        h: 560,
-      },
-      // Labs sits on the left half, below Wire by default. 32 labs at
-      // ~60px/row = ~1920px scroll height, so the panel is scrollable,
-      // not full-height; 420 wide keeps long lab names + city on one
-      // line at typical viewports.
-      labs: { x: 108, y: dy(248), w: 420, h: 560 },
-      // Regional Wire sits slightly down-right of Labs so opening both
-      // doesn't stack. 420 wide matches the Labs sibling; 5 rows are
-      // short, so the panel is compact at 420h.
-      "regional-wire": { x: 136, y: dy(288), w: 420, h: 420 },
-      // SDK Adoption is a wide table (matrix + sticky row labels);
-      // 720 wide gives the 30-day grid breathing room above 1280px and
-      // crops gracefully via the responsive helper below 1280. Centred
-      // horizontally so it doesn't stack on Labs/Wire on first open.
-      "sdk-adoption": {
-        x: Math.max(120, Math.floor((W - 720) / 2)),
-        y: dy(168),
-        w: 720,
-        h: 540,
-      },
-      // Model Usage is a 4-column dense list; 460 wide keeps the
-      // pricing pair + context cell on one line at every viewport.
-      // Right-anchored beneath Tools so opening it alongside the
-      // default Tools panel doesn't fully overlap.
-      "model-usage": {
-        x: rightAnchor(460, 420),
-        y: dy(220),
-        w: 460,
-        h: 600,
-      },
-      // Agents is an 8-row table; 480 wide gives the framework name +
-      // language chip + status badge headroom on one line at every
-      // viewport. Centred so it doesn't stack on Wire (left) or Tools
-      // (right) on first open.
-      agents: {
-        x: Math.max(120, Math.floor((W - 480) / 2)),
-        y: dy(204),
-        w: 480,
-        h: 540,
-      },
-      // Launches is a compact ranked list (≤8 PH AI launches); 440 wide,
-      // centred and staggered below Agents so it doesn't stack on first open.
-      launches: {
-        x: Math.max(120, Math.floor((W - 440) / 2)),
-        y: dy(232),
-        w: 440,
-        h: 520,
-      },
-    });
-  }, []);
+  // Boards are reading surfaces under More; the Map stage is the map alone. Nothing floats over
+  // it any more, so there is no window layout state to keep.
+
+  // (removed with the floating windows: initial positions, z-order, the visible-panel cap)
 
   const navItems: NavItem[] = [
     {
@@ -646,49 +597,11 @@ export function Dashboard({
     { id: "audit", label: "Audit", icon: "audit", soon: true },
   ];
 
-  const focus = (id: PanelId) =>
-    setZorder((z) => [...z.filter((x) => x !== id), id]);
 
-  const toggle = (id: string) => {
-    if (
-      id !== "wire" &&
-      id !== "tools" &&
-      id !== "models" &&
-      id !== "research" &&
-      id !== "benchmarks" &&
-      id !== "labs" &&
-      id !== "regional-wire" &&
-      id !== "sdk-adoption" &&
-      id !== "model-usage" &&
-      id !== "agents" &&
-      id !== "launches"
-    )
-      return;
-    const pid = id as PanelId;
-    // FIX-01 — viewport cap (1 visible panel <1440, 2 visible panels ≥1440).
-    // Pure logic lives in `togglePanelWithCap`; see its docstring.
-    const W = typeof window !== "undefined" ? window.innerWidth : 1440;
-    const cap = capForViewportWidth(W);
-    const wasOpen = panels[pid]?.open === true && panels[pid]?.min === false;
-    setPanels((p) => togglePanelWithCap(p, zorder, pid, cap));
-    focus(pid);
-    if (!wasOpen) {
-      // Fire only on open transitions — closing a panel isn't a
-      // product signal we care about. Panel id is low-cardinality and
-      // non-PII so it's safe as an event prop.
-      track("panel_open", { panel: pid });
-    }
-  };
 
-  const openIds = new Set<string>(
-    (Object.keys(panels) as PanelId[])
-      .filter((id) => panels[id].open && !panels[id].min)
-      .map(String),
-  );
 
-  const z = (id: PanelId) => 30 + zorder.indexOf(id);
 
-  // Per-panel master-detail stat bars (FIX-13). Derivation lives here so
+  // Per-board master-detail stat bars (FIX-13). Derivation lives here so
   // the typed payloads stay close to the polled endpoints; StatBar itself
   // is pure presentational. `segments` is allowed to be empty — StatBar
   // renders "—" rather than fabricating counts.
@@ -786,10 +699,10 @@ export function Dashboard({
     );
   })();
 
-  // Per-panel insight lines (S85 slice). One deterministic, source-traced
-  // sentence per panel, derived from that panel's own polled payload — never
+  // Per-board insight lines (S85 slice). One deterministic, source-traced
+  // sentence per board, derived from that board's own polled payload — never
   // an LLM, never a re-ranking (CLAUDE.md trust contract). Rendered in the
-  // Win.insight slot under the StatBar. Three-panel slice: wire, models,
+  // board header under the StatBar. Three-board slice: wire, models,
   // benchmarks. Each deriver returns null on empty/error → no line shown.
   const wireInsightNode = (
     <InsightLine
@@ -807,73 +720,44 @@ export function Dashboard({
     <InsightLine insight={benchmarksInsight(benchmarks.data)} />
   );
 
-  // Topmost open panel — the one at the end of zorder that's also open
-  // and not minimized. Drives the ap-win--topmost vs --behind treatment
-  // so a stack of open panels reads as a legible z-order rather than
-  // visual noise.
-  const topmostOpenId: PanelId | null = (() => {
-    for (let i = zorder.length - 1; i >= 0; i--) {
-      const id = zorder[i];
-      if (panels[id]?.open && !panels[id]?.min) return id;
-    }
-    return null;
-  })();
-
-  // Keyboard shortcuts (FIX-15). Esc closes the topmost open panel;
-  // 1-9 toggles the nth nav item (skipping `soon` items).
+  // Keyboard: Escape closes the open board and returns to the More index; 1-9 open the nth board.
   //
-  // Esc coordination with the Globe event-detail card: Globe binds its
-  // own Esc listener while a card is selected (event-detail uses
-  // role="dialog"); when the card is open we yield to that listener
-  // by no-oping here, so a single Escape press dismisses the card
-  // rather than nuking both card + topmost panel.
+  // Esc coordination with the event-detail card: it binds its own Escape listener while a card is
+  // open (role="dialog"), so we no-op here and a single press dismisses the card rather than the
+  // card and the board together.
   //
-  // Input safety: skip when focus is in an input/textarea/contenteditable
-  // so users typing in the eventual search field don't lose keystrokes.
+  // Input safety: skip when focus sits in a field so a reader typing never loses keystrokes.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
-      if (
-        tag === "INPUT" ||
-        tag === "TEXTAREA" ||
-        tag === "SELECT" ||
-        target?.isContentEditable
-      ) {
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable) {
         return;
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       if (e.key === "Escape") {
-        // Yield to Globe's card Esc handler when a card is open.
-        if (typeof document !== "undefined" && document.querySelector('[role="dialog"]')) {
-          return;
-        }
-        if (!topmostOpenId) return;
+        if (typeof document !== "undefined" && document.querySelector('[role="dialog"]')) return;
+        if (!boardRef.current) return;
         e.preventDefault();
-        setPanels((p) => ({
-          ...p,
-          [topmostOpenId]: { open: false, min: false },
-        }));
+        closeBoardRef.current();
         return;
       }
 
-      // 1-9 → nth nav item (1-indexed).
       if (e.key >= "1" && e.key <= "9") {
         const idx = Number(e.key) - 1;
         const item = navItems[idx];
-        if (!item || item.soon) return;
+        if (!item || item.soon || !isBoardId(item.id)) return;
         e.preventDefault();
-        toggle(item.id);
+        openBoardRef.current(item.id);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // navItems is rebuilt on every render but only reads counts; the
-    // ids + soon flags are stable, so re-binding on each render is fine
-    // and the deps array can stay narrow.
+    // navItems is rebuilt on every render but only its ids and soon flags are read, and those are
+    // stable; the open/close handlers are reached through refs so this binds once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topmostOpenId]);
+  }, []);
 
   // Top-3 highlights derived from the SSR'd / polled FeedResponse. Empty
   // on a quiet day so the strip disappears rather than promote low-
@@ -905,21 +789,78 @@ export function Dashboard({
    * z-order, viewport-cap, and analytics tracking all stay in sync
    * with the LeftNav handler — chip clicks behave like a nav click.
    */
+  // A highlight opens its board under More; the Wire highlight goes to Feed › Wire.
   const openHighlightPanel = (panel: HighlightPanelId) => {
-    const isOpen = panels[panel]?.open === true && panels[panel]?.min === false;
-    if (isOpen) {
-      // Already open: bring to front instead of toggling closed.
-      focus(panel);
-      return;
-    }
-    toggle(panel);
+    if (panel === "wire") openWire();
+    else openBoard(panel);
   };
+
+  /** The board bodies — the same components the phone accordion renders, fed from the polls. */
+  const renderBoardBody = (id: BoardId) => {
+    switch (id) {
+      case "tools":
+        return (
+          <div className="p-3">
+            <HealthCardGrid data={status.data?.data} polledAt={status.data?.polledAt} maximized={true} />
+            {status.error && <p className="ap-column__sub">Status poll error: {status.error}</p>}
+          </div>
+        );
+      case "models":
+        return <ModelsPanel data={models.data} error={models.error} isInitialLoading={models.isInitialLoading} />;
+      case "research":
+        return <ResearchPanel data={research.data} error={research.error} isInitialLoading={research.isInitialLoading} />;
+      case "benchmarks":
+        return (
+          <BenchmarksPanel
+            data={benchmarks.data}
+            error={benchmarks.error}
+            isInitialLoading={benchmarks.isInitialLoading}
+            eloHistory={benchmarksHistory.data?.byModel}
+          />
+        );
+      case "labs":
+        return <LabsPanel data={labs.data} error={labs.error} isInitialLoading={labs.isInitialLoading} />;
+      case "regional-wire":
+        return <RegionalWirePanel data={rss.data} error={rss.error} isInitialLoading={rss.isInitialLoading} />;
+      case "sdk-adoption":
+        return (
+          <SdkAdoptionPanel
+            data={sdkAdoption.data ?? null}
+            error={sdkAdoption.error ?? null}
+            isInitialLoading={sdkAdoption.isInitialLoading}
+            originUrl={typeof window !== "undefined" ? window.location.origin : ""}
+          />
+        );
+      case "model-usage":
+        return (
+          <ModelUsagePanel
+            data={modelUsage.data ?? null}
+            error={modelUsage.error ?? null}
+            isInitialLoading={modelUsage.isInitialLoading}
+            originUrl={typeof window !== "undefined" ? window.location.origin : ""}
+          />
+        );
+      case "agents":
+        return <AgentsPanel data={agents.data ?? undefined} error={agents.error ?? undefined} isInitialLoading={agents.isInitialLoading} />;
+      case "launches":
+        return <LaunchesPanel data={productHunt.data ?? undefined} error={productHunt.error ?? undefined} isInitialLoading={productHunt.isInitialLoading} />;
+    }
+  };
+  const boardStatBar = (id: BoardId) =>
+    id === "tools" ? toolsStatBar : id === "models" ? modelsStatBar : id === "research" ? researchStatBar : id === "benchmarks" ? benchmarksStatBar : id === "labs" ? labsStatBar : id === "regional-wire" ? regionalWireStatBar : undefined;
+  const boardInsight = (id: BoardId) => (id === "models" ? modelsInsightNode : id === "benchmarks" ? benchmarksInsightNode : undefined);
+  const boardFullPage = (id: BoardId) => (id === "sdk-adoption" ? "/panels/sdk-adoption" : id === "model-usage" ? "/panels/model-usage" : undefined);
+  const boardItem = (id: BoardId) => navItems.find((n) => n.id === id);
 
   const isMobile = useIsMobile();
 
   if (isMobile) {
     return (
       <MobileDashboard
+        topTab={activeTab}
+        onTopTabChange={setActiveTab}
+        feedView={feedView}
+        onFeedViewChange={setFeedView}
         points={points}
         events={events.data}
         eventsLoading={events.isInitialLoading}
@@ -971,6 +912,7 @@ export function Dashboard({
             : undefined
         }
         initialFeedResponse={initialFeedResponse}
+        feed={feed.data ?? initialFeedResponse}
       />
     );
   }
@@ -1030,54 +972,128 @@ export function Dashboard({
         className="fixed inset-0"
         style={{ paddingTop: stagePaddingTop, paddingBottom: 140, zIndex: 3 }}
       >
+        {activeTab === "health" && (
+          <div className="ap-column-scroll">
+            <section className="ap-column ap-column--health" aria-label="Health">
+              <HealthCardGrid data={status.data?.data} polledAt={status.data?.polledAt} maximized={true} />
+              <WorldBand
+                events={events.data}
+                loading={events.isInitialLoading}
+                error={events.error}
+                cols={90}
+                onOpenMap={() => setActiveTab("map")}
+              />
+              <HealthTiles
+                onOpenBoard={openBoard}
+                feed={feed.data ?? initialFeedResponse}
+                status={status.data}
+                events={events.data}
+                labs={labs.data}
+              />
+              {status.error ? (
+                <p className="ap-column__sub">Status poll error: {status.error}</p>
+              ) : null}
+            </section>
+          </div>
+        )}
+        {activeTab === "feed" && (
+          <div className="ap-column-scroll">
+            <section className="ap-column ap-column--feed" aria-label="Feed">
+              <FeedModeSwitch mode={feedView} onChange={setFeedView} />
+              {feedView === "stories" ? (
+                <FeedView initialResponse={feed.data ?? initialFeedResponse} community={community} />
+              ) : (
+                <WirePage
+                  wireRows={wireRows}
+                  ghCoverage={
+                    events.data
+                      ? {
+                          windowMinutes: events.data.coverage.windowMinutes,
+                          windowSize: events.data.coverage.windowSize,
+                        }
+                      : undefined
+                  }
+                  hnMeta={hn.data?.meta}
+                  polledAt={events.data?.polledAt}
+                  error={events.error}
+                  isInitialLoading={events.isInitialLoading && hn.isInitialLoading}
+                />
+              )}
+            </section>
+          </div>
+        )}
         {activeTab === "map" && (
           <div className="relative h-full w-full">
-            <FlatMap
-              points={points}
-              lastUpdatedAt={lastUpdatedAt}
-              regionalDeltas={regionalDeltas.data ?? null}
+            {mapLayer === "events" ? (
+              <>
+                <FlatMap
+                  points={points}
+                  lastUpdatedAt={lastUpdatedAt}
+                  regionalDeltas={regionalDeltas.data ?? null}
+                />
+                <CoverageBadge events={events.data} />
+                <MapLegend filters={filters} />
+                {aiConfigStranded && <AiConfigStrandedNote />}
+              </>
+            ) : (
+              <EcosystemMap labs={labs.data?.labs ?? []} />
+            )}
+            <div className="ap-seg" role="tablist" aria-label="Map layer">
+              {(
+                [
+                  ["events", "Events"],
+                  ["labs", "Labs"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={mapLayer === id}
+                  className={`ap-seg__item${mapLayer === id ? " is-active" : ""}`}
+                  onClick={() => setMapLayer(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {activeTab === "rooms" && (
+          <div className="ap-column-scroll">
+            <RoomsView
+              rows={wireRows}
+              polledAt={events.data?.polledAt}
+              windowMinutes={events.data?.coverage.windowMinutes}
+              community={community}
             />
-            <CoverageBadge events={events.data} />
-            <MapLegend filters={filters} />
-            {aiConfigStranded && <AiConfigStrandedNote />}
           </div>
         )}
-        {activeTab === "ecosystem" && (
-          <EcosystemMap labs={labs.data?.labs ?? []} />
-        )}
-        {activeTab === "globe" && (
-          <div className="relative h-full w-full">
-            <Globe points={points} lastUpdatedAt={lastUpdatedAt} />
-            <CoverageBadge events={events.data} />
-            <MapLegend filters={filters} />
-            {aiConfigStranded && <AiConfigStrandedNote />}
+        {activeTab === "more" && (
+          <div className="ap-column-scroll">
+            {board ? (
+              <BoardView
+                id={board}
+                count={boardItem(board)?.count ?? undefined}
+                statBar={boardStatBar(board)}
+                insight={boardInsight(board)}
+                fullPageHref={boardFullPage(board)}
+                onBack={closeBoard}
+              >
+                {renderBoardBody(board)}
+              </BoardView>
+            ) : (
+              <MoreView items={navItems} currentBoard={board} onOpenBoard={openBoard} onOpenWire={openWire} />
+            )}
           </div>
-        )}
-        {activeTab === "wire" && (
-          <WirePage
-            wireRows={wireRows}
-            ghCoverage={
-              events.data
-                ? {
-                    windowMinutes: events.data.coverage.windowMinutes,
-                    windowSize: events.data.coverage.windowSize,
-                  }
-                : undefined
-            }
-            hnMeta={hn.data?.meta}
-            polledAt={events.data?.polledAt}
-            error={events.error}
-            isInitialLoading={events.isInitialLoading && hn.isInitialLoading}
-          />
         )}
       </div>
 
       {/* Left-edge icon nav */}
-      <LeftNav items={navItems} openIds={openIds} onToggle={toggle} />
 
       {/* Right-edge filter panel — renders on both map + globe (they share
           the filtered point set). Wire view has its own filter semantics. */}
-      {(activeTab === "map" || activeTab === "globe" || activeTab === "ecosystem") && (
+      {activeTab === "map" && (
         <FilterPanel
           filters={filters}
           onToggle={toggleFilter}
@@ -1088,424 +1104,21 @@ export function Dashboard({
       {/* Floating panels — renders on map + globe (geospatial views where
           side panels add context). Wire is its own full-screen feed, so
           floating panels would be redundant. */}
-      {(activeTab === "map" || activeTab === "globe" || activeTab === "ecosystem") && (
-        <>
-          {initialPos && panels.wire.open && (
-            <Win
-              id="wire"
-              title="Live feed · gh-events"
-              accent="teal"
-              statBar={wireStatBar}
-              insight={wireInsightNode}
-              initial={initialPos.wire}
-              zIndex={z("wire")}
-              minimized={panels.wire.min}
-              maximized={maxId === "wire"}
-              topmost={topmostOpenId === "wire"}
-              onFocus={() => focus("wire")}
-              onClose={() =>
-                setPanels((p) => ({ ...p, wire: { open: false, min: false } }))
-              }
-              onMinimize={() =>
-                setPanels((p) => ({
-                  ...p,
-                  wire: { ...p.wire, min: !p.wire.min },
-                }))
-              }
-              onMaximize={() => setMaxId((m) => (m === "wire" ? null : "wire"))}
-            >
-              <LiveFeed
-                events={events.data}
-                error={events.error}
-                isInitialLoading={events.isInitialLoading}
-              />
-            </Win>
-          )}
-
-          {initialPos && panels.tools.open && (
-            <Win
-              id="tools"
-              title="Tool health"
-              accent="green"
-              statBar={toolsStatBar}
-              initial={initialPos.tools}
-              zIndex={z("tools")}
-              minimized={panels.tools.min}
-              maximized={maxId === "tools"}
-              maximizedLayout="centered"
-              topmost={topmostOpenId === "tools"}
-              onFocus={() => focus("tools")}
-              onClose={() =>
-                setPanels((p) => ({ ...p, tools: { open: false, min: false } }))
-              }
-              onMinimize={() =>
-                setPanels((p) => ({
-                  ...p,
-                  tools: { ...p.tools, min: !p.tools.min },
-                }))
-              }
-              onMaximize={() => setMaxId((m) => (m === "tools" ? null : "tools"))}
-            >
-              <div className="p-3">
-                <HealthCardGrid
-                  data={status.data?.data}
-                  maximized={maxId === "tools"}
-                />
-                {status.error && (
-                  <p className="mt-2 font-mono text-[9px] uppercase tracking-wider text-amber-400/80">
-                    Status poll error: {status.error}
-                  </p>
-                )}
-              </div>
-            </Win>
-          )}
-
-          {initialPos && panels.models.open && (
-            <Win
-              id="models"
-              title="Top models · hf-downloads"
-              accent="teal"
-              statBar={modelsStatBar}
-              insight={modelsInsightNode}
-              initial={initialPos.models}
-              zIndex={z("models")}
-              minimized={panels.models.min}
-              maximized={maxId === "models"}
-              topmost={topmostOpenId === "models"}
-              onFocus={() => focus("models")}
-              onClose={() =>
-                setPanels((p) => ({ ...p, models: { open: false, min: false } }))
-              }
-              onMinimize={() =>
-                setPanels((p) => ({
-                  ...p,
-                  models: { ...p.models, min: !p.models.min },
-                }))
-              }
-              onMaximize={() => setMaxId((m) => (m === "models" ? null : "models"))}
-            >
-              <ModelsPanel
-                data={models.data}
-                error={models.error}
-                isInitialLoading={models.isInitialLoading}
-              />
-            </Win>
-          )}
-
-          {initialPos && panels.research.open && (
-            <Win
-              id="research"
-              title="Recent papers · arxiv"
-              accent="violet"
-              statBar={researchStatBar}
-              initial={initialPos.research}
-              zIndex={z("research")}
-              minimized={panels.research.min}
-              maximized={maxId === "research"}
-              topmost={topmostOpenId === "research"}
-              onFocus={() => focus("research")}
-              onClose={() =>
-                setPanels((p) => ({
-                  ...p,
-                  research: { open: false, min: false },
-                }))
-              }
-              onMinimize={() =>
-                setPanels((p) => ({
-                  ...p,
-                  research: { ...p.research, min: !p.research.min },
-                }))
-              }
-              onMaximize={() =>
-                setMaxId((m) => (m === "research" ? null : "research"))
-              }
-            >
-              <ResearchPanel
-                data={research.data}
-                error={research.error}
-                isInitialLoading={research.isInitialLoading}
-              />
-            </Win>
-          )}
-
-          {initialPos && panels.benchmarks.open && (
-            <Win
-              id="benchmarks"
-              title="Chatbot Arena · top 20 · lmarena-leaderboard"
-              accent="amber"
-              statBar={benchmarksStatBar}
-              insight={benchmarksInsightNode}
-              initial={initialPos.benchmarks}
-              zIndex={z("benchmarks")}
-              minimized={panels.benchmarks.min}
-              maximized={maxId === "benchmarks"}
-              topmost={topmostOpenId === "benchmarks"}
-              onFocus={() => focus("benchmarks")}
-              onClose={() =>
-                setPanels((p) => ({
-                  ...p,
-                  benchmarks: { open: false, min: false },
-                }))
-              }
-              onMinimize={() =>
-                setPanels((p) => ({
-                  ...p,
-                  benchmarks: { ...p.benchmarks, min: !p.benchmarks.min },
-                }))
-              }
-              onMaximize={() =>
-                setMaxId((m) => (m === "benchmarks" ? null : "benchmarks"))
-              }
-            >
-              <BenchmarksPanel
-                data={benchmarks.data}
-                error={benchmarks.error}
-                isInitialLoading={benchmarks.isInitialLoading}
-                eloHistory={benchmarksHistory.data?.byModel}
-              />
-            </Win>
-          )}
-
-          {initialPos && panels.labs.open && (
-            <Win
-              id="labs"
-              title="AI Labs · 7d activity · curated registry"
-              accent="violet"
-              statBar={labsStatBar}
-              initial={initialPos.labs}
-              zIndex={z("labs")}
-              minimized={panels.labs.min}
-              maximized={maxId === "labs"}
-              topmost={topmostOpenId === "labs"}
-              onFocus={() => focus("labs")}
-              onClose={() =>
-                setPanels((p) => ({ ...p, labs: { open: false, min: false } }))
-              }
-              onMinimize={() =>
-                setPanels((p) => ({
-                  ...p,
-                  labs: { ...p.labs, min: !p.labs.min },
-                }))
-              }
-              onMaximize={() => setMaxId((m) => (m === "labs" ? null : "labs"))}
-            >
-              <LabsPanel
-                data={labs.data}
-                error={labs.error}
-                isInitialLoading={labs.isInitialLoading}
-              />
-            </Win>
-          )}
-
-          {initialPos && panels["regional-wire"].open && (
-            <Win
-              id="regional-wire"
-              title="Regional Wire · non-SV publishers · 24h activity"
-              accent="orange"
-              statBar={regionalWireStatBar}
-              initial={initialPos["regional-wire"]}
-              zIndex={z("regional-wire")}
-              minimized={panels["regional-wire"].min}
-              maximized={maxId === "regional-wire"}
-              topmost={topmostOpenId === "regional-wire"}
-              onFocus={() => focus("regional-wire")}
-              onClose={() =>
-                setPanels((p) => ({
-                  ...p,
-                  "regional-wire": { open: false, min: false },
-                }))
-              }
-              onMinimize={() =>
-                setPanels((p) => ({
-                  ...p,
-                  "regional-wire": {
-                    ...p["regional-wire"],
-                    min: !p["regional-wire"].min,
-                  },
-                }))
-              }
-              onMaximize={() =>
-                setMaxId((m) =>
-                  m === "regional-wire" ? null : "regional-wire",
-                )
-              }
-            >
-              <RegionalWirePanel
-                data={rss.data}
-                error={rss.error}
-                isInitialLoading={rss.isInitialLoading}
-              />
-            </Win>
-          )}
-
-          {initialPos && panels["sdk-adoption"].open && (
-            <Win
-              id="sdk-adoption"
-              title="SDK Adoption · within-package daily Δ vs 30d baseline"
-              accent="violet"
-              initial={initialPos["sdk-adoption"]}
-              zIndex={z("sdk-adoption")}
-              minimized={panels["sdk-adoption"].min}
-              maximized={maxId === "sdk-adoption"}
-              topmost={topmostOpenId === "sdk-adoption"}
-              onFocus={() => focus("sdk-adoption")}
-              onClose={() =>
-                setPanels((p) => ({
-                  ...p,
-                  "sdk-adoption": { open: false, min: false },
-                }))
-              }
-              onMinimize={() =>
-                setPanels((p) => ({
-                  ...p,
-                  "sdk-adoption": {
-                    ...p["sdk-adoption"],
-                    min: !p["sdk-adoption"].min,
-                  },
-                }))
-              }
-              onMaximize={() =>
-                setMaxId((m) => (m === "sdk-adoption" ? null : "sdk-adoption"))
-              }
-            >
-              <SdkAdoptionPanel
-                data={sdkAdoption.data ?? null}
-                error={sdkAdoption.error ?? null}
-                isInitialLoading={sdkAdoption.isInitialLoading}
-                originUrl={
-                  typeof window !== "undefined" ? window.location.origin : ""
-                }
-              />
-            </Win>
-          )}
-
-          {initialPos && panels["model-usage"].open && (
-            <Win
-              id="model-usage"
-              title="Model Usage · OpenRouter request volume, weekly"
-              accent="teal"
-              initial={initialPos["model-usage"]}
-              zIndex={z("model-usage")}
-              minimized={panels["model-usage"].min}
-              maximized={maxId === "model-usage"}
-              topmost={topmostOpenId === "model-usage"}
-              onFocus={() => focus("model-usage")}
-              onClose={() =>
-                setPanels((p) => ({
-                  ...p,
-                  "model-usage": { open: false, min: false },
-                }))
-              }
-              onMinimize={() =>
-                setPanels((p) => ({
-                  ...p,
-                  "model-usage": {
-                    ...p["model-usage"],
-                    min: !p["model-usage"].min,
-                  },
-                }))
-              }
-              onMaximize={() =>
-                setMaxId((m) => (m === "model-usage" ? null : "model-usage"))
-              }
-            >
-              <ModelUsagePanel
-                data={modelUsage.data ?? null}
-                error={modelUsage.error ?? null}
-                isInitialLoading={modelUsage.isInitialLoading}
-                originUrl={
-                  typeof window !== "undefined" ? window.location.origin : ""
-                }
-              />
-            </Win>
-          )}
-
-          {initialPos && panels.agents.open && (
-            <Win
-              id="agents"
-              title="Agents · weekly downloads + maintenance state, 8 frameworks"
-              accent="teal"
-              initial={initialPos.agents}
-              zIndex={z("agents")}
-              minimized={panels.agents.min}
-              maximized={maxId === "agents"}
-              topmost={topmostOpenId === "agents"}
-              onFocus={() => focus("agents")}
-              onClose={() =>
-                setPanels((p) => ({
-                  ...p,
-                  agents: { open: false, min: false },
-                }))
-              }
-              onMinimize={() =>
-                setPanels((p) => ({
-                  ...p,
-                  agents: { ...p.agents, min: !p.agents.min },
-                }))
-              }
-              onMaximize={() =>
-                setMaxId((m) => (m === "agents" ? null : "agents"))
-              }
-            >
-              <AgentsPanel
-                data={agents.data ?? undefined}
-                error={agents.error ?? undefined}
-                isInitialLoading={agents.isInitialLoading}
-              />
-            </Win>
-          )}
-
-          {initialPos && panels.launches.open && (
-            <Win
-              id="launches"
-              title="Launches · top AI launches on Product Hunt this week"
-              accent="teal"
-              initial={initialPos.launches}
-              zIndex={z("launches")}
-              minimized={panels.launches.min}
-              maximized={maxId === "launches"}
-              topmost={topmostOpenId === "launches"}
-              onFocus={() => focus("launches")}
-              onClose={() =>
-                setPanels((p) => ({
-                  ...p,
-                  launches: { open: false, min: false },
-                }))
-              }
-              onMinimize={() =>
-                setPanels((p) => ({
-                  ...p,
-                  launches: { ...p.launches, min: !p.launches.min },
-                }))
-              }
-              onMaximize={() =>
-                setMaxId((m) => (m === "launches" ? null : "launches"))
-              }
-            >
-              <LaunchesPanel
-                data={productHunt.data ?? undefined}
-                error={productHunt.error ?? undefined}
-                isInitialLoading={productHunt.isInitialLoading}
-              />
-            </Win>
-          )}
-        </>
-      )}
-
-      {/* Four-card glance row, sitting above the live ticker strip. */}
-      <MetricsRow
+      {/* Four-card glance row above the ticker — the Map stage only; the reading columns carry
+          their own tiles (phase 3, canvas Health board). */}
+      {activeTab === "map" && <MetricsRow
         status={status.data}
         events={events.data}
         statusLoading={status.isInitialLoading}
         eventsLoading={events.isInitialLoading}
-      />
+      />}
 
       {/* Bottom-pinned stack: live event ticker on top of the metric
           ticker. The live ticker is its own dedicated 28px strip so it
           doesn't visually compete with MetricsRow above. Map+globe views
           only — the wire view is its own full-screen feed. */}
       <div className="fixed bottom-0 left-0 right-0 z-40 flex flex-col">
-        {(activeTab === "map" || activeTab === "globe") && (
+        {activeTab === "map" && mapLayer === "events" && (
           <>
             <TopMoversLine
               points={livePoints}

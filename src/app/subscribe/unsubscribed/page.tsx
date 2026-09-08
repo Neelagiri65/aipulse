@@ -3,7 +3,7 @@ import Link from "next/link";
 import { PrivacyFooter } from "@/components/consent/PrivacyFooter";
 
 export const metadata: Metadata = {
-  title: "Unsubscribed — Gawk",
+  title: "Unsubscribed — gawk.dev",
 };
 
 type UnsubState = "ok" | "invalid" | "not-found" | "error";

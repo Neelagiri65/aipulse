@@ -1,5 +1,5 @@
 /**
- * Gawk — Tool-alert transition detector.
+ * gawk.dev — Tool-alert transition detector.
  *
  * Pure function over (current TOOL_ALERT cards, previous-state hash). Returns
  * three lists:

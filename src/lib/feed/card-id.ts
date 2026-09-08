@@ -1,5 +1,5 @@
 /**
- * Gawk — Feed card-id
+ * gawk.dev — Feed card-id
  *
  * Deterministic id for a feed card. Stable across re-derivations within
  * the same hour bucket so a tweet of `/feed/[id]` keeps unfurling for the

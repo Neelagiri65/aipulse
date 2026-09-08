@@ -1,6 +1,9 @@
 /**
- * FeedView — the shared community poll becomes a per-card "Discuss" link
- * only while the route is answering and the join URL is configured.
+ * FeedView — the shared community poll becomes a "Discuss" link on the selected card's reading
+ * surface, only while the route is answering, the join URL is configured, and the card is a tool
+ * alert. (#106 put it on every alert row; the feed became list-plus-reading-surface, so the link
+ * lives where the card is actually read. The rule it encodes is unchanged: no invite next to a
+ * number the route did not just return.)
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -62,13 +65,33 @@ afterEach(() => {
 });
 
 describe("FeedView — community discuss", () => {
-  it("adds the link to alert cards only, while the route answers", () => {
+  it("adds the link to the alert's reading surface, once, while the route answers", () => {
     process.env[KEY] = "https://discord.gg/test-invite";
     const html = renderToStaticMarkup(
       <FeedView initialResponse={response} disablePolling community={answering} />,
     );
-    expect(html.match(/data-testid="feed-card-discuss"/g)?.length ?? 0).toBe(1);
+    // The tool alert is first, so it is the selected card on a fresh render.
+    expect(html.match(/data-testid="feed-reading-discuss"/g)?.length ?? 0).toBe(1);
     expect(html).toContain("2 online on Discord");
+    // The number never travels without the sentence that says what it is.
+    expect(html).toContain("Members Discord counts as online right now");
+  });
+
+  it("does not add the link to a non-alert card's reading surface", () => {
+    process.env[KEY] = "https://discord.gg/test-invite";
+    const newsOnly = { ...response, cards: [response.cards[1]] };
+    const html = renderToStaticMarkup(
+      <FeedView initialResponse={newsOnly} disablePolling community={answering} />,
+    );
+    expect(html).not.toContain("feed-reading-discuss");
+  });
+
+  it("does not render the link on the mobile variant, which has no reading surface", () => {
+    process.env[KEY] = "https://discord.gg/test-invite";
+    const html = renderToStaticMarkup(
+      <FeedView initialResponse={response} disablePolling variant="mobile" community={answering} />,
+    );
+    expect(html).not.toContain("feed-reading-discuss");
   });
 
   it("hides the link when the latest poll failed, even with retained data", () => {
@@ -80,7 +103,7 @@ describe("FeedView — community discuss", () => {
         community={{ ...answering, error: "/api/community returned 503" }}
       />,
     );
-    expect(html).not.toContain("feed-card-discuss");
+    expect(html).not.toContain("feed-reading-discuss");
   });
 
   it("hides the link when no community URL is configured", () => {
@@ -89,12 +112,12 @@ describe("FeedView — community discuss", () => {
     const html = renderToStaticMarkup(
       <FeedView initialResponse={response} disablePolling community={answering} />,
     );
-    expect(html).not.toContain("feed-card-discuss");
+    expect(html).not.toContain("feed-reading-discuss");
   });
 
   it("renders unchanged when no community state is passed", () => {
     const html = renderToStaticMarkup(<FeedView initialResponse={response} disablePolling />);
-    expect(html).not.toContain("feed-card-discuss");
+    expect(html).not.toContain("feed-reading-discuss");
     expect(html).toContain("Cursor is reporting a major outage");
   });
 });

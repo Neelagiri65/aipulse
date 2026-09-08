@@ -116,7 +116,7 @@ export function PushAlertToggle() {
       <button
         type="button"
         onClick={unsubscribe}
-        className="flex items-center gap-1 rounded-sm border border-teal-500/40 px-2 py-1 font-mono text-[10px] text-teal-300 transition-colors hover:border-teal-400 hover:text-teal-200"
+        className="ap-btn-ghost flex items-center gap-1 font-mono text-[10px]"
         title="Push alerts active — click to disable"
       >
         <BellIcon active />
@@ -129,7 +129,7 @@ export function PushAlertToggle() {
     <button
       type="button"
       onClick={subscribe}
-      className="flex items-center gap-1.5 rounded border border-teal-500/50 px-2.5 py-1 font-mono text-[10px] text-teal-300 shadow-[0_0_10px_-3px_rgba(45,212,191,0.3)] transition-colors hover:border-teal-400 hover:text-teal-200 hover:shadow-[0_0_14px_-3px_rgba(45,212,191,0.5)]"
+      className="ap-btn-ghost flex items-center gap-1.5 font-mono text-[10px]"
       title="Enable push notifications for AI tool outages"
     >
       <BellIcon active={false} />
@@ -149,7 +149,7 @@ function BellIcon({ active }: { active: boolean }) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={active ? "text-teal-400" : ""}
+      className={active ? "ap-bell--on" : undefined}
     >
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.73 21a2 2 0 0 1-3.46 0" />

@@ -1,5 +1,5 @@
 /**
- * Gawk — PRODUCT_LAUNCH deriver
+ * gawk.dev — PRODUCT_LAUNCH deriver
  *
  * Pure function over `ProductHuntResult`. Emits one Card per AI launch in the
  * day's top Product Hunt "Artificial Intelligence" topic. Order is preserved as

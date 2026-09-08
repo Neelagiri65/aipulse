@@ -1,10 +1,11 @@
 /**
- * TopBar — mounts the compact CommunityLink in the right-hand cluster.
+ * TopBar — the Community entry point is the tab, not a second chip.
  *
- * The link is env-gated inside CommunityLink itself; this test pins the
- * mount point (the header must carry `community-link` when the env var is
- * set) and the graceful absence when it is not. SSR render only — the UTC
- * clock effect never runs, which is fine for a presence check.
+ * #106 mounted a compact CommunityLink in the right-hand cluster; the five-tab chrome that
+ * landed later made "Community" a primary tab carrying the Discord mark. Two doors to the same
+ * room on one bar is the duplicate-panel trap, so the chip is gone. This test pins that: the tab
+ * is present with its mark, and no `community-link` chip is rendered whether or not the invite
+ * env var is set. SSR render only — the UTC clock effect never runs, which suits a presence check.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -25,15 +26,21 @@ afterEach(() => {
 
 const freshness = { isInitialLoading: false, intervalMs: 60_000 };
 
-describe("TopBar — community link mount", () => {
-  it("renders the compact Community link in the header when the env var is set", () => {
-    process.env[KEY] = "https://discord.gg/test-invite";
+describe("TopBar — the Community entry point", () => {
+  it("carries the Community tab with the Discord mark", () => {
     const html = renderToStaticMarkup(<TopBar freshness={freshness} />);
-    expect(html).toContain('data-testid="community-link"');
-    expect(html).toContain('href="https://discord.gg/test-invite"');
+    expect(html).toContain("Community");
+    expect(html).toContain("ap-tab-mark");
   });
 
-  it("renders no community link when the env var is unset", () => {
+  it("does not also mount a community chip when the invite is set", () => {
+    process.env[KEY] = "https://discord.gg/test-invite";
+    const html = renderToStaticMarkup(<TopBar freshness={freshness} />);
+    expect(html).not.toContain('data-testid="community-link"');
+    expect(html).not.toContain("https://discord.gg/test-invite");
+  });
+
+  it("renders no community chip when the env var is unset either", () => {
     delete process.env[KEY];
     delete process.env[LEGACY];
     const html = renderToStaticMarkup(<TopBar freshness={freshness} />);

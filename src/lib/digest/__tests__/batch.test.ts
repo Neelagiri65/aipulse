@@ -17,8 +17,8 @@ function r(i: number): DigestRecipient {
 }
 
 const OPTS = {
-  from: "Gawk <digest@gawk.dev>",
-  subject: "Gawk — 2026-04-22",
+  from: "gawk.dev <digest@gawk.dev>",
+  subject: "gawk.dev — 2026-04-22",
   unsubBaseUrl: "https://gawk.dev/api/subscribe/unsubscribe",
   unsubMailto: "mailto:unsub@gawk.dev",
   listId: "digest-2026-04-22.gawk.dev",
@@ -112,24 +112,24 @@ describe("buildBatchItem", () => {
       { ...r(1), email: "u1@x.com\r\nBcc: evil@x.com" },
       {
         ...OPTS,
-        from: "Gawk <digest@gawk.dev>\n",
-        subject: "Gawk — 2026-04-22\r\nX-Injected: 1",
+        from: "gawk.dev <digest@gawk.dev>\n",
+        subject: "gawk.dev — 2026-04-22\r\nX-Injected: 1",
       },
     );
-    expect(item.from).toBe("Gawk <digest@gawk.dev>");
+    expect(item.from).toBe("gawk.dev <digest@gawk.dev>");
     expect(item.to).toBe("u1@x.comBcc: evil@x.com");
-    expect(item.subject).toBe("Gawk — 2026-04-22X-Injected: 1");
+    expect(item.subject).toBe("gawk.dev — 2026-04-22X-Injected: 1");
     for (const v of [item.from, item.to, item.subject]) {
       expect(v).not.toMatch(/[\r\n\u0000]/);
     }
   });
 
   it("leaves clean values (incl. spaces) untouched", () => {
-    expect(sanitizeHeaderValue("Gawk <digest@gawk.dev>")).toBe(
-      "Gawk <digest@gawk.dev>",
+    expect(sanitizeHeaderValue("gawk.dev <digest@gawk.dev>")).toBe(
+      "gawk.dev <digest@gawk.dev>",
     );
-    expect(sanitizeHeaderValue("Gawk — 2026-04-22 · 1 tool incident")).toBe(
-      "Gawk — 2026-04-22 · 1 tool incident",
+    expect(sanitizeHeaderValue("gawk.dev — 2026-04-22 · 1 tool incident")).toBe(
+      "gawk.dev — 2026-04-22 · 1 tool incident",
     );
   });
 

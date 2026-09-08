@@ -1,7 +1,7 @@
 /**
  * Public Sources inventory — user-facing groupings + freshness wiring.
  *
- * `data-sources.ts` is the typed registry of every endpoint Gawk
+ * `data-sources.ts` is the typed registry of every endpoint gawk.dev
  * consumes (sanity ranges, caveats, verifiedAt). This file is its
  * public-facing companion: it groups the same sources into the
  * eight user-readable categories surfaced on `/sources`, and pins
@@ -54,7 +54,7 @@ export const CATEGORIES: readonly CategoryDescriptor[] = [
     id: "platform-infrastructure",
     label: "Platform Infrastructure",
     blurb:
-      "Public status pages for the four services Gawk itself runs on. Surfaced operator-side at /admin only — the public Tool Health card grid stays AI-focused.",
+      "Public status pages for the four services gawk.dev itself runs on. Surfaced operator-side at /admin only — the public Tool Health card grid stays AI-focused.",
   },
   {
     id: "code-activity",
@@ -90,7 +90,7 @@ export const CATEGORIES: readonly CategoryDescriptor[] = [
     id: "research",
     label: "Research",
     blurb:
-      "arXiv submissions in the cs.AI + cs.LG categories. Recency-only — Gawk does not re-rank papers.",
+      "arXiv submissions in the cs.AI + cs.LG categories. Recency-only — gawk.dev does not re-rank papers.",
   },
   {
     id: "labs",

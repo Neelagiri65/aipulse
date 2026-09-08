@@ -4,7 +4,7 @@
  * Renders a 1200×630 PNG via `next/og` ImageResponse. The hero stat
  * IS the visual lead (it's the editorial headline of the report);
  * the caption is supporting context; the bottom row carries brand +
- * the report window so a sharer-with-no-context still gets "Gawk
+ * the report window so a sharer-with-no-context still gets "gawk.dev
  * Genesis Report · April 2026" at a glance.
  *
  * Trust contract: nothing on the OG image is invented. The hero stat
@@ -26,7 +26,7 @@ import { getReportConfig } from "@/lib/reports/registry";
 export const runtime = "nodejs";
 export const contentType = "image/png";
 export const size = { width: 1200, height: 630 };
-export const alt = "Gawk AI Genesis Report — independent, source-cited AI tooling intelligence";
+export const alt = "gawk.dev AI Genesis Report — independent, source-cited AI tooling intelligence";
 
 type OgParams = { slug: string };
 
@@ -45,7 +45,7 @@ export default async function ReportOgImage({
   }
 
   const heroStat = isEditorialPlaceholder(config.hero.stat)
-    ? `Gawk AI Genesis Report · ${config.window}`
+    ? `gawk.dev AI Genesis Report · ${config.window}`
     : config.hero.stat;
   const heroCaption = isEditorialPlaceholder(config.hero.caption)
     ? null

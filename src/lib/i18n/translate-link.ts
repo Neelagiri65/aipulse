@@ -14,7 +14,7 @@
  *
  * Trust contract: zero backend, zero network. Pure URL construction.
  * The user clicks through to Google Translate and reads the upstream
- * article in their browser; Gawk never proxies, caches, or rewrites
+ * article in their browser; gawk.dev never proxies, caches, or rewrites
  * the source content.
  */
 

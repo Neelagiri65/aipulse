@@ -1,5 +1,5 @@
 /**
- * Gawk — Discord webhook sender for tool-status transitions.
+ * gawk.dev — Discord webhook sender for tool-status transitions.
  *
  * Env-gated by DISCORD_TOOL_ALERTS_WEBHOOK_URL. When unset the module is a
  * no-op — every public function returns the "skipped" outcome and never
@@ -121,7 +121,7 @@ export async function postEmbeds(embeds: unknown[]): Promise<DiscordOutcome> {
   let sent = 0;
   for (let i = 0; i < embeds.length; i += 10) {
     const chunk = embeds.slice(i, i + 10);
-    const payload: WebhookPayload = { embeds: chunk, username: "Gawk" };
+    const payload: WebhookPayload = { embeds: chunk, username: "gawk.dev" };
 
     const first = await postOnce(url, payload);
     if (first.ok) {

@@ -11,7 +11,7 @@ import { buildDigestRssXml, escapeXml } from "@/lib/digest/rss";
 
 const item = {
   date: "2026-07-05",
-  subject: "Gawk — 2026-07-05 · 2 tool incidents & benchmarks moved",
+  subject: "gawk.dev — 2026-07-05 · 2 tool incidents & benchmarks moved",
   tldr: "2 tool incidents · 4 benchmark movers",
   generatedAt: "2026-07-05T07:20:00.000Z",
 };
@@ -19,7 +19,7 @@ const item = {
 describe("buildDigestRssXml", () => {
   it("renders an item verbatim from the archived digest", () => {
     const xml = buildDigestRssXml([item], "https://gawk.dev");
-    expect(xml).toContain("<title>Gawk — 2026-07-05 · 2 tool incidents &amp; benchmarks moved</title>");
+    expect(xml).toContain("<title>gawk.dev — 2026-07-05 · 2 tool incidents &amp; benchmarks moved</title>");
     expect(xml).toContain("<link>https://gawk.dev/digest/2026-07-05</link>");
     expect(xml).toContain('<guid isPermaLink="true">https://gawk.dev/digest/2026-07-05</guid>');
     expect(xml).toContain("<pubDate>Sun, 05 Jul 2026 07:20:00 GMT</pubDate>");
@@ -47,7 +47,7 @@ describe("buildDigestRssXml", () => {
       [{ ...item, tldr: undefined }],
       "https://gawk.dev",
     );
-    expect(xml).toContain("<description>Daily brief from the Gawk observatory.</description>");
+    expect(xml).toContain("<description>Daily brief from the gawk.dev observatory.</description>");
   });
 
   it("strips a trailing slash on the base URL", () => {

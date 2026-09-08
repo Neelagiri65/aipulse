@@ -12,6 +12,8 @@
  * Cosmetic only — does not gate the points list.
  */
 
+import { useTheme } from "@/lib/hooks/use-theme";
+import { legendColors } from "@/components/map/event-palette";
 import * as React from "react";
 
 import {
@@ -30,23 +32,17 @@ const TYPE_LABEL: Record<EventTypeFilterId, string> = {
 };
 
 /**
- * Type → marker colour. Mirrors `colorForType` in FlatMap.tsx; if
- * that mapping changes, this one must too.
+ * Type → marker colour comes from the shared per-theme palette, so the legend can never drift
+ * from the markers it explains (it used to be a hand-copied table with a comment asking the next
+ * person to keep both in step).
  */
-const TYPE_COLOR: Record<EventTypeFilterId, string> = {
-  push: "#2dd4bf",
-  pr: "#60a5fa",
-  issue: "#a78bfa",
-  release: "#f59e0b",
-  fork: "#4ade80",
-  watch: "#fbbf24",
-};
 
 export type MapLegendProps = {
   filters: FilterState;
 };
 
 export function MapLegend({ filters }: MapLegendProps): React.ReactElement | null {
+  const TYPE_COLOR = legendColors(useTheme());
   const activeTypes = EVENT_TYPE_FILTER_IDS.filter(
     (id) => filters[id],
   );

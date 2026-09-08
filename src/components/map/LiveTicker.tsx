@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Gawk — Bloomberg-style live ticker.
+ * gawk.dev — Bloomberg-style live ticker.
  *
  * Horizontal-scrolling strip rendered below the map. Pulls the
  * most-recent 15 entries from the existing wire-rows feed (already

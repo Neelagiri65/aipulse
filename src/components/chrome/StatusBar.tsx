@@ -54,14 +54,14 @@ export function StatusBar({
   return (
     <div
       className="fixed left-0 right-0 z-[39] flex items-center gap-3 border-b border-border/60 bg-background/80 px-4 backdrop-blur-md"
-      style={{ top: 48, height: 28 }}
+      style={{ top: "var(--ap-topbar-h)", height: "var(--ap-statusbar-h)" }}
       role="status"
       aria-label="System status summary"
       data-testid="global-status-bar"
     >
       <span
-        className="inline-block h-2 w-2 rounded-full"
-        style={{ background: toneColor(tone), boxShadow: `0 0 6px ${toneColor(tone)}` }}
+        className={`ap-mark ap-mark--${tone === "good" ? "solid" : tone === "pending" ? "hollow" : "hatched"}`}
+        style={{ width: 10, height: 10 }}
         aria-hidden
       />
       <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.1em]">
@@ -78,7 +78,7 @@ export function StatusBar({
           {pendingSourceCount > 0 && (
             <>
               {" · "}
-              <span className="text-amber-400 tabular-nums">
+              <span className="tabular-nums text-foreground">
                 {pendingSourceCount}
               </span>{" "}
               Pend
@@ -103,7 +103,7 @@ export function StatusBar({
                 <>
                   <span
                     className="tabular-nums"
-                    style={{ color: "var(--sev-op)" }}
+                    style={{ color: "var(--ink)" }}
                   >
                     {cronHealth.healthy}/{cronHealth.total}
                   </span>{" "}
@@ -113,7 +113,7 @@ export function StatusBar({
                   </span>
                   <span
                     className="tabular-nums"
-                    style={{ color: "var(--sev-degrade)" }}
+                    style={{ color: "var(--ink)" }}
                   >
                     {cronHealth.stale}
                   </span>{" "}
@@ -123,7 +123,7 @@ export function StatusBar({
                 <>
                   <span
                     className="tabular-nums"
-                    style={{ color: "var(--sev-op)" }}
+                    style={{ color: "var(--ink)" }}
                   >
                     {cronHealth.healthy}/{cronHealth.total}
                   </span>{" "}
@@ -150,18 +150,6 @@ export function StatusBar({
 
 type Tone = "good" | "warn" | "bad" | "pending";
 
-function toneColor(tone: Tone): string {
-  switch (tone) {
-    case "good":
-      return "var(--sev-op)";
-    case "warn":
-      return "var(--sev-degrade)";
-    case "bad":
-      return "var(--sev-outage)";
-    default:
-      return "var(--sev-pending)";
-  }
-}
 
 function Segment({
   value,
@@ -239,13 +227,13 @@ function deriveLive(freshness: FreshnessState): {
     return { text: "Connecting", className: "text-muted-foreground italic" };
   }
   if (!lastSuccessAt) {
-    return { text: "Offline", className: "text-rose-400" };
+    return { text: "Offline", className: "ap-word--out" };
   }
   if (error) {
-    return { text: "Stale", className: "text-amber-400" };
+    return { text: "Stale", className: "text-foreground" };
   }
   const stale = Date.now() - lastSuccessAt > intervalMs * 2;
   return stale
-    ? { text: "Stale", className: "text-amber-400" }
-    : { text: "Live", className: "text-emerald-400" };
+    ? { text: "Stale", className: "text-foreground" }
+    : { text: "Live", className: "ap-word--op" };
 }

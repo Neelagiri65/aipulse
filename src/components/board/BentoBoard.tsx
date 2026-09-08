@@ -233,7 +233,7 @@ export function BentoBoard({
     <main className="mx-auto max-w-7xl px-4 py-6 text-neutral-200">
       <header className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-neutral-800 pb-3">
         <h1 className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-100">
-          Gawk — State of the AI Ecosystem
+          gawk.dev — State of the AI Ecosystem
         </h1>
         <div className="flex items-center gap-3 text-[11px] tabular-nums text-neutral-400">
           <span title="Tools operational / total (from Tool Health source)">
