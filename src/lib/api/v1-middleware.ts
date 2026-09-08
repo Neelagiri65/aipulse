@@ -2,7 +2,7 @@
  * Shared middleware for /api/v1/* routes.
  *
  * Provides: in-memory rate limiting (100 req/hr per IP), CORS headers
- * for cross-origin consumption, and X-gawk.dev-* response headers.
+ * for cross-origin consumption, and X-Gawk-* response headers.
  *
  * In-memory rate limiter resets on cold start — acceptable trade-off
  * for zero Redis cost. Not a security boundary, just abuse prevention.
@@ -102,19 +102,24 @@ export async function handleV1Request(
 
   const result = await handler();
 
+  // These header NAMES are a public contract, not a place the product name is displayed. #108's
+  // "gawk.dev everywhere" sweep renamed them to `X-gawk.dev-*`, which silently broke every consumer
+  // reading the documented name and put a dot inside a header name. Same rule the repo already
+  // applies to the `globe*` identifiers: a rename of what we call ourselves does not reach the
+  // identifiers other people's code depends on. `v1-middleware.test.ts` pins the spelling.
   const headers: Record<string, string> = {
     ...CORS_HEADERS,
-    "X-gawk.dev-Generated-At": result.meta.generatedAt,
+    "X-Gawk-Generated-At": result.meta.generatedAt,
     "X-RateLimit-Limit": String(RATE_LIMIT_MAX),
     "X-RateLimit-Remaining": String(rl.remaining),
     "X-RateLimit-Reset": String(Math.ceil(rl.resetAt / 1000)),
   };
 
   if (result.meta.sourceCount !== undefined) {
-    headers["X-gawk.dev-Source-Count"] = String(result.meta.sourceCount);
+    headers["X-Gawk-Source-Count"] = String(result.meta.sourceCount);
   }
   if (result.meta.cacheMaxAge !== undefined) {
-    headers["X-gawk.dev-Cache-Age"] = String(result.meta.cacheMaxAge);
+    headers["X-Gawk-Cache-Age"] = String(result.meta.cacheMaxAge);
   }
   if (result.cacheControl) {
     headers["Cache-Control"] = result.cacheControl;
