@@ -58,8 +58,8 @@ export function deriveSdkTrendCards(dto: SdkAdoptionDto): Card[] {
       type: "SDK_TREND",
       severity: FEED_SEVERITIES.SDK_TREND,
       headline: `${pkg.label} on ${pkg.registry} ${sign}${pct}% vs baseline`,
-      detail: `${pkg.counterName} on ${latest.date}: ${
-        latest.count ?? "—"
+      detail: `${counterWord(pkg.counterName)} on ${latest.date}: ${
+        latest.count?.toLocaleString("en-GB") ?? "—"
       } ${pkg.counterUnits}.`,
       sourceName: source.name,
       sourceUrl: source.url,
@@ -73,4 +73,24 @@ export function deriveSdkTrendCards(dto: SdkAdoptionDto): Card[] {
     });
   }
   return cards;
+}
+
+/** The registry's counter, in words — never the internal key ("lastDay", "allTime") in UI copy. */
+export function counterWord(counterName: string): string {
+  switch (counterName) {
+    case "lastDay":
+      return "Daily count";
+    case "lastWeek":
+      return "Weekly count";
+    case "lastMonth":
+      return "Monthly count";
+    case "last90d":
+      return "Last-90-day count";
+    case "allTime":
+      return "All-time count";
+    case "stars":
+      return "Stars";
+    default:
+      return "Count";
+  }
 }

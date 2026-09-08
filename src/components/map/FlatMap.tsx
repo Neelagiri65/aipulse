@@ -21,12 +21,14 @@ import {
   RSS_INACTIVE_OPACITY,
 } from "@/components/wire/rss-to-points";
 import { pickClusterDelta, formatClusterDelta } from "@/lib/map/insights";
-import { addBasemap } from "@/components/map/basemap";
+import { addBasemap, setBasemapVariant } from "@/components/map/basemap";
 import type { RegionalDeltasDto } from "@/components/map/TopMoversLine";
 
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+import { useTheme, type Theme } from "@/lib/hooks/use-theme";
+import { clusterSkin, colorForTypeIn, LAYER_COLOR, legendColors } from "@/components/map/event-palette";
 
 export type FlatMapProps = {
   points?: GlobePoint[];
@@ -77,6 +79,14 @@ export function FlatMap({
   const deltasRef = useRef<RegionalDeltasDto | null>(regionalDeltas ?? null);
   deltasRef.current = regionalDeltas ?? null;
 
+  // The map follows the page's theme: positron under the light skin, the dark style under dark.
+  // Held on a ref as well so the mount-once effect and the cluster icon factory read the current
+  // value without the map remounting on every flip.
+  const theme = useTheme();
+  const themeRef = useRef<Theme>(theme);
+  themeRef.current = theme;
+  const basemapRef = useRef<L.Layer | null>(null);
+
   const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const [selection, setSelection] = useState<Selection | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -113,7 +123,7 @@ export function FlatMap({
         attributionControl: true,
       }).setView([20, 0], 2);
 
-      await addBasemap(L, map, "dark");
+      basemapRef.current = await addBasemap(L, map, themeRef.current);
 
       const cluster = (
         L as unknown as {
@@ -134,6 +144,7 @@ export function FlatMap({
             L,
             c as MarkerClusterGroup,
             deltasRef.current?.byCountry ?? null,
+            themeRef.current,
           ),
       });
       cluster.addTo(map);
@@ -203,15 +214,16 @@ export function FlatMap({
       const isHn = meta.kind === "hn";
       const isLab = meta.kind === "lab";
       const isRss = meta.kind === "rss";
+      const layer = LAYER_COLOR[theme];
       const color = isLab
-        ? LABS_VIOLET
+        ? layer.labs
         : isRss
-          ? RSS_AMBER
+          ? layer.rss
           : isHn
-            ? "#ff6600"
+            ? layer.hn
             : isRegistry
-              ? "#cbd5e1"
-              : colorForType(meta.type);
+              ? layer.registry
+              : colorForTypeIn(theme, meta.type);
       const hasAi = meta.hasAiConfig === true;
       const decay =
         typeof meta.decayScore === "number" ? meta.decayScore : 0;
@@ -277,7 +289,7 @@ export function FlatMap({
       });
       cluster.addLayer(marker);
     }
-  }, [points, ready]);
+  }, [points, ready, theme]);
 
   // Cluster icons need a manual refresh when regionalDeltas change —
   // the iconCreateFunction closure reads `deltasRef.current` at call
@@ -293,6 +305,16 @@ export function FlatMap({
       cluster as unknown as { refreshClusters: () => void }
     ).refreshClusters();
   }, [regionalDeltas, ready]);
+
+  // Theme flip: swap the basemap style in place and repaint the cluster badges. The markers
+  // themselves are rebuilt by the effect above (theme is one of its deps).
+  useEffect(() => {
+    if (!ready) return;
+    setBasemapVariant(basemapRef.current, theme);
+    (
+      clusterRef.current as unknown as { refreshClusters?: () => void } | null
+    )?.refreshClusters?.();
+  }, [theme, ready]);
 
   // Dismiss card on Escape or outside click. Same pattern as Globe.
   useEffect(() => {
@@ -435,6 +457,7 @@ function clusterIcon(
   L: typeof import("leaflet"),
   cluster: MarkerClusterGroup,
   byCountry: Record<string, { deltaPct: number | null }> | null,
+  theme: Theme,
 ): L.DivIcon {
   const kids = (cluster as unknown as { getAllChildMarkers: () => L.Marker[] })
     .getAllChildMarkers();
@@ -492,18 +515,19 @@ function clusterIcon(
   //   registry-only         → slate base
   // Tie between live and hn goes to live (code-action > discussion).
   const hnMajority = hn > live;
+  const layer = LAYER_COLOR[theme];
   const color =
     live === 0 && lab > 0
-      ? LABS_VIOLET
+      ? layer.labs
       : live === 0 && lab === 0 && rss > 0
-        ? RSS_AMBER
+        ? layer.rss
         : hnOnly
-          ? "#ff6600"
+          ? layer.hn
           : registryOnly
-            ? "#cbd5e1"
+            ? layer.registry
             : hnMajority
-              ? "#ff6600"
-              : colorForType(dominantLiveType);
+              ? layer.hn
+              : colorForTypeIn(theme, dominantLiveType);
   const isAi =
     ai > 0 &&
     !registryOnly &&
@@ -559,9 +583,10 @@ function clusterIcon(
           : isAi
             ? 0.55
             : 0.25;
-  const border = hexA(color, borderAlpha);
-  const glow = hexA(color, glowAlpha);
-  const textColor = registryOnly
+  const skin = clusterSkin(theme);
+  const border = hexA(color, Math.min(1, borderAlpha * skin.borderBoost));
+  const glow = hexA(color, glowAlpha * skin.glowScale);
+  const darkText = registryOnly
     ? "#cbd5e1"
     : labOnly
       ? "#ede9fe"
@@ -572,6 +597,8 @@ function clusterIcon(
           : isAi
             ? "#f0fdfa"
             : "#e2e8f0";
+  // Ink numerals on the light ground: the category hue lives on the rim, where 3:1 is enough.
+  const textColor = skin.text || darkText;
   const label = count > 99 ? "99+" : String(count);
 
   // Per-cluster regional delta indicator (S57). Suppress on registry-/
@@ -617,7 +644,7 @@ function clusterIcon(
       align-items:center;
       justify-content:center;
       gap:0;
-      background:rgba(8,14,20,0.88);
+      background:${skin.fill};
       border:${isAi ? "1.5px" : "1px"} solid ${border};
       box-shadow:0 0 ${Math.round(12 * scale)}px ${glow};
       color:${textColor};
@@ -803,6 +830,8 @@ function clusterFromPoints(points: GlobePoint[]): Cluster {
 }
 
 function MapLegend() {
+  // The legend swatches are the marker colours for the ground the reader is on.
+  const legend = legendColors(useTheme());
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
 
@@ -866,12 +895,12 @@ function MapLegend() {
     <Container>
       <div className="mb-1.5 text-[9px] text-foreground/60">Live event type</div>
       <ul className="space-y-1">
-        <LegendRow color="#2dd4bf" label="Push" />
-        <LegendRow color="#60a5fa" label="Pull request" />
-        <LegendRow color="#a78bfa" label="Issue" />
-        <LegendRow color="#f59e0b" label="Release" />
-        <LegendRow color="#4ade80" label="Fork" />
-        <LegendRow color="#fbbf24" label="Star" />
+        <LegendRow color={legend.push} label="Push" />
+        <LegendRow color={legend.pr} label="Pull request" />
+        <LegendRow color={legend.issue} label="Issue" />
+        <LegendRow color={legend.release} label="Release" />
+        <LegendRow color={legend.fork} label="Fork" />
+        <LegendRow color={legend.watch} label="Star" />
       </ul>
       <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
         Bright ring = repo has AI config

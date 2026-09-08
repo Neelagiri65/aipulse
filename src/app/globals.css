@@ -181,8 +181,6 @@
   --ap-accent:        var(--ink2);
   --ap-accent-dim:    var(--ink2);
   --ap-accent-glow:   transparent;
-  --ap-win-accent:    var(--ink2);
-  --ap-win-accent-glow: transparent;
 
   /* State: colour only as the words operational / outage; degraded and regress read in ink2 (shape carries state from phase 3) */
   --sev-outage:       var(--out);
@@ -409,153 +407,6 @@
   box-shadow: 0 0 6px currentColor;
 }
 .ap-sev-dot--sm { width: 6px; height: 6px; }
-
-/* ============================================================================
-   FLOATING WINDOW CHROME
-   ============================================================================ */
-.ap-win {
-  position: absolute;
-  background: var(--surface);
-  color: var(--ink);
-  border: 1px solid var(--hair);
-  box-shadow: 0 24px 60px -28px rgba(22, 22, 15, 0.45);
-  display: flex;
-  flex-direction: column;
-  min-width: 300px;
-  min-height: 140px;
-  border-radius: 14px;
-}
-.ap-win--minimized { height: auto !important; min-height: 0; }
-.ap-win--minimized .ap-win__body { display: none; }
-
-/* A floating panel is an inset on the skin (PRD web-restyle-v2 §2, §7): surface + hairline +
-   radius 14, no per-panel accent, no glow, no blur. The topmost panel has the stronger hairline;
-   the rest sit back by opacity alone. */
-.ap-win--topmost { border-color: var(--hair2); }
-.ap-win--behind { opacity: 0.82; }
-.ap-win--behind:hover { opacity: 0.96; }
-
-.ap-win__titlebar {
-  height: 36px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 8px 0 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--hair);
-  cursor: grab;
-  user-select: none;
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-  border-top-left-radius: 14px;
-  border-top-right-radius: 14px;
-}
-.ap-win__titlebar:active { cursor: grabbing; }
-.ap-win__titlebar .ap-mark { margin: 0; }
-/* Master-detail stat bar — sits between titlebar and body; the StatBar helper renders "·"
-   separators so the Win frame stays content-agnostic. */
-.ap-win__statbar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 16px;
-  border-bottom: 1px solid var(--hair);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  line-height: 1.2;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-  background: var(--paper3);
-  flex-shrink: 0;
-  min-height: 24px;
-}
-.ap-win__insight {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  padding: 6px 16px;
-  border-bottom: 1px solid var(--hair);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  line-height: 1.35;
-  letter-spacing: 0.02em;
-  flex-shrink: 0;
-}
-.ap-win__insight-text { color: var(--ink2); }
-.ap-win__insight-source { color: var(--ink-muted); }
-.ap-win__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
-.ap-win__buttons { display: flex; gap: 0; margin-right: -4px; }
-.ap-win__btn {
-  width: 24px; height: 24px;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: var(--ink-muted);
-  background: none; border: 0; border-radius: 6px; cursor: pointer;
-}
-.ap-win__btn:hover { color: var(--ink); background: var(--paper3); }
-.ap-win__body {
-  flex: 1;
-  overflow: auto;
-  position: relative;
-}
-.ap-win__resize {
-  position: absolute;
-  right: 0; bottom: 0;
-  width: 14px; height: 14px;
-  cursor: nwse-resize;
-  border-bottom-right-radius: 14px;
-  background:
-    linear-gradient(135deg, transparent 45%, var(--hair2) 46%, var(--hair2) 52%, transparent 53%),
-    linear-gradient(135deg, transparent 65%, var(--hair2) 66%, var(--hair2) 72%, transparent 73%);
-}
-
-/* ============================================================================
-   LEFT NAV (category list bottom-left)
-   ============================================================================ */
-.ap-leftnav {
-  background: var(--surface);
-
-
-  border: 1px solid var(--ap-border);
-  padding: 6px;
-  border-radius: 4px;
-}
-.ap-leftnav__item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  color: var(--ap-fg-muted);
-  text-transform: uppercase;
-  border: 1px solid transparent;
-  transition: background 120ms, color 120ms, border-color 120ms;
-  width: 100%;
-  text-align: left;
-  background: none;
-  cursor: pointer;
-}
-.ap-leftnav__item:hover { color: var(--ap-fg); background: var(--paper3); }
-.ap-leftnav__item--active {
-  color: var(--ap-accent);
-  background: var(--paper3);
-  border-color: var(--hair2);
-}
-.ap-leftnav__item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.85; }
-.ap-leftnav__item .ap-leftnav__count {
-  margin-left: auto;
-  font-size: 9px;
-  padding: 1px 5px;
-  background: var(--sev-pending);
-  color: var(--ap-fg);
-  letter-spacing: 0;
-  border-radius: 2px;
-}
-.ap-leftnav__item .ap-leftnav__count--hot { background: var(--sev-outage); color: #fff; }
 
 /* ============================================================================
    AP TYPOGRAPHY UTILITIES
@@ -1039,95 +890,6 @@
   border: 1px solid var(--ap-border);
   border-radius: 4px;
   box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
-}
-
-/* ============================================================================
-   LEFT ICON NAV — vertical rail pinned to the viewport's left edge.
-   Collapsed mode: 44px of icon-only buttons. Expanded mode: 176px with labels.
-   Distinct from .ap-leftnav (the old bottom-left overlay).
-   ============================================================================ */
-.ap-icon-nav {
-  position: fixed;
-  top: calc(132px + var(--ap-strip-h, 0px));
-  bottom: 64px;
-  left: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 4px;
-  background: none;
-  border-right: 1px solid transparent;
-  z-index: 50;
-  transition: width 180ms ease;
-}
-.ap-icon-nav--collapsed { width: 44px; overflow: hidden; }
-
-
-.ap-icon-nav__hamburger {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 32px;
-  margin-bottom: 6px;
-  color: var(--ap-fg-muted);
-  background: none;
-  border: 0;
-  cursor: pointer;
-  transition: color 120ms;
-}
-.ap-icon-nav__hamburger:hover { color: var(--ap-fg); }
-
-.ap-icon-nav__item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 10px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ap-fg-muted);
-  background: none;
-  border: 0;
-  border-left: 2px solid transparent;
-  cursor: pointer;
-  transition: background 120ms, color 120ms, border-color 120ms;
-  text-align: left;
-}
-.ap-icon-nav__item:hover:not(:disabled) {
-  color: var(--ap-fg);
-  background: var(--paper3);
-}
-.ap-icon-nav__item--active {
-  color: var(--ap-accent);
-  background: var(--paper3);
-  border-left-color: var(--ap-accent);
-}
-.ap-icon-nav__item:disabled {
-  color: var(--ap-fg-dim);
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-.ap-icon-nav__item svg { width: 16px; height: 16px; flex-shrink: 0; }
-.ap-icon-nav__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ap-icon-nav__count {
-  font-size: 9px;
-  padding: 1px 5px;
-  background: var(--sev-pending);
-  color: var(--ap-fg);
-  letter-spacing: 0;
-  border-radius: 2px;
-}
-.ap-icon-nav__count--hot { background: var(--ap-accent); color: var(--ap-bg); }
-.ap-icon-nav__soon {
-  font-size: 8px;
-  padding: 1px 4px;
-  border: 1px solid var(--ap-border);
-  color: var(--ap-fg-dim);
-  letter-spacing: 0.1em;
-  border-radius: 2px;
 }
 
 /* ============================================================================
@@ -2737,7 +2499,7 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
    (founder, 7 Sep: "in the right side of the map there is a lot of empty space"). Below 1180px the
    column stays single, band under the rows. */
 @media (min-width: 1180px) {
-  .ap-column-scroll--wide { padding-left: 200px; }
+  
   .ap-column--health {
     max-width: 1240px;
     display: grid;
@@ -2906,3 +2668,23 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
 }
 .ap-mobile-panel .ap-healthtiles { margin-top: 12px; }
 .ap-mobile-panel .ap-htile__label, .ap-mobile-panel .ap-htile__src { font-family: var(--font-sans); }
+
+/* ---- Boards as reading surfaces under More (web v2 phase 3b) ---- */
+.ap-board__head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; padding: 0 4px; }
+.ap-board__back { font-size: 13px; color: var(--link); text-decoration: none; }
+.ap-board__back:hover { text-decoration: underline; }
+.ap-board__title { margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.15; color: var(--ink); }
+.ap-board__count { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--ink-muted); }
+.ap-board__stat { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-bottom: 1px solid var(--hair); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-muted); background: var(--paper3); }
+.ap-insight { display: flex; align-items: baseline; flex-wrap: wrap; padding: 6px 16px; border-bottom: 1px solid var(--hair); font-family: var(--font-mono); font-size: 11px; line-height: 1.35; letter-spacing: 0.02em; }
+.ap-insight__text { color: var(--ink2); }
+.ap-insight__source { color: var(--ink-muted); }
+.ap-board__body { position: relative; min-width: 0; overflow-x: auto; }
+.ap-board__foot { margin: 0; padding: 0 4px; font-size: 12.5px; color: var(--ink-muted); }
+.ap-list-row--soon { opacity: 0.55; cursor: default; }
+@media (min-width: 1180px) {
+  .ap-column--board { max-width: 1240px; }
+}
+.ap-htile__drill { color: var(--link); text-decoration: none; margin-top: 2px; }
+.ap-htile__drill:hover { text-decoration: underline; }
+.ap-board__qualifier { font-family: var(--font-sans); font-size: 14px; font-weight: 400; color: var(--ink-muted); }
