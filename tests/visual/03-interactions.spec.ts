@@ -1,6 +1,5 @@
 import { expect, test } from "@playwright/test";
 import {
-  closePanel,
   openDashboard,
   openFilters,
   shot,
@@ -23,13 +22,8 @@ test.describe("interactions", () => {
     await switchTab(page, "Map");
     await waitForMapReady(page);
 
-    // Close the default Wire + Tools panels so they don't occlude the
-    // map clusters at the left/right edges. EventCard still opens
-    // correctly with them open, but the click target has to be visibly
-    // clear for Playwright's force-click to hit the leaflet handler.
-    await closePanel(page, /Live feed/i, "Wire");
-    await closePanel(page, /Tool health/i, "Tools");
-    await page.waitForTimeout(300);
+    // Nothing floats over the map any more — the boards moved under More — so the clusters are
+    // clear without closing anything first.
 
     // FlatMap renders cluster bubbles through a custom `iconCreateFunction`,
     // so they carry `.ap-fm-cluster` and never Leaflet's stock

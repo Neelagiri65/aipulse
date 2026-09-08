@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { openDashboard, shot } from "./_helpers";
+import { boardRow, openDashboard, shot, switchTab } from "./_helpers";
 
 /**
- * Chrome = the non-stage UI: TopBar (brand, tabs, freshness, severity,
- * sources count, UTC clock) + LeftNav rail.
+ * Chrome = the non-stage UI: TopBar (brand, tabs, freshness, severity, sources count, UTC clock)
+ * and the More index that replaced the left icon rail.
  */
 
 test.describe("chrome", () => {
@@ -28,16 +28,12 @@ test.describe("chrome", () => {
     await shot(page, "chrome-topbar", { fullPage: false });
   });
 
-  test("LeftNav exposes all live panel buttons + Audit (soon)", async ({ page }) => {
+  test("the More index lists every board, Audit inert", async ({ page }) => {
     await openDashboard(page);
-    const nav = page.getByRole("navigation", { name: "Panel navigation" });
-    // LeftNav buttons use `title` attribute as the stable identifier —
-    // the accessible name includes the count/soon badge text so
-    // role+name matching doesn't work for exact labels. Session 27
-    // parked Audit alongside Agents as soon-disabled. Session 35 added
-    // "SDK Adoption"; session 38 added "Model Usage". Agents was
-    // promoted out of "soon" once the agents-ingest pipeline shipped
-    // (S52 → S58); only Audit remains soon-disabled.
+    await switchTab(page, "More");
+    // The left icon rail retired with the floating windows; More is the board index now. Each
+    // live board is a real link (so it works as a deep link and before hydration); Audit is
+    // announced but not built, so it is present and inert rather than a dead link.
     for (const label of [
       "Wire",
       "Tools",
@@ -45,19 +41,20 @@ test.describe("chrome", () => {
       "Research",
       "Benchmarks",
       "AI Labs",
-      "Agents",
       "Regional Wire",
       "SDK Adoption",
       "Model Usage",
+      "Agents",
+      "Launches",
     ]) {
-      await expect(nav.locator(`button[title="${label}"]`)).toBeVisible();
+      await expect(boardRow(page, label)).toBeVisible({ timeout: 15_000 });
     }
-    // Audit is the only nav item still soon-flagged → title includes
-    // " · coming soon", rendered disabled.
-    const auditBtn = nav.locator(`button[title="Audit · coming soon"]`);
-    await expect(auditBtn).toBeVisible();
-    await expect(auditBtn).toBeDisabled();
-    await shot(page, "chrome-leftnav");
+    // Audit is announced but not built: present, inert, and not a link.
+    const audit = boardRow(page, "Audit");
+    await expect(audit).toBeVisible();
+    await expect(audit).toHaveClass(/ap-list-row--soon/);
+    await expect(audit).toHaveAttribute("aria-disabled", "true");
+    await shot(page, "chrome-more-index");
   });
 
   test("UTC clock renders in the top-right corner", async ({ page }) => {

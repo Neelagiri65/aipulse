@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 import {
   openDashboard,
-  openPanelViaNav,
-  panelByTitle,
+  openBoardViaMore,
+  boardByTitle,
   shot,
   switchTab,
   waitForMapReady,
@@ -66,18 +66,9 @@ test.describe("AI Labs layer", () => {
     await shot(page, "labs-map-violet-dots");
   });
 
-  test("AI Labs button opens the panel from LeftNav", async ({ page }) => {
-    const nav = page.getByRole("navigation", { name: "Panel navigation" });
-    // LeftNav is now 8 buttons: Wire, Tools, Models, Agents, Research,
-    // Benchmarks, AI Labs, Audit (+ the hamburger doesn't count). Expect
-    // ≥ 8 visible panel buttons (hamburger lives in a separate region).
-    const buttons = nav.locator("button").filter({ hasText: /./ });
-    await expect
-      .poll(async () => await buttons.count(), { timeout: 10_000 })
-      .toBeGreaterThanOrEqual(8);
-
-    await openPanelViaNav(page, "AI Labs");
-    const labs = panelByTitle(page, /AI Labs · 7d activity/i);
+  test("AI Labs opens as a board from the More index", async ({ page }) => {
+    await openBoardViaMore(page, "AI Labs");
+    const labs = boardByTitle(page, /AI Labs · 7d activity/i);
     await expect(labs).toBeVisible({ timeout: 15_000 });
     await shot(page, "labs-panel-open");
   });
@@ -85,8 +76,8 @@ test.describe("AI Labs layer", () => {
   test("AI Labs panel lists ≥ 20 labs with kind badge and 7d total", async ({
     page,
   }) => {
-    await openPanelViaNav(page, "AI Labs");
-    const labs = panelByTitle(page, /AI Labs · 7d activity/i);
+    await openBoardViaMore(page, "AI Labs");
+    const labs = boardByTitle(page, /AI Labs · 7d activity/i);
     await expect(labs).toBeVisible({ timeout: 15_000 });
     // Each lab is an <li>. Wait for the /api/labs fetch to resolve.
     const rows = labs.locator("ul > li");

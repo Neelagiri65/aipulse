@@ -27,6 +27,8 @@ export type HealthTile = {
   /** ISO time the source was read; null while pending. */
   at: string | null;
   pending: boolean;
+  /** The board this number drills into (Glance → Drill), when one exists. */
+  boardId?: "model-usage" | "tools" | "labs";
 };
 
 export type HealthTilesInput = {
@@ -41,7 +43,7 @@ export const REGISTRY_URL = "https://github.com/Neelagiri65/aipulse/blob/main/da
 const MOVER_HEADLINE = /^(.+) (up|down) (\d+) ranks on OpenRouter weekly$/;
 
 function moverTile(feed?: FeedResponse): HealthTile {
-  const base = { id: "mover" as const, source: OPENROUTER_SOURCE_NAME, sourceUrl: "https://openrouter.ai/rankings" };
+  const base = { id: "mover" as const, source: OPENROUTER_SOURCE_NAME, sourceUrl: "https://openrouter.ai/rankings", boardId: "model-usage" as const };
   if (!feed) return { ...base, value: "—", label: "top model move on OpenRouter weekly", at: null, pending: true };
   const degraded = feed.degradedSources?.some((s) => s.source === OPENROUTER_SOURCE_NAME) ?? false;
   if (degraded) {
@@ -74,7 +76,7 @@ function moverTile(feed?: FeedResponse): HealthTile {
 }
 
 function toolsTile(status?: StatusResult): HealthTile {
-  const base = { id: "tools" as const, source: "vendor status pages", sourceUrl: "/sources" };
+  const base = { id: "tools" as const, source: "vendor status pages", sourceUrl: "/sources", boardId: "tools" as const };
   const sev = deriveSev(status);
   if (!status || sev.total === 0) return { ...base, value: "—", label: "tools operational at the last check", at: null, pending: true };
   return { ...base, value: `${sev.operational}/${sev.total}`, label: "tools operational at the last check", at: status.polledAt, pending: false };
@@ -94,7 +96,7 @@ function aiConfigTile(events?: GlobeEventsResult): HealthTile {
 }
 
 function labsTile(labs?: LabsPayload): HealthTile {
-  const base = { id: "labs" as const, source: "data/ai-labs.json", sourceUrl: REGISTRY_URL };
+  const base = { id: "labs" as const, source: "data/ai-labs.json", sourceUrl: REGISTRY_URL, boardId: "labs" as const };
   if (!labs) return { ...base, value: "—", label: "HQs on the registry", at: null, pending: true };
   return { ...base, value: labs.labs.length.toLocaleString("en-GB"), label: "HQs on the registry · curated, each with a cited source", at: labs.generatedAt, pending: false };
 }

@@ -7,7 +7,8 @@ import {
   openFeedWire,
   waitForMapReady,
   waitForWireReady,
-  openPanelViaNav,
+  openBoardViaMore,
+  closeBoard,
 } from "./_helpers";
 
 /**
@@ -51,17 +52,19 @@ test.describe("dashboard views", () => {
     );
   });
 
-  test("the rail opens a board from the Health landing tab by moving to Map", async ({ page }) => {
+  test("a board opens from More as a reading surface, and the Map keeps the map", async ({ page }) => {
     await openDashboard(page);
-    // Boards mount on the Map stage only; from Health a rail click must land the reader there
-    // with the board visible — not a lit button and nothing else.
-    await openPanelViaNav(page, "Tools");
-    await expect(page.getByRole("tab", { name: "Map", exact: true })).toHaveAttribute("aria-selected", "true", { timeout: 10_000 });
-    const win = page.locator(".ap-win", { has: page.getByText(/Tool health/i) }).first();
-    await expect(win).toBeVisible({ timeout: 15_000 });
-    // A second click on Map is the plain toggle: the board closes.
-    await openPanelViaNav(page, "Tools");
-    await expect(win).toHaveCount(0);
+    // The journey a first visitor takes: land on Health, go to More, open a board. It opens in
+    // place — no floating window, and the Map tab is not hijacked.
+    await openBoardViaMore(page, "Tools");
+    await expect(page.getByTestId("board-view")).toHaveAttribute("data-board", "tools");
+    await expect(page.getByRole("tab", { name: "More", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page.locator(".ap-win")).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "Panel navigation" })).toHaveCount(0);
+    await closeBoard(page);
   });
 
   test("Health carries four tiles under the band, each with a source and a time", async ({ page }) => {
@@ -72,7 +75,7 @@ test.describe("dashboard views", () => {
     await expect(each).toHaveCount(4);
     for (const id of ["mover", "tools", "aicfg", "labs"]) {
       const t = tiles.locator(`[data-tile="${id}"]`);
-      await expect(t.locator(".ap-htile__src a")).toBeVisible();
+      await expect(t.locator(".ap-htile__src a:not(.ap-htile__drill)")).toBeVisible();
       await expect(t.locator(".ap-htile__src")).not.toBeEmpty();
     }
     // The status poll answers on every environment: the tools tile is live with a UTC stamp.

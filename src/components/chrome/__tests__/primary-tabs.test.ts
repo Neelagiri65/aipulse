@@ -30,3 +30,16 @@ describe("primary-tabs", () => {
     expect(feedViewFromSearch("")).toBe(DEFAULT_FEED_VIEW);
   });
 });
+
+describe("boards axis (More › board)", () => {
+  it("reads ?board= and rejects anything that is not a board", async () => {
+    const { boardFromSearch, boardHref, isBoardId, BOARD_IDS } = await import("@/components/chrome/primary-tabs");
+    expect(boardFromSearch("?tab=more&board=benchmarks")).toBe("benchmarks");
+    expect(boardFromSearch("?board=wire")).toBeNull(); // the Wire is Feed's second view, not a board
+    expect(boardFromSearch("?board=globe")).toBeNull();
+    expect(boardFromSearch("")).toBeNull();
+    expect(isBoardId("sdk-adoption")).toBe(true);
+    expect(BOARD_IDS.length).toBe(10);
+    expect(boardHref("labs")).toBe("/?tab=more&board=labs");
+  });
+});

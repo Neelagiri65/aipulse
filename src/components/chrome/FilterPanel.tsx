@@ -1,5 +1,7 @@
 "use client";
 
+import { useTheme, type Theme } from "@/lib/hooks/use-theme";
+import { legendColors, LAYER_COLOR } from "@/components/map/event-palette";
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "ap.filter-panel-open";
@@ -51,47 +53,29 @@ type Layer = {
   category: "Event types" | "Signal" | "Layers";
 };
 
-const LAYERS: Layer[] = [
-  { id: "push", label: "Push", color: "#2dd4bf", category: "Event types" },
-  { id: "pr", label: "Pull requests", color: "#60a5fa", category: "Event types" },
-  { id: "issue", label: "Issues", color: "#a78bfa", category: "Event types" },
-  { id: "release", label: "Releases", color: "#f59e0b", category: "Event types" },
-  { id: "fork", label: "Forks", color: "#4ade80", category: "Event types" },
-  { id: "watch", label: "Stars", color: "#fbbf24", category: "Event types" },
-  {
-    id: "ai-config-only",
-    label: "AI-config only",
-    color: "#2dd4bf",
-    category: "Signal",
-  },
-  {
-    id: "ai-labs",
-    label: "AI Labs",
-    color: "#a855f7",
-    category: "Layers",
-  },
-  {
-    id: "regional-rss",
-    label: "Regional RSS",
-    color: "#f97316",
-    category: "Layers",
-  },
-  {
-    // Registry dot colour matches Dashboard.tsx registryPoints `color`
-    // (slate 300). Keeps the swatch honest to what lands on the map.
-    id: "registry",
-    label: "Registry",
-    color: "#cbd5e1",
-    category: "Layers",
-  },
-  {
-    // HN brand orange — matches the rendered dot + pill in WirePage.
-    id: "hn",
-    label: "Hacker News",
-    color: "#ff6600",
-    category: "Layers",
-  },
-];
+/**
+ * The swatch beside each filter is the colour the map actually paints for it, taken from the
+ * shared per-theme palette — a hand-copied table here is how the legend and the markers drifted
+ * apart in the first place.
+ */
+function layersFor(theme: Theme): Layer[] {
+  const legend = legendColors(theme);
+  const layer = LAYER_COLOR[theme];
+  return [
+    { id: "push", label: "Push", color: legend.push, category: "Event types" },
+    { id: "pr", label: "Pull requests", color: legend.pr, category: "Event types" },
+    { id: "issue", label: "Issues", color: legend.issue, category: "Event types" },
+    { id: "release", label: "Releases", color: legend.release, category: "Event types" },
+    { id: "fork", label: "Forks", color: legend.fork, category: "Event types" },
+    { id: "watch", label: "Stars", color: legend.watch, category: "Event types" },
+    { id: "ai-config-only", label: "AI-config only", color: legend.push, category: "Signal" },
+    { id: "ai-labs", label: "AI Labs", color: layer.labs, category: "Layers" },
+    { id: "regional-rss", label: "Regional RSS", color: layer.rss, category: "Layers" },
+    { id: "registry", label: "Registry", color: layer.registry, category: "Layers" },
+    // HN brand orange — the one mark that holds its hue on both grounds.
+    { id: "hn", label: "Hacker News", color: layer.hn, category: "Layers" },
+  ];
+}
 
 export type FilterPanelProps = {
   filters: FilterState;
@@ -108,6 +92,7 @@ export type FilterPanelProps = {
  * filter access.
  */
 export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
+  const LAYERS = layersFor(useTheme());
   const cats: Layer["category"][] = ["Event types", "Signal", "Layers"];
   const [open, setOpen] = useState(false);
 
@@ -138,7 +123,7 @@ export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
         onClick={() => setOpenPersist(true)}
         aria-label="Show filters"
         title="Show filters"
-        className="ap-filter-panel-trigger fixed right-3 z-40 ap-panel-surface flex h-10 items-center gap-2 px-3 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground/90 transition-colors hover:text-[var(--ap-accent)] border border-[var(--ap-accent)]/40 shadow-[0_0_12px_-4px_rgba(45,212,191,0.4)]"
+        className="ap-filter-panel-trigger fixed right-3 z-40 ap-panel-surface flex h-10 items-center gap-2 px-3 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors hover:text-[var(--link)]"
         style={{ top: "calc(156px + var(--ap-strip-h, 0px))" }}
       >
         <FunnelIcon />
@@ -339,7 +324,7 @@ function FilterRow({
         }}
       >
         {enabled && (
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0a0e14" strokeWidth="3">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--surface)" strokeWidth="3">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         )}
