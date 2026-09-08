@@ -40,10 +40,18 @@ describe("isCronStale", () => {
     expect(isCronStale(record, now)).toBe(false);
   });
 
+  // The boundary is read from the registry rather than written as a literal: these assert the
+  // 2× RULE, and a workflow's declared interval is expected to be re-sized from observed
+  // cadence (see the note in cron-health.ts). Hardcoding 240 here made a legitimate re-label
+  // of wire-ingest-hn look like a broken staleness check.
+  const MINUTE = 60_000;
+  const boundary = (workflow: CronWorkflowName) =>
+    2 * CRON_WORKFLOWS[workflow].expectedIntervalMinutes * MINUTE;
+
   it("treats a success within 2× interval as fresh (tolerates one missed tick)", () => {
     const now = Date.parse("2026-04-21T12:00:00Z");
     const record = mkRecord("wire-ingest-hn", {
-      lastSuccessAt: "2026-04-21T08:01:00Z", // 239 min ago, 2× interval = 240 min
+      lastSuccessAt: new Date(now - boundary("wire-ingest-hn") + MINUTE).toISOString(),
     });
     expect(isCronStale(record, now)).toBe(false);
   });
@@ -51,7 +59,7 @@ describe("isCronStale", () => {
   it("flags a success older than 2× interval as stale", () => {
     const now = Date.parse("2026-04-21T12:00:00Z");
     const record = mkRecord("wire-ingest-hn", {
-      lastSuccessAt: "2026-04-21T07:59:00Z", // 241 min ago, 2× interval = 240 min
+      lastSuccessAt: new Date(now - boundary("wire-ingest-hn") - MINUTE).toISOString(),
     });
     expect(isCronStale(record, now)).toBe(true);
   });
@@ -104,13 +112,17 @@ describe("isCronStale", () => {
 });
 
 describe("CRON_WORKFLOWS registry", () => {
+  // A change-detector on purpose: re-labelling a cadence has to be a deliberate edit in two
+  // places, not a silent widening that quietly stops the chip reporting a real stall. The four
+  // values raised in S113 were measured from `gh run list` (p50/p95/max recorded next to each
+  // entry in cron-health.ts), not guessed.
   it("matches the expected cadences of the monitored workflows", () => {
     expect(CRON_WORKFLOWS["globe-ingest"].expectedIntervalMinutes).toBe(90);
-    expect(CRON_WORKFLOWS["wire-ingest-hn"].expectedIntervalMinutes).toBe(120);
+    expect(CRON_WORKFLOWS["wire-ingest-hn"].expectedIntervalMinutes).toBe(210);
     expect(CRON_WORKFLOWS["wire-ingest-rss"].expectedIntervalMinutes).toBe(30);
     expect(
       CRON_WORKFLOWS["registry-backfill-events"].expectedIntervalMinutes,
-    ).toBe(150);
+    ).toBe(210);
     expect(
       CRON_WORKFLOWS["registry-discover-topics"].expectedIntervalMinutes,
     ).toBe(240);
