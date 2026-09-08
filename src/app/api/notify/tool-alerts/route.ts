@@ -1,5 +1,5 @@
 /**
- * Gawk — POST /api/notify/tool-alerts
+ * gawk.dev — POST /api/notify/tool-alerts
  *
  * Cron-driven. Polls current tool health, derives TOOL_ALERT cards, computes
  * transitions against the cached state in Redis, and posts one Discord
@@ -219,7 +219,7 @@ export const POST = withIngest<RouteResult>({
       const status = String(t.card.meta.status);
       pushJobs.push(
         broadcastPush({
-          title: `Gawk: ${toolName} ${status}`,
+          title: `gawk.dev: ${toolName} ${status}`,
           body: t.card.detail || `Status changed to ${status}`,
           url: "https://gawk.dev",
           tag: `tool-alert-${toolName}`,
@@ -229,7 +229,7 @@ export const POST = withIngest<RouteResult>({
     for (const r of recoveries) {
       pushJobs.push(
         broadcastPush({
-          title: `Gawk: ${r.state.toolDisplayName} recovered`,
+          title: `gawk.dev: ${r.state.toolDisplayName} recovered`,
           body: `Back to operational from ${r.state.status}`,
           url: "https://gawk.dev",
           tag: `tool-alert-${r.state.toolDisplayName}`,

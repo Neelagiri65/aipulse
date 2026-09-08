@@ -107,7 +107,7 @@ describe("postEmbeds", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     const body = JSON.parse(fetchSpy.mock.calls[0][1].body);
     expect(body.embeds).toHaveLength(2);
-    expect(body.username).toBe("Gawk");
+    expect(body.username).toBe("gawk.dev");
   });
 
   it("retries once on 5xx and succeeds on the second attempt", async () => {

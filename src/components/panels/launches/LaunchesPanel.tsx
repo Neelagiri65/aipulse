@@ -52,11 +52,11 @@ export function LaunchesPanel({
   if (!data || !data.posts || data.posts.length === 0) {
     return (
       <div
-        className="m-3 flex min-h-[200px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-amber-500/40 bg-amber-500/5 px-6 py-8 text-center font-mono text-[10px] uppercase tracking-wider text-amber-400/90"
+        className="m-3 flex min-h-[200px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-amber-500/40 bg-amber-500/5 px-6 py-8 text-center font-mono text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-400"
         role="status"
       >
         <p>No Product Hunt launches yet.</p>
-        <p className="text-amber-400/70">
+        <p className="text-amber-700 dark:text-amber-400">
           {error
             ? `Last poll error: ${error}`
             : "Set PRODUCT_HUNT_TOKEN to enable this source."}

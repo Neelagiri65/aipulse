@@ -36,7 +36,7 @@ export function buildShareUrl(opts: BuildShareUrlOpts): string {
 }
 
 /** One-line share copy for a digest section. Pairs the section headline
- *  with the Gawk brand so the post stands alone in a feed. */
+ *  with the gawk.dev brand so the post stands alone in a feed. */
 export function composeShareText(sectionTitle: string, headline: string): string {
-  return `${sectionTitle}: ${headline} — via Gawk`;
+  return `${sectionTitle}: ${headline} — via gawk.dev`;
 }

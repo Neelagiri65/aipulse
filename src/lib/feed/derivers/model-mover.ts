@@ -1,5 +1,5 @@
 /**
- * Gawk — MODEL_MOVER deriver
+ * gawk.dev — MODEL_MOVER deriver
  *
  * Pure function over `ModelUsageDto`. Emits one Card per OpenRouter
  * top-N model whose week-over-week rank delta exceeds the locked
@@ -39,6 +39,7 @@ export function deriveModelMoverCards(dto: ModelUsageDto): Card[] {
       timestamp: dto.fetchedAt,
       meta: {
         slug: row.slug,
+        name: row.name,
         currentRank: row.rank,
         previousRank: row.previousRank,
         delta,

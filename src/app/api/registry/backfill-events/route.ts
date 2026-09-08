@@ -24,6 +24,7 @@
 
 import { NextResponse } from "next/server";
 import { runEventsBackfill } from "@/lib/data/registry-events-backfill";
+import { REGISTRY_INTEGRITY_STEPS } from "@/lib/data/repo-registry";
 import { writeCronHealth } from "@/lib/data/cron-health";
 
 export const runtime = "nodejs";
@@ -69,12 +70,20 @@ export async function POST(request: Request) {
     });
     throw e;
   }
-  await writeCronHealth("registry-backfill-events", {
-    ok: true,
-    itemsProcessed: result.written,
-  });
+  // A store-integrity failure fails the run — see /api/registry/discover.
+  // This route is the one rebuilding the registry after the 2026-06-05
+  // loss, so a second collapse must not read as green.
+  const integrityMessage = result.failures.find((f) =>
+    REGISTRY_INTEGRITY_STEPS.includes(f.step),
+  )?.message;
+  await writeCronHealth(
+    "registry-backfill-events",
+    integrityMessage
+      ? { ok: false, error: integrityMessage }
+      : { ok: true, itemsProcessed: result.written },
+  );
 
-  return NextResponse.json({ ok: true, result });
+  return NextResponse.json({ ok: !integrityMessage, result });
 }
 
 export async function GET(request: Request) {

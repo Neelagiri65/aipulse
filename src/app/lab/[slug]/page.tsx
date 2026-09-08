@@ -63,8 +63,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const lab = await loadTopLab(slug);
-  if (!lab) return { title: "Lab not found · Gawk" };
-  const title = `${lab.displayName} · AI Lab profile · Gawk`;
+  if (!lab) return { title: "Lab not found · gawk.dev" };
+  const title = `${lab.displayName} · AI Lab profile · gawk.dev`;
   const description = `${lab.displayName} — ${lab.city}, ${lab.country}. ${lab.total} GitHub events across ${lab.repos.length} tracked repos in the last 7 days. Aggregated from public GitHub Events API; verified HQ coordinate.`;
   return {
     title,
@@ -96,7 +96,7 @@ export default async function LabEntityPage({
           href="/"
           className="underline decoration-dotted underline-offset-2 hover:text-foreground"
         >
-          Gawk
+          gawk.dev
         </Link>
         <span aria-hidden="true"> / </span>
         <Link

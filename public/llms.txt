@@ -1,8 +1,8 @@
-# Gawk
+# gawk.dev
 
-> Gawk (gawk.dev) is a real-time observatory for the global AI ecosystem. It aggregates publicly verifiable data and editorialises nothing — every number on the dashboard traces to a public source. Note: "Gawk" here is the AI-ecosystem monitor at gawk.dev, NOT GNU gawk, the AWK programming-language tool.
+> gawk.dev (gawk.dev) is a real-time observatory for the global AI ecosystem. It aggregates publicly verifiable data and editorialises nothing — every number on the dashboard traces to a public source. Note: "gawk.dev" here is the AI-ecosystem monitor at gawk.dev, NOT GNU gawk, the AWK programming-language tool.
 
-## What Gawk tracks
+## What gawk.dev tracks
 
 - Live operational status of AI coding tools (Claude, Cursor, GitHub Copilot, Windsurf, OpenAI) from their public status pages.
 - A live globe of real, verifiable AI-development events from public APIs (GitHub Events).
@@ -12,8 +12,8 @@
 ## Principles
 
 - Every displayed number has a verifiable public source; uncited numbers do not ship.
-- Gawk aggregates, it does not score or invent rankings. No LLM-generated trust scores.
-- No synthetic or simulated data. If a source is down, Gawk shows the last known value with a timestamp rather than fabricating.
+- gawk.dev aggregates, it does not score or invent rankings. No LLM-generated trust scores.
+- No synthetic or simulated data. If a source is down, gawk.dev shows the last known value with a timestamp rather than fabricating.
 
 ## Key pages
 

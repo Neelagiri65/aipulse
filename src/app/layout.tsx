@@ -1,21 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, JetBrains_Mono } from "next/font/google";
+import { Khand } from "next/font/google";
 import "./globals.css";
-import { CursorGlow } from "@/components/chrome/CursorGlow";
 import { GlobalOverlays } from "@/components/chrome/GlobalOverlays";
 import { ServiceWorkerRegister } from "@/components/chrome/ServiceWorkerRegister";
 
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
+// Display face for the one answer line per screen (≥20px, never in a control). Body and
+// numerals (Supreme, Tabular) load from Fontshare in <head>, exactly as mcp.gawk.dev does.
+const khand = Khand({
+  variable: "--font-khand",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["500", "600", "700"],
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
+const FONTSHARE_CSS =
+  "https://api.fontshare.com/v2/css?f[]=supreme@400,500&f[]=tabular@400,500&display=swap";
+
+// Runs before first paint: a stored choice wins; otherwise the page is light (founder ruling 5 Sep).
+const THEME_BOOT =
+  'try{var t=localStorage.getItem("gawk-theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}';
 
 /**
  * `metadataBase` resolves all relative og/twitter image URLs into absolute
@@ -44,17 +46,17 @@ const JSON_LD = {
     {
       "@type": "Organization",
       "@id": `${SITE_ORIGIN}/#org`,
-      name: "Gawk",
+      name: "gawk.dev",
       url: SITE_ORIGIN,
       logo: `${SITE_ORIGIN}/icon-512.png`,
       description:
-        "Gawk is a real-time observatory for the global AI ecosystem — live status and activity for AI coding tools and AI labs, where every number cites its public source.",
+        "gawk.dev is a real-time observatory for the global AI ecosystem — live status and activity for AI coding tools and AI labs, where every number cites its public source.",
     },
     {
       "@type": "WebSite",
       "@id": `${SITE_ORIGIN}/#website`,
-      name: "Gawk",
-      alternateName: "Gawk — AI ecosystem observatory",
+      name: "gawk.dev",
+      alternateName: "gawk.dev — AI ecosystem observatory",
       url: SITE_ORIGIN,
       description: SITE_DESCRIPTION,
       publisher: { "@id": `${SITE_ORIGIN}/#org` },
@@ -65,7 +67,7 @@ const JSON_LD = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),
-  title: "Gawk — live status & activity monitor for AI coding tools",
+  title: "gawk.dev — live status & activity monitor for AI coding tools",
   description: SITE_DESCRIPTION,
   // Self-canonical to the apex origin so the apex/www split doesn't fragment
   // ranking signals (pair with the host redirect in Vercel).
@@ -76,7 +78,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Gawk",
+    title: "gawk.dev",
   },
   icons: {
     icon: [
@@ -88,8 +90,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    siteName: "Gawk",
-    title: "Gawk — live status & activity monitor for AI coding tools",
+    siteName: "gawk.dev",
+    title: "gawk.dev — live status & activity monitor for AI coding tools",
     description: SITE_DESCRIPTION,
     url: SITE_ORIGIN,
     locale: "en_GB",
@@ -99,7 +101,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Gawk — live status & activity monitor for AI coding tools",
+    title: "gawk.dev — live status & activity monitor for AI coding tools",
     description: SITE_DESCRIPTION,
   },
 };
@@ -108,7 +110,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#06080a",
+  themeColor: "#FAFAF6",
 };
 
 export default function RootLayout({
@@ -117,20 +119,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${dmSans.variable} ${jetbrainsMono.variable} dark h-full antialiased`}
-    >
+    <html lang="en" className={`${khand.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://api.fontshare.com" />
+        <link rel="preconnect" href="https://cdn.fontshare.com" crossOrigin="anonymous" />
+        <link rel="stylesheet" href={FONTSHARE_CSS} />
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-hidden">
         {/* Structured data — helps Google rich results + AI answer engines
-            understand what Gawk is and disambiguate it from GNU gawk (awk). */}
+            understand what gawk.dev is and disambiguate it from GNU gawk (awk). */}
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
         />
         <div className="ap-stage-bg" aria-hidden />
-        <CursorGlow />
         <div className="relative z-10 flex flex-1 flex-col">{children}</div>
         <GlobalOverlays />
         <ServiceWorkerRegister />

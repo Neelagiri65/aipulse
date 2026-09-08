@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   if (!user || !pass || !verifyAdminBasicAuth(request.headers.get("authorization"), { user, pass })) {
     return new Response("Unauthorized", {
       status: 401,
-      headers: { "www-authenticate": 'Basic realm="Gawk admin"', "cache-control": "no-store" },
+      headers: { "www-authenticate": 'Basic realm="gawk.dev admin"', "cache-control": "no-store" },
     });
   }
 

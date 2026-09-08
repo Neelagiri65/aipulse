@@ -31,7 +31,7 @@ export function LangTag({ lang }: { lang: string }) {
   if (!normalised || normalised === "en") return null;
   return (
     <span
-      className="inline-flex shrink-0 items-center font-mono text-[9px] font-medium uppercase tracking-wider text-slate-400"
+      className="inline-flex shrink-0 items-center font-mono text-[9px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-400"
       title={`Feed language: ${normalised}`}
     >
       {normalised}

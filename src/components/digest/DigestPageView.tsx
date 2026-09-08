@@ -2,7 +2,7 @@
  * Public-page renderer for a `DigestBody`.
  *
  * Mirrors the email template's section layout so subscribers who clicked
- * "View on Gawk" in the email see the same content with a bit more
+ * "View on gawk.dev" in the email see the same content with a bit more
  * breathing room + interactive share buttons. Server component —
  * SectionShareButton is the only client island.
  */
@@ -31,7 +31,7 @@ export function DigestPageView({
     <main className="mx-auto max-w-3xl px-6 py-12 text-foreground">
       <header className="mb-10 border-b border-border/60 pb-6">
         <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
-          Gawk · {digest.date}
+          gawk.dev · {digest.date}
         </p>
         <h1 className="mb-3 font-mono text-2xl tracking-tight">
           {digest.subject}
@@ -234,7 +234,7 @@ function DigestItemView({
                 href={`${baseUrl}${item.panelHref}`}
                 className="underline underline-offset-2 text-primary/80 hover:text-primary"
               >
-                View on Gawk →
+                View on gawk.dev →
               </a>
             </>
           ) : null}
@@ -245,7 +245,7 @@ function DigestItemView({
             href={`${baseUrl}${item.panelHref}`}
             className="underline underline-offset-2 text-primary/80 hover:text-primary"
           >
-            View on Gawk →
+            View on gawk.dev →
           </a>
         </p>
       ) : null}

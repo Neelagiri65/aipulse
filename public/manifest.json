@@ -1,13 +1,13 @@
 {
-  "name": "Gawk — live AI ecosystem observatory",
-  "short_name": "Gawk",
+  "name": "gawk.dev — live AI ecosystem observatory",
+  "short_name": "gawk.dev",
   "description": "Real-time aggregator for the global AI ecosystem. Every number cites its source.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#06080a",
-  "theme_color": "#06080a",
+  "background_color": "#FAFAF6",
+  "theme_color": "#FAFAF6",
   "categories": ["productivity", "utilities", "developer"],
   "icons": [
     {

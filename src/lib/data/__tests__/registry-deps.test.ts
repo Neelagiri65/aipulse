@@ -12,7 +12,15 @@ vi.mock("@/lib/data/repo-registry", () => ({
   isRegistryAvailable: () => true,
   readAllEntries: vi.fn(async () => []),
   upsertEntries: vi.fn(async () => {}),
-  writeMeta: vi.fn(async () => {}),
+  // The guarded meta write. Stubbed as the clean path (read landed, no
+  // shrink) so this file keeps testing the budget guard and nothing else;
+  // the guard's own branches are covered in repo-registry.test.ts.
+  finaliseRegistryMeta: vi.fn(async () => ({
+    ok: true,
+    totalEntries: 0,
+    addedFailures: [],
+    wrote: true,
+  })),
 }));
 const pathExists = vi.fn(async () => false);
 vi.mock("@/lib/github", () => ({ pathExists: (...a: unknown[]) => pathExists(...(a as [])) }));

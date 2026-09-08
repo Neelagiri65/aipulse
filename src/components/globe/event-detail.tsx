@@ -423,7 +423,7 @@ function ClusterTypeStrip({ events }: { events: GlobePoint[] }) {
   if (rows.length === 0) return null;
   const line = formatBreakdownLine(rows);
   return (
-    <div className="border-b border-border/40 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80 tabular-nums">
+    <div className="border-b border-border/40 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground tabular-nums">
       {line}
     </div>
   );
@@ -731,7 +731,7 @@ function RssRow({ point }: { point: GlobePoint }) {
           {city && country ? `${city}, ${country}` : country || city || "—"}
         </span>
         <span className="ml-2 shrink-0 tabular-nums">
-          {last24} · 24h <span className="text-foreground/30">/</span> {last7} · 7d
+          {last24} · 24h <span className="text-muted-foreground">/</span> {last7} · 7d
         </span>
       </div>
     </li>

@@ -1,5 +1,5 @@
 /**
- * Gawk — Reddit NEWS deriver.
+ * gawk.dev — Reddit NEWS deriver.
  *
  * Pure function over a list of stored Reddit items + a now-millisecond
  * reference. Emits one NEWS card per Reddit post that landed within
@@ -9,7 +9,7 @@
  *
  * Trust contract:
  *   - Card sourceUrl is the Reddit comments page (not any external link
- *     in the post body) — the value Gawk adds is surfacing the
+ *     in the post body) — the value gawk.dev adds is surfacing the
  *     conversation, not relinking the same article.
  *   - No re-ranking, no score inference, no editorial filter beyond the
  *     window + per-sub cap. The subreddit's `?sort=top&t=day` already

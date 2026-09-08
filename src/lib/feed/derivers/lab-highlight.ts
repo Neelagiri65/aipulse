@@ -1,5 +1,5 @@
 /**
- * Gawk — LAB_HIGHLIGHT deriver
+ * gawk.dev — LAB_HIGHLIGHT deriver
  *
  * Pure function over `LabsPayload`. Emits exactly one Card — the
  * lab with the highest 7-day GitHub event total. Returns [] when

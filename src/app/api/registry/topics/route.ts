@@ -27,6 +27,7 @@
 
 import { NextResponse } from "next/server";
 import { runTopicsDiscovery, TOPICS } from "@/lib/data/registry-topics";
+import { REGISTRY_INTEGRITY_STEPS } from "@/lib/data/repo-registry";
 import { writeCronHealth } from "@/lib/data/cron-health";
 
 export const runtime = "nodejs";
@@ -82,12 +83,18 @@ export async function POST(request: Request) {
     });
     throw e;
   }
-  await writeCronHealth("registry-discover-topics", {
-    ok: true,
-    itemsProcessed: result.written,
-  });
+  // A store-integrity failure fails the run — see /api/registry/discover.
+  const integrityMessage = result.failures.find((f) =>
+    REGISTRY_INTEGRITY_STEPS.includes(f.step),
+  )?.message;
+  await writeCronHealth(
+    "registry-discover-topics",
+    integrityMessage
+      ? { ok: false, error: integrityMessage }
+      : { ok: true, itemsProcessed: result.written },
+  );
 
-  return NextResponse.json({ ok: true, result });
+  return NextResponse.json({ ok: !integrityMessage, result });
 }
 
 export async function GET(request: Request) {

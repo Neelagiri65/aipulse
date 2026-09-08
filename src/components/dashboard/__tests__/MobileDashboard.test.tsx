@@ -11,7 +11,7 @@
  * useState boundary.
  */
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { MobileDashboard } from "@/components/dashboard/MobileDashboard";
@@ -57,33 +57,38 @@ const baseProps = {
   agentsLoading: false,
   agentsError: null,
   regionalDeltas: undefined,
+  topTab: "health" as const,
+  onTopTabChange: () => {},
 };
 
 describe("MobileDashboard — shell", () => {
-  it("renders the brand row with the GAWK wordmark", () => {
+  it("renders the brand row with the gawk lockup (Nativerse mark + wordmark)", () => {
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
-    expect(html).toContain("GAWK");
+    expect(html).toContain(">gawk.dev<");
+    expect(html).toContain("ap-brand__mark");
     expect(html).toContain("ap-mobile-brand");
   });
 
-  it("renders the bottom-bar primary tabs (FEED, MAP, PANELS)", () => {
+  it("renders the five primary tabs (Health, Feed, Map, Community, More)", () => {
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
     expect(html).toContain("ap-mobile-bottombar");
-    for (const label of ["FEED", "MAP", "PANELS"]) {
+    for (const label of ["Health", "Feed", "Map", "Community", "More"]) {
       expect(html).toContain(`>${label}<`);
     }
   });
 
-  it("default top-level tab is FEED (per S40 PRD)", () => {
+  it("Health is the landing surface (web v2 supersedes the S40 feed default)", () => {
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
-    expect(html).toMatch(/data-top-tab="feed"/);
+    expect(html).toMatch(/data-top-tab="health"/);
     expect(html).toMatch(
-      /class="ap-mobile-bottombar__item is-active"[^>]*data-tab="feed"/,
+      /class="ap-mobile-bottombar__item is-active"[^>]*data-tab="health"/,
     );
   });
 
-  it("FEED tab renders the feed surface (loading skeleton on SSR)", () => {
-    const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
+  it("Feed tab renders the feed surface (loading skeleton on SSR)", () => {
+    const html = renderToStaticMarkup(
+      <MobileDashboard {...baseProps} topTab="feed" />,
+    );
     expect(html).toContain("ap-mobile-feed");
     expect(html).toContain('data-feed-state="loading"');
   });
@@ -98,9 +103,8 @@ describe("MobileDashboard — shell", () => {
     expect(html).not.toMatch(/class="ap-mobile-tabs__label">SDK</);
   });
 
-  it("does not render the panels sub-tab strip on the default FEED tab", () => {
-    // The 4 sub-tabs (Wire / Health / Models / More) only appear when
-    // the user has switched to the PANELS top-level tab.
+  it("does not render the panels sub-tab strip on the default Health tab", () => {
+    // The sub-tabs (Wire / Models / More) only appear on the More surface.
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
     expect(html).not.toContain("ap-mobile-tabs__item");
   });
@@ -153,5 +157,39 @@ describe("MobileDashboard — shell", () => {
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
     expect(html).toContain('href="/data-sources.md"');
     expect(html).toContain('target="_blank"');
+  });
+});
+
+describe("MobileDashboard — the Community entry point", () => {
+  const KEY = "NEXT_PUBLIC_COMMUNITY_URL";
+  const LEGACY = "NEXT_PUBLIC_DISCORD_INVITE_URL";
+  const orig = process.env[KEY];
+  const origLegacy = process.env[LEGACY];
+
+  afterEach(() => {
+    if (orig === undefined) delete process.env[KEY];
+    else process.env[KEY] = orig;
+    if (origLegacy === undefined) delete process.env[LEGACY];
+    else process.env[LEGACY] = origLegacy;
+  });
+
+  // The chip in the mobile top bar was #106's entry point; the five-label bar made Community a
+  // destination of its own, and the Community surface now carries the server, the count and the
+  // join link. One door, not two.
+  it("does not mount a community chip in the top bar even when the invite is set", () => {
+    process.env[KEY] = "https://discord.gg/test-invite";
+    const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
+    const header = html.slice(
+      html.indexOf('class="ap-mobile-topbar"'),
+      html.indexOf("</header>"),
+    );
+    expect(header).not.toContain('data-testid="community-link"');
+  });
+
+  it("renders no community chip when the env var is unset either", () => {
+    delete process.env[KEY];
+    delete process.env[LEGACY];
+    const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
+    expect(html).not.toContain("community-link");
   });
 });

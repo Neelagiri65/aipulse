@@ -1,3 +1,4 @@
+import { colorForTypeIn } from "@/components/map/event-palette";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MapLegend } from "@/components/chrome/MapLegend";
@@ -47,7 +48,9 @@ describe("MapLegend", () => {
   it("renders coloured dots that match the FilterPanel checkbox swatches", () => {
     const onlyPush: FilterState = { ...ALL_OFF, push: true };
     const html = renderToStaticMarkup(<MapLegend filters={onlyPush} />);
-    // Push colour from FlatMap.colorForType / FilterPanel: #2dd4bf (teal).
-    expect(html).toContain("#2dd4bf");
+    // The swatch is the colour the map paints on the reader's ground. Server render resolves to
+    // the light theme, so the light-ground push value is what ships in the markup; the point of
+    // the assertion is that legend and markers read the SAME palette, not a copied constant.
+    expect(html).toContain(colorForTypeIn("light", "PushEvent"));
   });
 });

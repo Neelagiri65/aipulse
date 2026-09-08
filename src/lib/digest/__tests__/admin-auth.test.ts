@@ -88,7 +88,7 @@ describe("requireAdminBasicAuth", () => {
     expect(resp).toBeInstanceOf(Response);
     expect(resp!.status).toBe(401);
     expect(resp!.headers.get("www-authenticate")).toBe(
-      'Basic realm="Gawk admin"',
+      'Basic realm="gawk.dev admin"',
     );
   });
 

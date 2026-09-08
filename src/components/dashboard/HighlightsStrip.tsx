@@ -10,18 +10,16 @@ export type HighlightsStripProps = {
   variant?: "desktop" | "mobile";
 };
 
-const TONE_DOT: Record<HighlightTone, string> = {
-  outage: "var(--sev-outage)",
-  degrade: "var(--sev-degrade)",
-  info: "var(--sev-info, #38bdf8)",
-  neutral: "var(--ap-fg-muted, #7a8a90)",
-};
-
-const TONE_RING: Record<HighlightTone, string> = {
-  outage: "rgba(244, 63, 94, 0.35)",
-  degrade: "rgba(245, 158, 11, 0.35)",
-  info: "rgba(56, 189, 248, 0.35)",
-  neutral: "rgba(122, 138, 144, 0.25)",
+/**
+ * The chip's mark is ink and its shape carries the state (PRD web-restyle-v2 §7: colour is a
+ * word, never a mark). An outage chip is a filled mark, anything unresolved is hatched, a settled
+ * one is hollow — the same three shapes the tool rows and the world band use.
+ */
+const TONE_MARK: Record<HighlightTone, string> = {
+  outage: "solid",
+  degrade: "hatched",
+  info: "hollow",
+  neutral: "hollow",
 };
 
 export function HighlightsStrip({
@@ -47,8 +45,6 @@ export function HighlightsStrip({
             className="ap-highlights-chip"
             style={
               {
-                "--chip-dot": TONE_DOT[tone],
-                "--chip-ring": TONE_RING[tone],
               } as CSSProperties
             }
             data-testid="highlights-chip"
@@ -57,8 +53,7 @@ export function HighlightsStrip({
             title={`Source: ${card.sourceName}`}
           >
             <span
-              className="ap-highlights-chip__dot"
-              style={{ background: TONE_DOT[tone] }}
+              className={`ap-mark ap-mark--${TONE_MARK[tone]} ap-mark--sm`}
               aria-hidden
             />
             <span className="ap-highlights-chip__headline">{card.headline}</span>
@@ -111,8 +106,6 @@ function RotatingTicker({
         className="ap-highlights-chip"
         style={
           {
-            "--chip-dot": TONE_DOT[tone],
-            "--chip-ring": TONE_RING[tone],
           } as CSSProperties
         }
         data-testid="highlights-chip"
@@ -121,8 +114,7 @@ function RotatingTicker({
         title={`Source: ${card.sourceName}`}
       >
         <span
-          className="ap-highlights-chip__dot"
-          style={{ background: TONE_DOT[tone] }}
+          className={`ap-mark ap-mark--${TONE_MARK[tone]} ap-mark--sm`}
           aria-hidden
         />
         <span className="ap-highlights-chip__headline">{card.headline}</span>
@@ -131,7 +123,7 @@ function RotatingTicker({
         )}
       </button>
       {highlights.length > 1 && (
-        <span className="ml-auto font-mono text-[9px] text-muted-foreground/50">
+        <span className="ml-auto font-mono text-[9px] text-muted-foreground">
           {safeIdx + 1}/{highlights.length}
         </span>
       )}

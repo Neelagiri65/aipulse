@@ -1,5 +1,5 @@
 /**
- * Gawk — TOOL_ALERT deriver
+ * gawk.dev — TOOL_ALERT deriver
  *
  * Pure function over `StatusResult`. Emits one Card per tool that the
  * StatusBar would render as anything other than green: a non-operational
@@ -18,6 +18,7 @@ import type { StatusResult } from "@/lib/data/fetch-status";
 import type { ToolId } from "@/components/health/tools";
 import { cardId } from "@/lib/feed/card-id";
 import { FEED_SEVERITIES } from "@/lib/feed/thresholds";
+import { STATUS_WORD } from "@/lib/feed/why-surfaced";
 import type { Card } from "@/lib/feed/types";
 
 const TOOL_DISPLAY_NAMES: Record<ToolId, string> = {
@@ -29,11 +30,7 @@ const TOOL_DISPLAY_NAMES: Record<ToolId, string> = {
   cursor: "Cursor",
 };
 
-const STATUS_DISPLAY: Record<string, string> = {
-  degraded: "degraded performance",
-  partial_outage: "a partial outage",
-  major_outage: "a major outage",
-};
+const STATUS_DISPLAY = STATUS_WORD;
 
 export function deriveToolAlertCards(snapshot: StatusResult): Card[] {
   const cards: Card[] = [];

@@ -1,5 +1,5 @@
 /**
- * Gawk — Platform health fetcher.
+ * gawk.dev — Platform health fetcher.
  *
  * Reads the four platform-infrastructure status pages (Vercel, Supabase,
  * Cloudflare, Upstash) that gawk.dev itself depends on. Distinct from the

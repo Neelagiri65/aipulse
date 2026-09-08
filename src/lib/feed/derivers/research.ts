@@ -1,5 +1,5 @@
 /**
- * Gawk — RESEARCH deriver
+ * gawk.dev — RESEARCH deriver
  *
  * Pure function over `ResearchResult`. Emits one Card per paper in
  * the top-5-by-recency slice. Order is preserved as upstream

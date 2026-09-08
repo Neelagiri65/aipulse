@@ -37,13 +37,13 @@ export function MetricsRow({
 
   return (
     <div
-      className="pointer-events-none fixed bottom-[68px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 pb-1"
+      className="ap-metrics pointer-events-none fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 pb-1"
       aria-label="Headline metrics"
     >
       {cards.map((card, i) => (
         <div
           key={i}
-          className="pointer-events-auto ap-panel-surface flex flex-col gap-1 px-4 py-2"
+          className="pointer-events-auto ap-tile flex flex-col gap-1 px-4 py-2"
           style={{ width: 176, minHeight: 68 }}
         >
           <span className="ap-type-label">{card.label}</span>
@@ -68,19 +68,9 @@ export function MetricsRow({
   );
 }
 
+/** Numbers are ink (PRD §7: colour only as the state words); a pending value is muted italic. */
 function toneClass(tone: Card["tone"]): string {
-  switch (tone) {
-    case "good":
-      return "text-emerald-400";
-    case "warn":
-      return "text-amber-400";
-    case "bad":
-      return "text-rose-400";
-    case "pending":
-      return "text-muted-foreground/70 italic";
-    default:
-      return "text-teal-300";
-  }
+  return tone === "pending" ? "ap-tile__value--pending" : "";
 }
 
 function aiCfgEventsCard(
