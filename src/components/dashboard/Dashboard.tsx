@@ -10,6 +10,7 @@ import { HealthTiles } from "@/components/health/HealthTiles";
 import { FeedView } from "@/components/feed/FeedView";
 import { FeedModeSwitch } from "@/components/feed/FeedModeSwitch";
 import { RoomsView } from "@/components/dashboard/RoomsView";
+import { useCommunity } from "@/lib/community/use-community";
 import { MoreView } from "@/components/dashboard/MoreView";
 import {
   DEFAULT_FEED_VIEW,
@@ -250,6 +251,9 @@ export function Dashboard({
     REGISTRY_POLL_MS,
   );
   const models = usePolledEndpoint<ModelsResult>("/api/models", MODELS_POLL_MS);
+  // One /api/community read for the shell: the Community tab's server panel and the feed's
+  // "Discuss" link both show the same number, because they are the same read.
+  const community = useCommunity();
   const research = usePolledEndpoint<ResearchResult>(
     "/api/research",
     RESEARCH_POLL_MS,
@@ -997,7 +1001,7 @@ export function Dashboard({
             <section className="ap-column ap-column--feed" aria-label="Feed">
               <FeedModeSwitch mode={feedView} onChange={setFeedView} />
               {feedView === "stories" ? (
-                <FeedView initialResponse={feed.data ?? initialFeedResponse} />
+                <FeedView initialResponse={feed.data ?? initialFeedResponse} community={community} />
               ) : (
                 <WirePage
                   wireRows={wireRows}
@@ -1061,6 +1065,7 @@ export function Dashboard({
               rows={wireRows}
               polledAt={events.data?.polledAt}
               windowMinutes={events.data?.coverage.windowMinutes}
+              community={community}
             />
           </div>
         )}

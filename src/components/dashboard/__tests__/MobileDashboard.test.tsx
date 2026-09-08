@@ -11,7 +11,7 @@
  * useState boundary.
  */
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { MobileDashboard } from "@/components/dashboard/MobileDashboard";
@@ -157,5 +157,39 @@ describe("MobileDashboard — shell", () => {
     const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
     expect(html).toContain('href="/data-sources.md"');
     expect(html).toContain('target="_blank"');
+  });
+});
+
+describe("MobileDashboard — the Community entry point", () => {
+  const KEY = "NEXT_PUBLIC_COMMUNITY_URL";
+  const LEGACY = "NEXT_PUBLIC_DISCORD_INVITE_URL";
+  const orig = process.env[KEY];
+  const origLegacy = process.env[LEGACY];
+
+  afterEach(() => {
+    if (orig === undefined) delete process.env[KEY];
+    else process.env[KEY] = orig;
+    if (origLegacy === undefined) delete process.env[LEGACY];
+    else process.env[LEGACY] = origLegacy;
+  });
+
+  // The chip in the mobile top bar was #106's entry point; the five-label bar made Community a
+  // destination of its own, and the Community surface now carries the server, the count and the
+  // join link. One door, not two.
+  it("does not mount a community chip in the top bar even when the invite is set", () => {
+    process.env[KEY] = "https://discord.gg/test-invite";
+    const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
+    const header = html.slice(
+      html.indexOf('class="ap-mobile-topbar"'),
+      html.indexOf("</header>"),
+    );
+    expect(header).not.toContain('data-testid="community-link"');
+  });
+
+  it("renders no community chip when the env var is unset either", () => {
+    delete process.env[KEY];
+    delete process.env[LEGACY];
+    const html = renderToStaticMarkup(<MobileDashboard {...baseProps} />);
+    expect(html).not.toContain("community-link");
   });
 });

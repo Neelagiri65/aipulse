@@ -64,6 +64,19 @@ test.describe("chrome", () => {
     ).toBeVisible();
   });
 
+  test("the Community tab is the way in, and it opens the server", async ({ page }) => {
+    await openDashboard(page);
+    // #106 put a Community chip in the header; the five-tab chrome made Community a destination,
+    // so the chip is retired and the tab is the single entry point. Assert both halves: no chip,
+    // and the tab actually lands on the Discord panel.
+    await expect(page.locator("header [data-testid='community-link']")).toHaveCount(0);
+
+    const tab = page.getByRole("tab", { name: "Community", exact: true });
+    await expect(tab).toBeVisible();
+    await switchTab(page, "Community");
+    await expect(page.getByTestId("community-discord")).toBeVisible({ timeout: 20_000 });
+  });
+
   test("Sources count link in the header shows verified count", async ({
     page,
   }) => {

@@ -17,7 +17,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
+import { getCommunityUrl } from "@/components/chrome/CommunityLink";
+import type { FeedCardDiscuss } from "@/components/feed/FeedCard";
 import { FeedReading, formatAge } from "@/components/feed/FeedReading";
+import type { CommunityState } from "@/lib/community/use-community";
 import { QuietDayBanner } from "@/components/feed/QuietDayBanner";
 import { VERIFIED_SOURCES } from "@/lib/data-sources";
 import type { Card, CardType, FeedResponse } from "@/lib/feed/types";
@@ -38,6 +41,12 @@ export type FeedViewProps = {
    * mobile: the rows alone; a row is a link to the card's own page (PRD §10).
    */
   variant?: "desktop" | "mobile";
+  /**
+   * Shared /api/community poll owned by the dashboard shell. When it is answering (data
+   * present, no error) a TOOL_ALERT's reading surface carries a "Discuss · n online on
+   * Discord" link; otherwise nothing renders.
+   */
+  community?: CommunityState;
 };
 
 const KINDS: readonly CardType[] = [
@@ -58,7 +67,13 @@ function hhmmUtc(iso: string): string {
   return `${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
 }
 
-export function FeedView({ initialResponse, disablePolling, variant = "desktop" }: FeedViewProps) {
+export function FeedView({
+  initialResponse,
+  disablePolling,
+  variant = "desktop",
+  community,
+}: FeedViewProps) {
+  const discuss = deriveDiscuss(community);
   const [data, setData] = useState<FeedResponse | undefined>(initialResponse);
   const [error, setError] = useState<string | undefined>(undefined);
   // Reference time for ages: seeded from the response's own computed time (pure), then the clock
@@ -249,9 +264,23 @@ export function FeedView({ initialResponse, disablePolling, variant = "desktop" 
           </p>
         </div>
       </div>
-      {variant === "desktop" && selected ? <FeedReading card={selected} nowMs={nowMs} /> : null}
+      {variant === "desktop" && selected ? (
+        <FeedReading card={selected} nowMs={nowMs} discuss={discuss} />
+      ) : null}
     </div>
   );
+}
+
+/** Only while the community route answers; a failed latest poll hides it. */
+function deriveDiscuss(community: CommunityState | undefined): FeedCardDiscuss | null {
+  const url = getCommunityUrl();
+  if (!url || !community || !community.data || community.error) return null;
+  return {
+    url,
+    onlineCount: community.data.onlineCount,
+    asOf: community.data.fetchedAt,
+    meaning: community.data.countMeaning,
+  };
 }
 
 function StaleSourcesNotice({

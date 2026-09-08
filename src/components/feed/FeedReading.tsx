@@ -4,6 +4,7 @@
  * safe for SSR; the digest and the deep-link page keep FeedCard.
  */
 import { FeedCardShareButton } from "@/components/feed/FeedCardShareButton";
+import type { FeedCardDiscuss } from "@/components/feed/FeedCard";
 import type { Card } from "@/lib/feed/types";
 import { KIND_LABEL, stateWord, whySurfaced } from "@/lib/feed/why-surfaced";
 
@@ -11,6 +12,12 @@ export type FeedReadingProps = {
   card: Card;
   /** Reference time for the relative age (the owner keeps it in state; never Date.now() in render). */
   nowMs: number;
+  /**
+   * The Discord server as the place to talk about a tool alert, with the count the widget
+   * actually reported and what it means. Null whenever the community poll is not answering —
+   * an invite with a made-up number next to it is worse than no invite.
+   */
+  discuss?: FeedCardDiscuss | null;
 };
 
 function stampUtc(iso: string): string {
@@ -30,7 +37,7 @@ export function formatAge(ms: number): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-export function FeedReading({ card, nowMs }: FeedReadingProps) {
+export function FeedReading({ card, nowMs, discuss }: FeedReadingProps) {
   const state = stateWord(card);
   const age = formatAge(nowMs - new Date(card.timestamp).getTime());
   return (
@@ -74,7 +81,21 @@ export function FeedReading({ card, nowMs }: FeedReadingProps) {
           Open the source
         </a>
         <FeedCardShareButton card={card} />
+        {discuss && card.type === "TOOL_ALERT" ? (
+          <a
+            className="ap-btn-ghost ap-reading__discuss"
+            data-testid="feed-reading-discuss"
+            href={discuss.url}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            Discuss · {discuss.onlineCount.toLocaleString("en-GB")} online on Discord
+          </a>
+        ) : null}
       </div>
+      {discuss && card.type === "TOOL_ALERT" ? (
+        <p className="ap-reading__discuss-note">{discuss.meaning}</p>
+      ) : null}
     </article>
   );
 }

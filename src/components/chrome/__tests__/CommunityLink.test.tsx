@@ -16,6 +16,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CommunityLink } from "@/components/chrome/CommunityLink";
+import { DISCORD_WIDGET } from "@/lib/data-sources";
 
 const NEW_KEY = "NEXT_PUBLIC_COMMUNITY_URL";
 const LEGACY_KEY = "NEXT_PUBLIC_DISCORD_INVITE_URL";
@@ -33,18 +34,21 @@ afterEach(() => {
 });
 
 describe("CommunityLink", () => {
-  it("returns nothing when neither env var is set", () => {
+  // With neither env var set the invite comes from the source registry — the same server the
+  // online count is read from, so the door and the number cannot point at different places.
+  it("falls back to the registry invite when neither env var is set", () => {
     delete process.env[NEW_KEY];
     delete process.env[LEGACY_KEY];
     const html = renderToStaticMarkup(<CommunityLink />);
-    expect(html).toBe("");
+    expect(html).toContain(DISCORD_WIDGET.url);
+    expect(html).toContain('data-testid="community-link"');
   });
 
-  it("returns nothing when both env vars are the empty string", () => {
+  it("still renders the registry invite when both env vars are the empty string", () => {
     process.env[NEW_KEY] = "";
     process.env[LEGACY_KEY] = "";
     const html = renderToStaticMarkup(<CommunityLink />);
-    expect(html).toBe("");
+    expect(html).toContain(DISCORD_WIDGET.url);
   });
 
   it("renders the link from NEXT_PUBLIC_COMMUNITY_URL when set", () => {
