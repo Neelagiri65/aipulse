@@ -51,3 +51,19 @@ describe("splitByPrecision", () => {
     expect(split.impreciseCount).toBe(0);
   });
 });
+
+describe("imprecise ink", () => {
+  it("is never an event-type colour — a ring makes no claim about type", async () => {
+    const { impreciseInk, legendColors } = await import(
+      "@/components/map/event-palette"
+    );
+    for (const theme of ["light", "dark"] as const) {
+      const ink = impreciseInk(theme);
+      const legend = Object.values(legendColors(theme));
+      // The ring holds events of mixed types. Colouring it by the first one in
+      // the array would have the legend teaching "blue = push" while a blue
+      // ring only meant "the first of these 102 events was a push".
+      expect(legend).not.toContain(ink);
+    }
+  });
+});

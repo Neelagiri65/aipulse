@@ -28,7 +28,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { useTheme, type Theme } from "@/lib/hooks/use-theme";
-import { clusterSkin, colorForTypeIn, LAYER_COLOR, legendColors } from "@/components/map/event-palette";
+import { clusterSkin, colorForTypeIn, impreciseInk, LAYER_COLOR, legendColors } from "@/components/map/event-palette";
 import { splitByPrecision } from "@/lib/map/precision";
 
 export type FlatMapProps = {
@@ -235,7 +235,9 @@ export function FlatMap({
         ? (meta.country ?? "this country")
         : (meta.region ?? "this region");
       const label = `${bucket.length} event${bucket.length === 1 ? "" : "s"} placed at the ${isCountry ? "centre of" : "centroid of"} ${where} — the profile gave no city, so this ring is an area, not a location.`;
-      const color = colorForTypeIn(theme, meta.type);
+      // Neutral by design: a ring holds events of mixed types, so it must not
+      // borrow the type legend's ink.
+      const color = impreciseInk(theme);
       const px = impreciseIconPx(bucket.length);
       const marker = L.marker([first.lat, first.lng], {
         icon: L.divIcon({
