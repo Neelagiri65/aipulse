@@ -1674,6 +1674,14 @@ export const DISCORD_WIDGET: DataSource = {
     unit: "members online now",
   },
   verifiedAt: "2026-09-05",
+  license: {
+    label: "Discord Developer Terms of Service (not yet read for this use)",
+    termsUrl: "https://discord.com/developers/docs/policies-and-agreements/developer-terms-of-service",
+    obligation: "unverified",
+    verifiedAt: "",
+    notes:
+      "The widget endpoint is public and unauthenticated, and the data is published by the server's own operator (us) by switching the widget on. Nobody has yet read Discord's Developer Terms against this specific use, so this stays unverified rather than claiming a permission that was inferred from the endpoint being open. What is already true in code, and lowers whatever the answer turns out to be: only `name` and `presence_count` are parsed — the `members` array (usernames and avatar URLs, i.e. other people's data) and the rotating `instant_invite` are deliberately dropped at the parse boundary, and `/api/community` is CDN-cached for 5 minutes so client fan-out never reaches Discord.",
+  },
   caveat:
     "Requires the founder to keep the server widget enabled; when it is off Discord answers 403 code 50004 and the UI shows the join link without a count. Reuse is governed by the Discord Developer Terms of Service (no `license` field on this type yet; PR #97 carries that). The widget's `channels` list is voice channels only and is not consumed.",
   powersFeature: ["community-card", "feed-discuss"],

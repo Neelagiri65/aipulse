@@ -2,7 +2,7 @@
 
 Every number on this dashboard traces back to a publicly verifiable source. gawk.dev aggregates — it does not invent metrics, re-score labs, or manufacture values. When a source is unavailable, the affected card falls to graceful degradation with a "last known value" and timestamp rather than blanking silently.
 
-As of 2026-07-05, gawk.dev tracks **42 verified sources** across GitHub activity, status pages, platform-infrastructure status pages, published research, model distribution, package adoption, community sentiment, AI publishers, and model benchmarks — plus active reachability probes for each AI tool.
+As of 2026-09-08, gawk.dev tracks **43 verified sources** across GitHub activity, status pages, platform-infrastructure status pages, published research, model distribution, package adoption, community sentiment, AI publishers, and model benchmarks — plus active reachability probes for each AI tool.
 
 ---
 
@@ -102,7 +102,7 @@ gawk.dev re-broadcasts a subset of its public, source-cited cards into operator-
 
 Gawk's own source code is MIT-licensed. The data is not ours, and that licence does not cover it. Every source in the registry carries a `license` record naming the terms we republish under, the terms page those terms were read from, and the date a human read it.
 
-Where a source has been read and verified, we say so. Where nobody has published terms governing reuse of their data, we say **that** — rather than treating silence as permission. Of the 42 sources, 25 have had their terms read against a primary source; 17 publish no data-reuse terms we could locate, and are recorded as unverified rather than upgraded to "open" by assumption.
+Where a source has been read and verified, we say so. Where nobody has published terms governing reuse of their data, we say **that** — rather than treating silence as permission. Of the 43 sources, 25 have had their terms read against a primary source; 18 publish no data-reuse terms we could locate — or, in the Discord widget's case, publish terms nobody has yet read against this use — and are recorded as unverified rather than upgraded to "open" by assumption.
 
 **Sources that require attribution**, and are attributed accordingly:
 
