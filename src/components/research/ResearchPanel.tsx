@@ -72,7 +72,7 @@ function PaperRow({ paper, rank }: { paper: ArxivPaper; rank: number }) {
           {paper.primaryCategory}
         </span>
       </div>
-      <div className="mt-0.5 flex items-center gap-2 pl-7 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80">
+      <div className="mt-0.5 flex items-center gap-2 pl-7 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
         <span className="min-w-0 flex-1 truncate" title={paper.authors.join(", ")}>
           {authorLabel}
         </span>
@@ -98,7 +98,7 @@ function SourceFooter({ generatedAt, stale }: { generatedAt: string; stale: bool
           arxiv-cs.ai+cs.lg
         </a>
       </span>
-      <span className={stale ? "text-amber-400/80" : ""}>
+      <span className={stale ? "text-amber-700 dark:text-amber-400" : ""}>
         {stale ? "stale · " : ""}
         {formatRelative(generatedAt)}
       </span>
@@ -108,7 +108,7 @@ function SourceFooter({ generatedAt, stale }: { generatedAt: string; stale: bool
 
 function AwaitingBody() {
   return (
-    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5 text-xs text-amber-200/90">
+    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5 text-xs text-amber-800 dark:text-amber-200">
       <p className="ap-label-sm" style={{ color: "var(--sev-degrade)" }}>
         Awaiting first poll
       </p>

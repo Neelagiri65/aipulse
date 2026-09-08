@@ -63,11 +63,11 @@ export function AgentsPanel({
   if (!data || data.rows.length === 0) {
     return (
       <div
-        className="m-3 flex min-h-[200px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-amber-500/40 bg-amber-500/5 px-6 py-8 text-center font-mono text-[10px] uppercase tracking-wider text-amber-400/90"
+        className="m-3 flex min-h-[200px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-amber-500/40 bg-amber-500/5 px-6 py-8 text-center font-mono text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-400"
         role="status"
       >
         <p>No agent-framework data yet.</p>
-        <p className="text-amber-400/70">
+        <p className="text-amber-700 dark:text-amber-400">
           {error
             ? `Last poll error: ${error}`
             : "Cron seeds at 06:30 UTC daily."}
@@ -119,15 +119,15 @@ function AgentRow({ row, rank }: { row: AgentRowView; rank: number }) {
         <LanguageChip languages={row.languages} />
         <StatusBadge badge={row.badge} />
       </div>
-      <div className="mt-1 flex items-center gap-2 pl-7 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80 tabular-nums">
+      <div className="mt-1 flex items-center gap-2 pl-7 font-mono text-[9px] uppercase tracking-wider text-muted-foreground tabular-nums">
         <span title={titleForDownloads(row)}>
           {downloads}{" "}
-          <span className="text-muted-foreground/60">{language}/wk</span>
+          <span className="text-muted-foreground">{language}/wk</span>
         </span>
         {downloadsStaleAge ? <StalePill age={downloadsStaleAge} source="downloads" /> : null}
         <DeltaCell text={deltaText} state={row.deltaState} pct={row.weeklyDeltaPct} />
         <span title={`${row.stars?.toLocaleString() ?? "—"} stars`}>
-          {stars} <span className="text-muted-foreground/60">★</span>
+          {stars} <span className="text-muted-foreground">★</span>
         </span>
         <span
           className="ml-auto shrink-0"
@@ -138,7 +138,7 @@ function AgentRow({ row, rank }: { row: AgentRowView; rank: number }) {
         {githubStaleAge ? <StalePill age={githubStaleAge} source="github" /> : null}
       </div>
       {row.caveat ? (
-        <p className="mt-1 pl-7 text-[9px] leading-snug text-muted-foreground/70">
+        <p className="mt-1 pl-7 text-[9px] leading-snug text-muted-foreground">
           {row.caveat}
         </p>
       ) : null}
@@ -163,7 +163,7 @@ function StalePill({
       : `Last fresh GitHub fetch ${age} — value carried forward from the previous successful run.`;
   return (
     <span
-      className="shrink-0 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-[1px] text-[8px] tracking-wider text-amber-300"
+      className="shrink-0 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-[1px] text-[8px] tracking-wider text-amber-700 dark:text-amber-300"
       title={title}
     >
       stale {age}
@@ -181,7 +181,7 @@ function LanguageChip({
     .join("·");
   return (
     <span
-      className="shrink-0 rounded-sm border border-teal-500/30 bg-teal-500/10 px-1 py-[1px] font-mono text-[8px] uppercase tracking-wider text-teal-300"
+      className="shrink-0 rounded-sm border border-teal-500/30 bg-teal-500/10 px-1 py-[1px] font-mono text-[8px] uppercase tracking-wider text-teal-700 dark:text-teal-300"
       title={`languages: ${languages.join(", ")}`}
     >
       {label}
@@ -206,7 +206,7 @@ function StatusBadge({
   if (badge === "archived") {
     return (
       <span
-        className="shrink-0 rounded-sm border border-red-500/40 bg-red-500/10 px-1 py-[1px] font-mono text-[8px] uppercase tracking-wider text-red-300"
+        className="shrink-0 rounded-sm border border-red-500/40 bg-red-500/10 px-1 py-[1px] font-mono text-[8px] uppercase tracking-wider text-red-700 dark:text-red-300"
         title="Repo explicitly archived by owner"
       >
         archived
@@ -216,7 +216,7 @@ function StatusBadge({
   if (badge === "dormant") {
     return (
       <span
-        className="shrink-0 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-[1px] font-mono text-[8px] uppercase tracking-wider text-amber-300"
+        className="shrink-0 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-[1px] font-mono text-[8px] uppercase tracking-wider text-amber-700 dark:text-amber-300"
         title="Dormant — no push in the last 90+ days"
       >
         dormant
@@ -226,7 +226,7 @@ function StatusBadge({
   // legacy
   return (
     <span
-      className="shrink-0 rounded-sm border border-zinc-500/40 bg-zinc-500/10 px-1 py-[1px] font-mono text-[8px] uppercase tracking-wider text-zinc-300"
+      className="shrink-0 rounded-sm border border-zinc-500/40 bg-zinc-500/10 px-1 py-[1px] font-mono text-[8px] uppercase tracking-wider text-zinc-700 dark:text-zinc-300"
       title="Legacy — historical reference, not actively pushed"
     >
       legacy
@@ -243,11 +243,11 @@ function DeltaCell({
   state: AgentRowDeltaState;
   pct: number | null;
 }): React.ReactElement {
-  let cls = "text-muted-foreground/60";
+  let cls = "text-muted-foreground";
   if (state === "fresh" && pct !== null) {
-    cls = pct > 0.5 ? "text-emerald-300" : pct < -0.5 ? "text-red-300" : "text-muted-foreground/80";
+    cls = pct > 0.5 ? "text-emerald-700 dark:text-emerald-300" : pct < -0.5 ? "text-red-700 dark:text-red-300" : "text-muted-foreground";
   } else if (state === "new-from-zero") {
-    cls = "text-emerald-300";
+    cls = "text-emerald-700 dark:text-emerald-300";
   }
   return (
     <span

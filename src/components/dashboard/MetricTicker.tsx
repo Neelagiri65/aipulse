@@ -83,7 +83,7 @@ function MetricCell({ metric }: { metric: Metric }) {
           {metric.value}
         </span>
         {metric.stamp && (
-          <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70">
+          <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
             {metric.stamp}
           </span>
         )}
@@ -99,7 +99,7 @@ function MetricCell({ metric }: { metric: Metric }) {
 function SourceCitation({ ids }: { ids: string[] }) {
   if (ids.length === 0) {
     return (
-      <div className="mt-1 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70">
+      <div className="mt-1 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
         src:{" "}
         <a
           href="/data-sources.md"
@@ -115,7 +115,7 @@ function SourceCitation({ ids }: { ids: string[] }) {
   const sources = ids.map((id) => getSourceById(id)).filter(Boolean);
   if (sources.length === 0) return null;
   return (
-    <div className="mt-1 flex flex-wrap gap-x-1 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70">
+    <div className="mt-1 flex flex-wrap gap-x-1 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
       <span>src:</span>
       {sources.map((s, i) => (
         <a
@@ -142,7 +142,7 @@ function toneClassname(tone: Metric["tone"]): string {
     case "bad":
       return "text-rose-400";
     case "pending":
-      return "text-muted-foreground/70 italic";
+      return "text-muted-foreground italic";
     default:
       return "text-foreground";
   }

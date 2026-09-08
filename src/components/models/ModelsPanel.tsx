@@ -71,7 +71,7 @@ function ModelRow({ model, rank }: { model: HuggingFaceModel; rank: number }) {
           {formatCount(model.downloads)}↓
         </span>
       </div>
-      <div className="mt-0.5 flex items-center gap-2 pl-7 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80">
+      <div className="mt-0.5 flex items-center gap-2 pl-7 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
         <span className="truncate">{model.author}</span>
         {model.likes > 0 && (
           <span title={`${model.likes.toLocaleString()} likes`}>

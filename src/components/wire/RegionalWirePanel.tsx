@@ -131,14 +131,14 @@ function SourceRow({
           {src.itemsLast24h} · 24h
         </span>
       </div>
-      <div className="mt-0.5 flex items-center gap-1.5 pl-7 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80">
+      <div className="mt-0.5 flex items-center gap-1.5 pl-7 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
         <span className="truncate">{loc || "—"}</span>
         <span className="ml-auto shrink-0 tabular-nums">
           {src.itemsLast7d} · 7d
         </span>
         {src.stale && (
           <span
-            className="shrink-0 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-[1px] text-[8px] tracking-wider text-amber-400"
+            className="shrink-0 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-[1px] text-[8px] tracking-wider text-amber-700 dark:text-amber-400"
             title={
               src.lastFetchOkTs
                 ? `Last successful fetch ${src.staleHours}h ago`
@@ -166,7 +166,7 @@ function SourceRow({
           ))}
         </ul>
       )}
-      <div className="mt-1.5 ml-7 flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70">
+      <div className="mt-1.5 ml-7 flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
         <a
           href={src.publisherUrl}
           target="_blank"
@@ -176,7 +176,7 @@ function SourceRow({
         >
           site ↗
         </a>
-        <span className="text-foreground/30">·</span>
+        <span className="text-muted-foreground">·</span>
         <a
           href={src.rssUrl}
           target="_blank"
@@ -191,7 +191,7 @@ function SourceRow({
           lang={src.lang}
           title={`Open ${src.displayName} via Google Translate`}
         />
-        <span className="ml-auto shrink-0 normal-case tracking-normal text-muted-foreground/60">
+        <span className="ml-auto shrink-0 normal-case tracking-normal text-muted-foreground">
           {src.feedFormat}
         </span>
       </div>
@@ -212,7 +212,7 @@ function TranslateLink({
   if (!url) return null;
   return (
     <>
-      <span className="text-foreground/30">·</span>
+      <span className="text-muted-foreground">·</span>
       <a
         href={url}
         target="_blank"
@@ -232,18 +232,18 @@ function InlineArticleRow({ item }: { item: RssWireItem }) {
   const rel = formatRelativeShort(ts);
   return (
     <li className="flex items-baseline gap-1.5 text-[10px]">
-      <span className="shrink-0 text-foreground/30" aria-hidden>
+      <span className="shrink-0 text-muted-foreground" aria-hidden>
         ▸
       </span>
       <TranslatableText
         text={item.title}
         lang={item.lang}
         linkUrl={item.url}
-        textClassName="min-w-0 flex-1 truncate text-foreground/80 hover:text-[#f97316] hover:underline"
-        controlClassName="shrink-0 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70 hover:text-[#f97316] hover:underline"
+        textClassName="min-w-0 flex-1 truncate text-foreground hover:text-[#f97316] hover:underline"
+        controlClassName="shrink-0 font-mono text-[9px] uppercase tracking-wider text-muted-foreground hover:text-[#f97316] hover:underline"
       />
       <span
-        className="shrink-0 tabular-nums text-muted-foreground/70"
+        className="shrink-0 tabular-nums text-muted-foreground"
         title={new Date(ts).toISOString()}
       >
         {rel}
@@ -298,18 +298,18 @@ function PanelFooter({
 
 function AwaitingBody() {
   return (
-    <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-amber-500/40 bg-amber-500/5 px-6 py-8 text-center font-mono text-[10px] uppercase tracking-wider text-amber-400/90">
+    <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-amber-500/40 bg-amber-500/5 px-6 py-8 text-center font-mono text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-400">
       <span>awaiting first regional poll</span>
-      <span className="text-amber-400/70">/api/rss · 30min upstream cache</span>
+      <span className="text-amber-700 dark:text-amber-400">/api/rss · 30min upstream cache</span>
     </div>
   );
 }
 
 function ErrorBody({ message }: { message: string }) {
   return (
-    <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-rose-500/40 bg-rose-500/5 px-6 py-8 text-center font-mono text-[10px] uppercase tracking-wider text-rose-400/90">
+    <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-rose-500/40 bg-rose-500/5 px-6 py-8 text-center font-mono text-[10px] uppercase tracking-wider text-rose-700 dark:text-rose-400">
       <span>regional wire unavailable</span>
-      <span className="text-rose-400/70">{message}</span>
+      <span className="text-rose-700 dark:text-rose-400">{message}</span>
     </div>
   );
 }
