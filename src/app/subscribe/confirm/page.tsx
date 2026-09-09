@@ -4,6 +4,10 @@ import { PrivacyFooter } from "@/components/consent/PrivacyFooter";
 import { ymdUtc } from "@/lib/data/snapshot";
 
 export const metadata: Metadata = {
+  // Self-canonical. The root layout used to declare `canonical: "/"`,
+  // which every page inherited — telling Google to drop this page and credit
+  // the homepage instead.
+  alternates: { canonical: "/subscribe/confirm" },
   title: "Subscription confirmation — gawk.dev",
 };
 

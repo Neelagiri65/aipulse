@@ -34,7 +34,11 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
   if (variant === "mobile") {
     return (
       <div className="ap-hero ap-hero--mobile">
-        <span className="ap-hero__q">Is your AI coding stack working right now?</span>
+        {/* The page's h1. The homepage shipped with no heading tags at all —
+            both hero variants were spans — so a crawler had no statement of
+            what the page is about. MobileDashboard and Dashboard mount one
+            variant each, never both, so this cannot become a duplicate h1. */}
+        <h1 className="ap-hero__q">Is your AI coding stack working right now?</h1>
         <div className="flex items-center justify-between">
           {pill}
           <PushAlertToggle />
@@ -46,7 +50,7 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
   return (
     <div className="ap-hero ap-hero--desktop">
       <div className="flex flex-col gap-0.5">
-        <span className="ap-hero__q ap-hero__q--lg">Is your AI coding stack working right now?</span>
+        <h1 className="ap-hero__q ap-hero__q--lg">Is your AI coding stack working right now?</h1>
         <span className="ap-hero__sub">
           Claude · Cursor · Copilot · Windsurf · OpenAI — tracked from{" "}
           {VERIFIED_SOURCES.length} verified sources.

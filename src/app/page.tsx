@@ -32,6 +32,12 @@
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { fetchAllStatus } from "@/lib/data/fetch-status";
 
+// The homepage's own canonical. It used to be inherited from the root layout,
+// where it also applied to every other page and told Google to drop them.
+export const metadata = {
+  alternates: { canonical: "/" },
+};
+
 /**
  * Five minutes matches the status sources' own poll cadence
  * (`REVALIDATE_SECONDS` in fetch-status.ts) — regenerating faster would only

@@ -15,6 +15,10 @@ import { FEED_SEVERITIES, FEED_TRIGGERS } from "@/lib/feed/thresholds";
 import type { CardType } from "@/lib/feed/types";
 
 export const metadata = {
+  // Self-canonical. The root layout used to declare `canonical: "/"`,
+  // which every page inherited — telling Google to drop this page and credit
+  // the homepage instead.
+  alternates: { canonical: "/methodology" },
   title: "Methodology · gawk.dev",
   description:
     "How gawk.dev ranks cards on the feed. Deterministic sort key over public data, not an invented metric.",

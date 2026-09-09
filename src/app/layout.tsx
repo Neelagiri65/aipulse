@@ -69,9 +69,14 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),
   title: "gawk.dev — live status & activity monitor for AI coding tools",
   description: SITE_DESCRIPTION,
-  // Self-canonical to the apex origin so the apex/www split doesn't fragment
-  // ranking signals (pair with the host redirect in Vercel).
-  alternates: { canonical: "/" },
+  // NO `alternates` here. A canonical declared in the root layout is inherited
+  // by every page that does not override it, and Next resolves it against
+  // `metadataBase` — so /sources, /methodology, /docs/api, /audit, every
+  // report and every panel shipped `<link rel="canonical" href="https://gawk.dev">`
+  // and told Google to drop the page and credit the homepage instead. Each
+  // page now declares its own; the homepage's lives in app/page.tsx. The
+  // apex/www split is handled by the host redirect in Vercel, which is where
+  // it belongs.
   robots: { index: true, follow: true },
   verification: { google: "VGOiZtYerTvyrJmA9ah20FzezWkTv-7GofMebrT2mhE" },
   manifest: "/manifest.json",

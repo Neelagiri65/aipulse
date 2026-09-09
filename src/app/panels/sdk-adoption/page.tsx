@@ -1,6 +1,10 @@
 import { SdkAdoptionPageClient } from "@/components/panels/sdk-adoption/SdkAdoptionPageClient";
 
 export const metadata = {
+  // Self-canonical. The root layout used to declare `canonical: "/"`,
+  // which every page inherited — telling Google to drop this page and credit
+  // the homepage instead.
+  alternates: { canonical: "/panels/sdk-adoption" },
   title: "SDK Adoption · gawk.dev",
   description:
     "Within-package daily delta heatmap across PyPI, npm, crates.io, Docker Hub, and Homebrew. Click a row for the 30-day sparkline, source, and aggregator caveat.",

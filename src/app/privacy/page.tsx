@@ -3,6 +3,10 @@ import Link from "next/link";
 import { PrivacyFooter } from "@/components/consent/PrivacyFooter";
 
 export const metadata: Metadata = {
+  // Self-canonical. The root layout used to declare `canonical: "/"`,
+  // which every page inherited — telling Google to drop this page and credit
+  // the homepage instead.
+  alternates: { canonical: "/privacy" },
   title: "Privacy — gawk.dev",
   description:
     "What data gawk.dev collects, why, how to opt out, and where to delete your record.",

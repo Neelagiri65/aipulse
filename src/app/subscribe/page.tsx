@@ -7,6 +7,10 @@ const SUBSCRIBE_DESCRIPTION =
   "Track AI tool outages, model rankings, and SDK adoption in real time. One daily email — every number cites its public source. No ads, no hype.";
 
 export const metadata: Metadata = {
+  // Self-canonical. The root layout used to declare `canonical: "/"`,
+  // which every page inherited — telling Google to drop this page and credit
+  // the homepage instead.
+  alternates: { canonical: "/subscribe" },
   title: "Subscribe — gawk.dev daily digest",
   description: SUBSCRIBE_DESCRIPTION,
   openGraph: {

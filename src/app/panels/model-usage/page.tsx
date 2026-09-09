@@ -1,6 +1,10 @@
 import { ModelUsagePageClient } from "@/components/panels/model-usage/ModelUsagePageClient";
 
 export const metadata = {
+  // Self-canonical. The root layout used to declare `canonical: "/"`,
+  // which every page inherited — telling Google to drop this page and credit
+  // the homepage instead.
+  alternates: { canonical: "/panels/model-usage" },
   title: "Model Usage · gawk.dev",
   description:
     "Live ranking of LLMs by real OpenRouter request volume. Click a row for pricing, context window, OpenRouter source link, and 30-day rank history.",
