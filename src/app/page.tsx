@@ -40,9 +40,23 @@
  *                    silently — nothing reached the log at all
  *
  * The catch converted a page ISR had already saved into the exact shell #123
- * existed to remove, and hid the failure while doing it. Next preserves the
- * stale entry on a failed background regeneration; letting the error propagate
- * is what keeps that guarantee.
+ * existed to remove, and hid the failure while doing it.
+ *
+ * One correction to the reasoning, because the measurement was taken on
+ * `next start` and prod is not `next start`: the code path measured above —
+ * `response-cache` resolving the previous entry and logging — is skipped on
+ * Vercel, which runs the cache in minimal mode (`incrementalCache.get` is not
+ * consulted, and the render error rethrows). So the stale page surviving a
+ * failed regeneration is VERCEL's ISR guarantee on prod, not the Next
+ * in-process one demonstrated here. Same expected outcome, different layer,
+ * and worth naming rather than implying the local run proved the prod path.
+ *
+ * Not closed: with no `stale-while-revalidate` clause emitted alongside
+ * `s-maxage=300`, a request arriving after the entry has EXPIRED (rather than
+ * merely gone stale) may block on regeneration — and a throw would then reach
+ * a real visitor as a 500 instead of a stale page. Untested here; it needs a
+ * prod observation, and it is the reason this file must not grow a new throw
+ * path casually.
  *
  * The cost of removing it, stated: at BUILD time there is no previous entry to
  * preserve, so a throw during prerender fails the build instead of shipping the

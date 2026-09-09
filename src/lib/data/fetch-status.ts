@@ -33,6 +33,7 @@ import {
   bucketToDays,
   FETCH_TIMEOUT_MS,
   fetchHistoricalIncidents,
+  withCeiling,
   hasRedisConfigured,
   readProbeSignals,
   readSamples,
@@ -61,13 +62,15 @@ async function fetchStatuspage(
 ): Promise<StatuspageSummary | Error> {
   if (!source.apiUrl) return new Error(`no apiUrl on ${source.id}`);
   try {
-    const res = await fetch(source.apiUrl, {
-      next: { revalidate: REVALIDATE_SECONDS, tags: [source.id] },
-      headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    return await withCeiling(source.id, FETCH_TIMEOUT_MS, async () => {
+      const res = await fetch(source.apiUrl!, {
+        next: { revalidate: REVALIDATE_SECONDS, tags: [source.id] },
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (!res.ok) throw new Error(`${source.id} returned ${res.status}`);
+      return (await res.json()) as StatuspageSummary;
     });
-    if (!res.ok) return new Error(`${source.id} returned ${res.status}`);
-    return (await res.json()) as StatuspageSummary;
   } catch (err) {
     return err instanceof Error ? err : new Error(String(err));
   }
@@ -102,13 +105,15 @@ type IncidentsPayload = { incidents?: Array<{ id: string; name: string; status: 
 async function fetchIncidents(source: DataSource): Promise<ToolIncident[] | Error> {
   if (!source.apiUrl) return new Error(`no apiUrl on ${source.id}`);
   try {
-    const res = await fetch(source.apiUrl, {
-      next: { revalidate: REVALIDATE_SECONDS, tags: [source.id] },
-      headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    const json = await withCeiling(source.id, FETCH_TIMEOUT_MS, async () => {
+      const res = await fetch(source.apiUrl!, {
+        next: { revalidate: REVALIDATE_SECONDS, tags: [source.id] },
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (!res.ok) throw new Error(`${source.id} returned ${res.status}`);
+      return (await res.json()) as IncidentsPayload;
     });
-    if (!res.ok) return new Error(`${source.id} returned ${res.status}`);
-    const json = (await res.json()) as IncidentsPayload;
     const all = json.incidents ?? [];
     return all
       .filter((i) => ACTIVE_INCIDENT_STATES.has(i.status))
@@ -177,21 +182,23 @@ async function fetchClaudeCodeIssues(): Promise<number | Error> {
   const token = process.env.GH_TOKEN;
   if (!token) return new Error("GH_TOKEN not set");
   try {
-    const res = await fetch(
-      "https://api.github.com/search/issues?q=repo:anthropics/claude-code+is:issue+is:open&per_page=1",
-      {
-        next: { revalidate: 3600, tags: ["gh-issues-claude-code"] },
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
+    return await withCeiling("gh-issues-claude-code", FETCH_TIMEOUT_MS, async () => {
+      const res = await fetch(
+        "https://api.github.com/search/issues?q=repo:anthropics/claude-code+is:issue+is:open&per_page=1",
+        {
+          next: { revalidate: 3600, tags: ["gh-issues-claude-code"] },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+          },
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         },
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      },
-    );
-    if (!res.ok) return new Error(`issues search returned ${res.status}`);
-    const json = (await res.json()) as { total_count: number };
-    return json.total_count;
+      );
+      if (!res.ok) throw new Error(`issues search returned ${res.status}`);
+      const json = (await res.json()) as { total_count: number };
+      return json.total_count;
+    });
   } catch (err) {
     return err instanceof Error ? err : new Error(String(err));
   }
@@ -219,7 +226,20 @@ function assemble(
   build: () => void,
 ): void {
   try {
-    build();
+    // TypeScript assigns `Promise<void>` to a `void` return without
+    // complaint, so an `async` callback would type-check here and then throw
+    // OUTSIDE this catch as an unhandled rejection — reinstating exactly the
+    // whole-page failure this function exists to prevent. Caught loudly at
+    // runtime instead of trusted to review.
+    const returned: unknown = build();
+    if (
+      returned &&
+      typeof (returned as { then?: unknown }).then === "function"
+    ) {
+      throw new Error(
+        "assemble() callback returned a promise; card assembly must be synchronous",
+      );
+    }
   } catch (err) {
     failures.push({
       toolId,

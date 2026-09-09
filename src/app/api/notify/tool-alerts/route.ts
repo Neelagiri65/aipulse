@@ -160,9 +160,19 @@ export const POST = withIngest<RouteResult>({
 
     const cards = deriveToolAlertCards(snapshot) as ToolAlertCard[];
     const previousState = await readState(redis);
+    // A tool that failed to assemble is unreadable, not recovered. Without
+    // this the isolation added in the status PR would announce a recovery for
+    // a card we simply could not build.
+    const unresolvedToolIds = new Set(
+      snapshot.failures
+        .map((f) => f.toolId)
+        .filter((toolId) => snapshot.data[toolId as keyof typeof snapshot.data] === undefined),
+    );
+
     const { alerts, recoveries, nextState } = computeTransitions(
       cards,
       previousState,
+      unresolvedToolIds,
     );
 
     const webhookConfigured = Boolean(

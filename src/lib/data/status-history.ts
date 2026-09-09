@@ -299,6 +299,50 @@ export type HistoricalFetchArgs = {
  */
 export const FETCH_TIMEOUT_MS = 5_000;
 
+/**
+ * Bound an async leg in wall-clock time.
+ *
+ * `AbortSignal.timeout` alone does NOT do this under Next. On a stale Data
+ * Cache revalidation — which is every ISR regeneration, i.e. the steady-state
+ * production path — Next deletes the signal before it reaches undici:
+ *
+ *   // node_modules/next/dist/server/lib/patch-fetch.js
+ *   // don't pass through signal when revalidating
+ *   signal: isStale ? undefined : signal
+ *
+ * So the signal is honoured only on a cache MISS (build, eviction, tag
+ * revalidate) and is inert exactly when a hung upstream matters most. Unit
+ * tests cannot catch this either: stubbing global fetch replaces it BENEATH
+ * Next's patch, so they observe a signal that production would have stripped.
+ *
+ * The race is therefore the real ceiling; the signal is kept because on the
+ * miss path it also aborts the socket rather than merely abandoning it.
+ *
+ * Honest limit: this returns the caller early, it does not cancel a
+ * revalidating fetch — the hung request keeps holding Next's per-key cache
+ * lock until it resolves. What it buys is that the render finishes and the
+ * failure lands in `failures[]` instead of the function dying at its limit
+ * with nothing recorded.
+ */
+export async function withCeiling<T>(
+  label: string,
+  ms: number,
+  run: () => Promise<T>,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const ceiling = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${label}: no response within ${ms}ms`)),
+      ms,
+    );
+  });
+  try {
+    return await Promise.race([run(), ceiling]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export async function fetchHistoricalIncidents(
   args: HistoricalFetchArgs,
 ): Promise<HistoricalIncident[]> {
@@ -306,13 +350,16 @@ export async function fetchHistoricalIncidents(
   const cutoffMs = Date.now() - days * 24 * 60 * 60 * 1000;
 
   try {
-    const res = await fetch(args.incidentsApiUrl, {
-      next: { revalidate: REVALIDATE_SECONDS, tags: [args.cacheTag] },
-      headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    const json = await withCeiling(args.cacheTag, FETCH_TIMEOUT_MS, async () => {
+      const res = await fetch(args.incidentsApiUrl, {
+        next: { revalidate: REVALIDATE_SECONDS, tags: [args.cacheTag] },
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (!res.ok) return null;
+      return (await res.json()) as { incidents?: StatuspageIncidentRaw[] };
     });
-    if (!res.ok) return [];
-    const json = (await res.json()) as { incidents?: StatuspageIncidentRaw[] };
+    if (!json) return [];
     const raw = json.incidents ?? [];
 
     const filter = args.componentFilter?.map((s) => s.toLowerCase());

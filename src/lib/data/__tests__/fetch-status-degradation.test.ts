@@ -20,17 +20,25 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/data/status-history", () => ({
-  // The real module owns the shared ceiling. Omitting it here makes every
-  // `AbortSignal.timeout(undefined)` throw, which silently empties the page.
-  FETCH_TIMEOUT_MS: 5_000,
-  fetchHistoricalIncidents: vi.fn(async () => []),
-  readSamples: vi.fn(async () => []),
-  readProbeSignals: vi.fn(async () => ({})),
-  recordSample: vi.fn(async () => undefined),
-  hasRedisConfigured: () => false,
-  bucketToDays: () => [],
-}));
+// Spread the REAL module and override only the Redis/IO surface. A
+// hand-written factory drifts: it first omitted `FETCH_TIMEOUT_MS` (making
+// every `AbortSignal.timeout(undefined)` throw) and then `withCeiling`
+// (making every fetch throw) — each time emptying the page silently and
+// failing for a reason that had nothing to do with the code under test. The
+// ceiling under test must be the real one.
+vi.mock("@/lib/data/status-history", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/lib/data/status-history")>();
+  return {
+    ...actual,
+    fetchHistoricalIncidents: vi.fn(async () => []),
+    readSamples: vi.fn(async () => []),
+    readProbeSignals: vi.fn(async () => ({})),
+    recordSample: vi.fn(async () => undefined),
+    hasRedisConfigured: () => false,
+    bucketToDays: () => [],
+  };
+});
 
 import { fetchAllStatus } from "@/lib/data/fetch-status";
 
