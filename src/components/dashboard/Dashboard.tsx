@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { precisionForCoords } from "@/lib/geocoding";
 import { useEffect, useMemo, useState, useSyncExternalStore, useRef } from "react";
 import type { GlobePoint } from "@/components/globe/Globe";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
@@ -321,13 +322,23 @@ export function Dashboard({
     .map((e) => {
       const decay = decayScore(e.lastActivity);
       const kinds = e.configs.map((c) => c.kind);
+      const lat = e.location!.lat;
+      const lng = e.location!.lng;
       return {
-        lat: e.location!.lat,
-        lng: e.location!.lng,
+        lat,
+        lng,
         color: "#cbd5e1",
         size: 0.4,
         meta: {
           kind: "registry",
+          // Graded like the events layer. 9,721 of 19,825 placed registry
+          // entries sit EXACTLY on a national centroid — an owner location of
+          // "Germany" is an area, not an address — and without a band every
+          // one of them drew as a confident dot while the legend disclosed
+          // only the events. Read-time grading because the band is a property
+          // of the coordinate, so it needs no ingest change and applies to
+          // entries already stored.
+          precision: precisionForCoords(lat, lng) ?? undefined,
           fullName: e.fullName,
           repo: e.fullName,
           stars: e.stars,

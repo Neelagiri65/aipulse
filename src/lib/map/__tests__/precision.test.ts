@@ -81,7 +81,7 @@ describe("imprecise ink", () => {
  * An honesty number that understates is worse than one that overstates, so the
  * denominator is pinned here.
  */
-describe("splitByPrecision — eventTotal is the legend's denominator", () => {
+describe("splitByPrecision — gradableTotal is the legend's denominator", () => {
   const event = (precision: string | undefined, id: string) => ({
     lat: 51.17,
     lng: 10.45,
@@ -89,12 +89,15 @@ describe("splitByPrecision — eventTotal is the legend's denominator", () => {
     size: 0.4,
     meta: { eventId: id, precision },
   });
+  // A layer that is exact by construction and carries no band: a lab HQ or an
+  // RSS publisher HQ. The registry layer is NOT this any more — it is graded,
+  // so it counts toward the denominator like an event.
   const curatedHq = (id: string) => ({
     lat: 52.52,
     lng: 13.405,
     color: "#fff",
     size: 0.4,
-    meta: { kind: "registry", fullName: id },
+    meta: { kind: "lab", fullName: id },
   });
 
   it("counts only placed events, never the curated-HQ layers", () => {
@@ -109,14 +112,14 @@ describe("splitByPrecision — eventTotal is the legend's denominator", () => {
     const split = splitByPrecision(points);
 
     expect(split.impreciseCount).toBe(2);
-    // 3, not 5: the two registry HQs are not placed events.
-    expect(split.eventTotal).toBe(3);
+    // 3, not 5: the two exact-by-construction HQs are not gradable.
+    expect(split.gradableTotal).toBe(3);
     // The share the legend states.
-    expect(Math.round((split.impreciseCount / split.eventTotal) * 100)).toBe(67);
+    expect(Math.round((split.impreciseCount / split.gradableTotal) * 100)).toBe(67);
   });
 
   it("reports 100% when every placed event is an area", () => {
-    // The real-payload case: all events on national centroids, plus HQ layers.
+    // The real-payload case: everything gradable is on a national centroid.
     const points = [
       event("country", "e1"),
       event("country", "e2"),
@@ -125,8 +128,53 @@ describe("splitByPrecision — eventTotal is the legend's denominator", () => {
 
     const split = splitByPrecision(points);
 
-    expect(split.eventTotal).toBe(2);
-    expect(split.impreciseCount / split.eventTotal).toBe(1);
+    expect(split.gradableTotal).toBe(2);
+    expect(split.impreciseCount / split.gradableTotal).toBe(1);
     // Dividing by points.length would have reported 67% here.
+  });
+});
+
+/**
+ * The registry layer is graded too, and that is the point of grading it.
+ *
+ * 9,721 of 19,825 placed registry entries sit EXACTLY on a national centroid —
+ * an owner location of "Germany" is an area, not an address. Before grading,
+ * every one drew as a confident dot while the legend disclosed only the ~762
+ * imprecise events: the map showed roughly ten thousand undisclosed areas
+ * beside a number claiming to account for them.
+ */
+describe("splitByPrecision — a graded registry entry is an area like any other", () => {
+  const at = (precision: string | undefined, meta: Record<string, unknown>) =>
+    ({
+      lat: 51.17,
+      lng: 10.45,
+      color: "#fff",
+      size: 0.4,
+      meta: { ...meta, ...(precision ? { precision } : {}) },
+    }) as unknown as GlobePoint;
+
+  it("buckets a centroid-placed repo with the events at that centroid", () => {
+    const split = splitByPrecision([
+      at("country", { eventId: "e1" }),
+      at("country", { kind: "registry", fullName: "a/b" }),
+      at("country", { kind: "registry", fullName: "c/d" }),
+    ]);
+
+    // One ring, three marks behind it — which is what the tooltip now says.
+    expect(split.impreciseByCoord.size).toBe(1);
+    expect(split.impreciseByCoord.get("51.17,10.45")).toHaveLength(3);
+    expect(split.impreciseCount).toBe(3);
+    // All three are gradable, so the disclosed share is 100%, not 33%.
+    expect(split.gradableTotal).toBe(3);
+  });
+
+  it("leaves a city-placed repo as a precise dot", () => {
+    const split = splitByPrecision([
+      at("city", { kind: "registry", fullName: "a/b" }),
+    ]);
+
+    expect(split.precise).toHaveLength(1);
+    expect(split.impreciseCount).toBe(0);
+    expect(split.gradableTotal).toBe(1);
   });
 });

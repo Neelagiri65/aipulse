@@ -21,35 +21,41 @@ export type PrecisionSplit = {
   impreciseByCoord: Map<string, GlobePoint[]>;
   impreciseCount: number;
   /**
-   * How many points are placed EVENTS — the only population the imprecise
+   * How many marks could be graded at all — the population the imprecise
    * count is drawn from, and therefore the only honest denominator for
-   * "X% of placed events are areas".
+   * "X% of placed marks are areas".
    *
-   * The map also carries curated-HQ layers (registry, labs, regional RSS,
-   * HN). Those never carry a band, so they can only ever land in `precise`.
-   * Dividing by every marker therefore diluted the disclosed share: measured
-   * on a real payload, 156 imprecise events among 215 all-layer marks
-   * reported 73% when the true share of placed events was 100%. Understating
-   * an honesty number is the wrong direction to be wrong in.
+   * A mark is gradable when it carries a precision band or is a placed event.
+   * Layers that are exact by construction (lab HQs, regional RSS publisher
+   * HQs) carry neither and are excluded: they can only ever land in `precise`,
+   * so counting them would dilute the disclosed share. Measured on a real
+   * payload, 156 imprecise among 215 all-layer marks reported 73% when the
+   * true share of the gradable population was 100%. Understating an honesty
+   * number is the wrong direction to be wrong in.
+   *
+   * The registry layer IS included, because it is now graded — 9,721 of its
+   * 19,825 placed entries sit exactly on a national centroid, and before
+   * grading every one of them was drawn as a confident location while the
+   * legend disclosed only the events.
    */
-  eventTotal: number;
+  gradableTotal: number;
 };
 
 export function splitByPrecision(points: readonly GlobePoint[]): PrecisionSplit {
   const precise: GlobePoint[] = [];
   const impreciseByCoord = new Map<string, GlobePoint[]>();
   let impreciseCount = 0;
-  let eventTotal = 0;
+  let gradableTotal = 0;
 
   for (const p of points) {
     const meta = p.meta as (EventMeta & { eventId?: string }) | undefined;
-    // A placed event carries an eventId; a graded one carries a band. The
-    // curated-HQ layers (registry, labs, regional RSS) carry neither, which is
-    // what excludes them. Both signals are checked rather than just eventId,
-    // so an event arriving without one is still counted — undercounting here
-    // would swing the disclosed share the other way.
+    // Gradable = carries a band, or is a placed event. Lab and RSS HQs carry
+    // neither and are excluded as exact by construction. Both signals are
+    // checked rather than just one, so a point arriving without an eventId is
+    // still counted — undercounting would swing the disclosed share the other
+    // way.
     if (meta?.eventId !== undefined || meta?.precision !== undefined) {
-      eventTotal += 1;
+      gradableTotal += 1;
     }
     const precision = meta?.precision;
     // Absent precision is treated as precise.
@@ -77,5 +83,5 @@ export function splitByPrecision(points: readonly GlobePoint[]): PrecisionSplit 
     }
   }
 
-  return { precise, impreciseByCoord, impreciseCount, eventTotal };
+  return { precise, impreciseByCoord, impreciseCount, gradableTotal };
 }
