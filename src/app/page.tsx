@@ -81,7 +81,12 @@ export const metadata = {
 export const revalidate = 300;
 
 export default async function Home() {
-  const initialStatus = await fetchAllStatus();
+  // `skipHistory` keeps Redis out of the render, and that is what keeps this
+  // route static. See FetchAllStatusOptions: @upstash/redis calls with
+  // `cache: "no-store"`, and one such fetch in a server component flips `/`
+  // from `○` to `ƒ`. It only showed on prod, because a local build has no
+  // UPSTASH_* and never makes the call.
+  const initialStatus = await fetchAllStatus({ skipHistory: true });
   return (
     <Dashboard initialStatus={initialStatus} initialFeedResponse={undefined} />
   );

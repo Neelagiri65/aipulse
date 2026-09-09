@@ -249,7 +249,36 @@ function assemble(
   }
 }
 
-export async function fetchAllStatus(): Promise<StatusResult> {
+export type FetchAllStatusOptions = {
+  /**
+   * Skip every Redis touch: sample history, the probe-signals blob, and the
+   * fire-and-forget sample write.
+   *
+   * Set by the PAGE render, and load-bearing for the homepage being static.
+   * `@upstash/redis` issues its HTTP calls with `cache: "no-store"`
+   * (`nodejs.mjs`: `cache: configOrRequester.cache ?? "no-store"`), and a
+   * no-store fetch inside a server component opts the whole route out of
+   * static generation. So the moment SSR touched Redis, `/` flipped from `○`
+   * to `ƒ` — on PROD only, because a local build has no `UPSTASH_*` and takes
+   * the early return instead. That divergence is why it passed every local
+   * check and still regressed: prod served `x-vercel-cache: MISS` on every
+   * request at ~530ms TTFB, rendering per visitor and spending ~7 Upstash
+   * commands each against a 10k/day budget.
+   *
+   * What the page loses: sparkline history and the measured probe signal, both
+   * of which the client's first poll fills in a moment later. What it keeps is
+   * the part that had to be in the HTML — each tool's real status, the time it
+   * was polled, and its source.
+   *
+   * The API route leaves this off, so client polling is unchanged.
+   */
+  skipHistory?: boolean;
+};
+
+export async function fetchAllStatus(
+  opts: FetchAllStatusOptions = {},
+): Promise<StatusResult> {
+  const skipHistory = opts.skipHistory === true;
   const polledAt = new Date().toISOString();
   const failures: StatusResult["failures"] = [];
 
@@ -302,15 +331,15 @@ export async function fetchAllStatus(): Promise<StatusResult> {
       incidentsApiUrl: "https://status.cursor.com/api/v2/incidents.json?limit=50",
       cacheTag: `${CURSOR_STATUS.id}-history`,
     }),
-    readSamples("claude-code"),
-    readSamples("openai-api"),
-    readSamples("codex"),
-    readSamples("copilot"),
-    readSamples("windsurf"),
-    readSamples("cursor"),
+    skipHistory ? [] : readSamples("claude-code"),
+    skipHistory ? [] : readSamples("openai-api"),
+    skipHistory ? [] : readSamples("codex"),
+    skipHistory ? [] : readSamples("copilot"),
+    skipHistory ? [] : readSamples("windsurf"),
+    skipHistory ? [] : readSamples("cursor"),
   ]);
 
-  const redisOn = hasRedisConfigured();
+  const redisOn = skipHistory ? false : hasRedisConfigured();
 
   const data: StatusResult["data"] = {};
 
@@ -474,7 +503,7 @@ export async function fetchAllStatus(): Promise<StatusResult> {
   // blob (classification + hysteresis happen on the write-path, not here, to
   // keep status reads within the Upstash budget). Absent blob → no probe
   // shown and the card falls back to declared-status-only.
-  const probeSignals = await readProbeSignals();
+  const probeSignals = skipHistory ? {} : await readProbeSignals();
   for (const [toolId, signal] of Object.entries(probeSignals)) {
     const payload = data[toolId as ToolConfig["id"]];
     if (payload && signal) payload.probe = signal;
