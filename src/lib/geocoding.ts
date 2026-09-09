@@ -398,8 +398,13 @@ const REGION_ENTRIES: Array<[string, Coords]> = [
 const COUNTRY_ENTRIES: Array<[string, Coords]> = [
   // ---------- Country-level centroids ----------
   // Used as fallbacks when the user writes only the country. Centroids are
-  // approximate. Longer city names sort first, so "Berlin, Germany" still
-  // resolves to Berlin — this only fires for bare "Germany".
+  // approximate. The CITY band is tried before this one, so "Berlin, Germany"
+  // resolves to Berlin and this band only fires for a bare "Germany".
+  //
+  // It is band precedence that guarantees that, NOT a length sort — the old
+  // comment here said "longer city names sort first", which stopped being true
+  // when the bands were separated, and the coincidence it described was what
+  // let "roma" match inside "romania". See `needleMatches`.
   ["united states", [39.5, -98.35]],
   ["u.s.a", [39.5, -98.35]],
   ["usa", [39.5, -98.35]],
@@ -509,25 +514,53 @@ const LOCATION_STOPLIST: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Returns true when the needle is found in the haystack AND the match is
- * not a mid-word substring of an unrelated longer word. For most needles
- * (city/country names) this is identical to `haystack.includes(needle)`.
+ * Returns true when the needle is found in the haystack at a WORD BOUNDARY.
  *
- * For US state-suffix needles (", xx" — comma, space, two letters) we
- * tighten the match: the character after the two-letter state code must
- * be end-of-string or a non-letter. Without this guard, a haystack like
- * "startups, news, fitness" matches ", ne" inside ", news" and
- * false-resolves to Nebraska (caught in HN ingest, 2026-04-20).
+ * This used to guard only US state suffixes (", xx"), on the reasoning that
+ * "for most needles this is identical to `haystack.includes(needle)`". That
+ * held only because entries were sorted by length across all bands, so a
+ * longer needle always got first refusal: `"romania"` (7) was tried before
+ * `"roma"` (4) and won. Band precedence removed that accident, and `"roma"`
+ * began matching inside `"romania"` — placing every Romanian profile on Rome
+ * at CITY precision, and attributing the events to Italy.
+ *
+ * A length sort was never the guarantee; it was a coincidence standing in for
+ * one. The boundary check is the guarantee, so it now applies to every needle:
+ *
+ *   - if the needle STARTS with an alphanumeric, the character before the
+ *     match must not be alphanumeric ("roma" cannot match inside "aroma")
+ *   - if the needle ENDS with an alphanumeric, the character after the match
+ *     must not be alphanumeric ("roma" cannot match inside "romania", and
+ *     ", ne" cannot match inside ", news" — the 2026-04-20 Nebraska bug this
+ *     originally existed to stop)
+ *
+ * Needles beginning or ending in punctuation (", nj") skip the check on that
+ * side, since punctuation is itself the boundary.
+ *
+ * Later occurrences are still considered: a needle that appears mid-word once
+ * may appear at a boundary later in the same string.
  */
+const WORD_CHAR = /[a-z0-9]/i;
+
 function needleMatches(haystack: string, needle: string): boolean {
-  const idx = haystack.indexOf(needle);
-  if (idx === -1) return false;
-  const isStateSuffix = needle.length === 4 && needle.startsWith(", ");
-  if (isStateSuffix) {
+  if (needle.length === 0) return false;
+  const needsLeftBoundary = WORD_CHAR.test(needle[0]);
+  const needsRightBoundary = WORD_CHAR.test(needle[needle.length - 1]);
+
+  for (let from = 0; ; ) {
+    const idx = haystack.indexOf(needle, from);
+    if (idx === -1) return false;
+
+    const before = idx > 0 ? haystack[idx - 1] : undefined;
     const after = haystack[idx + needle.length];
-    if (after !== undefined && /[a-z]/i.test(after)) return false;
+    const leftOk =
+      !needsLeftBoundary || before === undefined || !WORD_CHAR.test(before);
+    const rightOk =
+      !needsRightBoundary || after === undefined || !WORD_CHAR.test(after);
+
+    if (leftOk && rightOk) return true;
+    from = idx + 1;
   }
-  return true;
 }
 
 /**
