@@ -170,3 +170,61 @@ describe("computeTransitions — recoveries", () => {
     expect(recoveries[0].state.toolDisplayName).toBe("GitHub Copilot");
   });
 });
+
+/**
+ * An unreadable tool is not a recovered tool.
+ *
+ * `fetchAllStatus` isolates each card's assembly, so a single malformed
+ * upstream payload (a 200 whose `incidents` is a truthy non-array) drops ONE
+ * card into `failures[]` instead of taking the page down. That is the right
+ * behaviour for the dashboard and the wrong one for alerting: the card simply
+ * vanishes from the current set, and "absent from the current set" was the
+ * definition of recovered.
+ *
+ * Left alone, a still-degraded Anthropic would produce "Claude Code has
+ * recovered" on Discord, lose its key from `nextState`, and re-fire the
+ * original alert as new on the next good poll. Announcing an all-clear we
+ * cannot see is the same failure class as a card confidently showing no
+ * incidents.
+ */
+describe("computeTransitions — a tool we could not read", () => {
+  const degraded: StateMap = {
+    "anthropic-status:claude-code": {
+      status: "degraded",
+      alertedAt: "2026-04-29T12:00:00.000Z",
+      sourceUrl: "https://status.claude.com",
+      sourceName: "Anthropic Status",
+      toolDisplayName: "Claude Code",
+    },
+  };
+
+  it("does not announce recovery when the card failed to assemble", () => {
+    const { recoveries, nextState } = computeTransitions(
+      [],
+      degraded,
+      new Set(["claude-code"]),
+    );
+
+    expect(recoveries).toEqual([]);
+    // The alert stays open, carried forward untouched, so the next good poll
+    // sees the same status and does not re-fire it as new.
+    expect(nextState["anthropic-status:claude-code"]).toEqual(
+      degraded["anthropic-status:claude-code"],
+    );
+  });
+
+  it("still announces recovery when the tool really did clear", () => {
+    // Same input, empty unresolved set — the card is absent because the tool
+    // is healthy, which is a genuine recovery.
+    const { recoveries, nextState } = computeTransitions([], degraded, new Set());
+
+    expect(recoveries).toHaveLength(1);
+    expect(recoveries[0].primaryKey).toBe("anthropic-status:claude-code");
+    expect(nextState["anthropic-status:claude-code"]).toBeUndefined();
+  });
+
+  it("defaults to the old behaviour when no failure set is passed", () => {
+    const { recoveries } = computeTransitions([], degraded);
+    expect(recoveries).toHaveLength(1);
+  });
+});

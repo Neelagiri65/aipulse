@@ -83,9 +83,20 @@ export function toolDisplayNameFromHeadline(headline: string): string {
   return headline;
 }
 
+/**
+ * Tool ids whose card could not be built this run — present in the snapshot's
+ * `failures[]` and absent from its `data`. A tool being UNREADABLE is not a
+ * tool being HEALTHY, and the difference is the whole point: without this,
+ * per-card isolation converts a single malformed upstream payload into
+ * "Claude Code has recovered" on Discord, drops the key from `nextState`, and
+ * then re-fires the original alert as new on the next good poll. Fabricating
+ * a recovery is the same failure class as a card confidently showing no
+ * incidents — one layer up.
+ */
 export function computeTransitions(
   currentCards: ToolAlertCard[],
   previousState: StateMap,
+  unresolvedToolIds: ReadonlySet<string> = new Set(),
 ): Transitions {
   const alerts: AlertTransition[] = [];
   const recoveries: RecoveryTransition[] = [];
@@ -120,9 +131,16 @@ export function computeTransitions(
   }
 
   for (const [primaryKey, state] of Object.entries(previousState)) {
-    if (!currentByKey.has(primaryKey)) {
-      recoveries.push({ kind: "recovery", primaryKey, state });
+    if (currentByKey.has(primaryKey)) continue;
+    // `primaryKeyFor` builds "${sourceId}:${toolId}".
+    const toolId = primaryKey.slice(primaryKey.indexOf(":") + 1);
+    if (unresolvedToolIds.has(toolId)) {
+      // Hold the alert open and carry the state forward untouched. We do not
+      // know this tool recovered; we know we could not read it.
+      nextState[primaryKey] = state;
+      continue;
     }
+    recoveries.push({ kind: "recovery", primaryKey, state });
   }
 
   return { alerts, recoveries, nextState };

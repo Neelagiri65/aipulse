@@ -31,7 +31,9 @@ import type {
 } from "@/components/health/tools";
 import {
   bucketToDays,
+  FETCH_TIMEOUT_MS,
   fetchHistoricalIncidents,
+  withCeiling,
   hasRedisConfigured,
   readProbeSignals,
   readSamples,
@@ -60,12 +62,15 @@ async function fetchStatuspage(
 ): Promise<StatuspageSummary | Error> {
   if (!source.apiUrl) return new Error(`no apiUrl on ${source.id}`);
   try {
-    const res = await fetch(source.apiUrl, {
-      next: { revalidate: REVALIDATE_SECONDS, tags: [source.id] },
-      headers: { Accept: "application/json" },
+    return await withCeiling(source.id, FETCH_TIMEOUT_MS, async () => {
+      const res = await fetch(source.apiUrl!, {
+        next: { revalidate: REVALIDATE_SECONDS, tags: [source.id] },
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (!res.ok) throw new Error(`${source.id} returned ${res.status}`);
+      return (await res.json()) as StatuspageSummary;
     });
-    if (!res.ok) return new Error(`${source.id} returned ${res.status}`);
-    return (await res.json()) as StatuspageSummary;
   } catch (err) {
     return err instanceof Error ? err : new Error(String(err));
   }
@@ -100,12 +105,15 @@ type IncidentsPayload = { incidents?: Array<{ id: string; name: string; status: 
 async function fetchIncidents(source: DataSource): Promise<ToolIncident[] | Error> {
   if (!source.apiUrl) return new Error(`no apiUrl on ${source.id}`);
   try {
-    const res = await fetch(source.apiUrl, {
-      next: { revalidate: REVALIDATE_SECONDS, tags: [source.id] },
-      headers: { Accept: "application/json" },
+    const json = await withCeiling(source.id, FETCH_TIMEOUT_MS, async () => {
+      const res = await fetch(source.apiUrl!, {
+        next: { revalidate: REVALIDATE_SECONDS, tags: [source.id] },
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (!res.ok) throw new Error(`${source.id} returned ${res.status}`);
+      return (await res.json()) as IncidentsPayload;
     });
-    if (!res.ok) return new Error(`${source.id} returned ${res.status}`);
-    const json = (await res.json()) as IncidentsPayload;
     const all = json.incidents ?? [];
     return all
       .filter((i) => ACTIVE_INCIDENT_STATES.has(i.status))
@@ -174,22 +182,70 @@ async function fetchClaudeCodeIssues(): Promise<number | Error> {
   const token = process.env.GH_TOKEN;
   if (!token) return new Error("GH_TOKEN not set");
   try {
-    const res = await fetch(
-      "https://api.github.com/search/issues?q=repo:anthropics/claude-code+is:issue+is:open&per_page=1",
-      {
-        next: { revalidate: 3600, tags: ["gh-issues-claude-code"] },
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
+    return await withCeiling("gh-issues-claude-code", FETCH_TIMEOUT_MS, async () => {
+      const res = await fetch(
+        "https://api.github.com/search/issues?q=repo:anthropics/claude-code+is:issue+is:open&per_page=1",
+        {
+          next: { revalidate: 3600, tags: ["gh-issues-claude-code"] },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+          },
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         },
-      },
-    );
-    if (!res.ok) return new Error(`issues search returned ${res.status}`);
-    const json = (await res.json()) as { total_count: number };
-    return json.total_count;
+      );
+      if (!res.ok) throw new Error(`issues search returned ${res.status}`);
+      const json = (await res.json()) as { total_count: number };
+      return json.total_count;
+    });
   } catch (err) {
     return err instanceof Error ? err : new Error(String(err));
+  }
+}
+
+/**
+ * Run one card's assembly in isolation.
+ *
+ * Every network leg above already resolves to an `Error` value rather than
+ * throwing, so the surviving throw path is the SYNCHRONOUS assembly below,
+ * over payloads we only ever `as`-assert: a 200 whose `incidents` is a truthy
+ * non-array makes `activeIncidentsOf`'s `.filter` a TypeError. Unwrapped, that
+ * one malformed upstream took all six cards down with it and the homepage fell
+ * back to the S98 shell.
+ *
+ * Deliberately no defensive `Array.isArray` guard inside the assembly helpers:
+ * a guard would turn a malformed incidents payload into a card confidently
+ * showing NO incidents, which is the one failure this project will not ship.
+ * Throwing into `failures[]` drops the card and says why.
+ */
+function assemble(
+  toolId: string,
+  sourceId: string,
+  failures: StatusResult["failures"],
+  build: () => void,
+): void {
+  try {
+    // TypeScript assigns `Promise<void>` to a `void` return without
+    // complaint, so an `async` callback would type-check here and then throw
+    // OUTSIDE this catch as an unhandled rejection — reinstating exactly the
+    // whole-page failure this function exists to prevent. Caught loudly at
+    // runtime instead of trusted to review.
+    const returned: unknown = build();
+    if (
+      returned &&
+      typeof (returned as { then?: unknown }).then === "function"
+    ) {
+      throw new Error(
+        "assemble() callback returned a promise; card assembly must be synchronous",
+      );
+    }
+  } catch (err) {
+    failures.push({
+      toolId,
+      sourceId,
+      message: `assembly failed: ${err instanceof Error ? err.message : String(err)}`,
+    });
   }
 }
 
@@ -276,98 +332,111 @@ export async function fetchAllStatus(): Promise<StatusResult> {
   if (anthropic instanceof Error) {
     failures.push({ toolId: "claude-code", sourceId: ANTHROPIC_STATUS.id, message: anthropic.message });
   } else {
-    data["claude-code"] = {
-      status: overallStatus(anthropic),
-      statusSourceId: ANTHROPIC_STATUS.id,
-      lastCheckedAt: polledAt,
-      openIssues: claudeIssues instanceof Error ? undefined : claudeIssues,
-      activeIncidents: activeIncidentsOf(anthropic),
-      history: bucketToDays(anthropicHistory, claudeSamples),
-      historyHasSamples: redisOn,
-    };
-    if (claudeIssues instanceof Error) {
-      failures.push({ toolId: "claude-code", sourceId: "gh-issues-claude-code", message: claudeIssues.message });
-    }
+    assemble("claude-code", ANTHROPIC_STATUS.id, failures, () => {
+      data["claude-code"] = {
+        status: overallStatus(anthropic),
+        statusSourceId: ANTHROPIC_STATUS.id,
+        lastCheckedAt: polledAt,
+        openIssues: claudeIssues instanceof Error ? undefined : claudeIssues,
+        activeIncidents: activeIncidentsOf(anthropic),
+        history: bucketToDays(anthropicHistory, claudeSamples),
+        historyHasSamples: redisOn,
+      };
+      if (claudeIssues instanceof Error) {
+        failures.push({ toolId: "claude-code", sourceId: "gh-issues-claude-code", message: claudeIssues.message });
+      }
+    });
   }
 
   // OpenAI API card: overall OpenAI status page + incidents feed.
   if (openai instanceof Error) {
     failures.push({ toolId: "openai-api", sourceId: OPENAI_STATUS.id, message: openai.message });
   } else {
-    const status = overallStatus(openai);
-    // OpenAI API card history: include all historical incidents for the page —
-    // their incidents.json doesn't consistently populate components[], and most
-    // incidents affect API endpoints anyway.
-    data["openai-api"] = {
-      status,
-      statusSourceId: OPENAI_STATUS.id,
-      lastCheckedAt: polledAt,
-      activeIncidents: openaiActive,
-      history: bucketToDays(openaiHistory, openaiApiSamples),
-      historyHasSamples: redisOn,
-    };
-    if (status === "unknown") {
-      failures.push({
-        toolId: "openai-api",
-        sourceId: OPENAI_STATUS.id,
-        message: `raw indicator="${openai.status?.indicator ?? "<missing>"}" page.name="${openai.page?.name ?? "<missing>"}"`,
-      });
-    }
-
-    // Codex card: worst of Codex Web + Codex API components.
-    const codexWeb = findComponent(openai, "Codex Web");
-    const codexApi = findComponent(openai, "Codex API");
-    const codexParts: StatuspageComponentStatus[] = [];
-    if (codexWeb) codexParts.push(codexWeb);
-    if (codexApi) codexParts.push(codexApi);
-    if (codexParts.length === 0) {
-      failures.push({
-        toolId: "codex",
-        sourceId: OPENAI_STATUS.id,
-        message: "neither `Codex Web` nor `Codex API` component found on OpenAI status page",
-      });
-    } else {
-      // One inclusion rule for both surfaces: history AND the active list.
-      const codexHistory = openaiHistory.filter((i) =>
-        mentionsCodex(i as { name?: string; components?: { name?: string }[] }),
-      );
-      data["codex"] = {
-        status: worstStatus(codexParts),
+    assemble("openai-api", OPENAI_STATUS.id, failures, () => {
+      const status = overallStatus(openai);
+      // OpenAI API card history: include all historical incidents for the page —
+      // their incidents.json doesn't consistently populate components[], and most
+      // incidents affect API endpoints anyway.
+      data["openai-api"] = {
+        status,
         statusSourceId: OPENAI_STATUS.id,
         lastCheckedAt: polledAt,
-        activeIncidents: openaiActive.filter(mentionsCodex),
-        history: bucketToDays(codexHistory, codexSamples),
+        activeIncidents: openaiActive,
+        history: bucketToDays(openaiHistory, openaiApiSamples),
         historyHasSamples: redisOn,
       };
-    }
+      if (status === "unknown") {
+        failures.push({
+          toolId: "openai-api",
+          sourceId: OPENAI_STATUS.id,
+          message: `raw indicator="${openai.status?.indicator ?? "<missing>"}" page.name="${openai.page?.name ?? "<missing>"}"`,
+        });
+      }
+    });
+
+    // Codex reads the SAME payload but is its own card, so it gets its own
+    // isolation — otherwise a throw while assembling codex would be recorded
+    // against `openai-api`, naming a card that rendered fine.
+    assemble("codex", OPENAI_STATUS.id, failures, () => {
+      // Codex card: worst of Codex Web + Codex API components.
+      const codexWeb = findComponent(openai, "Codex Web");
+      const codexApi = findComponent(openai, "Codex API");
+      const codexParts: StatuspageComponentStatus[] = [];
+      if (codexWeb) codexParts.push(codexWeb);
+      if (codexApi) codexParts.push(codexApi);
+      if (codexParts.length === 0) {
+        failures.push({
+          toolId: "codex",
+          sourceId: OPENAI_STATUS.id,
+          message: "neither `Codex Web` nor `Codex API` component found on OpenAI status page",
+        });
+      } else {
+        // One inclusion rule for both surfaces: history AND the active list.
+        const codexHistory = openaiHistory.filter((i) =>
+          mentionsCodex(i as { name?: string; components?: { name?: string }[] }),
+        );
+        data["codex"] = {
+          status: worstStatus(codexParts),
+          statusSourceId: OPENAI_STATUS.id,
+          lastCheckedAt: polledAt,
+          activeIncidents: openaiActive.filter(mentionsCodex),
+          history: bucketToDays(codexHistory, codexSamples),
+          historyHasSamples: redisOn,
+        };
+      }
+    });
   }
 
   // Copilot card: specific `Copilot` component from GitHub status.
   if (github instanceof Error) {
     failures.push({ toolId: "copilot", sourceId: GITHUB_STATUS.id, message: github.message });
   } else {
-    data["copilot"] = {
-      status: componentStatusByName(github, "Copilot"),
-      statusSourceId: GITHUB_STATUS.id,
-      lastCheckedAt: polledAt,
-      activeIncidents: activeIncidentsOf(github),
-      history: bucketToDays(githubHistory, copilotSamples),
-      historyHasSamples: redisOn,
-    };
+    assemble("copilot", GITHUB_STATUS.id, failures, () => {
+      data["copilot"] = {
+        status: componentStatusByName(github, "Copilot"),
+        statusSourceId: GITHUB_STATUS.id,
+        lastCheckedAt: polledAt,
+        activeIncidents: activeIncidentsOf(github),
+        history: bucketToDays(githubHistory, copilotSamples),
+        historyHasSamples: redisOn,
+      };
+    });
   }
 
   // Windsurf card: overall status.windsurf.com page.
   if (windsurf instanceof Error) {
     failures.push({ toolId: "windsurf", sourceId: WINDSURF_STATUS.id, message: windsurf.message });
   } else {
-    data["windsurf"] = {
-      status: overallStatus(windsurf),
-      statusSourceId: WINDSURF_STATUS.id,
-      lastCheckedAt: polledAt,
-      activeIncidents: activeIncidentsOf(windsurf),
-      history: bucketToDays(windsurfHistory, windsurfSamples),
-      historyHasSamples: redisOn,
-    };
+    assemble("windsurf", WINDSURF_STATUS.id, failures, () => {
+      data["windsurf"] = {
+        status: overallStatus(windsurf),
+        statusSourceId: WINDSURF_STATUS.id,
+        lastCheckedAt: polledAt,
+        activeIncidents: activeIncidentsOf(windsurf),
+        history: bucketToDays(windsurfHistory, windsurfSamples),
+        historyHasSamples: redisOn,
+      };
+    });
   }
 
   // Cursor card: overall status.cursor.com page (first-party — previously
@@ -375,14 +444,16 @@ export async function fetchAllStatus(): Promise<StatusResult> {
   if (cursor instanceof Error) {
     failures.push({ toolId: "cursor", sourceId: CURSOR_STATUS.id, message: cursor.message });
   } else {
-    data["cursor"] = {
-      status: overallStatus(cursor),
-      statusSourceId: CURSOR_STATUS.id,
-      lastCheckedAt: polledAt,
-      activeIncidents: activeIncidentsOf(cursor),
-      history: bucketToDays(cursorHistory, cursorSamples),
-      historyHasSamples: redisOn,
-    };
+    assemble("cursor", CURSOR_STATUS.id, failures, () => {
+      data["cursor"] = {
+        status: overallStatus(cursor),
+        statusSourceId: CURSOR_STATUS.id,
+        lastCheckedAt: polledAt,
+        activeIncidents: activeIncidentsOf(cursor),
+        history: bucketToDays(cursorHistory, cursorSamples),
+        historyHasSamples: redisOn,
+      };
+    });
   }
 
   // Fire-and-forget: record each tool's current sample into Redis (no-op when
