@@ -145,9 +145,31 @@ const aiConfigCache = new Map<string, boolean>();
  * `city`. `geocodePlaced` already knows it was a region — carrying that answer
  * is both cheaper and honest, and no coordinate collision can outvote it.
  */
-type PlacedPoint = { coords: [number, number]; precision?: GeoPrecision };
+export type PlacedPoint = { coords: [number, number]; precision?: GeoPrecision };
 
 const userLocationCache = new Map<string, PlacedPoint | null>();
+
+/**
+ * The band a stored point is written with.
+ *
+ * Pure and exported ONLY so the branch can be pinned by a test. It was inline
+ * in the points map, which meant reverting it to the old
+ * `precisionForCoords(lat, lng)` left the whole suite green while every New
+ * Jersey placement silently returned to `city` on a state centroid.
+ *
+ * Prefers the band `geocodePlaced` actually resolved. The coordinate re-grade
+ * is a FALLBACK for paths that only supply bare coordinates (GitLab seeds) —
+ * never an override, because a coordinate shared by two bands (NJ's ZIP-3
+ * prefixes and the ", nj" state centroid are the same point, and city keys are
+ * checked first) would otherwise outvote the geocoder's own answer.
+ */
+export function resolvePointPrecision(
+  placed: PlacedPoint,
+  lat: number,
+  lng: number,
+): GeoPrecision | undefined {
+  return placed.precision ?? precisionForCoords(lat, lng) ?? undefined;
+}
 
 /**
  * Minimal bounded-concurrency runner. Runs `worker(item)` for every item
@@ -561,13 +583,9 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
         // How precisely the actor's profile string resolved. "country" means
         // the dot is a national centroid standing in for "somewhere in this
         // country" — a real event, an approximate place, and the map says so.
-        // The band `geocodePlaced` actually resolved, not a re-derivation
-        // from the coordinates — see PlacedPoint. Falls back to the coordinate
-        // grade only for paths that supply bare coords (GitLab seeds).
-        precision:
-          placed.precision ??
-          precisionForCoords(coords[0], coords[1]) ??
-          undefined,
+        // See resolvePointPrecision: the resolved band wins, the coordinate
+        // re-grade is only a fallback for bare-coordinate paths.
+        precision: resolvePointPrecision(placed, coords[0], coords[1]),
       },
     };
   });

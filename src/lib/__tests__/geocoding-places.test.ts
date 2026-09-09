@@ -158,7 +158,13 @@ describe("precision bands", () => {
     expect(precisionForCoords(0, 0)).toBeNull();
   });
 
-  it("every stored placement can be graded — no coordinate falls between bands", () => {
+  // NOTE: this asserts the property for six representative needles only —
+  // its old title ("every stored placement…") claimed the universal, which is
+  // false: `", nj"` resolves `region` and re-grades `city`, and this test
+  // stayed green because that needle is not in the list. The universal, with
+  // its one known exception, is asserted over the whole dictionary in
+  // geocoding-word-boundary.test.ts.
+  it("resolution and coordinate re-grading agree for representative needles", () => {
     for (const s of ["Berlin", "Germany", ", ca", "94107", "Tokyo", "Brazil"]) {
       const placed = geocodePlaced(s);
       expect(placed).not.toBeNull();

@@ -18,10 +18,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { geocodePlaced, geocode, precisionForCoords } from "@/lib/geocoding";
+import { resolvePointPrecision } from "@/lib/data/fetch-events";
 
 /** Every needle in the three band literals, read from the source itself. */
 function allNeedles(): string[] {
-  const src = readFileSync(join(process.cwd(), "src/lib/geocoding.ts"), "utf8");
+  // Resolved from THIS file, not `process.cwd()`: vitest run from a non-root
+  // directory would otherwise resolve to `…/src/src/lib/geocoding.ts` and
+  // throw ENOENT.
+  const src = readFileSync(new URL("../geocoding.ts", import.meta.url), "utf8");
   return [...src.matchAll(/^\s*\["([^"]+)",\s*\[/gm)].map((m) => m[1]);
 }
 
@@ -65,10 +69,20 @@ describe("needleMatches — word-boundary matching", () => {
     expect(geocode("startups, news, fitness")).toBeNull();
   });
 
-  it("does not read a hyphenated city as its shorter tail", () => {
-    // "Winston-Salem, NC" must not resolve to Salem, Oregon.
-    const placed = geocodePlaced("Winston-Salem, NC");
-    expect(placed!.coords).toEqual([35.7596, -79.0193]);
+  it("treats a hyphen as a word boundary, both sides", () => {
+    // A hyphen is not in [a-z0-9], so it ends a word for this matcher. Asserted
+    // because it is a real consequence of the rule, in both directions.
+    //
+    // (An earlier version of this test used "Winston-Salem, NC" and claimed it
+    // proved we do not resolve to Salem, Oregon. It proved nothing: "salem" is
+    // not a dictionary needle, so that string resolved via ", nc" before the
+    // fix too. Exactly the assert-what-nothing-checks pattern this file exists
+    // to stop.)
+    for (const profile of ["east-berlin", "berlin-mitte"]) {
+      const placed = geocodePlaced(profile);
+      expect(placed!.precision, profile).toBe("city");
+      expect(placed!.coords, profile).toEqual([52.52, 13.405]);
+    }
   });
 });
 
@@ -121,5 +135,40 @@ describe("resolved band vs coordinate re-grading", () => {
     expect(disagreements.sort()).toEqual([
       ", nj: resolved region, regrades city",
     ]);
+  });
+});
+
+/**
+ * The ingest write path chooses the band. Pinned here because it is the one
+ * place a coordinate collision could outvote the geocoder, and because the
+ * previous version of this fix had NO test — reverting it to
+ * `precisionForCoords(lat, lng)` left the whole suite green while every New
+ * Jersey placement silently returned to `city` on a state centroid.
+ */
+describe("resolvePointPrecision — the band a stored point is written with", () => {
+  it("keeps the resolved region even where the coordinate re-grades to city", () => {
+    const placed = geocodePlaced("Hoboken, NJ")!;
+    expect(placed.precision).toBe("region");
+    // The collision that made this necessary.
+    expect(precisionForCoords(placed.coords[0], placed.coords[1])).toBe("city");
+
+    expect(
+      resolvePointPrecision(
+        { coords: placed.coords, precision: placed.precision },
+        placed.coords[0],
+        placed.coords[1],
+      ),
+    ).toBe("region");
+  });
+
+  it("falls back to the coordinate grade only when no band was resolved", () => {
+    // GitLab seeds arrive as bare coordinates and have no band to carry.
+    expect(
+      resolvePointPrecision({ coords: [51.17, 10.45] }, 51.17, 10.45),
+    ).toBe("country");
+  });
+
+  it("returns undefined when neither a band nor a coordinate grade exists", () => {
+    expect(resolvePointPrecision({ coords: [0, 0] }, 0, 0)).toBeUndefined();
   });
 });
