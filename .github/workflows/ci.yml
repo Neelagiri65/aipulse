@@ -1,0 +1,60 @@
+name: ci
+
+# Typecheck, unit tests, and a production-shaped build on every pull request.
+#
+# Until this existed, NOTHING ran the 2,400+ unit tests on a PR. Every workflow
+# in this directory is a cron ingest; the only check a PR got was Vercel's
+# preview build, which goes green on code whose tests fail and whose types do
+# not compile. A red `tsc` sat on `main` for a full session before anyone
+# noticed.
+#
+# The build step deliberately sets DUMMY Upstash credentials. That is the point
+# of it, not an oversight — see `scripts/assert-static-routes.mjs`. A build
+# without `UPSTASH_*` takes an early return and never makes the Redis call that
+# changes whether a route can be statically rendered, so it cannot reproduce
+# production. The credentials do not need to be valid; the call only has to be
+# attempted.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push supersedes an in-flight run on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npx vitest run
+
+      - name: Build with production-shaped env
+        env:
+          # Deliberately fake. Presence — not validity — is what makes the
+          # Redis client's `cache: "no-store"` fetch appear on render paths,
+          # which is the condition a local build silently lacks.
+          UPSTASH_REDIS_REST_URL: https://example.upstash.io
+          UPSTASH_REDIS_REST_TOKEN: ci-dummy-token
+        run: npm run build
+
+      - name: Assert required routes are still static
+        run: npm run check:static
