@@ -397,9 +397,15 @@ const IMPACT_RANK: Record<IncidentImpact, number> = {
   critical: 3,
 };
 
+// "unknown" is the FLOOR, not a peer of "operational". A bucket starts at "unknown" and both
+// loops below promote it, so ranking unknown at 0 made an operational sample unable to beat the
+// initialiser (strict `>`) — every healthy day stayed "unknown" and the strip only drew it green
+// via dayTone's trailing fallback. At -1 any recognised status wins, so a bucket that is still
+// "unknown" WITH samples means every sample was genuinely unreadable, which is what the strip
+// needs in order to stop drawing an unrecognised vendor response as a clean day.
 const STATUS_RANK: Record<ToolHealthStatus | "unknown", number> = {
+  unknown: -1,
   operational: 0,
-  unknown: 0,
   degraded: 1,
   partial_outage: 2,
   major_outage: 3,
