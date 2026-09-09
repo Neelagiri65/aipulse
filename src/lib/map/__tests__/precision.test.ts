@@ -67,3 +67,66 @@ describe("imprecise ink", () => {
     }
   });
 });
+
+/**
+ * The denominator behind "Now X% of placed events" on the map legend.
+ *
+ * `impreciseCount` can only ever come from placed EVENTS — the curated-HQ
+ * layers (registry, labs, regional RSS, HN) carry no band, so they always land
+ * in `precise`. Dividing by every marker therefore diluted the disclosed
+ * share. Measured on a real payload driven through the built map: 156
+ * imprecise events among 215 all-layer marks displayed **73%** when the true
+ * share of placed events was **100%**.
+ *
+ * An honesty number that understates is worse than one that overstates, so the
+ * denominator is pinned here.
+ */
+describe("splitByPrecision — eventTotal is the legend's denominator", () => {
+  const event = (precision: string | undefined, id: string) => ({
+    lat: 51.17,
+    lng: 10.45,
+    color: "#fff",
+    size: 0.4,
+    meta: { eventId: id, precision },
+  });
+  const curatedHq = (id: string) => ({
+    lat: 52.52,
+    lng: 13.405,
+    color: "#fff",
+    size: 0.4,
+    meta: { kind: "registry", fullName: id },
+  });
+
+  it("counts only placed events, never the curated-HQ layers", () => {
+    const points = [
+      event("country", "e1"),
+      event("country", "e2"),
+      event("city", "e3"),
+      curatedHq("r1"),
+      curatedHq("r2"),
+    ] as unknown as Parameters<typeof splitByPrecision>[0];
+
+    const split = splitByPrecision(points);
+
+    expect(split.impreciseCount).toBe(2);
+    // 3, not 5: the two registry HQs are not placed events.
+    expect(split.eventTotal).toBe(3);
+    // The share the legend states.
+    expect(Math.round((split.impreciseCount / split.eventTotal) * 100)).toBe(67);
+  });
+
+  it("reports 100% when every placed event is an area", () => {
+    // The real-payload case: all events on national centroids, plus HQ layers.
+    const points = [
+      event("country", "e1"),
+      event("country", "e2"),
+      curatedHq("r1"),
+    ] as unknown as Parameters<typeof splitByPrecision>[0];
+
+    const split = splitByPrecision(points);
+
+    expect(split.eventTotal).toBe(2);
+    expect(split.impreciseCount / split.eventTotal).toBe(1);
+    // Dividing by points.length would have reported 67% here.
+  });
+});

@@ -207,10 +207,10 @@ export function FlatMap({
   // The share of placed events the map can only place to a country or a US
   // state. The legend states it, because a reader deserves to know how much of
   // what they are looking at is an area rather than a location.
-  const impreciseCount = useMemo(
-    () => splitByPrecision(points).impreciseCount,
-    [points],
-  );
+  const { impreciseCount, eventTotal } = useMemo(() => {
+    const split = splitByPrecision(points);
+    return { impreciseCount: split.impreciseCount, eventTotal: split.eventTotal };
+  }, [points]);
 
   // Re-populate markers whenever the points list changes. Cluster group
   // is wiped + refilled — at current density (~1000) this is fast
@@ -234,7 +234,13 @@ export function FlatMap({
       const where = isCountry
         ? (meta.country ?? "this country")
         : (meta.region ?? "this region");
-      const label = `${bucket.length} event${bucket.length === 1 ? "" : "s"} placed at the ${isCountry ? "centre of" : "centroid of"} ${where} — the profile gave no city, so this ring is an area, not a location.`;
+      // States what the ring IS, not why it exists. "the profile gave no city"
+      // was a claim about cause that the data does not carry: a share of these
+      // are profiles that DID name a city and were dumped on the centroid by
+      // the geocoder's own band bug, and legacy points in the rolling window
+      // still are. What we can always stand behind is that the coordinate is
+      // an area rather than an address.
+      const label = `${bucket.length} event${bucket.length === 1 ? "" : "s"} placed at the ${isCountry ? "centre of" : "centroid of"} ${where} — an area, not a location.`;
       // Neutral by design: a ring holds events of mixed types, so it must not
       // borrow the type legend's ink.
       const color = impreciseInk(theme);
@@ -419,7 +425,7 @@ export function FlatMap({
         />
       )}
 
-      <MapLegend imprecise={impreciseCount} total={points.length} />
+      <MapLegend imprecise={impreciseCount} total={eventTotal} />
       <MapStatus hasData={hasData} lastUpdatedAt={lastUpdatedAt} count={points.length} />
     </div>
   );
