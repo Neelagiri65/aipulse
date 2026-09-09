@@ -21,6 +21,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/data/status-history", () => ({
+  // The real module owns the shared ceiling. Omitting it here makes every
+  // `AbortSignal.timeout(undefined)` throw, which silently empties the page.
+  FETCH_TIMEOUT_MS: 5_000,
   fetchHistoricalIncidents: vi.fn(async () => []),
   readSamples: vi.fn(async () => []),
   readProbeSignals: vi.fn(async () => ({})),
@@ -67,10 +70,17 @@ afterEach(() => {
 
 describe("fetchAllStatus — one broken source degrades one card", () => {
   it("attaches an abort ceiling to every outbound status fetch", async () => {
+    // Without a token `fetchClaudeCodeIssues` returns before it fetches, so the
+    // assertion below would silently skip it.
+    vi.stubEnv("GH_TOKEN", "test-token");
     const fetchMock = vi.fn(async () => jsonResponse(healthy()));
     vi.stubGlobal("fetch", fetchMock);
 
     await fetchAllStatus();
+
+    // 6 statuspage/incidents fetches + the GitHub issues search. The five
+    // history fetches live in the mocked module and are covered separately.
+    expect(fetchMock.mock.calls.length).toBe(7);
 
     expect(fetchMock.mock.calls.length).toBeGreaterThan(0);
     for (const [, init] of fetchMock.mock.calls as unknown as Array<
@@ -151,5 +161,36 @@ describe("fetchAllStatus — one broken source degrades one card", () => {
     expect(result.data["copilot"]).toBeDefined();
     expect(result.data["windsurf"]).toBeDefined();
     expect(result.data["cursor"]).toBeDefined();
+  });
+
+  it("blames the codex card for a codex failure, not the openai-api card", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (String(url).includes(OPENAI_STATUS_URL)) {
+          // `components` a truthy non-array: `overallStatus` reads
+          // `status.indicator` and survives, so the openai-api card builds
+          // fine — but `findComponent`'s `.find` throws while assembling
+          // codex. Both cards read this one payload, so without its own
+          // isolation the failure was recorded against a card that rendered.
+          return jsonResponse({ ...healthy(), components: {} });
+        }
+        return jsonResponse(healthy());
+      }),
+    );
+
+    const result = await fetchAllStatus();
+
+    expect(result.data["openai-api"]).toBeDefined();
+    expect(result.data["codex"]).toBeUndefined();
+    expect(
+      result.failures.some(
+        (f) => f.toolId === "codex" && /assembly failed/.test(f.message),
+      ),
+    ).toBe(true);
+    expect(
+      result.failures.some((f) => f.toolId === "openai-api"),
+      "openai-api rendered — it must not be blamed for codex",
+    ).toBe(false);
   });
 });

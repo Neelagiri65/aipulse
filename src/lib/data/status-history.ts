@@ -277,6 +277,28 @@ export type HistoricalFetchArgs = {
   days?: number;
 };
 
+/**
+ * Per-request ceiling on every outbound status fetch, shared by this module
+ * and fetch-status.ts.
+ *
+ * Without one, a single hung upstream holds the shared `Promise.all` in
+ * `fetchAllStatus` open until the platform kills the function. Under ISR that
+ * is survivable — the stale entry keeps serving — which is exactly what makes
+ * it dangerous: no error surfaces, the numbers just freeze at the last good
+ * poll and never move again.
+ *
+ * 5s against a measured cold `fetchAllStatus` of 202ms median / 801ms max, on
+ * a route whose Hobby `maxDuration` is 10s. The twelve fetches share one
+ * `Promise.all`, so the ceiling binds the slowest leg, not their sum.
+ *
+ * The trade-off, stated rather than hidden: a status page that is slow BECAUSE
+ * its provider is having an incident is the page most likely to reach this
+ * ceiling, and it degrades to a `failures[]` entry at the moment its number
+ * matters most. 5s is wide enough that only a genuine hang gets there — a
+ * merely struggling page still answers.
+ */
+export const FETCH_TIMEOUT_MS = 5_000;
+
 export async function fetchHistoricalIncidents(
   args: HistoricalFetchArgs,
 ): Promise<HistoricalIncident[]> {
@@ -287,10 +309,7 @@ export async function fetchHistoricalIncidents(
     const res = await fetch(args.incidentsApiUrl, {
       next: { revalidate: REVALIDATE_SECONDS, tags: [args.cacheTag] },
       headers: { Accept: "application/json" },
-      // Same ceiling as the status fetches (see FETCH_TIMEOUT_MS in
-      // fetch-status.ts). A hung history endpoint would otherwise hold the
-      // whole `Promise.all` open on its own.
-      signal: AbortSignal.timeout(5_000),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     if (!res.ok) return [];
     const json = (await res.json()) as { incidents?: StatuspageIncidentRaw[] };
