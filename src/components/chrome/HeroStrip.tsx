@@ -26,7 +26,13 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
   const pill = (
     <span className="ap-answer-pill" data-testid="hero-answer-pill">
       <span className={`ap-mark ap-mark--${mark}`} aria-hidden />
-      {count && <span className="ap-answer-pill__count">{count}</span>}
+      {/* The `{" "}` is load-bearing, not formatting. These are adjacent inline
+          spans, so without it the extracted text of the page reads
+          "6/6operational" — the site's single most citable number, run into
+          the word that qualifies it, for exactly the AI answer engines
+          `robots.ts` goes out of its way to invite. It renders identically;
+          the layout gap comes from CSS. */}
+      {count && <span className="ap-answer-pill__count">{count}</span>}{" "}
       <span className={`ap-word ap-word--${tone}`}>{word}</span>
     </span>
   );
