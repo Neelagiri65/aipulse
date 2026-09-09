@@ -27,7 +27,11 @@ import {
   probeAIConfig,
   type GitHubEvent,
 } from "@/lib/github";
-import { geocode, precisionForCoords } from "@/lib/geocoding";
+import {
+  geocodePlaced,
+  precisionForCoords,
+  type GeoPrecision,
+} from "@/lib/geocoding";
 import { placeFromCoords } from "@/lib/geocoding-places";
 import type { GlobePoint } from "@/components/globe/Globe";
 import {
@@ -131,7 +135,19 @@ const aiConfigCache = new Map<string, boolean>();
  * fetchUser fan-out on repeat runs. Null-value entries mean "looked up,
  * no geocodable location" — also worth caching so we don't retry.
  */
-const userLocationCache = new Map<string, [number, number] | null>();
+/**
+ * A resolved actor location: the coordinates AND the band they came from.
+ *
+ * The band used to be discarded here and re-derived from the coordinates at
+ * write time, which silently overclaimed: New Jersey's ZIP-3 prefixes
+ * (080-089) map to the same point as the ", nj" STATE centroid, and the
+ * city-key set is consulted first, so every NJ placement was written as
+ * `city`. `geocodePlaced` already knows it was a region — carrying that answer
+ * is both cheaper and honest, and no coordinate collision can outvote it.
+ */
+type PlacedPoint = { coords: [number, number]; precision?: GeoPrecision };
+
+const userLocationCache = new Map<string, PlacedPoint | null>();
 
 /**
  * Minimal bounded-concurrency runner. Runs `worker(item)` for every item
@@ -389,7 +405,21 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
     const gitlab = await fetchGitLabEvents();
     for (const e of gitlab.events) rawEvents.push({ event: e, source: "gitlab" });
     for (const [login, coords] of gitlab.locationSeeds) {
-      userLocationCache.set(login, coords);
+      // GitLab seeds arrive pre-resolved as bare coordinates, so there is no
+      // band to carry and this path keeps grading from the coordinates. That
+      // is unchanged behaviour, not a new compromise — teaching
+      // `gitlab-events` (and the registry/HN paths) to record a band is its
+      // own checkpoint.
+      userLocationCache.set(
+        login,
+        coords
+          ? {
+              coords,
+              precision:
+                precisionForCoords(coords[0], coords[1]) ?? undefined,
+            }
+          : null,
+      );
     }
     for (const e of gitlab.events) {
       if (!aiConfigCache.has(e.repo.name)) aiConfigCache.set(e.repo.name, false);
@@ -420,7 +450,7 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
 
   // 4) Geocode unique actors. Bounded concurrency + cross-run cache.
   const uniqueLogins = Array.from(new Set(Array.from(cappedById.values()).map((r) => r.event.actor.login)));
-  const locationByLogin = new Map<string, [number, number]>();
+  const locationByLogin = new Map<string, PlacedPoint>();
   // Seed from cache; only fan out for unknowns.
   const loginsToFetch: string[] = [];
   for (const login of uniqueLogins) {
@@ -452,10 +482,14 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
         userLocationCache.set(login, null);
         return;
       }
-      const coords = geocode(user?.location);
-      if (coords) {
-        locationByLogin.set(login, coords);
-        userLocationCache.set(login, coords);
+      const placed = geocodePlaced(user?.location);
+      if (placed) {
+        const entry: PlacedPoint = {
+          coords: placed.coords,
+          precision: placed.precision,
+        };
+        locationByLogin.set(login, entry);
+        userLocationCache.set(login, entry);
       } else {
         userLocationCache.set(login, null);
       }
@@ -502,7 +536,8 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
   //    the coords each ingest run. Null country is honest (coord falls
   //    outside every tracked bbox); never substitute a placeholder.
   const points: StoredGlobePoint[] = placeable.map((r) => {
-    const coords = locationByLogin.get(r.event.actor.login)!;
+    const placed = locationByLogin.get(r.event.actor.login)!;
+    const coords = placed.coords;
     const hasConfig = aiConfigCache.get(r.event.repo.name) === true;
     const place = placeFromCoords(coords[0], coords[1]);
     return {
@@ -526,7 +561,13 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestResult>
         // How precisely the actor's profile string resolved. "country" means
         // the dot is a national centroid standing in for "somewhere in this
         // country" — a real event, an approximate place, and the map says so.
-        precision: precisionForCoords(coords[0], coords[1]) ?? undefined,
+        // The band `geocodePlaced` actually resolved, not a re-derivation
+        // from the coordinates — see PlacedPoint. Falls back to the coordinate
+        // grade only for paths that supply bare coords (GitLab seeds).
+        precision:
+          placed.precision ??
+          precisionForCoords(coords[0], coords[1]) ??
+          undefined,
       },
     };
   });

@@ -14,7 +14,16 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { geocodePlaced, geocode } from "@/lib/geocoding";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { geocodePlaced, geocode, precisionForCoords } from "@/lib/geocoding";
+
+/** Every needle in the three band literals, read from the source itself. */
+function allNeedles(): string[] {
+  const src = readFileSync(join(process.cwd(), "src/lib/geocoding.ts"), "utf8");
+  return [...src.matchAll(/^\s*\["([^"]+)",\s*\[/gm)].map((m) => m[1]);
+}
 
 describe("needleMatches — word-boundary matching", () => {
   it("does not place Romania in Rome", () => {
@@ -60,5 +69,57 @@ describe("needleMatches — word-boundary matching", () => {
     // "Winston-Salem, NC" must not resolve to Salem, Oregon.
     const placed = geocodePlaced("Winston-Salem, NC");
     expect(placed!.coords).toEqual([35.7596, -79.0193]);
+  });
+});
+
+/**
+ * The band a placement was RESOLVED at is not always the band you get back by
+ * re-grading its coordinates, so ingest must carry the first and never
+ * recompute the second.
+ *
+ * New Jersey is the live collision: ZIP-3 prefixes 080-089 map to the same
+ * point as the ", nj" state centroid, and the city-key set is consulted first,
+ * so a region-precision placement was being written as `city` — a confident
+ * city dot on a state centroid, the exact overclaim the band work removes.
+ *
+ * Asserted over the WHOLE dictionary rather than a handful of strings: the
+ * previous test of this property named "no coordinate falls between bands" and
+ * checked six hand-picked needles, so it stayed green while the property was
+ * false.
+ */
+describe("resolved band vs coordinate re-grading", () => {
+  it("grades a NJ placement as the region it resolved to", () => {
+    const placed = geocodePlaced("Hoboken, NJ");
+    expect(placed!.precision).toBe("region");
+    // The re-derivation disagrees — which is precisely why ingest carries the
+    // resolved band instead of recomputing from coordinates.
+    expect(precisionForCoords(placed!.coords[0], placed!.coords[1])).toBe(
+      "city",
+    );
+  });
+
+  it("has no UNKNOWN disagreement between resolution and re-grading", () => {
+    const needles = allNeedles();
+    expect(needles.length).toBeGreaterThan(300);
+
+    const disagreements: string[] = [];
+    for (const n of needles) {
+      const placed = geocodePlaced(n);
+      if (!placed) {
+        disagreements.push(`${n}: no longer resolves`);
+        continue;
+      }
+      const regraded = precisionForCoords(placed.coords[0], placed.coords[1]);
+      if (regraded !== placed.precision) {
+        disagreements.push(`${n}: resolved ${placed.precision}, regrades ${regraded}`);
+      }
+    }
+
+    // Every entry here is a coordinate shared by two bands. Ingest carries the
+    // resolved band, so these no longer mislead — but a NEW one appearing is a
+    // dictionary collision somebody should look at.
+    expect(disagreements.sort()).toEqual([
+      ", nj: resolved region, regrades city",
+    ]);
   });
 });
