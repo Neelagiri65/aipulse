@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import type L from "leaflet";
 import type { MarkerClusterGroup } from "leaflet";
@@ -28,7 +28,8 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { useTheme, type Theme } from "@/lib/hooks/use-theme";
-import { clusterSkin, colorForTypeIn, LAYER_COLOR, legendColors } from "@/components/map/event-palette";
+import { clusterSkin, colorForTypeIn, impreciseInk, LAYER_COLOR, legendColors } from "@/components/map/event-palette";
+import { splitByPrecision } from "@/lib/map/precision";
 
 export type FlatMapProps = {
   points?: GlobePoint[];
@@ -131,7 +132,13 @@ export function FlatMap({
         }
       ).markerClusterGroup({
         showCoverageOnHover: false,
-        spiderfyOnMaxZoom: true,
+        // Spiderfy fabricates positions. Every event snaps to a dictionary
+        // coordinate, so a pile is always same-position, and markercluster's
+        // answer is to fan the markers onto a ring of invented lat/lngs joined
+        // by legs — the starburst that made this obvious over Seattle. The
+        // card already lists what is in a cluster; it does not need the map to
+        // make up places.
+        spiderfyOnMaxZoom: false,
         disableClusteringAtZoom: 9,
         maxClusterRadius: 48,
         // Disable the default zoom-to-bounds on cluster click so the
@@ -197,6 +204,14 @@ export function FlatMap({
     };
   }, []);
 
+  // The share of placed events the map can only place to a country or a US
+  // state. The legend states it, because a reader deserves to know how much of
+  // what they are looking at is an area rather than a location.
+  const { impreciseCount, eventTotal } = useMemo(() => {
+    const split = splitByPrecision(points);
+    return { impreciseCount: split.impreciseCount, eventTotal: split.eventTotal };
+  }, [points]);
+
   // Re-populate markers whenever the points list changes. Cluster group
   // is wiped + refilled — at current density (~1000) this is fast
   // enough; we'd only optimise to diff if we sustained 10k+ markers.
@@ -208,7 +223,54 @@ export function FlatMap({
 
     cluster.clearLayers();
 
-    for (const p of points) {
+    // Placements that are not places are drawn once per centroid with a count,
+    // never as a pile of dots that look like addresses. See `splitByPrecision`.
+    const { precise, impreciseByCoord } = splitByPrecision(points);
+
+    for (const bucket of impreciseByCoord.values()) {
+      const first = bucket[0];
+      const meta = (first.meta ?? {}) as EventMeta;
+      const isCountry = meta.precision === "country";
+      const where = isCountry
+        ? (meta.country ?? "this country")
+        : (meta.region ?? "this region");
+      // States what the ring IS, not why it exists. "the profile gave no city"
+      // was a claim about cause that the data does not carry: a share of these
+      // are profiles that DID name a city and were dumped on the centroid by
+      // the geocoder's own band bug, and legacy points in the rolling window
+      // still are. What we can always stand behind is that the coordinate is
+      // an area rather than an address.
+      const label = `${bucket.length} event${bucket.length === 1 ? "" : "s"} placed at the ${isCountry ? "centre of" : "centroid of"} ${where} — an area, not a location.`;
+      // Neutral by design: a ring holds events of mixed types, so it must not
+      // borrow the type legend's ink.
+      const color = impreciseInk(theme);
+      const px = impreciseIconPx(bucket.length);
+      const marker = L.marker([first.lat, first.lng], {
+        icon: L.divIcon({
+          html: impreciseMarkerHtml(color, bucket.length, label),
+          className: "ap-fm-marker ap-fm-imprecise",
+          iconSize: [px, px],
+          iconAnchor: [px / 2, px / 2],
+        }),
+        keyboard: false,
+        ...({ eventPoint: first } as Record<string, unknown>),
+      });
+      marker.on("click", (ev: L.LeafletMouseEvent) => {
+        const container = containerRef.current;
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
+        setSelection({
+          cluster: clusterFromPoints(bucket),
+          anchor: {
+            x: ev.originalEvent.clientX - rect.left,
+            y: ev.originalEvent.clientY - rect.top,
+          },
+        });
+      });
+      cluster.addLayer(marker);
+    }
+
+    for (const p of precise) {
       const meta = (p.meta ?? {}) as EventMeta;
       const isRegistry = meta.kind === "registry";
       const isHn = meta.kind === "hn";
@@ -363,7 +425,7 @@ export function FlatMap({
         />
       )}
 
-      <MapLegend />
+      <MapLegend imprecise={impreciseCount} total={eventTotal} />
       <MapStatus hasData={hasData} lastUpdatedAt={lastUpdatedAt} count={points.length} />
     </div>
   );
@@ -374,6 +436,30 @@ export function FlatMap({
  * we wrap a transparent halo ring around it so the flat map reads identical
  * to the 3D globe's halo semantics.
  */
+/**
+ * A country- or region-level placement: one ring per centroid, carrying the
+ * number of events behind it.
+ *
+ * These coordinates are not places. "Germany" resolves to a point in a field
+ * near Kassel, and drawing 102 events there as 102 solid dots claims a
+ * precision the profile string never had. A hollow ring reads as an area, the
+ * count says how much is behind it, and the shape is different enough from a
+ * city dot that the two can never be confused at a glance.
+ */
+function impreciseMarkerHtml(
+  color: string,
+  count: number,
+  label: string,
+): string {
+  const px = count >= 100 ? 34 : count >= 25 ? 28 : count >= 5 ? 22 : 18;
+  const font = px >= 28 ? 11 : 9;
+  return `<span title="${label}" style="display:flex;align-items:center;justify-content:center;width:${px}px;height:${px}px;border-radius:9999px;border:1.5px dashed ${hexA(color, 0.85)};background:${hexA(color, 0.12)};color:${color};font:600 ${font}px/1 ui-monospace,SFMono-Regular,Menlo,monospace;">${count > 999 ? "999+" : count}</span>`;
+}
+
+function impreciseIconPx(count: number): number {
+  return count >= 100 ? 34 : count >= 25 ? 28 : count >= 5 ? 22 : 18;
+}
+
 function markerHtml(color: string, hasAi: boolean): string {
   const dot = `<span style="display:block;width:8px;height:8px;border-radius:9999px;background:${color};box-shadow:0 0 4px ${hexA(color, 0.6)}"></span>`;
   if (!hasAi) {
@@ -831,7 +917,7 @@ function clusterFromPoints(points: GlobePoint[]): Cluster {
   };
 }
 
-function MapLegend() {
+function MapLegend({ imprecise, total }: { imprecise: number; total: number }) {
   // The legend swatches are the marker colours for the ground the reader is on.
   const legend = legendColors(useTheme());
   const isMobile = useIsMobile();
@@ -906,6 +992,16 @@ function MapLegend() {
       </ul>
       <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
         Bright ring = repo has AI config
+      </div>
+      <div className="mt-2 max-w-[190px] border-t border-border/40 pt-1.5 text-[9px] leading-relaxed text-foreground/60">
+        <div>Dashed ring = area, not a place</div>
+        <div className="mt-0.5 normal-case tracking-normal">
+          Country or state centroid — the profile named no city. The number is
+          how many events are behind it.
+          {total > 0 && imprecise > 0 && (
+            <> Now {Math.round((imprecise / total) * 100)}% of placed events.</>
+          )}
+        </div>
       </div>
       <div className="mt-2 border-t border-border/40 pt-1.5 text-[9px] text-foreground/60">
         AI Labs

@@ -37,6 +37,12 @@ export type EventMeta = {
    *  fell outside every tracked country bbox (rare). */
   country?: string | null;
   region?: string | null;
+  /** Which geocoder band placed this event: a settlement ("city"), a US state
+   *  centroid ("region"), or a national centroid ("country"). The last two are
+   *  areas, not addresses, and the map draws them as rings with a count rather
+   *  than as dots that look like places. Absent on points placed before this
+   *  was recorded AND whose coordinate is not in the dictionary. */
+  precision?: "city" | "region" | "country";
   /** Registry fields (kind === "registry"). */
   fullName?: string;
   stars?: number;

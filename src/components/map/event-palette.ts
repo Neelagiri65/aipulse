@@ -32,6 +32,20 @@ export const LAYER_COLOR: Record<Theme, { labs: string; rss: string; registry: s
   light: { labs: "#7e22ce", rss: "#c2410c", registry: SLATE_LIGHT, hn: "#ff6600" },
 };
 
+/**
+ * The ink for a country- or state-level ring.
+ *
+ * NOT an event-type colour. A ring stands for a bucket of events of mixed
+ * types — colouring it by the first one in the array would have the legend
+ * teaching "blue = push" while a blue ring meant "the first of these 102
+ * events happened to be a push". The ring makes one claim, "events landed
+ * somewhere in this area", so it gets one neutral tone that the type legend
+ * never assigns.
+ */
+export function impreciseInk(theme: Theme): string {
+  return theme === "light" ? SLATE_LIGHT : SLATE_DARK;
+}
+
 /** The marker colour for an event type on the given ground. */
 export function colorForTypeIn(theme: Theme, type?: string): string {
   if (theme === "light") {
