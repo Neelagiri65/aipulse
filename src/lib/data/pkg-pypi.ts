@@ -59,10 +59,37 @@ export type PyPiIngestOptions = {
   now?: () => Date;
   /** Override the tracked package list (tests). */
   packages?: readonly string[];
+  /** Override the inter-request wait (tests). Milliseconds. */
+  sleepImpl?: (ms: number) => Promise<void>;
 };
 
 const PYPISTATS_BASE = "https://pypistats.org/api/packages";
 const USER_AGENT = "aipulse/1.0 (+https://gawk.dev)";
+
+/**
+ * Wait between package requests, and retry once on a 429.
+ *
+ * pypistats.org rate-limits, and this ingest fired all seven packages
+ * back-to-back with no pause and no retry. A refused package is not written,
+ * and `writeLatest` OVERWRITES the blob — so a transient 429 erased that
+ * package's last-known counter, and the daily snapshot that later read the
+ * blob simply had no row for it. The hole in the 30-day series is permanent.
+ *
+ * The damage was measurable on prod: PyPI packages held 10-21 of 30 days
+ * (pypi:anthropic's newest figure was nine days old) while npm, crates,
+ * docker, brew and vscode — whose upstreams do not rate-limit — all held 29
+ * of 30.
+ *
+ * 1.5s between calls puts seven packages at ~9s, comfortably inside the cron
+ * budget, and pypistats' published etiquette asks for exactly this rather than
+ * a burst. The single retry honours `Retry-After` when the server sends one.
+ */
+const INTER_REQUEST_MS = 1_500;
+const RETRY_CAP_MS = 10_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /**
  * Fetch every tracked package's recent counters, persist the latest blob
@@ -78,9 +105,14 @@ export async function runPyPiIngest(
   const counters: Record<string, PackageCounter> = {};
   const failures: Array<{ pkg: string; message: string }> = [];
 
-  for (const pkg of packages) {
+  const sleepImpl = opts.sleepImpl ?? sleep;
+
+  for (let i = 0; i < packages.length; i++) {
+    const pkg = packages[i];
+    // Pace from the second request on — the first has nothing to wait behind.
+    if (i > 0) await sleepImpl(INTER_REQUEST_MS);
     try {
-      counters[pkg] = await fetchPyPiRecent(pkg, fetchImpl);
+      counters[pkg] = await fetchPyPiRecent(pkg, fetchImpl, sleepImpl);
     } catch (e) {
       failures.push({
         pkg,
@@ -106,23 +138,55 @@ export async function runPyPiIngest(
   return { ok, written, failures, counters, fetchedAt };
 }
 
-/** Hit pypistats.org for one package. Throws on non-2xx or malformed body. */
+/**
+ * Hit pypistats.org for one package. Throws on non-2xx or malformed body.
+ *
+ * Retries ONCE on 429, because a refused package does not merely go missing
+ * for this run — `writeLatest` overwrites the blob, so it loses its last-known
+ * counter and drops out of that day's snapshot for good.
+ */
 export async function fetchPyPiRecent(
   pkg: string,
   fetchImpl: typeof fetch,
+  sleepImpl: (ms: number) => Promise<void> = sleep,
 ): Promise<PackageCounter> {
   const url = `${PYPISTATS_BASE}/${encodeURIComponent(pkg)}/recent`;
-  const res = await fetchImpl(url, {
-    headers: {
-      "User-Agent": USER_AGENT,
-      Accept: "application/json",
-    },
-  });
+  const request = () =>
+    fetchImpl(url, {
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "application/json",
+      },
+    });
+
+  let res = await request();
+  if (res.status === 429) {
+    await sleepImpl(retryAfterMs(res.headers?.get?.("retry-after") ?? null));
+    res = await request();
+  }
   if (!res.ok) {
     throw new Error(`pypistats ${pkg} HTTP ${res.status}`);
   }
   const body = (await res.json()) as unknown;
   return parsePyPiCounter(body);
+}
+
+/**
+ * How long to wait after a 429. `Retry-After` is seconds (or an HTTP date);
+ * anything absent, unparseable or absurd falls back to the inter-request
+ * pause, and everything is capped so one hostile header cannot stall the cron.
+ */
+export function retryAfterMs(header: string | null): number {
+  if (!header) return INTER_REQUEST_MS;
+  const seconds = Number(header);
+  if (Number.isFinite(seconds) && seconds > 0) {
+    return Math.min(seconds * 1000, RETRY_CAP_MS);
+  }
+  const at = Date.parse(header);
+  if (!Number.isNaN(at)) {
+    return Math.min(Math.max(at - Date.now(), 0), RETRY_CAP_MS);
+  }
+  return INTER_REQUEST_MS;
 }
 
 /** Parse a pypistats.org /recent body. Pure — no I/O. */
