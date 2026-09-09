@@ -25,6 +25,12 @@
 
 import { Dashboard } from "@/components/dashboard/Dashboard";
 
+// The homepage's own canonical. It used to be inherited from the root layout,
+// where it also applied to every other page and told Google to drop them.
+export const metadata = {
+  alternates: { canonical: "/" },
+};
+
 export default function Home() {
   return <Dashboard initialStatus={undefined} initialFeedResponse={undefined} />;
 }

@@ -1,6 +1,10 @@
 import { AuditClient } from "@/components/audit/AuditClient";
 
 export const metadata = {
+  // Self-canonical. The root layout used to declare `canonical: "/"`,
+  // which every page inherited — telling Google to drop this page and credit
+  // the homepage instead.
+  alternates: { canonical: "/audit" },
   title: "Audit · gawk.dev",
   description:
     "Deterministic redundancy audit for CLAUDE.md files. Pattern matching only — no LLM scoring.",

@@ -10,6 +10,19 @@ const nextConfig: NextConfig = {
       { source: "/registry", destination: "/", permanent: false },
     ];
   },
+  async headers() {
+    return [
+      {
+        // Crawlers are allowed to FETCH the read-only JSON endpoints (see
+        // app/robots.ts) so Googlebot's render pass sees real numbers instead
+        // of "awaiting first poll". They must not LIST the JSON as a search
+        // result — that is what this header says, and it is the half of the
+        // pairing robots.txt cannot express.
+        source: "/api/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
