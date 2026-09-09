@@ -241,6 +241,12 @@ export function Dashboard({
 }: DashboardProps = {}) {
   const status = usePolledEndpoint<StatusResult>("/api/status", STATUS_POLL_MS, {
     initialData: initialStatus,
+    // The server payload dates itself. Under ISR the HTML can be minutes old by
+    // the time it is read, so the freshness chrome must age from the poll, not
+    // from the moment this component mounted.
+    initialDataAt: initialStatus
+      ? Date.parse(initialStatus.polledAt) || undefined
+      : undefined,
   });
   const events = usePolledEndpoint<GlobeEventsResult>(
     "/api/globe-events",
