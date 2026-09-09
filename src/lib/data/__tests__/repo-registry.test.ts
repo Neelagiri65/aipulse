@@ -28,7 +28,10 @@ const hscan = vi.fn();
  * outgrew Upstash's 10MB response cap), so the double has to page too —
  * a single-shot mock would let a pagination bug pass.
  */
-function mockHash(record: Record<string, unknown> | null, pageSize = 2) {
+function mockHash(
+  record: Record<string, unknown> | null | undefined,
+  pageSize = 2,
+) {
   const fields = Object.entries(record ?? {});
   const pages: Array<[string, (string | number)[]]> = [];
   for (let i = 0; i < fields.length; i += pageSize) {
