@@ -33,7 +33,35 @@ export type UsePolledEndpointOptions<T> = {
    * payloads so the first paint shows real data.
    */
   initialData?: T;
+  /**
+   * When the seeded value was actually produced (epoch ms).
+   *
+   * Without this, seeding used `Date.now()` — the moment the component
+   * mounted — as the freshness timestamp. On a server-rendered page that is
+   * the moment the HTML was GENERATED, which under ISR can be minutes before
+   * anyone reads it, so the page said "live · 0s" over data of unknown age.
+   * Pass the payload's own `polledAt` and the freshness chrome tells the truth
+   * about the server render as readily as it does about a client poll.
+   */
+  initialDataAt?: number;
 };
+
+/**
+ * The timestamp a seeded value should be aged from.
+ *
+ * Seeding used to record `Date.now()` — the moment the component mounted. On a
+ * prerendered page that is when the HTML was GENERATED, so the freshness
+ * chrome restarted its clock at hydration and reported data of unknown age as
+ * a fresh poll. A payload that dates itself is aged from its own timestamp.
+ */
+export function seedFreshnessAt<T>(
+  initialData: T | undefined,
+  initialDataAt: number | undefined,
+  now: number,
+): number | undefined {
+  if (initialData === undefined) return undefined;
+  return initialDataAt ?? now;
+}
 
 export function usePolledEndpoint<T>(
   url: string,
@@ -42,8 +70,8 @@ export function usePolledEndpoint<T>(
 ): PolledState<T> {
   const [data, setData] = useState<T | undefined>(options.initialData);
   const [error, setError] = useState<string | undefined>(undefined);
-  const [lastSuccessAt, setLastSuccessAt] = useState<number | undefined>(
-    options.initialData !== undefined ? Date.now() : undefined,
+  const [lastSuccessAt, setLastSuccessAt] = useState<number | undefined>(() =>
+    seedFreshnessAt(options.initialData, options.initialDataAt, Date.now()),
   );
   const [isInitialLoading, setIsInitialLoading] = useState(
     options.initialData === undefined,

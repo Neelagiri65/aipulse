@@ -127,7 +127,15 @@ function TabButton({
 
 function FreshnessPill({ freshness }: { freshness: FreshnessState }) {
   const [, force] = useState(0);
+  // A relative age is a claim that keeps being made after it is printed. The
+  // page is prerendered and revalidated every 5 minutes, so "live · 1s" frozen
+  // into static HTML is read minutes later by anyone without JavaScript —
+  // every AI crawler, and every visitor before hydration. Until this component
+  // has mounted in a browser and can keep the number honest, it states the
+  // absolute time the data was polled instead.
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    setMounted(true);
     const t = setInterval(() => force((n) => n + 1), 1000);
     return () => clearInterval(t);
   }, []);
@@ -153,13 +161,40 @@ function FreshnessPill({ freshness }: { freshness: FreshnessState }) {
   const ageMs = Date.now() - lastSuccessAt;
   const stale = ageMs > intervalMs * 2;
   const variant = stale ? "degrade" : "op";
-  const label = stale ? `stale · ${formatAge(ageMs)}` : `live · ${formatAge(ageMs)}`;
+  const label = freshnessLabel({ mounted, ageMs, stale, at: lastSuccessAt });
   return (
     <span className={`ap-sev-pill ap-sev-pill--${variant}`} title={error}>
       <span className="ap-sev-dot ap-sev-dot--sm" aria-hidden />
       {label}
     </span>
   );
+}
+
+/**
+ * A relative age is a claim that keeps being made after it is printed. In
+ * prerendered HTML, read minutes later by anyone without JavaScript, "live · 1s"
+ * is simply false. Until the component has mounted and can keep the number
+ * honest, the pill states the clock time the data was polled — which cannot go
+ * stale between render and read.
+ */
+export function freshnessLabel(input: {
+  mounted: boolean;
+  ageMs: number;
+  stale: boolean;
+  at: number;
+}): string {
+  if (!input.mounted) return `polled ${formatClock(input.at)}`;
+  return input.stale
+    ? `stale · ${formatAge(input.ageMs)}`
+    : `live · ${formatAge(input.ageMs)}`;
+}
+
+/** "04:53 UTC" — an absolute time cannot go stale between render and read. */
+function formatClock(epochMs: number): string {
+  const d = new Date(epochMs);
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${hh}:${mm} UTC`;
 }
 
 function formatAge(ms: number): string {
