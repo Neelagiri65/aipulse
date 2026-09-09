@@ -65,6 +65,11 @@ const NOT_CRAWLABLE = new Set([
   "/api/subscribe",
   "/api/subscribe/confirm",
   "/api/subscribe/unsubscribe",
+  // Renders a PNG for one report block. The only consumer in the tree is
+  // `/admin/reports/[slug]/launch-check`, which is itself robots-disallowed;
+  // the public report page pins its og:image to a STATIC /public/og/{slug}.png
+  // (see reports/[slug]/page.tsx), so no unfurl or render path needs this.
+  "/api/reports/[slug]/chart/[blockId]",
   // Fetched server-side or on demand, not needed to render a page.
   "/api/registry/deps",
   "/api/pkg/brew",
@@ -84,13 +89,20 @@ const NOT_CRAWLABLE = new Set([
   "/api/v1/status",
 ]);
 
-/** Every `route.ts` under src/app/api, as a URL path. */
+/**
+ * Next resolves a route handler from any of these extensions, so matching only
+ * `.ts`/`.tsx` let a `route.js` endpoint slip past the classification check
+ * entirely — added silently, inheriting `Disallow: /api/`.
+ */
+const ROUTE_FILE = /^route\.(?:[cm]?js|jsx|tsx?)$/;
+
+/** Every route handler under src/app/api, as a URL path. */
 function discoverApiRoutes(dir: string, prefix = "/api"): string[] {
   const found: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.isDirectory()) {
       found.push(...discoverApiRoutes(join(dir, entry.name), `${prefix}/${entry.name}`));
-    } else if (entry.name === "route.ts" || entry.name === "route.tsx") {
+    } else if (ROUTE_FILE.test(entry.name)) {
       found.push(prefix);
     }
   }
@@ -170,11 +182,42 @@ describe("robots.txt", () => {
   });
 
   it("allows nothing under /api/ that is classified as non-public", () => {
-    for (const path of crawlable) {
-      expect(NOT_CRAWLABLE.has(path), `${path} is both allowed and denied`).toBe(
-        false,
+    // Exact-match alone would miss the case that matters: a `*`-terminated
+    // allow can cover a route that is separately listed as non-public, and
+    // both checks would still pass while robots.txt opened it.
+    const toRegExp = (pattern: string) =>
+      new RegExp(
+        "^" +
+          pattern
+            .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+            .replace(/\*/g, "[^?]*") +
+          "$",
       );
+
+    for (const allow of crawlable) {
+      for (const denied of NOT_CRAWLABLE) {
+        const covered = allow.includes("*")
+          ? toRegExp(allow).test(asPattern(denied))
+          : allow === denied;
+        expect(
+          covered,
+          `${allow} allows ${denied}, which is classified non-public`,
+        ).toBe(false);
+      }
     }
+  });
+
+  it("classifies every route handler OUTSIDE /api/ too", () => {
+    // The /api walk above cannot see these, and a new one is exactly the kind
+    // of endpoint that would quietly become crawlable or blocked.
+    const outside = discoverApiRoutes(join(process.cwd(), "src/app"), "")
+      .filter((r) => !r.startsWith("/api"));
+    expect(outside.sort()).toEqual([
+      // Public feed; covered by `Allow: /`.
+      "/digest/rss.xml",
+      // Operator surface; covered by `Disallow: /admin`.
+      "/admin/cron-health",
+    ].sort());
   });
 
   it("keeps the operator and consent surfaces closed", () => {

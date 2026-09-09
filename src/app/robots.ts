@@ -46,13 +46,22 @@ const AI_CRAWLERS = [
  * inherit the wrong answer.
  *
  * **Every entry is `$`-anchored, and that is load-bearing.** A robots path is a
- * PREFIX match: a bare `/api/registry` would also allow `/api/registry/discover`
- * and `/api/registry/backfill-events`, and a bare `/api/benchmarks` would allow
- * `/api/benchmarks/ingest`. Anchoring keeps each allow to the one endpoint it
- * names. A crawler that does not implement `$` (it is a Google/Bing extension,
- * not in the original spec) fails CLOSED — it declines to fetch and gets
- * today's behaviour — rather than fetching an ingest route. Wrong in the safe
- * direction.
+ * PREFIX match: a bare `/api/registry` (14 chars) beats `Disallow: /api/` (5)
+ * under longest-match and would also allow `/api/registry/discover` and
+ * `/api/registry/backfill-events`; a bare `/api/benchmarks` would allow
+ * `/api/benchmarks/ingest`. Those are write paths. Anchoring keeps each allow
+ * to the one endpoint it names.
+ *
+ * `$` and `*` are both in RFC 9309 §2.2.2, which pairs them with longest-match
+ * — so a conforming parser handles them. The residual risk, stated rather than
+ * waved away: a parser that implements longest-match but treats `$` as a
+ * literal character will match none of these allows, and the four endpoints
+ * that were previously UNANCHORED (`/api/status`, `/api/globe-events`,
+ * `/api/feed`, `/api/panels`) therefore go allowed → blocked for it. That is a
+ * regression in reach for such a parser, not merely "today's behaviour". It is
+ * accepted because the alternative — dropping the anchors — opens ingest and
+ * discovery routes to every crawler, and because failing closed on a read
+ * endpoint costs an indexed number while failing open costs a write path.
  *
  * These are NOT meant to be indexed as pages: every `/api/` response carries
  * `X-Robots-Tag: noindex` (see next.config), which is the honest pairing —
@@ -79,15 +88,13 @@ export const CRAWLABLE_API = [
   "/api/panels/model-usage$",
   "/api/panels/producthunt$",
   "/api/panels/sdk-adoption$",
-  // Dynamic PNG charts. These two are `*`-terminated rather than `$`-anchored
-  // because the route has a dynamic segment, and they are deliberately public:
-  // per their own docblock they exist for LinkedIn unfurl tiles and a
-  // third-party `<img src="/api/reports/.../chart/...">` embed, so blocking
-  // them would break a shipped use case rather than protect anything. Checked
-  // that no private route sits under either prefix — `/api/digest/send` is
-  // outside `chart/`, and `/api/reports/[slug]` contains only `chart`.
+  // The one dynamic entry: `*`-terminated rather than `$`-anchored because the
+  // route has a dynamic segment. Justified by a PUBLIC PAGE that embeds it —
+  // the `/digest/{date}` archive renders these charts via DigestTileBoard, so
+  // a crawler rendering that page needs to fetch them. (Not by the email: mail
+  // clients never read robots.txt.) `/api/digest/send` is a write path but
+  // sits outside the `chart/` prefix, so this cannot reach it.
   "/api/digest/chart/tool-health/*",
-  "/api/reports/*/chart/*",
 ];
 
 const DISALLOW = ["/admin", "/api/", "/subscribe/confirm", "/privacy/preferences"];
