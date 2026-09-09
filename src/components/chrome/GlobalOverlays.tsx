@@ -28,6 +28,7 @@
 import { usePathname } from "next/navigation";
 import { ConsentBanner } from "@/components/consent/ConsentBanner";
 import { SubscribeModal } from "@/components/subscribe/SubscribeModal";
+import { McpPromptModal } from "@/components/mcp/McpPromptModal";
 import { AnalyticsMount } from "@/components/chrome/AnalyticsMount";
 import { useBetaEnabled } from "@/lib/hooks/use-beta-enabled";
 
@@ -54,6 +55,11 @@ export function GlobalOverlays(): React.JSX.Element | null {
       <AnalyticsMount />
       {!suppress && <ConsentBanner />}
       {!suppressModal && beta ? <SubscribeModal /> : null}
+      {/* The mcpgawk card takes the same corner, later, and only when the
+          digest prompt is not eligible — it computes that itself from the same
+          inputs rather than trusting a flag. `betaEnabled` is passed in so it
+          can tell whether the digest prompt would show at all. */}
+      {!suppressModal ? <McpPromptModal betaEnabled={beta === true} /> : null}
     </>
   );
 }
