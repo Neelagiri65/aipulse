@@ -24,9 +24,30 @@
  * `polledAt` rather than from hydration, so nothing claims to be newer than it
  * is.
  *
- * If the poll fails at build or revalidation time, `initialStatus` is undefined
- * and the page is the S98 shell again — the degradation is the old behaviour,
- * not an error state.
+ * Degradation is ISR's, not ours. `fetchAllStatus` resolves per-tool failures
+ * into `failures[]` and isolates each card's assembly, so a partial outage
+ * yields a partial page rather than a throw.
+ *
+ * There is deliberately NO `.catch()` here. It used to read
+ * `.catch(() => undefined)`, and measuring it against a real `next start` build
+ * showed it did the opposite of protecting the page. On a throwing
+ * regeneration:
+ *
+ *   catch removed  → the last good entry keeps serving, 156,563 bytes with the
+ *                    real numbers, and the error is logged loudly
+ *   catch present  → the 144,144-byte "awaiting first poll" shell is COMMITTED
+ *                    to the cache and served for the whole revalidate window,
+ *                    silently — nothing reached the log at all
+ *
+ * The catch converted a page ISR had already saved into the exact shell #123
+ * existed to remove, and hid the failure while doing it. Next preserves the
+ * stale entry on a failed background regeneration; letting the error propagate
+ * is what keeps that guarantee.
+ *
+ * The cost of removing it, stated: at BUILD time there is no previous entry to
+ * preserve, so a throw during prerender fails the build instead of shipping the
+ * shell. That is the intended trade — a loud deploy failure beats silently
+ * serving crawlers a page with no numbers in it.
  */
 
 import { Dashboard } from "@/components/dashboard/Dashboard";
@@ -46,7 +67,7 @@ export const metadata = {
 export const revalidate = 300;
 
 export default async function Home() {
-  const initialStatus = await fetchAllStatus().catch(() => undefined);
+  const initialStatus = await fetchAllStatus();
   return (
     <Dashboard initialStatus={initialStatus} initialFeedResponse={undefined} />
   );

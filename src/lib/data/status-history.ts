@@ -287,6 +287,10 @@ export async function fetchHistoricalIncidents(
     const res = await fetch(args.incidentsApiUrl, {
       next: { revalidate: REVALIDATE_SECONDS, tags: [args.cacheTag] },
       headers: { Accept: "application/json" },
+      // Same ceiling as the status fetches (see FETCH_TIMEOUT_MS in
+      // fetch-status.ts). A hung history endpoint would otherwise hold the
+      // whole `Promise.all` open on its own.
+      signal: AbortSignal.timeout(5_000),
     });
     if (!res.ok) return [];
     const json = (await res.json()) as { incidents?: StatuspageIncidentRaw[] };
