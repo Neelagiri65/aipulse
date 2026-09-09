@@ -147,6 +147,9 @@ describe("runPyPiIngest", () => {
 
     const result = await runPyPiIngest({
       fetchImpl,
+      // The ingest paces itself between packages (see INTER_REQUEST_MS);
+      // tests must not spend that time in real seconds.
+      sleepImpl: async () => {},
       packages: ["anthropic", "openai"],
     });
 
@@ -178,6 +181,9 @@ describe("runPyPiIngest", () => {
 
     const result = await runPyPiIngest({
       fetchImpl,
+      // The ingest paces itself between packages (see INTER_REQUEST_MS);
+      // tests must not spend that time in real seconds.
+      sleepImpl: async () => {},
       packages: ["anthropic", "openai", "langchain"],
     });
 
@@ -199,6 +205,9 @@ describe("runPyPiIngest", () => {
 
     const result = await runPyPiIngest({
       fetchImpl,
+      // The ingest paces itself between packages (see INTER_REQUEST_MS);
+      // tests must not spend that time in real seconds.
+      sleepImpl: async () => {},
       packages: ["anthropic", "openai"],
     });
 
@@ -220,6 +229,9 @@ describe("runPyPiIngest", () => {
 
     const result = await runPyPiIngest({
       fetchImpl,
+      // The ingest paces itself between packages (see INTER_REQUEST_MS);
+      // tests must not spend that time in real seconds.
+      sleepImpl: async () => {},
       packages: ["anthropic"],
       now: () => new Date("2026-04-21T12:15:00Z"),
     });
