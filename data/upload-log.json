@@ -1150,5 +1150,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-09-09",
+    "videoId": "g9iptYrbcHw",
+    "url": "https://youtu.be/g9iptYrbcHw",
+    "title": "I resigned from Anthropic today | Gawk Daily — 9 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-09T12:18:01.278Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
