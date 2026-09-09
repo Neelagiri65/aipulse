@@ -279,10 +279,24 @@ function projectLabEntry(lab: LabActivity): SnapshotLabEntry {
 /** Convert a `pkg:{source}:latest` blob into sorted snapshot entries.
  *  Each entry carries only the counter fields the registry populated —
  *  undefined windows are omitted from the JSON, not zero-filled. */
+/**
+ * Today's measured counters, for the daily snapshot.
+ *
+ * Carried counters are EXCLUDED. `writeLatest` keeps a failed package's
+ * last-known value so the dashboard can still show a number with its true age,
+ * but writing that value into today's snapshot would assert a measurement that
+ * never happened — and the 30-day series is built from these snapshots, so it
+ * would show a flat line where the truth is a gap.
+ *
+ * A gap is the honest answer here, and it is deliberately a different answer
+ * from the display's.
+ */
 export function summarisePackageLatest(
   latest: PackageLatest,
 ): SnapshotPackageEntry[] {
+  const carried = latest.carried ?? {};
   return Object.entries(latest.counters)
+    .filter(([name]) => carried[name] === undefined)
     .map(([name, c]) => {
       const entry: SnapshotPackageEntry = { name };
       if (c.lastDay !== undefined) entry.lastDay = c.lastDay;
