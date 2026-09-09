@@ -65,6 +65,9 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  // `unstubAllGlobals` does not reset env stubs — without this, the GH_TOKEN
+  // set below leaks into the tests after it and their passing depends on order.
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });
 
