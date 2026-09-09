@@ -57,6 +57,17 @@ export type PackageLatest = {
   /** Non-fatal per-package fetch failures so readers can surface gaps
    *  rather than implying zero. */
   failures: Array<{ pkg: string; message: string }>;
+  /**
+   * Packages whose counter in `counters` is a LAST-KNOWN value carried over
+   * from an earlier run, keyed to the ISO timestamp it was actually fetched.
+   *
+   * Absent or empty means every counter in the blob was measured at
+   * `fetchedAt`. A reader that shows a carried number must show this age
+   * beside it; the daily snapshot must skip it entirely (see
+   * `summarisePackageLatest`) because a carried value is not a measurement of
+   * today.
+   */
+  carried?: Record<string, string>;
 };
 
 let cached: Redis | null | undefined;
@@ -81,15 +92,61 @@ export function latestKey(source: string): string {
   return `${KEY_PREFIX}${source}${LATEST_SUFFIX}`;
 }
 
-/** Overwrite the "latest" blob for a source. Never throws. */
+/**
+ * Write the "latest" blob, carrying forward the last-known counter for any
+ * package that FAILED this run. Never throws.
+ *
+ * This used to be a plain overwrite, and the overwrite was destroying data.
+ * pypistats.org rate-limits; a refused package was simply absent from the new
+ * blob, so its previously-known counter was erased. The daily snapshot then
+ * read a blob with no row for it, and the hole in the 30-day series was
+ * permanent. Measured on prod: PyPI packages held 10-21 of 30 days —
+ * `pypi:anthropic`'s newest figure was nine days old — while npm, crates,
+ * docker, brew and vscode, whose upstreams do not rate-limit, all held 29.
+ *
+ * Only packages named in THIS run's `failures` are carried. A package that
+ * was deliberately dropped from a tracked list is not in `failures`, so it
+ * falls out of the blob as intended rather than being resurrected forever.
+ *
+ * A carried counter is explicitly NOT presented as a fresh measurement: it is
+ * listed in `carried` with the timestamp it was really fetched, so a display
+ * can age it honestly and the snapshot can leave the day empty.
+ */
 export async function writeLatest(latest: PackageLatest): Promise<void> {
   const r = redis();
   if (!r) return;
   try {
-    await r.set(latestKey(latest.source), JSON.stringify(latest));
+    const merged = carryForwardFailed(latest, await readLatest(latest.source));
+    await r.set(latestKey(merged.source), JSON.stringify(merged));
   } catch {
     // observability must not break the pipeline it observes
   }
+}
+
+/** Pure merge step — no I/O, so the branching is directly testable. */
+export function carryForwardFailed(
+  next: PackageLatest,
+  previous: PackageLatest | null,
+): PackageLatest {
+  const failedPkgs = next.failures.map((f) => f.pkg);
+  if (failedPkgs.length === 0) return next;
+  if (!previous) return next;
+
+  const counters = { ...next.counters };
+  const carried: Record<string, string> = {};
+
+  for (const pkg of failedPkgs) {
+    if (counters[pkg] !== undefined) continue; // it succeeded after all
+    const known = previous.counters[pkg];
+    if (known === undefined) continue; // never had a value to keep
+    counters[pkg] = known;
+    // Preserve the ORIGINAL fetch time, not the previous blob's, so the age
+    // does not reset every time a package fails again.
+    carried[pkg] = previous.carried?.[pkg] ?? previous.fetchedAt;
+  }
+
+  if (Object.keys(carried).length === 0) return next;
+  return { ...next, counters, carried };
 }
 
 /** Read the "latest" blob for a source. Null if missing or malformed. */
