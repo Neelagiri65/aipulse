@@ -207,9 +207,12 @@ export function FlatMap({
   // The share of placed events the map can only place to a country or a US
   // state. The legend states it, because a reader deserves to know how much of
   // what they are looking at is an area rather than a location.
-  const { impreciseCount, eventTotal } = useMemo(() => {
+  const { impreciseCount, gradableTotal } = useMemo(() => {
     const split = splitByPrecision(points);
-    return { impreciseCount: split.impreciseCount, eventTotal: split.eventTotal };
+    return {
+      impreciseCount: split.impreciseCount,
+      gradableTotal: split.gradableTotal,
+    };
   }, [points]);
 
   // Re-populate markers whenever the points list changes. Cluster group
@@ -240,7 +243,7 @@ export function FlatMap({
       // the geocoder's own band bug, and legacy points in the rolling window
       // still are. What we can always stand behind is that the coordinate is
       // an area rather than an address.
-      const label = `${bucket.length} event${bucket.length === 1 ? "" : "s"} placed at the ${isCountry ? "centre of" : "centroid of"} ${where} — an area, not a location.`;
+      const label = `${bucket.length} mark${bucket.length === 1 ? "" : "s"} placed at the ${isCountry ? "centre of" : "centroid of"} ${where} — an area, not a location.`;
       // Neutral by design: a ring holds events of mixed types, so it must not
       // borrow the type legend's ink.
       const color = impreciseInk(theme);
@@ -425,7 +428,7 @@ export function FlatMap({
         />
       )}
 
-      <MapLegend imprecise={impreciseCount} total={eventTotal} />
+      <MapLegend imprecise={impreciseCount} total={gradableTotal} />
       <MapStatus hasData={hasData} lastUpdatedAt={lastUpdatedAt} count={points.length} />
     </div>
   );
@@ -996,10 +999,10 @@ function MapLegend({ imprecise, total }: { imprecise: number; total: number }) {
       <div className="mt-2 max-w-[190px] border-t border-border/40 pt-1.5 text-[9px] leading-relaxed text-foreground/60">
         <div>Dashed ring = area, not a place</div>
         <div className="mt-0.5 normal-case tracking-normal">
-          Country or state centroid — the profile named no city. The number is
-          how many events are behind it.
+          Country or state centroid. The number is how many marks sit behind
+          it — live events and tracked repos alike.
           {total > 0 && imprecise > 0 && (
-            <> Now {Math.round((imprecise / total) * 100)}% of placed events.</>
+            <> Now {Math.round((imprecise / total) * 100)}% of placed marks.</>
           )}
         </div>
       </div>
