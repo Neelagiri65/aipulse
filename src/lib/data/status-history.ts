@@ -91,14 +91,24 @@ function redis(): Redis | null {
 
 const HISTORY_KEY = (toolId: string) => `aipulse:status-history:${toolId}`;
 // 7 days × 24h × 12 samples/hr = 2016. Keep a small margin.
-const MAX_SAMPLES = 2100;
+export const MAX_SAMPLES = 2100;
 
 const SAMPLE_GATE_KEY = "aipulse:sample-gate";
-// 240s and not 300 on purpose. The cron ticks every ~5 min (measured: 36 ticks
-// in a 175-min heartbeat run, ~4.9 min apart). A 300s gate could still be held
-// when the next legitimate tick arrives, silently halving the sample rate; 240s
-// guarantees it has expired.
-const SAMPLE_GATE_TTL_SECONDS = 240;
+// 290s, and both bounds are load-bearing.
+//
+// UPPER: the heartbeat's loop is a literal `sleep 300` and measures 300.3s
+// between ticks. A gate of 300+ could still be held when the next legitimate
+// tick arrives, so the cron would lose its own slot and the rate would halve.
+// 290 keeps the cron the first claimant with ~10s of margin.
+//
+// LOWER: the TTL IS the rate. A shorter gate is re-claimed by ordinary traffic
+// the moment it expires (requests arrive every ~108s), so the ceiling is
+// 86400/TTL per day. At 240s that is 360/day and 7 x 360 = 2520 > MAX_SAMPLES —
+// which would move the eviction this fix exists to remove from day 4 to day 6
+// rather than removing it. At 290s the ceiling is 298/day and 7 x 298 = 2086,
+// inside the cap. `gate-rate-fits-retention.test.ts` pins the two constants
+// together so tuning one cannot silently reopen the eviction.
+export const SAMPLE_GATE_TTL_SECONDS = 290;
 
 /**
  * Claim the right to write one round of samples. Returns true to exactly one
