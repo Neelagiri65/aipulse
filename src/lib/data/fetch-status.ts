@@ -273,12 +273,37 @@ export type FetchAllStatusOptions = {
    * The API route leaves this off, so client polling is unchanged.
    */
   skipHistory?: boolean;
+  /**
+   * Write this poll into Redis sample history. **Opt-in, and only the 5-minute
+   * cron should set it.**
+   *
+   * Recording used to happen on every call, which meant every *read* path — the
+   * API routes, the feed card page, its OG image — wrote 18 Redis commands
+   * (6 tools × lpush + ltrim + expire). Two things broke as a result:
+   *
+   *  1. Write volume scaled with site traffic rather than with the polling
+   *     cadence, against a budget whose cap was exhausted once already
+   *     (2026-07-17). The probe path was consolidated in response; this one was
+   *     left as it was.
+   *  2. Worse, and the reason this is a correctness fix and not just a cost
+   *     one: `MAX_SAMPLES` (2100) is sized for the designed rate of 288/day
+   *     (7 × 288 = 2016). The real rate was ~800/day, so `ltrim` evicted the
+   *     oldest days and the "7-day" strip was really retaining ~2.6 days. Live
+   *     proof: every tool's per-day counts summed to exactly 2100, and the two
+   *     oldest buckets read 0 samples — not because nobody polled, but because
+   *     they had been trimmed away.
+   *
+   * Sampling on the cron alone restores 288/day, which fits the cap with room
+   * to spare and makes the history as long as it claims to be.
+   */
+  recordSamples?: boolean;
 };
 
 export async function fetchAllStatus(
   opts: FetchAllStatusOptions = {},
 ): Promise<StatusResult> {
   const skipHistory = opts.skipHistory === true;
+  const recordSamples = opts.recordSamples === true;
   const polledAt = new Date().toISOString();
   const failures: StatusResult["failures"] = [];
 
@@ -488,7 +513,13 @@ export async function fetchAllStatus(
   // Fire-and-forget: record each tool's current sample into Redis (no-op when
   // env vars absent). We don't await these — the dashboard response doesn't
   // need to wait for a write to be durable.
-  if (redisOn) {
+  //
+  // Gated on `recordSamples` so this happens once per cron tick rather than
+  // once per request; see the option's docstring for why that is a retention
+  // fix and not only a cost one. Defaulting to OFF is deliberate — a new caller
+  // that forgets the flag under-samples (visible as a thinner strip) instead of
+  // silently trimming history away, which is the failure we are undoing.
+  if (redisOn && recordSamples) {
     for (const [toolId, payload] of Object.entries(data)) {
       if (!payload) continue;
       void recordSample(toolId, {
