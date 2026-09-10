@@ -58,6 +58,9 @@ const AFTER = flag("after", null);
 const TIMEOUT_MS = Number(flag("timeout", 900)) * 1000;
 const INTERVAL_MS = 30_000;
 
+// Mirrors MAX_SAMPLES in src/lib/data/status-history.ts.
+const MAX_SAMPLES = 2100;
+
 const RANKED = ["unknown", "operational", "degraded", "partial_outage", "major_outage"];
 
 async function census() {
@@ -102,6 +105,19 @@ function report({ polledAt, failures, counts, sampleOnly, operational, tools }) 
   if (operational === 0) {
     console.log("  ^ ZERO. A healthy day cannot say so. This is the S119 symptom —");
     console.log("    either the rank fix has not deployed, or it did not work.");
+  }
+
+  // A saturated list means the oldest days were EVICTED, not never polled — so
+  // a `no-samples` bucket cannot be read as "nobody looked". Production hit this
+  // exactly: counts summing to MAX_SAMPLES with the two oldest buckets at zero.
+  const perTool = Object.values(tools).map((t) => (t.history ?? []).reduce((a, b) => a + b.sampleCount, 0));
+  const saturated = perTool.filter((n) => n >= MAX_SAMPLES);
+  if (saturated.length) {
+    console.log(
+      `\nWARNING: ${saturated.length}/${perTool.length} tools have samples summing to >= MAX_SAMPLES ` +
+        `(${MAX_SAMPLES}). The list is saturated, so "unknown/no-samples" buckets are days that were ` +
+        `TRIMMED, not days nobody polled. Retention is shorter than the window claims — see PR #133.`,
+    );
   }
 
   console.log(`\nsample-only promotions (promoted with NO incident): ${sampleOnly.length}`);
