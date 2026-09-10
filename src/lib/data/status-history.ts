@@ -93,6 +93,46 @@ const HISTORY_KEY = (toolId: string) => `aipulse:status-history:${toolId}`;
 // 7 days × 24h × 12 samples/hr = 2016. Keep a small margin.
 const MAX_SAMPLES = 2100;
 
+const SAMPLE_GATE_KEY = "aipulse:sample-gate";
+// 240s and not 300 on purpose. The cron ticks every ~5 min (measured: 36 ticks
+// in a 175-min heartbeat run, ~4.9 min apart). A 300s gate could still be held
+// when the next legitimate tick arrives, silently halving the sample rate; 240s
+// guarantees it has expired.
+const SAMPLE_GATE_TTL_SECONDS = 240;
+
+/**
+ * Claim the right to write one round of samples. Returns true to exactly one
+ * caller per ~4 minutes, whoever gets there first — the cron or a request.
+ *
+ * This exists because sampling used to be unconditional on every
+ * `fetchAllStatus` call, so write volume tracked site traffic (~800 rounds/day
+ * x 18 Redis commands) rather than polling cadence. That saturated the
+ * `MAX_SAMPLES` list and evicted the oldest days, leaving a "7-day" strip
+ * holding ~2.6 days.
+ *
+ * Gating rather than restricting to the cron is deliberate: the heartbeat
+ * workflow covers only ~76% of the day (GitHub schedule delays; its own comment
+ * records a 127-min restart gap), so a cron-only sampler would go fully blind
+ * for hours at a time. A shared gate keeps the rate bounded AND lets a request
+ * that arrives during a gap record the observation.
+ *
+ * Fails CLOSED — a Redis error means no sample, never a throw. Recording must
+ * never take the dashboard down with it.
+ */
+export async function claimSampleSlot(): Promise<boolean> {
+  const r = redis();
+  if (!r) return false;
+  try {
+    const res = await r.set(SAMPLE_GATE_KEY, "1", {
+      nx: true,
+      ex: SAMPLE_GATE_TTL_SECONDS,
+    });
+    return res === "OK";
+  } catch {
+    return false;
+  }
+}
+
 export async function recordSample(
   toolId: string,
   sample: StatusSample,

@@ -143,11 +143,7 @@ export const POST = withIngest<RouteResult>({
       };
     }
 
-    // `recordSamples: true` — this cron is the ONLY caller that writes status
-    // sample history. It runs on the heartbeat's 5-minute tick, which is the
-    // cadence `MAX_SAMPLES` is sized for; every other caller reads. See the
-    // option's docstring in fetch-status.ts.
-    const snapshot = await fetchAllStatus({ recordSamples: true });
+    const snapshot = await fetchAllStatus();
 
     // Dual-signal write-path (cron-only, never SSR): probe each tool, record
     // to history, then classify with hysteresis and persist ONE signals blob.

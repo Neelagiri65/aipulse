@@ -38,6 +38,7 @@ import {
   readProbeSignals,
   readSamples,
   recordSample,
+  claimSampleSlot,
   type DayBucket,
 } from "@/lib/data/status-history";
 
@@ -273,37 +274,12 @@ export type FetchAllStatusOptions = {
    * The API route leaves this off, so client polling is unchanged.
    */
   skipHistory?: boolean;
-  /**
-   * Write this poll into Redis sample history. **Opt-in, and only the 5-minute
-   * cron should set it.**
-   *
-   * Recording used to happen on every call, which meant every *read* path — the
-   * API routes, the feed card page, its OG image — wrote 18 Redis commands
-   * (6 tools × lpush + ltrim + expire). Two things broke as a result:
-   *
-   *  1. Write volume scaled with site traffic rather than with the polling
-   *     cadence, against a budget whose cap was exhausted once already
-   *     (2026-07-17). The probe path was consolidated in response; this one was
-   *     left as it was.
-   *  2. Worse, and the reason this is a correctness fix and not just a cost
-   *     one: `MAX_SAMPLES` (2100) is sized for the designed rate of 288/day
-   *     (7 × 288 = 2016). The real rate was ~800/day, so `ltrim` evicted the
-   *     oldest days and the "7-day" strip was really retaining ~2.6 days. Live
-   *     proof: every tool's per-day counts summed to exactly 2100, and the two
-   *     oldest buckets read 0 samples — not because nobody polled, but because
-   *     they had been trimmed away.
-   *
-   * Sampling on the cron alone restores 288/day, which fits the cap with room
-   * to spare and makes the history as long as it claims to be.
-   */
-  recordSamples?: boolean;
 };
 
 export async function fetchAllStatus(
   opts: FetchAllStatusOptions = {},
 ): Promise<StatusResult> {
   const skipHistory = opts.skipHistory === true;
-  const recordSamples = opts.recordSamples === true;
   const polledAt = new Date().toISOString();
   const failures: StatusResult["failures"] = [];
 
@@ -514,12 +490,24 @@ export async function fetchAllStatus(
   // env vars absent). We don't await these — the dashboard response doesn't
   // need to wait for a write to be durable.
   //
-  // Gated on `recordSamples` so this happens once per cron tick rather than
-  // once per request; see the option's docstring for why that is a retention
-  // fix and not only a cost one. Defaulting to OFF is deliberate — a new caller
-  // that forgets the flag under-samples (visible as a thinner strip) instead of
-  // silently trimming history away, which is the failure we are undoing.
-  if (redisOn && recordSamples) {
+  // Rate-limited by a shared Redis gate: exactly one caller per ~4 minutes wins
+  // and writes, whoever arrives first. Unconditional recording made write volume
+  // track site traffic (~800 rounds/day x 18 commands), which saturated the
+  // MAX_SAMPLES list and evicted the oldest days — a "7-day" strip really held
+  // ~2.6 days. See claimSampleSlot's docstring for why this is a shared gate and
+  // not a cron-only flag.
+  //
+  // The claim is AWAITED (unlike the writes it guards) — a fire-and-forget gate
+  // would let every concurrent request through and gate nothing.
+  //
+  // `.catch` at the call site as well as inside the gate: this is the one
+  // awaited Redis call on the read path, so a rejection here would fail the
+  // whole status fetch rather than merely skip a sample. Recording is
+  // fire-and-forget by contract and must never take the dashboard down with it.
+  const claimedSampleSlot = redisOn
+    ? await claimSampleSlot().catch(() => false)
+    : false;
+  if (claimedSampleSlot) {
     for (const [toolId, payload] of Object.entries(data)) {
       if (!payload) continue;
       void recordSample(toolId, {
