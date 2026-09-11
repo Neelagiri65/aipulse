@@ -8,6 +8,17 @@ const nextConfig: NextConfig = {
       // (or follows a stale external link) lands on the dashboard that
       // surfaces the registry-derived AI-config repos.
       { source: "/registry", destination: "/", permanent: false },
+      // One canonical host. www.gawk.dev served the whole site as a
+      // duplicate and Google was picking the www URL in results even
+      // though every page canonicalises to the apex. 301 it at the edge.
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.gawk.dev" }],
+        destination: "https://gawk.dev/:path*",
+        permanent: true,
+      },
+      // /index rendered the homepage under a second URL.
+      { source: "/index", destination: "/", permanent: true },
     ];
   },
   async headers() {

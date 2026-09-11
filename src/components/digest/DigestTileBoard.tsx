@@ -411,8 +411,11 @@ export function DigestTileBoard({
           className="mt-8 border-t pt-4 text-xs leading-relaxed"
           style={{ borderColor: C.hairline, color: C.muted }}
         >
-          GAWK is the live-telemetry track of Nativerse. Clarity. Trust. Every
-          number traces to a public source ·{" "}
+          GAWK is the live-telemetry track of{" "}
+          <a href="https://nativerse-ventures.com/" style={{ color: C.blue }}>
+            Nativerse
+          </a>
+          . Clarity. Trust. Every number traces to a public source ·{" "}
           <a href={`${baseUrl}/sources`} style={{ color: C.blue }}>
             Sources
           </a>{" "}

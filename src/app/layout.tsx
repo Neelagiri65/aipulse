@@ -51,6 +51,19 @@ const JSON_LD = {
       logo: `${SITE_ORIGIN}/icon-512.png`,
       description:
         "gawk.dev is a real-time observatory for the global AI ecosystem — live status and activity for AI coding tools and AI labs, where every number cites its public source.",
+      // The rest of the house. Lets Google tie the three properties to one
+      // entity instead of treating each subdomain as an unrelated site.
+      sameAs: [
+        "https://mcp.gawk.dev/",
+        "https://nativerse-ventures.com/",
+        "https://github.com/Neelagiri65/aipulse",
+        "https://github.com/gawk-dev",
+      ],
+      parentOrganization: {
+        "@type": "Organization",
+        name: "Nativerse Ventures Ltd",
+        url: "https://nativerse-ventures.com/",
+      },
     },
     {
       "@type": "WebSite",
