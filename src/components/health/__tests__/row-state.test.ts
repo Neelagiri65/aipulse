@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { dayMark, dayTone, deriveRowState } from "@/components/health/row-state";
+import { describe, expect, it, vi } from "vitest";
+import { DAY_TONE_WORD, dayMark, dayTone, deriveRowState } from "@/components/health/row-state";
+import { bucketToDays } from "@/lib/data/status-history";
+import type { StatusSample } from "@/lib/data/status-history";
 import { TOOLS, type ToolHealthData } from "@/components/health/tools";
 import type { DayBucket } from "@/lib/data/status-history";
 
@@ -52,5 +54,40 @@ describe("dayTone / dayMark — the 7-day strip never claims uptime it did not m
     expect(dayMark(dayTone(day({ worstStatus: "operational", sampleCount: 3 }), true))).toBe("solid");
     expect(dayMark(dayTone(day({}), false))).toBe("hollow");
     expect(dayMark(dayTone(day({}), true))).toBe("solid");
+  });
+});
+
+describe("dayTone — a polled day we could not read is not a clean day", () => {
+  it("samples present but every one unreadable reports 'not measured', hollow", () => {
+    const b = day({ worstStatus: "unknown", sampleCount: 288 });
+    expect(dayTone(b, true)).toBe("unknown");
+    expect(dayMark(dayTone(b, true))).toBe("hollow");
+    expect(DAY_TONE_WORD[dayTone(b, true)]).toBe("not measured");
+  });
+
+  it("the zero-sample fallback is untouched — that is its own open question", () => {
+    // A day nobody polled, in a history that has samples elsewhere, still claims operational.
+    // Deliberately unchanged by the S119 fix; see HANDOFF.
+    expect(dayTone(day({ worstStatus: "unknown", sampleCount: 0 }), true)).toBe("op");
+  });
+
+  it("end to end: real samples through bucketToDays reach the strip with the right tone", () => {
+    const now = Date.UTC(2026, 8, 10, 12, 0, 0);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(now));
+    try {
+      const at = (h: number) => new Date(now - h * 3600_000).toISOString();
+      const pick = (samples: StatusSample[]) => {
+        const buckets = bucketToDays([], samples, 7);
+        const b = buckets.find((x) => x.date === "2026-09-10")!;
+        return dayMark(dayTone(b, buckets.some((x) => x.sampleCount > 0)));
+      };
+      const healthy: StatusSample[] = [1, 2, 3].map((h) => ({ ts: at(h), status: "operational", activeIncidents: 0 }));
+      const unreadable: StatusSample[] = [1, 2, 3].map((h) => ({ ts: at(h), status: "unknown", activeIncidents: 0 }));
+      expect(pick(healthy)).toBe("solid");
+      expect(pick(unreadable)).toBe("hollow");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

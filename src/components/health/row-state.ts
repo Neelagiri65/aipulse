@@ -71,6 +71,10 @@ export type DayTone = "op" | "degrade" | "regress" | "outage" | "unknown";
  * Day tone for the 7-day strip: an incident's impact is authoritative when present; otherwise the
  * worst polled status of the day; with no incident and no sample we have not measured, so we
  * never claim uptime (hollow), unless the history as a whole has samples.
+ *
+ * A day that WAS polled but whose every sample was unreadable stays "unknown" — it reports as not
+ * measured rather than as a clean day. That distinction only exists because "unknown" ranks below
+ * "operational" in status-history's STATUS_RANK; the two were tied until S119.
  */
 export function dayTone(b: DayBucket, hasSamples: boolean): DayTone {
   switch (b.worstImpact) {
@@ -91,8 +95,13 @@ export function dayTone(b: DayBucket, hasSamples: boolean): DayTone {
         return "degrade";
       case "operational":
         return "op";
+      case "unknown":
+        // Polled, but nothing we could read. Never draw that as a clean day.
+        return "unknown";
     }
   }
+  // Only reachable with sampleCount === 0. Claiming "op" for a day we never polled is its own
+  // open question (see HANDOFF S119) — deliberately left as-is here.
   return hasSamples ? "op" : "unknown";
 }
 
