@@ -93,7 +93,24 @@ const HISTORY_KEY = (toolId: string) => `aipulse:status-history:${toolId}`;
 // 7 days × 24h × 12 samples/hr = 2016. Keep a small margin.
 export const MAX_SAMPLES = 2100;
 
-const SAMPLE_GATE_KEY = "aipulse:sample-gate";
+/**
+ * The gate is per-DEPLOYMENT-ENVIRONMENT, not global.
+ *
+ * A single shared key would let any preview deployment claim production's slot
+ * and block it for a full TTL. Preview traffic is light, but a slot lost to a
+ * preview render is a 290s hole in production's sampling, and it would be close
+ * to undiagnosable from the data — an occasional missing round with no error
+ * anywhere. Whether the Upstash credentials are in fact enabled for Preview is
+ * a deployment question; namespacing removes the dependency on the answer.
+ *
+ * Read lazily rather than at module scope so a test can set the variable, and so
+ * the value cannot be frozen into a build at an unexpected moment. Unset (local
+ * dev, CI, a script) falls back to "local", which is its own namespace and
+ * therefore cannot contend with anything deployed.
+ */
+export function sampleGateKey(): string {
+  return `aipulse:sample-gate:${process.env.VERCEL_ENV ?? "local"}`;
+}
 // 290s, and both bounds are load-bearing.
 //
 // UPPER: the heartbeat's loop is a literal `sleep 300` and measures 300.3s
@@ -133,7 +150,7 @@ export async function claimSampleSlot(): Promise<boolean> {
   const r = redis();
   if (!r) return false;
   try {
-    const res = await r.set(SAMPLE_GATE_KEY, "1", {
+    const res = await r.set(sampleGateKey(), "1", {
       nx: true,
       ex: SAMPLE_GATE_TTL_SECONDS,
     });
