@@ -91,7 +91,74 @@ function redis(): Redis | null {
 
 const HISTORY_KEY = (toolId: string) => `aipulse:status-history:${toolId}`;
 // 7 days × 24h × 12 samples/hr = 2016. Keep a small margin.
-const MAX_SAMPLES = 2100;
+export const MAX_SAMPLES = 2100;
+
+/**
+ * The gate is per-DEPLOYMENT-ENVIRONMENT, not global.
+ *
+ * A single shared key would let any preview deployment claim production's slot
+ * and block it for a full TTL. Preview traffic is light, but a slot lost to a
+ * preview render is a 290s hole in production's sampling, and it would be close
+ * to undiagnosable from the data — an occasional missing round with no error
+ * anywhere. Whether the Upstash credentials are in fact enabled for Preview is
+ * a deployment question; namespacing removes the dependency on the answer.
+ *
+ * Read lazily rather than at module scope so a test can set the variable, and so
+ * the value cannot be frozen into a build at an unexpected moment. Unset (local
+ * dev, CI, a script) falls back to "local", which is its own namespace and
+ * therefore cannot contend with anything deployed.
+ */
+export function sampleGateKey(): string {
+  return `aipulse:sample-gate:${process.env.VERCEL_ENV ?? "local"}`;
+}
+// 290s, and both bounds are load-bearing.
+//
+// UPPER: the heartbeat's loop is a literal `sleep 300` and measures 300.3s
+// between ticks. A gate of 300+ could still be held when the next legitimate
+// tick arrives, so the cron would lose its own slot and the rate would halve.
+// 290 keeps the cron the first claimant with ~10s of margin.
+//
+// LOWER: the TTL IS the rate. A shorter gate is re-claimed by ordinary traffic
+// the moment it expires (requests arrive every ~108s), so the ceiling is
+// 86400/TTL per day. At 240s that is 360/day and 7 x 360 = 2520 > MAX_SAMPLES —
+// which would move the eviction this fix exists to remove from day 4 to day 6
+// rather than removing it. At 290s the ceiling is 298/day and 7 x 298 = 2086,
+// inside the cap. `gate-rate-fits-retention.test.ts` pins the two constants
+// together so tuning one cannot silently reopen the eviction.
+export const SAMPLE_GATE_TTL_SECONDS = 290;
+
+/**
+ * Claim the right to write one round of samples. Returns true to exactly one
+ * caller per ~4 minutes, whoever gets there first — the cron or a request.
+ *
+ * This exists because sampling used to be unconditional on every
+ * `fetchAllStatus` call, so write volume tracked site traffic (~800 rounds/day
+ * x 18 Redis commands) rather than polling cadence. That saturated the
+ * `MAX_SAMPLES` list and evicted the oldest days, leaving a "7-day" strip
+ * holding ~2.6 days.
+ *
+ * Gating rather than restricting to the cron is deliberate: the heartbeat
+ * workflow covers only ~76% of the day (GitHub schedule delays; its own comment
+ * records a 127-min restart gap), so a cron-only sampler would go fully blind
+ * for hours at a time. A shared gate keeps the rate bounded AND lets a request
+ * that arrives during a gap record the observation.
+ *
+ * Fails CLOSED — a Redis error means no sample, never a throw. Recording must
+ * never take the dashboard down with it.
+ */
+export async function claimSampleSlot(): Promise<boolean> {
+  const r = redis();
+  if (!r) return false;
+  try {
+    const res = await r.set(sampleGateKey(), "1", {
+      nx: true,
+      ex: SAMPLE_GATE_TTL_SECONDS,
+    });
+    return res === "OK";
+  } catch {
+    return false;
+  }
+}
 
 export async function recordSample(
   toolId: string,

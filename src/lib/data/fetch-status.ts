@@ -38,6 +38,7 @@ import {
   readProbeSignals,
   readSamples,
   recordSample,
+  claimSampleSlot,
   type DayBucket,
 } from "@/lib/data/status-history";
 
@@ -488,7 +489,25 @@ export async function fetchAllStatus(
   // Fire-and-forget: record each tool's current sample into Redis (no-op when
   // env vars absent). We don't await these — the dashboard response doesn't
   // need to wait for a write to be durable.
-  if (redisOn) {
+  //
+  // Rate-limited by a shared Redis gate: exactly one caller per ~4 minutes wins
+  // and writes, whoever arrives first. Unconditional recording made write volume
+  // track site traffic (~800 rounds/day x 18 commands), which saturated the
+  // MAX_SAMPLES list and evicted the oldest days — a "7-day" strip really held
+  // ~2.6 days. See claimSampleSlot's docstring for why this is a shared gate and
+  // not a cron-only flag.
+  //
+  // The claim is AWAITED (unlike the writes it guards) — a fire-and-forget gate
+  // would let every concurrent request through and gate nothing.
+  //
+  // `.catch` at the call site as well as inside the gate: this is the one
+  // awaited Redis call on the read path, so a rejection here would fail the
+  // whole status fetch rather than merely skip a sample. Recording is
+  // fire-and-forget by contract and must never take the dashboard down with it.
+  const claimedSampleSlot = redisOn
+    ? await claimSampleSlot().catch(() => false)
+    : false;
+  if (claimedSampleSlot) {
     for (const [toolId, payload] of Object.entries(data)) {
       if (!payload) continue;
       void recordSample(toolId, {
