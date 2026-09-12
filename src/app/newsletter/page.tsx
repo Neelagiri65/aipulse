@@ -91,6 +91,13 @@ export default async function NewsletterPage() {
           — the web version of exactly what subscribers received.
         </p>
       )}
+      <p className="mb-10 text-sm text-muted-foreground">
+        Every past issue is in the{" "}
+        <Link href="/digest" className="text-teal-300 underline underline-offset-2 hover:text-teal-200">
+          digest archive
+        </Link>
+        .
+      </p>
 
       <div className="rounded-xl border border-border bg-background/70 p-5">
         <h2 className="mb-3 font-mono text-sm">Get the next issue</h2>

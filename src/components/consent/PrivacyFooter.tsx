@@ -40,6 +40,13 @@ export function PrivacyFooter() {
         >
           Newsletter
         </Link>
+        <Link
+          href="/digest"
+          className="hover:text-foreground"
+          data-testid="footer-digest-archive"
+        >
+          Archive
+        </Link>
         <CommunityLink variant="footer" />
       </nav>
     </footer>

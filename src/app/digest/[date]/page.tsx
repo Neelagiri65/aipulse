@@ -13,7 +13,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
-import { readDigestBody } from "@/lib/digest/archive";
+import { listDigestDates, readDigestBody } from "@/lib/digest/archive";
+import { digestNeighbours } from "@/lib/digest/neighbours";
 import { DigestTileBoard } from "@/components/digest/DigestTileBoard";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -76,5 +77,9 @@ export default async function DigestArchivePage({
   const digest = await loadDigest(date);
   if (!digest) notFound();
   const baseUrl = await inferBaseUrl();
-  return <DigestTileBoard digest={digest} baseUrl={baseUrl} />;
+  // Prev/next issue links: every archived issue must be reachable from another
+  // page, not only from the sitemap. listDigestDates is fail-soft ([] on Redis
+  // error), so a store hiccup degrades to "no neighbours", never a 500.
+  const neighbours = digestNeighbours(await listDigestDates(), digest.date);
+  return <DigestTileBoard digest={digest} baseUrl={baseUrl} neighbours={neighbours} />;
 }
