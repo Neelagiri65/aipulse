@@ -36,6 +36,8 @@ import { whyThisMatters } from "@/lib/digest/why-this-matters";
 export type DigestTileBoardProps = {
   digest: DigestBody;
   baseUrl: string;
+  /** Older / newer archived issue, when known. Rendered as the archive nav. */
+  neighbours?: { prev: string | null; next: string | null };
 };
 
 /* Palette (BRAND-BIBLE §14) */
@@ -143,6 +145,7 @@ function bandHeadline(subject: string, date: string): string {
 export function DigestTileBoard({
   digest,
   baseUrl,
+  neighbours,
 }: DigestTileBoardProps): React.JSX.Element {
   const chips = digest.tldr
     ? digest.tldr.split("·").map((c) => c.trim()).filter(Boolean)
@@ -407,8 +410,33 @@ export function DigestTileBoard({
           </a>
         </div>
 
+        <nav
+          aria-label="Archive"
+          data-testid="digest-archive-nav"
+          className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t pt-4 text-xs"
+          style={{ borderColor: C.hairline, color: C.muted }}
+        >
+          <span>
+            {neighbours?.prev ? (
+              <a href={`${baseUrl}/digest/${neighbours.prev}`} style={{ color: C.blue }} rel="prev">
+                ← {neighbours.prev}
+              </a>
+            ) : null}
+          </span>
+          <a href={`${baseUrl}/digest`} style={{ color: C.blue }}>
+            All issues
+          </a>
+          <span>
+            {neighbours?.next ? (
+              <a href={`${baseUrl}/digest/${neighbours.next}`} style={{ color: C.blue }} rel="next">
+                {neighbours.next} →
+              </a>
+            ) : null}
+          </span>
+        </nav>
+
         <footer
-          className="mt-8 border-t pt-4 text-xs leading-relaxed"
+          className="mt-4 border-t pt-4 text-xs leading-relaxed"
           style={{ borderColor: C.hairline, color: C.muted }}
         >
           GAWK is the live-telemetry track of{" "}

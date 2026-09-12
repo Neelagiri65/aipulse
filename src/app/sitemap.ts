@@ -32,15 +32,18 @@ const STATIC_ROUTES: { path: string; priority: number; freq: Freq }[] = [
   { path: "/audit", priority: 0.7, freq: "weekly" },
   { path: "/docs/api", priority: 0.5, freq: "monthly" },
   { path: "/newsletter", priority: 0.7, freq: "monthly" },
+  { path: "/digest", priority: 0.7, freq: "daily" },
   { path: "/subscribe", priority: 0.5, freq: "monthly" },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date();
-
+  // No lastModified on the static + report entries. It used to be `new Date()`
+  // at generation time, i.e. "every page changed today" on every fetch, which
+  // is exactly the signal that teaches crawlers to ignore lastmod for the whole
+  // file — including the digest entries, where it is accurate. Omitting the
+  // field is honest; a fake timestamp is not.
   const entries: MetadataRoute.Sitemap = STATIC_ROUTES.map((r) => ({
     url: `${SITE_ORIGIN}${r.path}`,
-    lastModified: now,
     changeFrequency: r.freq,
     priority: r.priority,
   }));
@@ -48,7 +51,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const slug of listReportSlugs()) {
     entries.push({
       url: `${SITE_ORIGIN}/reports/${slug}`,
-      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.6,
     });

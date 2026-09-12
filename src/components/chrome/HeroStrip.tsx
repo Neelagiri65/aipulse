@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { StatusResult } from "@/lib/data/fetch-status";
 import { VERIFIED_SOURCES } from "@/lib/data-sources";
 import { deriveSev } from "@/components/chrome/StatusBar";
@@ -59,7 +60,13 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
         <h1 className="ap-hero__q ap-hero__q--lg">Is your AI coding stack working right now?</h1>
         <span className="ap-hero__sub">
           Claude · Cursor · Copilot · Windsurf · OpenAI — tracked from{" "}
-          {VERIFIED_SOURCES.length} verified sources.
+          {VERIFIED_SOURCES.length} verified sources ·{" "}
+          {/* Server-rendered link to the digest archive. The archive's 100+ issue
+              pages were reachable only from the sitemap; a crawler's first-pass
+              HTML of the homepage is the one place a link reliably counts. */}
+          <Link href="/digest" className="underline underline-offset-2 hover:text-foreground" data-testid="hero-digest-archive">
+            daily digest archive
+          </Link>
         </span>
       </div>
       <div className="flex items-center gap-5">
