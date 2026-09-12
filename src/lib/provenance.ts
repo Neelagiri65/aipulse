@@ -13,8 +13,16 @@ export function formatProvenanceTooltip(
   sourceUrl: string,
   nowMs: number = Date.now(),
 ): string {
-  const ago = formatRelativeAgo(fetchedAtIso, nowMs);
+  // nowMs === 0 is the shared clock's server snapshot (see use-now.ts): there
+  // is no trustworthy "now" in server HTML, so say the absolute date instead
+  // of a relative one the client would immediately contradict.
+  const ago = nowMs === 0 ? `on ${formatAbsoluteDate(fetchedAtIso)}` : formatRelativeAgo(fetchedAtIso, nowMs);
   return `Last verified ${ago} via ${sourceUrl}`;
+}
+
+function formatAbsoluteDate(iso: string): string {
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? new Date(t).toISOString().slice(0, 10) : "—";
 }
 
 export function formatRelativeAgo(
