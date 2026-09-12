@@ -37,7 +37,15 @@ function defaultClient(): DigestArchiveClient | null {
     cached = null;
     return cached;
   }
-  cached = new Redis({ url, token });
+  // `cache: "default"`, not the client's default `"no-store"`. Next's patched
+  // fetch treats an explicit `no-store` as a dynamic-rendering opt-out for the
+  // whole route, so every page that read the archive — /digest, /digest/<date>,
+  // /sitemap.xml — rendered per request with `private, no-store` no matter what
+  // `revalidate` it declared (verified on prod: x-vercel-cache MISS on every
+  // hit). "default" is treated as "no cache config": the request is still not
+  // cached by Next (so writes from the cron route are never served from a
+  // cache), and the route keeps the ISR it asked for.
+  cached = new Redis({ url, token, cache: "default" });
   return cached;
 }
 
