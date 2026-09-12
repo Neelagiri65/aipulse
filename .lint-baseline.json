@@ -1,4 +1,4 @@
 {
-  "errors": 149,
+  "errors": 105,
   "note": "eslint error count on main when the ratchet was introduced (2026-09-12). CI fails if the count rises. Lower it whenever a cleanup lands; never raise it."
 }
