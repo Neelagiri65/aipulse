@@ -7,7 +7,8 @@
  * List operations use SCAN with push:sub:* pattern to iterate.
  */
 
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 import type { PushSubscription } from "web-push";
 
 const KEY_PREFIX = "push:sub:";
@@ -17,7 +18,7 @@ function loadRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return null;
-  return new Redis({ url, token });
+  return createRedis(url, token);
 }
 
 async function hashEndpoint(endpoint: string): Promise<string> {

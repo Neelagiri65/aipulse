@@ -15,7 +15,8 @@
  * the default pulls from the shared Upstash singleton.
  */
 
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 import { tokenLookupKey } from "@/lib/email/hash";
 
 export type SubscriberStatus = "pending" | "confirmed" | "unsubscribed";
@@ -61,7 +62,7 @@ function defaultClient(): SubscriberClient | null {
     cached = null;
     return cached;
   }
-  cached = new Redis({ url, token });
+  cached = createRedis(url, token);
   return cached;
 }
 

@@ -62,7 +62,8 @@
  *     never synthesise activity.
  */
 
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 
 // Types + pure helpers are defined in `registry-shared.ts` so client
 // components can import them without pulling in the Upstash SDK. This
@@ -119,7 +120,7 @@ function redis(): Redis | null {
     cached = null;
     return cached;
   }
-  cached = new Redis({ url, token });
+  cached = createRedis(url, token);
   return cached;
 }
 

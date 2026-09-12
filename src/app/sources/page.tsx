@@ -18,7 +18,7 @@
  */
 
 import Link from "next/link";
-import { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 
 import { PrivacyFooter } from "@/components/consent/PrivacyFooter";
 import {
@@ -359,7 +359,7 @@ async function safeReadLastKnown(
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return out;
   try {
-    const r = new Redis({ url, token });
+    const r = createRedis(url, token);
     const values = (await r.mget(
       ...keys.map((k) => `feed:lk:${k}`),
     )) as unknown[];

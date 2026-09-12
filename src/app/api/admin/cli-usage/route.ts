@@ -8,7 +8,7 @@
  * in middleware (the middleware matcher deliberately excludes /api/*).
  */
 
-import { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 
 import { verifyAdminBasicAuth } from "@/lib/digest/admin-auth";
 
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
   if (!url || !token) {
     return Response.json({ error: "redis_not_configured" }, { status: 503 });
   }
-  const redis = new Redis({ url, token });
+  const redis = createRedis(url, token);
 
   const daysParam = Number(new URL(request.url).searchParams.get("days") ?? "7");
   const days = Math.min(MAX_DAYS, Math.max(1, Number.isFinite(daysParam) ? daysParam : 7));

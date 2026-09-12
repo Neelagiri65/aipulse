@@ -23,7 +23,8 @@
  * agents-ingest green for two weeks of rejected persists).
  */
 
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 import type { AgentFetchResult } from "@/lib/data/agents-fetch";
 
 export type AgentsWriteResult = { ok: true } | { ok: false; message: string };
@@ -51,7 +52,7 @@ function redis(): Redis | null {
     cached = null;
     return cached;
   }
-  cached = new Redis({ url, token });
+  cached = createRedis(url, token);
   return cached;
 }
 

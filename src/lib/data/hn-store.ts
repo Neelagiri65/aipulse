@@ -23,7 +23,8 @@
  * 500 points) keeps its original sighting time across polls.
  */
 
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 import type {
   HnItem,
   HnAuthor,
@@ -60,7 +61,7 @@ function redis(): Redis | null {
     cached = null;
     return cached;
   }
-  cached = new Redis({ url, token });
+  cached = createRedis(url, token);
   return cached;
 }
 

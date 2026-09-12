@@ -22,7 +22,8 @@
  * disclosure), never to a fabricated data failure (plan F3/F7).
  */
 
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 
 import type { ContainmentState } from "./types";
 
@@ -49,7 +50,7 @@ function redis(): Redis | null {
     cached = null;
     return cached;
   }
-  cached = new Redis({ url, token });
+  cached = createRedis(url, token);
   return cached;
 }
 

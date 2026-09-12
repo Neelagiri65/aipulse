@@ -17,7 +17,8 @@
  * 30-day TTL so org locations auto-refresh if someone moves / renames.
  */
 
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 import { geocode } from "../geocoding";
 import { fetchUser } from "../github";
 import type { RegistryLocation } from "./repo-registry";
@@ -37,7 +38,7 @@ function redis(): Redis | null {
     cached = null;
     return cached;
   }
-  cached = new Redis({ url, token });
+  cached = createRedis(url, token);
   return cached;
 }
 

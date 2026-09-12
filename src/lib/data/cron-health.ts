@@ -21,7 +21,8 @@
  *     use /api/cron-health/record to post their outcome.
  */
 
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 
 const KEY_PREFIX = "cron:health:";
 
@@ -155,7 +156,7 @@ function redis(): Redis | null {
     cached = null;
     return cached;
   }
-  cached = new Redis({ url, token });
+  cached = createRedis(url, token);
   return cached;
 }
 
