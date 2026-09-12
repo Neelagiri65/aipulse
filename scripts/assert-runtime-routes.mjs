@@ -41,11 +41,38 @@ async function waitFor(url, ms = 60_000) {
   throw new Error(`app did not answer at ${url} within ${ms}ms`);
 }
 
+// Hard ceiling so a hung app can never hang CI (the first run of this script
+// did exactly that on ubuntu: `npx` swallowed SIGTERM, the orphaned next-server
+// kept our stdout pipe open, and the step never ended).
+const WATCHDOG_MS = 180_000;
+const watchdog = setTimeout(() => {
+  console.error(`✗ runtime smoke exceeded ${WATCHDOG_MS / 1000}s — killing everything`);
+  shutdown(1);
+}, WATCHDOG_MS);
+
 const redis = await startMockUpstash(REDIS_PORT);
-const app = spawn("npx", ["next", "start", "-p", String(APP_PORT)], {
+// Spawn the next binary directly, in its own process group, so one kill
+// reaches the server and not just a wrapper.
+const app = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(APP_PORT)], {
   env: { ...process.env, UPSTASH_REDIS_REST_URL: `http://127.0.0.1:${REDIS_PORT}`, UPSTASH_REDIS_REST_TOKEN: "runtime-smoke" },
   stdio: ["ignore", "pipe", "pipe"],
+  detached: true,
 });
+
+function shutdown(code) {
+  clearTimeout(watchdog);
+  try {
+    process.kill(-app.pid, "SIGTERM");
+  } catch {}
+  try {
+    redis.closeAllConnections?.();
+    redis.close();
+  } catch {}
+  // Explicit: never rely on the event loop draining while a child's pipe may
+  // still be open.
+  setTimeout(() => process.exit(code), 300).unref();
+  process.exitCode = code;
+}
 let appLog = "";
 app.stdout.on("data", (d) => (appLog += d));
 app.stderr.on("data", (d) => (appLog += d));
@@ -65,9 +92,6 @@ try {
 } catch (e) {
   failures++;
   console.error(`✗ ${e.message}`);
-} finally {
-  app.kill("SIGTERM");
-  redis.close();
 }
 
 const runtimeErrors = appLog.split("\n").filter((l) => /Error|couldn't be rendered|static to dynamic/.test(l));
@@ -79,6 +103,8 @@ if (runtimeErrors.length) {
 
 if (failures) {
   console.error(`\n✗ runtime render smoke failed (${failures}). A route on this list renders per request, throws, or 500s\n  when its Redis read succeeds — the state a local build without UPSTASH_* cannot show you.`);
-  process.exit(1);
+  shutdown(1);
+} else {
+  console.log("\n✓ runtime render smoke passed");
+  shutdown(0);
 }
-console.log("\n✓ runtime render smoke passed");
