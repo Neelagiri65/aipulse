@@ -22,7 +22,10 @@ const BASE = `http://127.0.0.1:${APP_PORT}`;
 
 const CHECKS = [
   { path: `/digest/${DATES[1]}`, status: 200 },
-  { path: `/digest/${DATES[1]}`, status: 200, cache: "HIT", why: "an archived issue is immutable; the 2nd hit must come from the cache" },
+  // HIT on a fresh build (CI); STALE when a previous local run left an entry
+  // in .next — both are served from the cache, which is the claim. MISS twice
+  // or "-" (no ISR header at all) is the failure.
+  { path: `/digest/${DATES[1]}`, status: 200, cache: ["HIT", "STALE"], why: "an archived issue is immutable; the 2nd hit must come from the cache" },
   { path: "/digest", status: 200 },
   { path: "/sitemap.xml", status: 200 },
   { path: "/digest/2026-01-01", status: 404, why: "unknown date → 404, never a 500" },
@@ -84,10 +87,10 @@ try {
     const r = await fetch(`${BASE}${c.path}`, { redirect: "manual" });
     const cache = r.headers.get("x-nextjs-cache") ?? "-";
     const okStatus = r.status === c.status;
-    const okCache = !c.cache || cache === c.cache;
+    const okCache = !c.cache || c.cache.includes(cache);
     const ok = okStatus && okCache;
     if (!ok) failures++;
-    console.log(`${ok ? "✓" : "✗"} ${c.path.padEnd(22)} ${r.status} ${cache.padEnd(6)} expected ${c.status}${c.cache ? ` ${c.cache}` : ""}${!ok && c.why ? `\n    why: ${c.why}` : ""}`);
+    console.log(`${ok ? "✓" : "✗"} ${c.path.padEnd(22)} ${r.status} ${cache.padEnd(6)} expected ${c.status}${c.cache ? ` ${c.cache.join("|")}` : ""}${!ok && c.why ? `\n    why: ${c.why}` : ""}`);
   }
 } catch (e) {
   failures++;
