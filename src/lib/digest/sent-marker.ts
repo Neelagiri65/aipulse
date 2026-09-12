@@ -23,7 +23,8 @@
  * passes nothing and gets the singleton, tests pass an in-memory fake.
  */
 
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 import type { SentMarker } from "@/lib/digest/send-orchestrator";
 
 const KEY_PREFIX = "digest:sent:";
@@ -41,7 +42,7 @@ function defaultClient(): SentMarkerClient | null {
     cached = null;
     return cached;
   }
-  cached = new Redis({ url, token });
+  cached = createRedis(url, token);
   return cached;
 }
 

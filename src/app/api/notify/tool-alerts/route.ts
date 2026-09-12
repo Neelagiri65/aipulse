@@ -21,7 +21,8 @@
  */
 
 import { NextResponse } from "next/server";
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 
 import { withIngest } from "@/app/api/_lib/withIngest";
 import { writeCronHealth } from "@/lib/data/cron-health";
@@ -68,7 +69,7 @@ function loadRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return null;
-  return new Redis({ url, token });
+  return createRedis(url, token);
 }
 
 async function readState(redis: Redis): Promise<StateMap> {

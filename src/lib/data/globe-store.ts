@@ -21,7 +21,8 @@
  *   - Expected daily cost under load: ~4k commands, well within budget.
  */
 
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 import type { GlobePoint } from "@/components/globe/Globe";
 
 const EVENTS_KEY = "aipulse:globe-events";
@@ -81,7 +82,7 @@ function redis(): Redis | null {
     cached = null;
     return cached;
   }
-  cached = new Redis({ url, token });
+  cached = createRedis(url, token);
   return cached;
 }
 

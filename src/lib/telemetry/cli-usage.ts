@@ -20,7 +20,8 @@
 import { createHash } from "crypto";
 
 import { after } from "next/server";
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 
 const KEY_TTL_SECONDS = 90 * 24 * 60 * 60; // 90 days of daily keys
 
@@ -64,7 +65,7 @@ function redis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return null;
-  cached = new Redis({ url, token });
+  cached = createRedis(url, token);
   return cached;
 }
 

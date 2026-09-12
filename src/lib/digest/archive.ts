@@ -18,7 +18,8 @@
  * throws; callers treat "unavailable" as the response.
  */
 
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 import type { DigestBody } from "@/lib/digest/types";
 
 const KEY_PREFIX = "digest:";
@@ -45,7 +46,7 @@ function defaultClient(): DigestArchiveClient | null {
   // hit). "default" is treated as "no cache config": the request is still not
   // cached by Next (so writes from the cron route are never served from a
   // cache), and the route keeps the ISR it asked for.
-  cached = new Redis({ url, token, cache: "default" });
+  cached = createRedis(url, token);
   return cached;
 }
 

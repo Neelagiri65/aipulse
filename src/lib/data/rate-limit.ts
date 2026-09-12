@@ -12,7 +12,8 @@
  * acceptable (the gate holds even if the counter doesn't).
  */
 
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 
 export type RateLimitClient = Pick<Redis, "incr" | "expire" | "ttl">;
 
@@ -32,7 +33,7 @@ function defaultClient(): RateLimitClient | null {
     cached = null;
     return cached;
   }
-  cached = new Redis({ url, token });
+  cached = createRedis(url, token);
   return cached;
 }
 

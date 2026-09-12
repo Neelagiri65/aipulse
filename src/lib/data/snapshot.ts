@@ -20,7 +20,8 @@
  *     single upstream blip never drops the whole day's record.
  */
 
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 import {
   ALL_SOURCES,
   VERIFIED_SOURCES,
@@ -186,7 +187,7 @@ function redis(): Redis | null {
     cached = null;
     return cached;
   }
-  cached = new Redis({ url, token });
+  cached = createRedis(url, token);
   return cached;
 }
 

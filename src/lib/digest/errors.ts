@@ -11,7 +11,8 @@
  * Fail-soft: writes no-op on Redis absence. Never throws.
  */
 
-import { Redis } from "@upstash/redis";
+import type { Redis } from "@upstash/redis";
+import { createRedis } from "@/lib/redis-client";
 
 const KEY_PREFIX = "digest:errors:";
 
@@ -35,7 +36,7 @@ function defaultClient(): DigestErrorsClient | null {
     cached = null;
     return cached;
   }
-  cached = new Redis({ url, token });
+  cached = createRedis(url, token);
   return cached;
 }
 
