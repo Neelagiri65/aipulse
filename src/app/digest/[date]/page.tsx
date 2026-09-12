@@ -12,7 +12,6 @@
 
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
 import { listDigestDates, readDigestBody } from "@/lib/digest/archive";
 import { digestNeighbours } from "@/lib/digest/neighbours";
 import { DigestTileBoard } from "@/components/digest/DigestTileBoard";
@@ -24,13 +23,22 @@ async function loadDigest(date: string) {
   return readDigestBody(date);
 }
 
-async function inferBaseUrl(): Promise<string> {
-  const fromEnv = process.env.NEXT_PUBLIC_SITE_ORIGIN;
-  if (fromEnv) return fromEnv.replace(/\/$/, "");
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  return host ? `${proto}://${host}` : "https://gawk.dev";
+/**
+ * A past day's digest is immutable, so the page is ISR (1h, on demand). It used
+ * to call headers() to infer the origin for absolute links, which made every
+ * issue a per-request render with `private, no-store` — 100+ identical pages
+ * that neither Vercel's cache nor a crawler could reuse. The origin now comes
+ * from the same env + fallback the sitemap uses; preview hosts get canonical /
+ * share URLs that point at production, which is what a canonical should do.
+ */
+export const revalidate = 3600;
+export const dynamicParams = true;
+export function generateStaticParams(): { date: string }[] {
+  return []; // every issue renders on first request, then serves from cache
+}
+
+function siteOrigin(): string {
+  return process.env.NEXT_PUBLIC_SITE_ORIGIN?.trim().replace(/\/$/, "") || "https://gawk.dev";
 }
 
 export async function generateMetadata({
@@ -43,7 +51,7 @@ export async function generateMetadata({
   if (!digest) {
     return { title: "gawk.dev — archive not found", robots: { index: false } };
   }
-  const baseUrl = await inferBaseUrl();
+  const baseUrl = siteOrigin();
   const url = `${baseUrl}/digest/${digest.date}`;
   const description =
     digest.mode === "quiet"
@@ -76,7 +84,7 @@ export default async function DigestArchivePage({
   const { date } = await params;
   const digest = await loadDigest(date);
   if (!digest) notFound();
-  const baseUrl = await inferBaseUrl();
+  const baseUrl = siteOrigin();
   // Prev/next issue links: every archived issue must be reachable from another
   // page, not only from the sitemap. listDigestDates is fail-soft ([] on Redis
   // error), so a store hiccup degrades to "no neighbours", never a 500.
