@@ -2732,3 +2732,60 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
 .ap-htile__drill { color: var(--link); text-decoration: none; margin-top: 2px; }
 .ap-htile__drill:hover { text-decoration: underline; }
 .ap-board__qualifier { font-family: var(--font-sans); font-size: 14px; font-weight: 400; color: var(--ink-muted); }
+
+/* "Your stack" — inline chip row in the Health panel (never an overlay). */
+.ap-stack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px 10px;
+  border-bottom: 1px solid var(--hair);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.ap-stack__label { margin-right: 4px; }
+.ap-stack__chip {
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--hair2);
+  background: var(--surface);
+  color: var(--ink-muted);
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+.ap-stack__chip:hover { border-color: var(--ink); color: var(--ink); }
+.ap-stack__chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ap-stack__chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper, #fff); }
+.ap-stack__clear, .ap-stack__hint { margin-left: auto; }
+.ap-stack__clear {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.ap-stack__divider {
+  padding: 8px 16px;
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  background: var(--paper3);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+@media (max-width: 767px) {
+  .ap-stack { padding: 6px 12px 8px; gap: 5px; }
+}

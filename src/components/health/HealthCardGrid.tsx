@@ -6,6 +6,12 @@
  * three call sites (desktop Health, the Tools window, the mobile shell) need no change.
  */
 
+"use client";
+
+import { deriveSev } from "@/components/chrome/StatusBar";
+import { useStack } from "@/lib/hooks/use-stack";
+import { partitionByStack } from "@/lib/stack";
+import { StackPicker } from "./StackPicker";
 import { ToolHealthCard } from "./ToolHealthCard";
 import { deriveRowState } from "./row-state";
 import { TOOLS, type ToolHealthData } from "./tools";
@@ -29,22 +35,50 @@ function hhmmUtc(iso?: string): string | null {
   return `${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
 }
 
+function incidentsFirst<T extends { state: { exception: boolean } }>(rows: T[]): T[] {
+  return [...rows.filter((r) => r.state.exception), ...rows.filter((r) => !r.state.exception)];
+}
+
 export function HealthCardGrid({ data, polledAt }: HealthCardGridProps) {
+  // null on the server and on the first client render (server snapshot), so
+  // the HTML a crawler or a fresh visitor gets is the full, unscoped list.
+  const { stack, setStack } = useStack();
   const rows = TOOLS.map((tool) => ({ tool, data: data?.[tool.id], state: deriveRowState(tool, data?.[tool.id]) }));
-  const exceptions = rows.filter((r) => r.state.exception);
-  const working = rows.filter((r) => !r.state.exception);
+  const { mine, others } = partitionByStack(rows, stack);
   const checked = hhmmUtc(polledAt);
+
+  // The personal answer to the h1, only when there is a stack to answer for.
+  // Counts come from the same deriveSev as the global pill, over the stack's
+  // tools only, so the two numbers can be read side by side.
+  let heading = "Tool health · incidents first";
+  if (stack && mine.length > 0) {
+    const sev = deriveSev({ data: Object.fromEntries(mine.map((r) => [r.tool.id, r.data])) } as Parameters<typeof deriveSev>[0]);
+    const worst = sev.outage > 0 ? "outage" : sev.degraded > 0 ? "degraded" : sev.unknown > 0 ? "unknown" : "operational";
+    heading = `Your stack · ${sev.operational}/${sev.total} operational${worst === "operational" ? "" : ` · ${worst}`}`;
+  }
+
   return (
-    <div className="ap-inset ap-health" data-testid="health-list">
+    <div className="ap-inset ap-health" data-testid="health-list" data-stack={stack ? stack.length : 0}>
       <div className="ap-inset__head ap-inset__head--split">
-        <span>Tool health · incidents first</span>
+        <span data-testid="health-heading">{heading}</span>
         <span>
           {STATUS_PAGES} status pages{checked ? ` · checked ${checked}` : ""}
         </span>
       </div>
-      {[...exceptions, ...working].map((r) => (
+      <StackPicker stack={stack} onChange={setStack} />
+      {incidentsFirst(mine).map((r) => (
         <ToolHealthCard key={r.tool.id} config={r.tool} data={r.data} />
       ))}
+      {others.length > 0 && (
+        <>
+          <div className="ap-stack__divider" data-testid="stack-others">
+            Not in your stack · {others.length} · still tracked, nothing hidden
+          </div>
+          {incidentsFirst(others).map((r) => (
+            <ToolHealthCard key={r.tool.id} config={r.tool} data={r.data} />
+          ))}
+        </>
+      )}
     </div>
   );
 }
