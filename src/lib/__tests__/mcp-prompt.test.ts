@@ -11,6 +11,8 @@ const base = {
   hasDismissed: false,
   hasOpened: false,
   subscribePromptVisible: false,
+  subscribePromptShownThisVisit: false,
+  isMobile: false,
   consentResolved: true,
   elapsedMs: MCP_PROMPT_DELAY_MS,
 };
@@ -24,6 +26,18 @@ describe("shouldShowMcpPrompt", () => {
     expect(
       shouldShowMcpPrompt({ ...base, subscribePromptVisible: true }),
     ).toBe(false);
+  });
+
+  it("one prompt per visit — a dismissed digest prompt does not hand over to this one", () => {
+    // The digest prompt showed at 5s and the visitor closed it: it is no longer
+    // "visible", but it took this visit's slot.
+    expect(
+      shouldShowMcpPrompt({ ...base, subscribePromptVisible: false, subscribePromptShownThisVisit: true }),
+    ).toBe(false);
+  });
+
+  it("desktop only — never over a phone's reading pane", () => {
+    expect(shouldShowMcpPrompt({ ...base, isMobile: true })).toBe(false);
   });
 
   it("waits longer than the digest prompt's 5s", () => {

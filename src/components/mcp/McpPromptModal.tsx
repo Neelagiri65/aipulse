@@ -18,6 +18,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { readConsentCookie } from "@/lib/consent-cookies";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import {
   isConsentResolved,
   readSubscribeCookies,
@@ -55,6 +56,7 @@ export function McpPromptModal({
     hasDismissed: false,
   });
   const mountedAtRef = useRef<number>(0);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -66,9 +68,11 @@ export function McpPromptModal({
     mountedAtRef.current = Date.now();
     const t = setInterval(() => {
       setElapsedMs(Date.now() - mountedAtRef.current);
-      // The digest prompt writes its cookie on dismiss; re-reading means this
-      // card can take its turn in the same visit rather than only the next one.
-      setSubscribeState(readSubscribeCookies(document.cookie));
+      // subscribeState is deliberately the mount-time snapshot and is NOT
+      // re-read here. It used to be, so that a dismissed digest prompt handed
+      // straight over to this card in the same visit — two prompts in one
+      // sitting. With the snapshot, "digest prompt eligible" stays true for the
+      // whole visit once its delay has passed, which is rule 4.
     }, 500);
     return () => clearInterval(t);
   }, []);
@@ -134,6 +138,12 @@ export function McpPromptModal({
     hasDismissed: dismissed,
     hasOpened: opened,
     subscribePromptVisible,
+    // Same value by construction: subscribeState is the mount snapshot, so
+    // eligibility never flips back to false when the visitor dismisses the
+    // digest prompt mid-visit. Passed explicitly so the pure gate and its
+    // tests name the rule rather than rely on that wiring.
+    subscribePromptShownThisVisit: subscribePromptVisible,
+    isMobile,
     consentResolved,
     elapsedMs,
   });
