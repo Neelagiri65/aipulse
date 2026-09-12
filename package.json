@@ -36,7 +36,8 @@
     "video:daily:render-only": "npx tsx scripts/video/daily.ts --no-distribute",
     "video:distribute": "npx tsx scripts/video/distribute.ts",
     "video:upload:youtube": "npx tsx scripts/video/upload-youtube.ts",
-    "check:static": "node scripts/assert-static-routes.mjs"
+    "check:static": "node scripts/assert-static-routes.mjs",
+    "lint:ratchet": "node scripts/lint-ratchet.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
