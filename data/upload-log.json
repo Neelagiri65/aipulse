@@ -1210,5 +1210,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-09-14",
+    "videoId": "fz6LOVyOtC0",
+    "url": "https://youtu.be/fz6LOVyOtC0",
+    "title": "GPT-5.6 Luna takes #1 on OpenRouter | Gawk Daily — 14 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-14T13:52:27.938Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
