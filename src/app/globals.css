@@ -2337,6 +2337,26 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
   max-width: 140px;
 }
 
+/* Desktop shows ONE chip at a time in a full-width strip, yet the chip was capped at 360px with
+   the headline at 240px and the detail at 140px — "Claude Code is reportin… Upstream status pag…"
+   in a 1440px strip with a thousand pixels free. Let the chip use the strip; the ellipsis rules
+   above stay as the last resort for a genuinely oversized headline, not the normal case.
+   The 56px reserve is the "1/3" counter and the strip padding. */
+.ap-highlights-strip--desktop .ap-highlights-chip {
+  max-width: calc(100% - 56px);
+  min-width: 0;
+}
+.ap-highlights-strip--desktop .ap-highlights-chip__headline {
+  max-width: none;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.ap-highlights-strip--desktop .ap-highlights-chip__detail {
+  max-width: 480px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
 @media (max-width: 767px) {
   .ap-highlights-chip { font-size: 10.5px; max-width: 280px; }
   .ap-highlights-chip__headline { max-width: 200px; }

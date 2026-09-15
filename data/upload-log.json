@@ -1186,5 +1186,41 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-09-12",
+    "videoId": "Ddyj-Et4nEQ",
+    "url": "https://youtu.be/Ddyj-Et4nEQ",
+    "title": "A misalignment of AI in mathematics | Gawk Daily — 12 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-12T11:36:27.439Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-09-13",
+    "videoId": "jaUt0vvp3OQ",
+    "url": "https://youtu.be/jaUt0vvp3OQ",
+    "title": "GPT-5.6 Luna takes #1 on OpenRouter | Gawk Daily — 13 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-13T12:43:59.446Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-09-14",
+    "videoId": "fz6LOVyOtC0",
+    "url": "https://youtu.be/fz6LOVyOtC0",
+    "title": "GPT-5.6 Luna takes #1 on OpenRouter | Gawk Daily — 14 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-14T13:52:27.938Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]

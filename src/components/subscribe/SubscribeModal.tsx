@@ -20,6 +20,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import { Button } from "@/components/ui/button";
 import { SubscribeForm } from "./SubscribeForm";
 import { readConsentCookie } from "@/lib/consent-cookies";
@@ -44,6 +45,7 @@ export function SubscribeModal(): React.JSX.Element | null {
   const [localDismissed, setLocalDismissed] = useState(false);
   const [localSubscribed, setLocalSubscribed] = useState(false);
   const mountedAtRef = useRef<number>(0);
+  const isMobile = useIsMobile();
 
   // Read cookie state once on mount, plus start the elapsed-time ticker.
   useEffect(() => {
@@ -124,6 +126,38 @@ export function SubscribeModal(): React.JSX.Element | null {
   });
 
   if (!show) return null;
+
+  if (isMobile) {
+    // Phone: a bar, not a card. The card form covered ~40% of a 390×844 screen
+    // — the Claude Code row under it — on the visitor's first five seconds.
+    // Same gates, same cookies, same form; one short line and the field.
+    return (
+      <div
+        role="dialog"
+        aria-label="Subscribe to the gawk.dev daily digest"
+        data-testid="subscribe-modal"
+        data-layout="bar"
+        className="fixed inset-x-3 z-40 rounded-xl border border-border bg-background/95 px-3 pb-3 pt-2 shadow-2xl backdrop-blur-md"
+        style={{ bottom: "calc(var(--ap-chrome-bottom, 24px) + 12px)" }}
+      >
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <p className="text-[13px] font-medium text-foreground">
+            Daily digest · one email, what shipped, what broke.
+          </p>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Dismiss subscribe prompt"
+            data-testid="subscribe-dismiss"
+            onClick={dismiss}
+          >
+            ×
+          </Button>
+        </div>
+        <SubscribeForm variant="compact" />
+      </div>
+    );
+  }
 
   return (
     <div

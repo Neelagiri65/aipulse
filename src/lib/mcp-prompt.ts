@@ -13,6 +13,12 @@
  *   3. A refusal sticks, and so does an acceptance. Dismissing or opening the
  *      gateway both write a year-long cookie — someone who has already gone
  *      and looked should never be asked again.
+ *   4. One prompt per visit. If the digest prompt showed at any point in this
+ *      visit — even if the visitor has since dismissed it — this one waits for
+ *      a later visit. Dismissing one card only to be handed the next is the
+ *      pop-up ad again, one beat later.
+ *   5. Desktop only. On a phone the card covers most of the reading pane; the
+ *      gateway is linked from the top bar and the More tab instead.
  *
  * Every branch is unit-tested without React.
  */
@@ -29,6 +35,10 @@ export type McpPromptInputs = {
   hasOpened: boolean;
   /** Is the digest prompt currently eligible to show? Only one at a time. */
   subscribePromptVisible: boolean;
+  /** Was the digest prompt eligible at any earlier point in this visit? One per visit. */
+  subscribePromptShownThisVisit: boolean;
+  /** Viewport ≤767px. The card is desktop-only. */
+  isMobile: boolean;
   /** Is the consent question resolved for this visitor? Same rule as the
    *  digest prompt: the banner gets first pass in covered jurisdictions. */
   consentResolved: boolean;
@@ -40,6 +50,8 @@ export function shouldShowMcpPrompt(input: McpPromptInputs): boolean {
   if (input.hasDismissed) return false;
   if (input.hasOpened) return false;
   if (input.subscribePromptVisible) return false;
+  if (input.subscribePromptShownThisVisit) return false;
+  if (input.isMobile) return false;
   if (!input.consentResolved) return false;
   if (input.elapsedMs < MCP_PROMPT_DELAY_MS) return false;
   return true;

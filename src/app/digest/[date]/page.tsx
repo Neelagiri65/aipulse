@@ -53,6 +53,7 @@ export async function generateMetadata({
   }
   const baseUrl = siteOrigin();
   const url = `${baseUrl}/digest/${digest.date}`;
+  const chartUrl = `${baseUrl}/api/digest/chart/tool-health/${digest.date}`;
   const description =
     digest.mode === "quiet"
       ? "A quiet day in the AI ecosystem. Baseline metrics from gawk.dev."
@@ -67,11 +68,15 @@ export async function generateMetadata({
       url,
       type: "article",
       publishedTime: digest.generatedAt,
+      // The day's tool-health chart: a real image of that day's data, not a
+      // generic brand card. Every date renders one (720×320 PNG).
+      images: [{ url: chartUrl, width: 720, height: 320, alt: `Tool health on ${digest.date}` }],
     },
     twitter: {
       card: "summary_large_image",
       title: digest.subject,
       description,
+      images: [chartUrl],
     },
   };
 }
@@ -89,5 +94,60 @@ export default async function DigestArchivePage({
   // page, not only from the sitemap. listDigestDates is fail-soft ([] on Redis
   // error), so a store hiccup degrades to "no neighbours", never a 500.
   const neighbours = digestNeighbours(await listDigestDates(), digest.date);
-  return <DigestTileBoard digest={digest} baseUrl={baseUrl} neighbours={neighbours} />;
+  return (
+    <>
+      <DigestJsonLd digest={digest} baseUrl={baseUrl} />
+      <DigestTileBoard digest={digest} baseUrl={baseUrl} neighbours={neighbours} />
+    </>
+  );
+}
+
+/**
+ * Structured data for one archived issue. Until this, 100+ issue pages had
+ * og:article and nothing else — no Article entity, no image, no breadcrumb
+ * telling a crawler they hang off /digest. Shape mirrors reports/[slug].
+ * Author is the publisher: the digest is generated from public feeds, no
+ * person writes it, and saying so is the honest claim.
+ */
+function DigestJsonLd({ digest, baseUrl }: { digest: { date: string; subject: string; generatedAt: string; mode: string }; baseUrl: string }) {
+  const url = `${baseUrl}/digest/${digest.date}`;
+  const ld = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Article",
+        "@id": `${url}#article`,
+        headline: digest.subject,
+        description:
+          digest.mode === "quiet"
+            ? "A quiet day in the AI ecosystem. Baseline metrics from gawk.dev."
+            : "Five verifiable things that moved in the AI ecosystem. Every number traces to a public source.",
+        datePublished: digest.generatedAt,
+        dateModified: digest.generatedAt,
+        author: { "@id": `${baseUrl}/#org` },
+        publisher: { "@id": `${baseUrl}/#org` },
+        image: [`${baseUrl}/api/digest/chart/tool-health/${digest.date}`],
+        url,
+        mainEntityOfPage: { "@type": "WebPage", "@id": url },
+        isPartOf: { "@type": "CollectionPage", "@id": `${baseUrl}/digest#archive` },
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${url}#breadcrumb`,
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "gawk.dev", item: `${baseUrl}/` },
+          { "@type": "ListItem", position: 2, name: "Digest archive", item: `${baseUrl}/digest` },
+          { "@type": "ListItem", position: 3, name: digest.date, item: url },
+        ],
+      },
+    ],
+  };
+  return (
+    <script
+      type="application/ld+json"
+      data-testid="digest-jsonld"
+      // Operator-controlled strings only (date, subject, generatedAt from our own archive).
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
+    />
+  );
 }

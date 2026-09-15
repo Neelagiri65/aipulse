@@ -51,3 +51,11 @@ describe("formatProvenanceTooltip", () => {
     expect(formatProvenanceTooltip(t, long, NOW_MS)).toContain(long);
   });
 });
+
+describe("formatProvenanceTooltip — server snapshot", () => {
+  it("nowMs 0 (no clock in server HTML) → absolute date, never a relative one", () => {
+    expect(formatProvenanceTooltip("2026-07-05T12:34:56Z", "https://x", 0)).toBe(
+      "Last verified on 2026-07-05 via https://x",
+    );
+  });
+});

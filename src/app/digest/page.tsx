@@ -50,9 +50,35 @@ function labelDay(date: string): string {
 export default async function DigestArchiveIndexPage() {
   const dates = await listDigestDates();
   const groups = groupDigestDatesByMonth(dates);
+  // The archive as a CollectionPage that each issue's Article says it isPartOf,
+  // plus the breadcrumb that puts it under the homepage.
+  const ld = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        "@id": "https://gawk.dev/digest#archive",
+        name: "Digest archive · gawk.dev",
+        description: DESCRIPTION,
+        url: "https://gawk.dev/digest",
+        isPartOf: { "@id": "https://gawk.dev/#website" },
+        publisher: { "@id": "https://gawk.dev/#org" },
+        hasPart: dates.slice(0, 30).map((d) => ({ "@type": "Article", "@id": `https://gawk.dev/digest/${d}#article`, url: `https://gawk.dev/digest/${d}` })),
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": "https://gawk.dev/digest#breadcrumb",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "gawk.dev", item: "https://gawk.dev/" },
+          { "@type": "ListItem", position: 2, name: "Digest archive", item: "https://gawk.dev/digest" },
+        ],
+      },
+    ],
+  };
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-16 text-foreground">
+      <script type="application/ld+json" data-testid="archive-jsonld" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
       <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
         Archive
       </p>

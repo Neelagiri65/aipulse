@@ -37,6 +37,7 @@
     "video:distribute": "npx tsx scripts/video/distribute.ts",
     "video:upload:youtube": "npx tsx scripts/video/upload-youtube.ts",
     "check:static": "node scripts/assert-static-routes.mjs",
+    "check:runtime": "node scripts/assert-runtime-routes.mjs",
     "lint:ratchet": "node scripts/lint-ratchet.mjs"
   },
   "dependencies": {
