@@ -124,8 +124,13 @@ jobs:
             echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
             exit 1
           fi
+          # Shell-level default as well as the expression default above: a
+          # scheduled run has no inputs, and this line makes the chain length
+          # independent of how the `inputs.loop_minutes || '175'` expression
+          # evaluates (pinned by src/lib/__tests__/heartbeat-handover.test.ts).
+          LOOP_MINUTES="${LOOP_MINUTES:-175}"
           case "$LOOP_MINUTES" in
-            ''|*[!0-9]*) echo "::error::loop_minutes must be a positive integer, got '$LOOP_MINUTES'"; exit 1 ;;
+            *[!0-9]*) echo "::error::loop_minutes must be a positive integer, got '$LOOP_MINUTES'"; exit 1 ;;
           esac
           BASE="${INGEST_URL%/api/ingest}"
           NOTIFY_URL="$BASE/api/notify/tool-alerts"
