@@ -32,6 +32,9 @@ describe("HealthCardGrid × stack", () => {
     expect(rowOrder(html)).toHaveLength(TOOLS.length);
     expect(html).not.toContain('data-testid="stack-others"');
     expect(html).toContain("pick the tools you use");
+    // The URL proposal and the share link are client-only: never in server HTML.
+    expect(html).not.toContain("stack-shared");
+    expect(html).not.toContain("stack-share");
   });
 
   it("with a stack: personal heading from the same severity derivation, stack first, others after a divider, nothing hidden", () => {
