@@ -52,8 +52,10 @@ name: heartbeat
 #                                       # → that run ends red, chain stops
 #   gh run cancel <id>                  # ends the current run immediately
 #   gh workflow enable heartbeat.yml && gh workflow run heartbeat.yml --ref main
-# Verified on the branch: a disabled workflow rejects the dispatch and the
-# generation that hit it exited 1 (see PR body for the run ids).
+# Verified live 2026-09-15 on this branch: run A dispatched B (pending within
+# 20s, started seconds after A exited); with the workflow disabled, B's
+# dispatch was refused with HTTP 422 "Cannot trigger a 'workflow_dispatch' on
+# a disabled workflow", B finished its tick window and exited 1 (red).
 #
 # Public repo → unlimited Actions minutes, so a near-continuous loop is free.
 # Both endpoints are thin, idempotent poll-and-dedupe triggers (all compute is
