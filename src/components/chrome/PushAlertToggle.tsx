@@ -124,12 +124,20 @@ export function PushAlertToggle() {
     }
   }, []);
 
+  // Every state carries data-testid/data-state/data-scope so a browser that
+  // cannot grant push (headless Chromium reports "denied") can still show
+  // that the stored stack reached the toggle.
+  const scopeAttr = stack ? stack.length : 0;
+
   if (state === "unsupported") {
     return (
       <a
         href="/subscribe"
         className="flex items-center gap-1 rounded-sm border border-border/60 px-2 py-1 font-mono text-[10px] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
         title="Push alerts not supported in this browser — subscribe to the daily digest instead"
+        data-testid="push-toggle"
+        data-state="unsupported"
+        data-scope={scopeAttr}
       >
         <BellIcon active={false} />
         <span>Subscribe</span>
@@ -142,6 +150,9 @@ export function PushAlertToggle() {
       <span
         className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground"
         title="Notifications blocked — reset in browser settings for this site"
+        data-testid="push-toggle"
+        data-state="denied"
+        data-scope={scopeAttr}
       >
         <BellIcon active={false} />
         <span className="hidden sm:inline">Alerts blocked</span>
@@ -162,7 +173,8 @@ export function PushAlertToggle() {
             : "Push alerts on for every tool — pick a stack on the Health panel to narrow them. Click to disable."
         }
         data-testid="push-toggle"
-        data-scope={stack ? stack.length : 0}
+        data-state="subscribed"
+        data-scope={scopeAttr}
       >
         <BellIcon active />
         <span>Alerts on · {scope}</span>
@@ -181,7 +193,8 @@ export function PushAlertToggle() {
           : "Enable push notifications for AI tool outages"
       }
       data-testid="push-toggle"
-      data-scope={stack ? stack.length : 0}
+      data-state="idle"
+      data-scope={scopeAttr}
     >
       <BellIcon active={false} />
       <span>Enable alerts</span>
