@@ -22,6 +22,7 @@ import type {
   SdkAdoptionDto,
   SdkAdoptionRegistry,
 } from "@/lib/data/sdk-adoption";
+import { packageToolId } from "@/lib/feed/attribution";
 import { cardId } from "@/lib/feed/card-id";
 import { FEED_SEVERITIES, FEED_TRIGGERS } from "@/lib/feed/thresholds";
 import type { Card } from "@/lib/feed/types";
@@ -52,6 +53,8 @@ export function deriveSdkTrendCards(dto: SdkAdoptionDto): Card[] {
     const pct = Math.round(latest.delta * 100);
     const sign = pct >= 0 ? "+" : "";
     const timestampMs = new Date(pkg.latest.fetchedAt).getTime();
+    // Only a package that IS one of the tools names it (src/lib/feed/attribution.ts).
+    const toolId = packageToolId(pkg.registry, pkg.label);
 
     cards.push({
       id: cardId("SDK_TREND", pkg.id, timestampMs),
@@ -69,6 +72,7 @@ export function deriveSdkTrendCards(dto: SdkAdoptionDto): Card[] {
         packageLabel: pkg.label,
         deltaPct: pct,
         latestCount: latest.count ?? 0,
+        ...(toolId ? { toolId } : {}),
       },
     });
   }
