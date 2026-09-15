@@ -72,12 +72,25 @@ describe("FeedView × stack", () => {
     expect(html).toMatch(/<li class="ap-feed-list-divider" data-testid="feed-stack-divider">/);
   });
 
-  it("a stack no card names: honest empty state above every card, nothing hidden", () => {
+  it("a stack no card names: the empty state says how many cards name other tools, above every card, nothing hidden", () => {
     stack = ["windsurf"];
     const html = render();
     expect(html).toContain("Your stack · 0 of 4");
-    expect(html).toContain("Nothing among these 4 cards names a tool in your stack · today only incident cards carry a tool · all 4 below");
+    expect(html).toContain("Nothing among these 4 cards names a tool in your stack · 2 name other tools · all 4 below");
     expect(rowOrder(html)).toEqual(["alert-cursor", "news-1", "alert-copilot", "release-1"]);
+  });
+
+  it("singular when exactly one card names another tool; a plain line when no card names any tool", () => {
+    stack = ["windsurf"];
+    const one = renderToStaticMarkup(
+      <FeedView initialResponse={{ ...response, cards: response.cards.filter((c) => c.id !== "alert-cursor") }} disablePolling />,
+    );
+    expect(one).toContain("Nothing among these 3 cards names a tool in your stack · 1 names other tools · all 3 below");
+    const none = renderToStaticMarkup(
+      <FeedView initialResponse={{ ...response, cards: response.cards.filter((c) => c.type !== "TOOL_ALERT") }} disablePolling />,
+    );
+    expect(none).toContain("Nothing among these 2 cards names a tool · all 2 below");
+    expect(none).not.toContain("in your stack");
   });
 
   it("the kind chip filter and the stack compose: partition applies to the filtered set", () => {

@@ -23,7 +23,7 @@ import { FeedReading, formatAge } from "@/components/feed/FeedReading";
 import type { CommunityState } from "@/lib/community/use-community";
 import { QuietDayBanner } from "@/components/feed/QuietDayBanner";
 import { VERIFIED_SOURCES } from "@/lib/data-sources";
-import { partitionCardsByStack } from "@/lib/feed/stack";
+import { cardToolId, partitionCardsByStack } from "@/lib/feed/stack";
 import type { Card, CardType, FeedResponse } from "@/lib/feed/types";
 import { KIND_LABEL, KIND_PLURAL, rowMark } from "@/lib/feed/why-surfaced";
 import { useStack } from "@/lib/hooks/use-stack";
@@ -97,10 +97,14 @@ export function FeedView({
   // everything else after, in the same rank order — a partition, never a
   // filter. The server snapshot is null, so server HTML never carries it.
   const { stack } = useStack();
-  const { visible, mineCount } = useMemo(() => {
+  const { visible, mineCount, attributedCount } = useMemo(() => {
     const byKind = (cards ?? []).filter((card) => kind === "all" || card.type === kind);
     const { mine, rest } = partitionCardsByStack(byKind, stack);
-    return { visible: [...mine, ...rest], mineCount: mine.length };
+    // How many cards name any tool at all — the empty-state copy says what
+    // "nothing in your stack" means from the data, not from a hard-coded
+    // claim about which derivers attribute today.
+    const attributedCount = byKind.filter((card) => cardToolId(card) !== null).length;
+    return { visible: [...mine, ...rest], mineCount: mine.length, attributedCount };
   }, [cards, kind, stack]);
   // The selection survives a poll: resolved by id on every render, first visible row otherwise.
   const selected: Card | undefined = visible.find((c) => c.id === selectedId) ?? visible[0];
@@ -224,9 +228,11 @@ export function FeedView({
               const divider =
                 stack && i === mineCount ? (
                   <li key="stack-divider" className="ap-feed-list-divider" data-testid="feed-stack-divider">
-                    {mineCount === 0
-                      ? `Nothing among these ${visible.length} cards names a tool in your stack · today only incident cards carry a tool · all ${visible.length} below`
-                      : `Everything else · ${visible.length - mineCount} · still ranked, nothing hidden`}
+                    {mineCount > 0
+                      ? `Everything else · ${visible.length - mineCount} · still ranked, nothing hidden`
+                      : attributedCount > 0
+                        ? `Nothing among these ${visible.length} cards names a tool in your stack · ${attributedCount} name${attributedCount === 1 ? "s" : ""} other tools · all ${visible.length} below`
+                        : `Nothing among these ${visible.length} cards names a tool · all ${visible.length} below`}
                   </li>
                 ) : null;
               const inner = (
