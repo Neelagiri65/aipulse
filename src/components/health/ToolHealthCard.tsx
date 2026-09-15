@@ -10,6 +10,7 @@
  * operational, anything unmeasured) open by default so "incidents first" is also "detail first".
  */
 
+import { useNow } from "@/lib/hooks/use-now";
 import { useState } from "react";
 import { HealthStrip } from "./HealthStrip";
 import { deriveRowState, type RowMode, type RowState } from "./row-state";
@@ -116,11 +117,12 @@ function StateWord({ state }: { state: RowState }) {
 }
 
 function LastIncidentBit({ history }: { history: NonNullable<ToolHealthData["history"]> }) {
+  const now = useNow();
   const recap = pickLastIncident(history);
   if (recap.kind === "none") return <>no incidents in 7d</>;
   return (
     <>
-      last incident {formatRelative(recap.createdAt)} · {formatIncidentDuration(recap.durationMinutes)}
+      last incident {formatRelative(recap.createdAt, now)} · {formatIncidentDuration(recap.durationMinutes)}
     </>
   );
 }
@@ -178,6 +180,7 @@ function ActiveIncidentList({
   sourceUrl?: string;
   declaredStatus?: ToolHealthData["status"];
 }) {
+  const now = useNow();
   return (
     <div className="ap-trow__incidents">
       <p className="ap-trow__notehead">
@@ -197,7 +200,7 @@ function ActiveIncidentList({
         {incidents.slice(0, 3).map((i) => (
           <li key={i.id}>
             <span className="ap-trow__kicker">{i.status}</span> {i.name}{" "}
-            <span className="ap-trow__dim">· {formatRelative(i.createdAt)}</span>
+            <span className="ap-trow__dim">· {formatRelative(i.createdAt, now)}</span>
           </li>
         ))}
         {incidents.length > 3 && sourceUrl && (
@@ -241,13 +244,14 @@ function LiveBody({ data }: { data: ToolHealthData }) {
  * resolved; hysteresis means one blip never reads as an outage. Ink only.
  */
 function ProbeRow({ probe }: { probe: NonNullable<ToolHealthData["probe"]> }) {
+  const now = useNow();
   const { state, latencyMs, host, checkedAt, consecutiveFails } = probe;
   let value: string;
   let title: string;
   if (state === "reachable") {
     const slow = latencyMs !== null && latencyMs > PROBE_LATENCY_CEILING_MS;
     value = latencyMs === null || slow ? "reachable" : `reachable · ${latencyMs}ms`;
-    title = `Reachable from our probe · ${host}${checkedAt ? ` · ${formatRelative(checkedAt)}` : ""}. A response proves the service answered from our single probe location — not a guarantee the backend is healthy. Latency is one-location round-trip, mostly geography.`;
+    title = `Reachable from our probe · ${host}${checkedAt ? ` · ${formatRelative(checkedAt, now)}` : ""}. A response proves the service answered from our single probe location — not a guarantee the backend is healthy. Latency is one-location round-trip, mostly geography.`;
   } else if (state === "unreachable") {
     value = "unreachable";
     title = `No response on the last ${consecutiveFails} probes · ${host}. This is our measurement from one location — compare against the declared status; they may disagree.`;
@@ -274,9 +278,10 @@ function SourceFooter({
   sourceUrl?: string;
   sourceLabel: string;
 }) {
+  const now = useNow();
   const provenanceTitle =
     mode === "live" && data?.lastCheckedAt && sourceUrl
-      ? formatProvenanceTooltip(data.lastCheckedAt, sourceUrl)
+      ? formatProvenanceTooltip(data.lastCheckedAt, sourceUrl, now)
       : undefined;
   return (
     <p className="ap-trow__src" title={provenanceTitle}>
@@ -290,7 +295,7 @@ function SourceFooter({
           sourceLabel
         )}
       </span>
-      {mode === "live" && data?.lastCheckedAt && <span>checked {formatRelative(data.lastCheckedAt)}</span>}
+      {mode === "live" && data?.lastCheckedAt && <span>checked {formatRelative(data.lastCheckedAt, now)}</span>}
     </p>
   );
 }
@@ -306,6 +311,7 @@ function LastIncidentLine({
   history: NonNullable<ToolHealthData["history"]>;
   sourceUrl?: string;
 }) {
+  const now = useNow();
   const recap = pickLastIncident(history);
   if (recap.kind === "none") {
     return <p className="ap-trow__line">No incidents in the last 7 days.</p>;
@@ -313,7 +319,7 @@ function LastIncidentLine({
   const isOngoing = recap.durationMinutes === null;
   return (
     <p className="ap-trow__line" title={recap.name}>
-      Last incident: {formatRelative(recap.createdAt)} · {formatIncidentDuration(recap.durationMinutes)} ·{" "}
+      Last incident: {formatRelative(recap.createdAt, now)} · {formatIncidentDuration(recap.durationMinutes)} ·{" "}
       {formatIncidentImpact(recap.impact)}
       {isOngoing ? " · ongoing" : ""}
       {sourceUrl ? (
@@ -328,9 +334,24 @@ function LastIncidentLine({
   );
 }
 
-function formatRelative(iso: string): string {
+/**
+ * Relative time from the shared clock, never from Date.now() during render.
+ * `now` is the useNow() snapshot: 0 on the server and during hydration, so the
+ * server HTML carries an absolute UTC time ("12:00 UTC") that the client's
+ * first render reproduces exactly; the ticking relative form ("35s ago")
+ * appears only after hydration. Before this, the server computed "0s ago" at
+ * its own instant and the client computed the real elapsed time — a text
+ * mismatch that fired React #418 on every homepage load and regenerated the
+ * whole card tree client-side.
+ */
+function formatRelative(iso: string, now: number): string {
   try {
-    const diffMs = Date.now() - new Date(iso).getTime();
+    if (now === 0) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "—";
+      return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`;
+    }
+    const diffMs = now - new Date(iso).getTime();
     const seconds = Math.floor(diffMs / 1000);
     if (seconds < 60) return `${seconds}s ago`;
     const minutes = Math.floor(seconds / 60);
