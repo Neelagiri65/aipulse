@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { parseStack, STACK_CHANGE_EVENT, STACK_STORAGE_KEY, type ToolId } from "@/lib/stack";
+import { useStack } from "@/lib/hooks/use-stack";
 
 const VAPID_PUBLIC_KEY =
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ??
@@ -17,8 +19,23 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return arr;
 }
 
+/**
+ * Register (or re-register) a subscription with the visitor's stack. The
+ * server replaces the whole record, so `tools: null` clears an earlier
+ * scope — "Show all" on the Health panel widens alerts back to every tool.
+ */
+export async function registerSubscription(sub: PushSubscription, stack: readonly ToolId[] | null): Promise<boolean> {
+  const res = await fetch("/api/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...sub.toJSON(), tools: stack ?? [] }),
+  });
+  return res.ok;
+}
+
 export function PushAlertToggle() {
   const [state, setState] = useState<PushState>("idle");
+  const { stack } = useStack();
 
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -40,6 +57,33 @@ export function PushAlertToggle() {
     // permission === "default" → stay in "idle" state → show "Enable alerts"
   }, []);
 
+  // While alerts are on, a stack change re-registers the subscription with
+  // the new tools. Driven by the write event, NOT by the stack value: the
+  // value goes null → stored on every load (server snapshot is null), and
+  // that must not cost a write per pageview.
+  useEffect(() => {
+    if (state !== "subscribed" || typeof window === "undefined") return;
+    const onChange = () => {
+      navigator.serviceWorker.ready
+        .then((reg) => reg.pushManager.getSubscription())
+        .then((sub) => {
+          if (!sub) return;
+          let raw: string | null = null;
+          try {
+            raw = window.localStorage.getItem(STACK_STORAGE_KEY);
+          } catch {
+            raw = null;
+          }
+          return registerSubscription(sub, parseStack(raw));
+        })
+        .catch(() => {
+          // re-registration failed silently; the next change retries
+        });
+    };
+    window.addEventListener(STACK_CHANGE_EVENT, onChange);
+    return () => window.removeEventListener(STACK_CHANGE_EVENT, onChange);
+  }, [state]);
+
   const subscribe = useCallback(async () => {
     try {
       const permission = await Notification.requestPermission();
@@ -54,19 +98,13 @@ export function PushAlertToggle() {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
       });
 
-      const res = await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(sub.toJSON()),
-      });
-
-      if (res.ok) {
+      if (await registerSubscription(sub, stack)) {
         setState("subscribed");
       }
     } catch {
       // subscription failed silently
     }
-  }, []);
+  }, [stack]);
 
   const unsubscribe = useCallback(async () => {
     try {
@@ -112,15 +150,22 @@ export function PushAlertToggle() {
   }
 
   if (state === "subscribed") {
+    const scope = stack ? `your stack (${stack.length})` : "all tools";
     return (
       <button
         type="button"
         onClick={unsubscribe}
         className="ap-btn-ghost flex items-center gap-1 font-mono text-[10px]"
-        title="Push alerts active — click to disable"
+        title={
+          stack
+            ? `Push alerts on for your stack — ${stack.length} tool${stack.length === 1 ? "" : "s"}, chosen on the Health panel. Click to disable.`
+            : "Push alerts on for every tool — pick a stack on the Health panel to narrow them. Click to disable."
+        }
+        data-testid="push-toggle"
+        data-scope={stack ? stack.length : 0}
       >
         <BellIcon active />
-        <span>Alerts on</span>
+        <span>Alerts on · {scope}</span>
       </button>
     );
   }
@@ -130,7 +175,13 @@ export function PushAlertToggle() {
       type="button"
       onClick={subscribe}
       className="ap-btn-ghost flex items-center gap-1.5 font-mono text-[10px]"
-      title="Enable push notifications for AI tool outages"
+      title={
+        stack
+          ? `Enable push notifications for outages of your stack (${stack.length} tool${stack.length === 1 ? "" : "s"})`
+          : "Enable push notifications for AI tool outages"
+      }
+      data-testid="push-toggle"
+      data-scope={stack ? stack.length : 0}
     >
       <BellIcon active={false} />
       <span>Enable alerts</span>

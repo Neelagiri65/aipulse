@@ -34,6 +34,10 @@ export type CachedAlertState = {
   /** Display name of the tool — preserved so a recovery message can name
    *  the tool without re-deriving it after the alert card has gone away. */
   toolDisplayName: string;
+  /** The tool id, so a recovery push can be targeted like the alert was.
+   *  Absent on states written before push targeting existed; the reader
+   *  falls back to the id inside the primary key. */
+  toolId?: string;
 };
 
 export type StateMap = Record<string, CachedAlertState>;
@@ -127,6 +131,7 @@ export function computeTransitions(
       sourceUrl: card.sourceUrl,
       sourceName: card.sourceName,
       toolDisplayName: toolDisplayNameFromHeadline(card.headline),
+      toolId: typeof card.meta.toolId === "string" ? card.meta.toolId : undefined,
     };
   }
 
