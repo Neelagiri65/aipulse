@@ -28,11 +28,13 @@ name: heartbeat
 # HOW THE CHAIN WORKS:
 # - `concurrency.cancel-in-progress: false` (was true). A dispatched
 #   successor PENDS until this run exits and then starts at once — no
-#   cancelled runs in the history, and the gap between generations is only
-#   runner allocation (seconds). GitHub keeps at most ONE pending run per
-#   concurrency group, so a scheduled fire landing mid-run and the
-#   self-dispatched successor never stack: whichever is newer pends, the
-#   older pending one is cancelled by GitHub.
+#   IN-PROGRESS run is ever cancelled, and the gap between generations is
+#   only runner allocation (seconds). GitHub documents (not verified here:
+#   the branch test never had two pending at once) that at most ONE pending
+#   run is kept per concurrency group: a scheduled fire that lands mid-run
+#   pends, and when the self-dispatch at minute 170 supersedes it, GitHub
+#   cancels the older PENDING duplicate. Those superseded pendings show as
+#   "cancelled" in the Actions list; that is a no-op run, not lost coverage.
 # - The successor is dispatched with the repo's own GITHUB_TOKEN under
 #   `permissions: actions: write`. `workflow_dispatch` is one of the two
 #   events GITHUB_TOKEN IS allowed to trigger (video-watchdog's header says
