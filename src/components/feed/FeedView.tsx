@@ -14,7 +14,7 @@
  * (the tests pass `disablePolling: true` to opt out).
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { getCommunityUrl } from "@/components/chrome/CommunityLink";
@@ -23,8 +23,10 @@ import { FeedReading, formatAge } from "@/components/feed/FeedReading";
 import type { CommunityState } from "@/lib/community/use-community";
 import { QuietDayBanner } from "@/components/feed/QuietDayBanner";
 import { VERIFIED_SOURCES } from "@/lib/data-sources";
+import { partitionCardsByStack } from "@/lib/feed/stack";
 import type { Card, CardType, FeedResponse } from "@/lib/feed/types";
 import { KIND_LABEL, KIND_PLURAL, rowMark } from "@/lib/feed/why-surfaced";
+import { useStack } from "@/lib/hooks/use-stack";
 
 const POLL_INTERVAL_MS = 60_000;
 
@@ -91,10 +93,15 @@ export function FeedView({
     for (const card of cards ?? []) c.set(card.type, (c.get(card.type) ?? 0) + 1);
     return c;
   }, [cards]);
-  const visible = useMemo(
-    () => (cards ?? []).filter((card) => kind === "all" || card.type === kind),
-    [cards, kind],
-  );
+  // "Your stack" (src/lib/feed/stack.ts): cards naming a stack tool first,
+  // everything else after, in the same rank order — a partition, never a
+  // filter. The server snapshot is null, so server HTML never carries it.
+  const { stack } = useStack();
+  const { visible, mineCount } = useMemo(() => {
+    const byKind = (cards ?? []).filter((card) => kind === "all" || card.type === kind);
+    const { mine, rest } = partitionCardsByStack(byKind, stack);
+    return { visible: [...mine, ...rest], mineCount: mine.length };
+  }, [cards, kind, stack]);
   // The selection survives a poll: resolved by id on every render, first visible row otherwise.
   const selected: Card | undefined = visible.find((c) => c.id === selectedId) ?? visible[0];
 
@@ -196,14 +203,32 @@ export function FeedView({
             </button>
           ))}
         </div>
-        <div className="ap-inset ap-feedrows" data-testid="feed-rows">
+        <div
+          className="ap-inset ap-feedrows"
+          data-testid="feed-rows"
+          data-stack={stack ? stack.length : 0}
+          data-stack-mine={stack ? mineCount : undefined}
+          data-stack-rest={stack ? visible.length - mineCount : undefined}
+        >
           <div className="ap-inset__head ap-inset__head--split">
-            <span>Feed · since the last quiet hour</span>
+            <span data-testid="feed-heading">
+              {stack ? `Your stack · ${mineCount} of ${visible.length}` : "Feed · since the last quiet hour"}
+            </span>
             <span>{rowsHead}</span>
           </div>
           <ul className="ap-feed-list">
-            {visible.map((card) => {
+            {visible.map((card, i) => {
               const isSelected = variant === "desktop" && selected?.id === card.id;
+              // One divider where the stack ends. Not an `ap-trow` and no
+              // data-card-type: it is a label, not a card.
+              const divider =
+                stack && i === mineCount ? (
+                  <li key="stack-divider" className="ap-feed-list-divider" data-testid="feed-stack-divider">
+                    {mineCount === 0
+                      ? `Nothing among these ${visible.length} cards names a tool in your stack · today only incident cards carry a tool · all ${visible.length} below`
+                      : `Everything else · ${visible.length - mineCount} · still ranked, nothing hidden`}
+                  </li>
+                ) : null;
               const inner = (
                 <>
                   <span className={`ap-mark ap-mark--${rowMark(card)}`} aria-hidden />
@@ -220,27 +245,29 @@ export function FeedView({
                 </>
               );
               return (
-                <li
-                  key={card.id}
-                  className={`ap-feed-list-item ap-trow${isSelected ? " is-selected" : ""}`}
-                  data-card-type={card.type}
-                  data-severity={card.severity}
-                >
-                  {variant === "mobile" ? (
-                    <Link href={`/feed/${card.id}`} className="ap-trow__head ap-feedrow">
-                      {inner}
-                    </Link>
-                  ) : (
-                    <button
-                      type="button"
-                      className="ap-trow__head ap-feedrow"
-                      aria-current={isSelected ? "true" : undefined}
-                      onClick={() => setSelectedId(card.id)}
-                    >
-                      {inner}
-                    </button>
-                  )}
-                </li>
+                <Fragment key={card.id}>
+                  {divider}
+                  <li
+                    className={`ap-feed-list-item ap-trow${isSelected ? " is-selected" : ""}`}
+                    data-card-type={card.type}
+                    data-severity={card.severity}
+                  >
+                    {variant === "mobile" ? (
+                      <Link href={`/feed/${card.id}`} className="ap-trow__head ap-feedrow">
+                        {inner}
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        className="ap-trow__head ap-feedrow"
+                        aria-current={isSelected ? "true" : undefined}
+                        onClick={() => setSelectedId(card.id)}
+                      >
+                        {inner}
+                      </button>
+                    )}
+                  </li>
+                </Fragment>
               );
             })}
             {visible.length === 0 ? (

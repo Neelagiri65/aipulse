@@ -2642,6 +2642,21 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
 .ap-trow.is-selected > .ap-trow__head { background: var(--tint); }
 .ap-trow__chev { flex: none; color: var(--ink-muted); font-size: 18px; line-height: 1; }
 .ap-feedrows__empty { padding: 14px 16px; color: var(--ink-muted); font-size: 13px; }
+/* "Your stack" boundary inside the feed list — same voice as .ap-stack__divider
+   on the Health panel. A label between rows, never a row (no .ap-trow). */
+.ap-feedrows .ap-feed-list-divider {
+  margin: 0;
+  padding: 8px 16px;
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  background: var(--paper3);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  list-style: none;
+}
 .ap-feedrows__foot { margin: 0; padding: 0 4px; font-size: 12.5px; line-height: 1.4; color: var(--ink-muted); }
 .ap-howbuilt { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
 .ap-howbuilt__head { font-size: 15px; font-weight: 500; }
