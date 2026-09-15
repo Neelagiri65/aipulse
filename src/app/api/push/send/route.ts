@@ -19,6 +19,8 @@ type SendResult = {
   sent: number;
   failed: number;
   removed: number;
+  /** Subscriptions scoped to other tools (see src/lib/push/target.ts). */
+  skipped: number;
 };
 
 export const POST = withIngest<SendResult>({

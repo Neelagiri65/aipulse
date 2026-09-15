@@ -36,7 +36,8 @@ import {
   buildRecoveryEmbed,
   postEmbeds,
 } from "@/lib/notify/discord";
-import { broadcastPush } from "@/lib/push/send";
+import { broadcastPush, type BroadcastResult } from "@/lib/push/send";
+import { alertPushPayload, recoveryPushPayload } from "@/lib/notify/push-payloads";
 import {
   computeTransitions,
   toolDisplayNameFromHeadline,
@@ -223,29 +224,14 @@ export const POST = withIngest<RouteResult>({
     // when the function suspends after the response, silently dropping
     // sends. Per-broadcast failures still don't block state persistence
     // or Discord flow — each rejection resolves to null.
-    const pushJobs: Array<Promise<{ sent: number; failed: number } | null>> =
-      [];
+    const pushJobs: Array<Promise<BroadcastResult | null>> = [];
+    // Payloads carry `toolId`, so broadcastPush sends each alert only to
+    // subscriptions whose stack includes that tool (or that carry no stack).
     for (const t of alerts) {
-      const toolName = toolDisplayNameFromHeadline(t.card.headline);
-      const status = String(t.card.meta.status);
-      pushJobs.push(
-        broadcastPush({
-          title: `gawk.dev: ${toolName} ${status}`,
-          body: t.card.detail || `Status changed to ${status}`,
-          url: "https://gawk.dev",
-          tag: `tool-alert-${toolName}`,
-        }).catch(() => null),
-      );
+      pushJobs.push(broadcastPush(alertPushPayload(t)).catch(() => null));
     }
     for (const r of recoveries) {
-      pushJobs.push(
-        broadcastPush({
-          title: `gawk.dev: ${r.state.toolDisplayName} recovered`,
-          body: `Back to operational from ${r.state.status}`,
-          url: "https://gawk.dev",
-          tag: `tool-alert-${r.state.toolDisplayName}`,
-        }).catch(() => null),
-      );
+      pushJobs.push(broadcastPush(recoveryPushPayload(r)).catch(() => null));
     }
     if (pushJobs.length > 0) {
       // Record the push-send beacon HERE — the real execution site.
@@ -257,8 +243,12 @@ export const POST = withIngest<RouteResult>({
       // run fails only when every job errored (nulls with no delivery).
       const results = await Promise.all(pushJobs);
       const sent = results.reduce((n, r) => n + (r?.sent ?? 0), 0);
+      const skipped = results.reduce((n, r) => n + (r?.skipped ?? 0), 0);
       const errored = results.filter((r) => r === null).length;
       const ok = !isTotalFailure({ delivered: sent, failures: errored });
+      // Targeting is only observable here on prod: a real transition logs
+      // how many subscriptions asked for other tools and were skipped.
+      console.log(`push-send: ${pushJobs.length} payload(s) sent=${sent} skipped=${skipped} errored=${errored}`);
       await writeCronHealth(
         "push-send",
         ok

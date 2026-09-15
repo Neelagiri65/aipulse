@@ -50,6 +50,16 @@ export default function PrivacyPage() {
           never the IP), and the tokens for the confirm + unsubscribe
           links. That&apos;s it.
         </p>
+        <p>
+          If you enable push alerts, we store your browser&apos;s push
+          subscription (its endpoint and keys) and, while alerts are on,
+          the tool ids you picked as your stack, so we can send you only
+          those tools&apos; alerts. Your stack is otherwise kept in your
+          browser and sent nowhere. The record lives 90 days from its
+          last change. Turning alerts off deletes it at once; revoking the
+          permission in browser settings instead leaves it until the push
+          service reports the subscription gone or the 90 days pass.
+        </p>
       </section>
 
       <section className="mb-8 space-y-3">

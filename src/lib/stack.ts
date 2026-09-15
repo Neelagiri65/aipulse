@@ -4,8 +4,12 @@
  * Architectural constraint test (write it before the code, check it after):
  *   1. Explicit choice only. The stack is what the visitor ticked. Nothing is
  *      inferred from behaviour; the only default is "everything".
- *   2. Client-side only. localStorage on this device. No account, no server
- *      state, no cookie, nothing sent anywhere.
+ *   2. Client-side only. localStorage on this device. No account, no cookie,
+ *      nothing sent anywhere — with one amendment (founder, 2026-09-15): while
+ *      push alerts are ON, the tool ids ride on the push subscription record
+ *      the server already holds, so alerts can be sent for those tools only
+ *      (src/lib/push/store.ts, target.ts). Turning alerts off deletes that
+ *      record; visitors without alerts send nothing.
  *   3. Nothing hidden. A tool outside the stack is grouped after the stack,
  *      never removed. Every card still renders; every number still shows.
  *   4. No new prompt. The picker is an inline control in the Health panel,
