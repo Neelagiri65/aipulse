@@ -1222,5 +1222,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-09-15",
+    "videoId": "S-58zTAMnBs",
+    "url": "https://youtu.be/S-58zTAMnBs",
+    "title": "How much of F-Droid is LLM generated? | Gawk Daily — 15 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-15T12:37:17.794Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
