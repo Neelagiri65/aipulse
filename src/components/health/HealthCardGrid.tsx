@@ -8,9 +8,18 @@
 
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { deriveSev } from "@/components/chrome/StatusBar";
 import { useStack } from "@/lib/hooks/use-stack";
 import { partitionByStack } from "@/lib/stack";
+import {
+  clearStackParam,
+  getStackParamServerSnapshot,
+  readStackParam,
+  sameStack,
+  stackFromParam,
+  subscribeStackParam,
+} from "@/lib/stack-url";
 import { StackPicker } from "./StackPicker";
 import { ToolHealthCard } from "./ToolHealthCard";
 import { deriveRowState } from "./row-state";
@@ -43,6 +52,20 @@ export function HealthCardGrid({ data, polledAt }: HealthCardGridProps) {
   // null on the server and on the first client render (server snapshot), so
   // the HTML a crawler or a fresh visitor gets is the full, unscoped list.
   const { stack, setStack } = useStack();
+  // `/?stack=a,b` proposes a stack (src/lib/stack-url.ts). The param is read
+  // as a primitive through the same store shape as `?tab=`: "" on the
+  // server, so the HTML never carries it. It becomes a "Shared stack" line
+  // only when it parses and differs from what is stored.
+  const rawParam = useSyncExternalStore(subscribeStackParam, readStackParam, getStackParamServerSnapshot);
+  const proposed = stackFromParam(rawParam);
+  const shared = proposed && !sameStack(proposed, stack) ? proposed : null;
+  const useShared = () => {
+    if (proposed) setStack(proposed);
+    clearStackParam();
+  };
+  // Origin through a store as well: "" on the server and on the hydration
+  // render, so the share link appears only after hydration (no mismatch).
+  const origin = useSyncExternalStore(subscribeStackParam, () => window.location.origin, () => "") || undefined;
   const rows = TOOLS.map((tool) => ({ tool, data: data?.[tool.id], state: deriveRowState(tool, data?.[tool.id]) }));
   const { mine, others } = partitionByStack(rows, stack);
   const checked = hhmmUtc(polledAt);
@@ -65,7 +88,14 @@ export function HealthCardGrid({ data, polledAt }: HealthCardGridProps) {
           {STATUS_PAGES} status pages{checked ? ` · checked ${checked}` : ""}
         </span>
       </div>
-      <StackPicker stack={stack} onChange={setStack} />
+      <StackPicker
+        stack={stack}
+        onChange={setStack}
+        shared={shared}
+        onUseShared={useShared}
+        onDismissShared={clearStackParam}
+        origin={origin}
+      />
       {incidentsFirst(mine).map((r) => (
         <ToolHealthCard key={r.tool.id} config={r.tool} data={r.data} />
       ))}
