@@ -47,6 +47,9 @@ jobs:
       - name: Unit tests
         run: npx vitest run
 
+      - name: Lint ratchet (error count may not rise)
+        run: npm run lint:ratchet
+
       - name: Build with production-shaped env
         env:
           # Deliberately fake. Presence — not validity — is what makes the

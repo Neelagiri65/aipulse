@@ -7,6 +7,9 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Override default ignores of eslint-config-next.
   globalIgnores([
+    // Local-only design sample (git-ignored, never on CI). Linting it makes the
+    // lint ratchet baseline differ between a dev machine and the runner.
+    "wmsample/**",
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
