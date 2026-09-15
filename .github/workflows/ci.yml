@@ -58,3 +58,11 @@ jobs:
 
       - name: Assert required routes are still static
         run: npm run check:static
+
+      - name: Runtime render smoke against a Redis stand-in
+        # The manifest check above cannot see a route that is ● at build and
+        # throws "static to dynamic at runtime" on its first real request —
+        # that is how every /digest/<date> page 500'd after a green CI (#135).
+        # This starts the built app with a local Upstash stand-in and requests
+        # the ISR routes; the second hit on an archived issue must be a HIT.
+        run: npm run check:runtime

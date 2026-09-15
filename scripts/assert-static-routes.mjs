@@ -32,6 +32,10 @@ const MUST_BE_STATIC = [
     route: "/",
     why: "the homepage's numbers must reach crawlers without every visitor paying a render",
   },
+  {
+    route: "/digest",
+    why: "the archive hub is the internal-link parent of 100+ issue pages; a per-request render there is a crawl-budget leak (#134/#140)",
+  },
 ];
 
 const manifestPath = ".next/prerender-manifest.json";
