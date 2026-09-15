@@ -6,24 +6,58 @@ name: heartbeat
 # repo the `*/5` jobs were firing only every 2-4h, so the live map aged toward
 # its 4h window between real runs.
 #
-# The fix: a RUNNING job is immune to scheduler throttling. This workflow
-# starts on an explicit-minute 4x/hour schedule and loops INTERNALLY every 5
-# minutes, curling the ingest endpoints itself. `cancel-in-progress: true`
-# bounds us to exactly one live instance — a landed restart cancels the
-# mostly-sleeping predecessor (stateless, harmless) rather than stacking a
-# queue.
+# The mechanism: a RUNNING job is immune to scheduler throttling. This
+# workflow loops INTERNALLY every 5 minutes, curling the ingest endpoints
+# itself, and — since S124 — DISPATCHES ITS OWN SUCCESSOR five minutes before
+# its loop window ends, so coverage no longer depends on the scheduler at all.
 #
-# LOOP WINDOW (revised S93 on observed data): the original design assumed
-# explicit-minute schedules restart every ~15 min and looped for 20. Observed
-# reality (2026-07-05): scheduled fires landed 89-127 min apart (median 96) —
-# GitHub throttles even explicit-minute schedules. A 20-min loop therefore
-# covered only ~20% of wall-clock, and since #64 retired the ingests' own
-# schedules, the map got ZERO ticks in the dead stretches (invisible on the
-# status bar — the gaps sat just under the 2x stale budgets). The loop now
-# runs 175 min (> the 127-min max observed gap, ~40% margin; well under the
-# 360-min hosted-runner job cap), so coverage is continuous as long as ANY
-# fire lands within ~3h. When GitHub does honour the 15-min schedule, the
-# restart cancels the loop early — behaviour identical to the original.
+# WHY SELF-DISPATCH (measured, not assumed):
+# - S93 sized the loop at 175 min against a max observed restart gap of 127
+#   min. Measured again 2026-09-10..15 (36 consecutive scheduled fires of the
+#   `2,17,32,47` schedule): fire-to-fire median 209 min, max 365 min. The
+#   hosted-runner job cap is 360 min, so NO loop length can bridge that gap —
+#   a longer loop is a symptom patch that the next scheduler regression
+#   defeats again.
+# - The cost was visible in the data. `scripts/ops/status-bucket-census.mjs`
+#   (D+1 check after PR #133) put the per-day status sample counts at
+#   251 / 228 / 200 for 12/13/14 Sep against a designed 288. The blind
+#   minutes per day (sum of gaps between one loop ending and the next fire
+#   landing) were 212 / 306 / 494 → predicted 245 / 227 / 190. Blind windows
+#   cost more than traffic fills; the deficit IS the scheduler gap.
+#
+# HOW THE CHAIN WORKS:
+# - `concurrency.cancel-in-progress: false` (was true). A dispatched
+#   successor PENDS until this run exits and then starts at once — no
+#   IN-PROGRESS run is ever cancelled, and the gap between generations is
+#   only runner allocation (seconds). GitHub documents (not verified here:
+#   the branch test never had two pending at once) that at most ONE pending
+#   run is kept per concurrency group: a scheduled fire that lands mid-run
+#   pends, and when the self-dispatch at minute 170 supersedes it, GitHub
+#   cancels the older PENDING duplicate. Those superseded pendings show as
+#   "cancelled" in the Actions list; that is a no-op run, not lost coverage.
+# - The successor is dispatched with the repo's own GITHUB_TOKEN under
+#   `permissions: actions: write`. `workflow_dispatch` is one of the two
+#   events GITHUB_TOKEN IS allowed to trigger (video-watchdog's header says
+#   otherwise — its "admin rights" error came from the zero-scope GH_TOKEN,
+#   not from GITHUB_TOKEN). Verified live on this branch before merge; see
+#   PR body.
+# - A dispatch failure is NOT a warning: the run finishes its tick window
+#   (coverage first) and then exits 1, so a broken chain is a RED run in the
+#   Actions list. The cron schedule stays as belt-and-braces — it restarts
+#   the chain on its own (slow) cadence if a dispatch ever fails.
+# - `loop_minutes` (workflow_dispatch input, default 175) is passed down the
+#   chain unchanged, so a short test chain stays short and the scheduled
+#   chain stays at 175. Scheduled runs have no inputs → 175.
+#
+# KILL SWITCH (the chain is infinite by design):
+#   gh workflow disable heartbeat.yml   # the next self-dispatch is rejected
+#                                       # → that run ends red, chain stops
+#   gh run cancel <id>                  # ends the current run immediately
+#   gh workflow enable heartbeat.yml && gh workflow run heartbeat.yml --ref main
+# Verified live 2026-09-15 on this branch: run A dispatched B (pending within
+# 20s, started seconds after A exited); with the workflow disabled, B's
+# dispatch was refused with HTTP 422 "Cannot trigger a 'workflow_dispatch' on
+# a disabled workflow", B finished its tick window and exited 1 (red).
 #
 # Public repo → unlimited Actions minutes, so a near-continuous loop is free.
 # Both endpoints are thin, idempotent poll-and-dedupe triggers (all compute is
@@ -57,30 +91,42 @@ name: heartbeat
 
 on:
   schedule:
-    - cron: "2,17,32,47 * * * *" # 4x/hour restart; explicit minutes are honoured far better than */5
+    - cron: "2,17,32,47 * * * *" # belt-and-braces restart; the chain is the primary driver
   workflow_dispatch:
+    inputs:
+      loop_minutes:
+        description: "Tick window in minutes before the successor takes over (tests: 2)"
+        required: false
+        default: "175"
 
 concurrency:
   group: heartbeat
-  cancel-in-progress: true # exactly one live loop; a landed restart cancels the sleeping predecessor
+  cancel-in-progress: false # successor pends until this run exits — no cancelled runs, ~0s gap
 
 permissions:
   contents: read
+  actions: write # self-dispatch of the successor run
 
 jobs:
   pulse:
     runs-on: ubuntu-latest
     timeout-minutes: 185
     steps:
-      - name: Loop the live-critical ingests every 5 minutes
+      - name: Loop the live-critical ingests every 5 minutes, then hand over
         env:
           INGEST_URL: ${{ secrets.INGEST_URL }}
           INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          LOOP_MINUTES: ${{ inputs.loop_minutes || '175' }}
         run: |
           if [ -z "$INGEST_URL" ] || [ -z "$INGEST_SECRET" ]; then
             echo "::error::INGEST_URL or INGEST_SECRET is unset in repo secrets"
             exit 1
           fi
+          case "$LOOP_MINUTES" in
+            ''|*[!0-9]*) echo "::error::loop_minutes must be a positive integer, got '$LOOP_MINUTES'"; exit 1 ;;
+          esac
           BASE="${INGEST_URL%/api/ingest}"
           NOTIFY_URL="$BASE/api/notify/tool-alerts"
           RSS_URL="$BASE/api/wire/ingest-rss"
@@ -122,14 +168,34 @@ jobs:
             i=$((i + 1))
           }
 
-          # Loop for 175 min (> the 127-min max observed restart gap — see
-          # header). A landed scheduled fire cancels this run seamlessly
-          # (cancel-in-progress) for continuous coverage; if none lands, the
-          # loop itself carries coverage for ~3h.
-          end=$((SECONDS + 175 * 60))
+          # Hand over to the successor once, when ≤ 5 min of window remain.
+          # It pends on the concurrency group until this run exits (see
+          # header), so the ticks continue here until the very end.
+          dispatched=0
+          dispatch_ok=1
+          handover() {
+            [ "$dispatched" -eq 1 ] && return 0
+            dispatched=1
+            if gh workflow run heartbeat.yml --ref "$GITHUB_REF_NAME" -f "loop_minutes=$LOOP_MINUTES"; then
+              echo "$(date -u +%H:%M:%S) successor dispatched on $GITHUB_REF_NAME (loop_minutes=$LOOP_MINUTES)"
+            else
+              dispatch_ok=0
+              echo "::error::successor dispatch FAILED — the chain is broken; the cron schedule will restart it"
+            fi
+          }
+
+          end=$((SECONDS + LOOP_MINUTES * 60))
           tick
+          [ $((end - SECONDS)) -le 300 ] && handover
           while [ "$SECONDS" -lt "$end" ]; do
             sleep 300
             tick
+            [ $((end - SECONDS)) -le 300 ] && handover
           done
-          echo "Loop window elapsed; next scheduled fire continues coverage."
+          handover # a loop shorter than one sleep still hands over
+          if [ "$dispatch_ok" -eq 1 ]; then
+            echo "Loop window elapsed; successor carries coverage."
+          else
+            echo "Loop window elapsed with NO successor; coverage resumes at the next scheduled fire."
+            exit 1
+          fi
