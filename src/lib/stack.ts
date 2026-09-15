@@ -60,15 +60,31 @@ export function toggleTool(stack: Stack | null, id: ToolId): ToolId[] | null {
 }
 
 /**
- * Split rows into the visitor's stack (in TOOLS order, so the list stays
- * stable) and everything else. With no stack, everything is "mine" and
+ * Split rows into the visitor's stack and everything else, keeping the input
+ * order inside each half. `getId` says which tool a row is about (null =
+ * none, which is always "others"). With no stack, everything is "mine" and
  * "others" is empty — the page reads exactly as it does today.
  */
+export function partitionBy<T>(
+  rows: readonly T[],
+  stack: Stack | null,
+  getId: (row: T) => ToolId | null,
+): { mine: T[]; others: T[] } {
+  if (!stack || stack.length === 0) return { mine: [...rows], others: [] };
+  const set = new Set<ToolId>(stack);
+  const mine: T[] = [];
+  const others: T[] = [];
+  for (const r of rows) {
+    const id = getId(r);
+    (id !== null && set.has(id) ? mine : others).push(r);
+  }
+  return { mine, others };
+}
+
+/** Health rows: every row carries its tool. */
 export function partitionByStack<T extends { tool: { id: ToolId } }>(
   rows: readonly T[],
   stack: Stack | null,
 ): { mine: T[]; others: T[] } {
-  if (!stack || stack.length === 0) return { mine: [...rows], others: [] };
-  const set = new Set<ToolId>(stack);
-  return { mine: rows.filter((r) => set.has(r.tool.id)), others: rows.filter((r) => !set.has(r.tool.id)) };
+  return partitionBy(rows, stack, (r) => r.tool.id);
 }
