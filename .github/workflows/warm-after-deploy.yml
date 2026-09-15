@@ -1,0 +1,53 @@
+name: warm-after-deploy
+
+# After every successful PRODUCTION deployment, fetch the pages whose first
+# request after a deploy is expensive, so no visitor pays for it.
+#
+# Why (measured 2026-09-15, S124): the Feed's client fetch of /api/feed
+# composes from live sources with no edge cache after a deploy — 15 s or
+# more on the first hit (0.14 s from cache afterwards). The prod visual
+# suite failed the Feed row-click spec after three of the day's deploys on
+# a 15 s wait and passed alone every time; the first human visitor to the
+# Feed after a deploy sees the same "Loading the gawk.dev feed" wait. The
+# ISR homepage likewise serves STALE and revalidates on its first hit.
+#
+# Vercel's GitHub integration creates a Deployment per push and reports a
+# `deployment_status` of `success` once the deployment is ready and, for
+# production, aliased to the canonical host. Warming the canonical host
+# (not the per-deployment URL) is what fills the cache real visitors read.
+#
+# Every fetch is logged with its status and time; a non-200 on /api/feed
+# fails the job so a broken post-deploy feed is a RED run, not a silent
+# miss. Nothing here writes anything: these are plain GETs.
+
+on:
+  deployment_status:
+
+permissions: {}
+
+jobs:
+  warm:
+    if: github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Warm the canonical host after the alias lands
+        run: |
+          # The status arrives as the alias switches; a short pause avoids
+          # warming the previous deployment.
+          sleep 15
+          HOST="https://gawk.dev"
+          fail=0
+          for path in / /api/feed /api/v1/status /digest; do
+            code=$(curl -sS -o /dev/null -w "%{http_code} %{time_total}s cache=%header{x-vercel-cache}" \
+              --max-time 150 -H "user-agent: gawk-warm-after-deploy" "$HOST$path" 2>/dev/null) || code="000 (curl failed)"
+            echo "$(date -u +%H:%M:%S) GET $path -> $code"
+            case "$path:$code" in
+              "/api/feed:200 "*) ;;
+              "/api/feed:"*) echo "::error::/api/feed did not answer 200 after the deploy ($code)"; fail=1 ;;
+            esac
+          done
+          # Second pass on the feed: proves the cache is now warm for real visitors.
+          code=$(curl -sS -o /dev/null -w "%{http_code} %{time_total}s cache=%header{x-vercel-cache}" --max-time 60 "$HOST/api/feed" 2>/dev/null) || code="000"
+          echo "$(date -u +%H:%M:%S) GET /api/feed (second hit) -> $code"
+          exit $fail
