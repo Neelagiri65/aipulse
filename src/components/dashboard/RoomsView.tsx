@@ -15,6 +15,7 @@
  */
 
 import type { WireItem } from "@/components/dashboard/WirePage";
+import { repoHref } from "@/lib/data/event-links";
 import { getCommunityUrl } from "@/components/chrome/CommunityLink";
 import type { CommunityState } from "@/lib/community/use-community";
 
@@ -128,7 +129,7 @@ export function RoomsView({ rows, polledAt, windowMinutes, compact, community }:
             <a
               key={r.repo}
               className="ap-list-row"
-              href={`https://github.com/${r.repo}`}
+              href={repoHref(r.repo)}
               target="_blank"
               rel="noopener noreferrer"
             >
