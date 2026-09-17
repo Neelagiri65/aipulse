@@ -18,7 +18,7 @@
  * deterministically.
  */
 
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 import type { ModelsResult } from "@/lib/data/fetch-models";
 import type { BenchmarksPayload } from "@/lib/data/benchmarks-lmarena";
 import {

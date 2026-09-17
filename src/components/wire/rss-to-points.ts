@@ -20,7 +20,7 @@
  * `__tests__/rss-to-points.test.ts` pin the contract.
  */
 
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 import type { RssSourcePanel } from "@/lib/data/wire-rss";
 
 export const RSS_AMBER = "#f97316";
