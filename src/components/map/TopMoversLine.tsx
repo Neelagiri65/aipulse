@@ -91,7 +91,7 @@ export function TopMoversLine({
         <span className="flex items-center gap-1">
           <span className="text-muted-foreground/60">most active:</span>
           <span className="text-foreground">{mostActive.city}</span>
-          <span className="tabular-nums text-[#2dd4bf]">
+          <span className="tabular-nums text-[var(--ap-accent)]">
             {mostActive.count.toLocaleString()}{" "}
             {mostActive.count === 1 ? "event" : "events"}
           </span>

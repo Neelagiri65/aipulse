@@ -75,7 +75,6 @@ export function ToolHealthChart({
               height: "12px",
               borderRadius: "50%",
               background: "#2A33C2",
-              boxShadow: "0 0 12px #2dd4bf",
             }}
           />
           <div

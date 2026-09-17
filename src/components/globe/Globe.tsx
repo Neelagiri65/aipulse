@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * NOT RENDERED. Every one of the 17 modules that import this file uses
+ * `import type { GlobePoint }`; there is no value import anywhere, and the 2D
+ * FlatMap replaced this component. The file survives as the declaration site of
+ * `GlobePoint`, which is load-bearing, so it is not deleted — but the colours and
+ * JSX below never reach a screen. Verified by reachability audit, 2026-09-18.
+ */
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
