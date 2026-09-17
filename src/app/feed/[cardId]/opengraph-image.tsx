@@ -6,11 +6,13 @@
  * card by id from a fresh feed derive; falls back to a generic
  * "Card expired" image when the card has rolled out.
  *
- * v1 spec per S40 PRD: dark theme #06080a, teal pulse, gawk.dev
+ * Was the S40 palette: dark #06080a, a teal pulse, a wordmark reading GAWK.
+ * Now the site's own warm paper, with the mark at favicon scale.
  * brand, monospace claim text. Iterate after first LinkedIn unfurl.
  */
 
 import { ImageResponse } from "next/og";
+import { BrandLockup, og, ogFont } from "@/lib/og-brand";
 
 import { fetchAllStatus } from "@/lib/data/fetch-status";
 import { redisOpenRouterStore } from "@/lib/data/openrouter-store";
@@ -48,13 +50,21 @@ const REGISTRIES: SdkAdoptionRegistry[] = [
   "vscode",
 ];
 
+/**
+ * Severity, on the site's own ramp rather than Tailwind's defaults.
+ *
+ * These are a chip's border and text on warm paper, so the middle steps are the
+ * darker cut of each hue: #f59e0b measures about 1.9:1 on #FAFAF6, and a label at
+ * that contrast is decoration rather than a word. The low steps take the ink ramp,
+ * because "not much happened" should recede instead of taking a colour.
+ */
 const SEVERITY_COLOUR: Record<number, string> = {
-  100: "#ef4444",
-  80: "#f59e0b",
-  60: "#2dd4bf",
-  40: "#94a3b8",
-  20: "#64748b",
-  10: "#475569",
+  100: "#C0392B",
+  80: "#8A6100",
+  60: "#157A40",
+  40: "#6B6B5E",
+  20: "#6B6B5E",
+  10: "#6B6B5E",
 };
 
 export default async function CardOgImage({
@@ -71,43 +81,28 @@ export default async function CardOgImage({
         style={{
           width: "100%",
           height: "100%",
-          background: "#06080a",
-          color: "#e2e8f0",
+          background: og.paper,
+          color: og.ink,
           padding: "60px",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+          fontFamily: ogFont,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <div
-            style={{
-              width: "16px",
-              height: "16px",
-              borderRadius: "50%",
-              background: "#2dd4bf",
-              boxShadow: "0 0 16px #2dd4bf",
-            }}
-          />
-          <div
-            style={{
-              fontSize: "20px",
-              letterSpacing: "0.32em",
-              fontWeight: 700,
-            }}
-          >
-            GAWK
-          </div>
+        <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+          <BrandLockup tile={44} type={26} />
           {card ? (
             <div
               style={{
                 marginLeft: "auto",
+                display: "flex",
                 fontSize: "16px",
-                letterSpacing: "0.18em",
-                padding: "6px 12px",
-                border: `1px solid ${SEVERITY_COLOUR[card.severity] ?? "#94a3b8"}`,
-                color: SEVERITY_COLOUR[card.severity] ?? "#94a3b8",
+                letterSpacing: "0.16em",
+                padding: "6px 13px",
+                borderRadius: "999px",
+                border: `1px solid ${SEVERITY_COLOUR[card.severity] ?? og.muted}`,
+                color: SEVERITY_COLOUR[card.severity] ?? og.muted,
               }}
             >
               {card.type.replace("_", " ")}
@@ -119,8 +114,9 @@ export default async function CardOgImage({
           style={{
             fontSize: card ? "52px" : "48px",
             fontWeight: 600,
-            lineHeight: 1.2,
-            color: "#f1f5f9",
+            lineHeight: 1.16,
+            letterSpacing: "-0.024em",
+            color: og.ink,
             display: "flex",
           }}
         >
@@ -130,23 +126,23 @@ export default async function CardOgImage({
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
+            width: "100%",
             alignItems: "flex-end",
             fontSize: "20px",
-            color: "#94a3b8",
+            color: og.muted,
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ color: "#2dd4bf" }}>
+            <div style={{ display: "flex", color: og.accent }}>
               {card ? `Source: ${card.sourceName}` : "Source: gawk.dev"}
             </div>
             {card?.detail ? (
-              <div style={{ fontSize: "18px", color: "#cbd5e1" }}>
+              <div style={{ display: "flex", fontSize: "18px", color: og.ink2 }}>
                 {card.detail}
               </div>
             ) : null}
           </div>
-          <div>gawk.dev</div>
+          <div style={{ marginLeft: "auto", display: "flex" }}>gawk.dev</div>
         </div>
       </div>
     ),

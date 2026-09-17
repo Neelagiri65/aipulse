@@ -14,10 +14,12 @@
  *
  * Reuses the `src/app/opengraph-image.tsx` aesthetic (dark
  * background, teal accent, mono brand mark) so the LinkedIn unfurl
+ * — that palette is gone; the card is now the site's own warm paper
  * is visually consistent with the homepage unfurl.
  */
 
 import { ImageResponse } from "next/og";
+import { BrandLockup, BrandTile, og, ogFont } from "@/lib/og-brand";
 import {
   isEditorialPlaceholder,
 } from "@/lib/reports/types";
@@ -57,43 +59,28 @@ export default async function ReportOgImage({
         style={{
           width: "100%",
           height: "100%",
-          background: "#06080a",
-          color: "#e2e8f0",
+          background: og.paper,
+          color: og.ink,
           padding: "72px",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+          fontFamily: ogFont,
         }}
       >
         {/* Top row: brand mark + report kicker, single line */}
-        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          <div
-            style={{
-              width: "20px",
-              height: "20px",
-              borderRadius: "50%",
-              background: "#2dd4bf",
-              boxShadow: "0 0 24px #2dd4bf",
-            }}
-          />
-          <div
-            style={{
-              fontSize: "24px",
-              letterSpacing: "0.36em",
-              fontWeight: 700,
-            }}
-          >
-            GAWK
-          </div>
+        <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+          <BrandLockup tile={48} type={28} />
           <div
             style={{
               marginLeft: "auto",
+              display: "flex",
               fontSize: "14px",
-              letterSpacing: "0.18em",
+              letterSpacing: "0.16em",
               padding: "8px 14px",
-              border: "1px solid #2dd4bf",
-              color: "#2dd4bf",
+              borderRadius: "999px",
+              border: `1px solid ${og.hair}`,
+              color: og.muted,
             }}
           >
             AI GENESIS REPORT · {config.window.toUpperCase()}
@@ -112,10 +99,10 @@ export default async function ReportOgImage({
             style={{
               fontSize: heroStat.length > 80 ? "44px" : "54px",
               fontWeight: 600,
-              lineHeight: 1.18,
-              color: "#f1f5f9",
-              fontFamily:
-                "ui-sans-serif, -apple-system, BlinkMacSystemFont, sans-serif",
+              lineHeight: 1.16,
+              letterSpacing: "-0.024em",
+              color: og.ink,
+              fontFamily: ogFont,
             }}
           >
             {heroStat}
@@ -125,9 +112,8 @@ export default async function ReportOgImage({
               style={{
                 fontSize: "22px",
                 lineHeight: 1.4,
-                color: "#94a3b8",
-                fontFamily:
-                  "ui-sans-serif, -apple-system, BlinkMacSystemFont, sans-serif",
+                color: og.ink2,
+                fontFamily: ogFont,
               }}
             >
               {heroCaption}
@@ -139,16 +125,18 @@ export default async function ReportOgImage({
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
+            width: "100%",
             alignItems: "flex-end",
             fontSize: "18px",
-            color: "#94a3b8",
+            color: og.muted,
           }}
         >
-          <div style={{ color: "#cbd5e1" }}>
+          <div style={{ display: "flex", color: og.ink2 }}>
             Every number cites its public source.
           </div>
-          <div>gawk.dev/reports/{config.slug}</div>
+          <div style={{ marginLeft: "auto", display: "flex" }}>
+            gawk.dev/reports/{config.slug}
+          </div>
         </div>
       </div>
     ),
@@ -162,36 +150,22 @@ function BrandOnlyCard() {
       style={{
         width: "100%",
         height: "100%",
-        background: "#06080a",
-        color: "#e2e8f0",
+        background: og.paper,
+        color: og.ink,
         padding: "72px",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
         gap: "24px",
-        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        fontFamily: ogFont,
       }}
     >
-      <div
-        style={{
-          width: "28px",
-          height: "28px",
-          borderRadius: "50%",
-          background: "#2dd4bf",
-          boxShadow: "0 0 32px #2dd4bf",
-        }}
-      />
-      <div
-        style={{
-          fontSize: "36px",
-          letterSpacing: "0.36em",
-          fontWeight: 700,
-        }}
-      >
-        GAWK
+      <BrandTile size={96} />
+      <div style={{ display: "flex", fontSize: "36px", fontWeight: 600, letterSpacing: "-0.02em" }}>
+        gawk.dev
       </div>
-      <div style={{ fontSize: "20px", color: "#94a3b8" }}>
+      <div style={{ display: "flex", fontSize: "20px", color: og.muted }}>
         AI Genesis Report
       </div>
     </div>
