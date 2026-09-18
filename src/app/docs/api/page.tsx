@@ -37,7 +37,7 @@ const ENDPOINTS: Endpoint[] = [
     description:
       "Ranked card stream — the same feed powering the gawk.dev dashboard. Includes tool alerts, model movers, new releases, SDK trends, news, and research. Also carries `triggers`, the thresholds that decide what surfaces, so a client can say why a card is here without hard-coding them.",
     example: `curl ${BASE}/feed`,
-    responseHint: `{ "cards": [ { "type": "TOOL_ALERT", "severity": "high", ... }, ... ], "triggers": { "MODEL_MOVER_RANK_DELTA": 3, ... }, "generatedAt": "..." }`,
+    responseHint: `{ "cards": [ { "type": "TOOL_ALERT", "severity": "high", ... }, ... ], "triggers": { "MODEL_MOVER_RANK_DELTA": 3, ... }, "lastComputed": "..." }`,
   },
   {
     method: "GET",
