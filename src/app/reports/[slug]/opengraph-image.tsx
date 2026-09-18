@@ -12,10 +12,11 @@
  * page itself. If the report config is missing the slug, the OG
  * falls back to a brand-only card so the unfurl never 500s.
  *
- * Reuses the `src/app/opengraph-image.tsx` aesthetic (dark
- * background, teal accent, mono brand mark) so the LinkedIn unfurl
- * — that palette is gone; the card is now the site's own warm paper
- * is visually consistent with the homepage unfurl.
+ * Reuses the `src/app/opengraph-image.tsx` aesthetic — the site's own
+ * warm paper and ink, with the mark at favicon scale — so this unfurl
+ * is visually consistent with the homepage one. (The dark background
+ * and teal accent this once described went out in #156; the sentence
+ * survived the sweep spliced in half and said both things at once.)
  */
 
 import { ImageResponse } from "next/og";
