@@ -1,22 +1,26 @@
 /**
- * The body both public registry endpoints serve — `/api/v1/sources` and
+ * The bodies the two public registry endpoints serve — `/api/v1/sources` and
  * `/api/registry`.
  *
- * They were byte-identical (38,451,538 bytes each, measured 2026-09-18) because
- * they duplicated the same "read everything, serialise everything" logic. One
- * builder now, so a fix to one is a fix to both: that duplication is exactly
- * how `/api/registry` would have kept serving 38MB after `/api/v1/sources` was
- * paged.
+ * They were byte-identical (38,451,538 bytes each, measured 2026-09-18)
+ * because they duplicated the same "read everything, serialise everything"
+ * logic. They share this module now, but they do NOT share a shape, and the
+ * difference is load-bearing:
  *
- * WHAT CHANGED, and why it is worth the break:
- *   - The list is a PAGE (default 100, max 1000), not the whole corpus. At
- *     31,764 entries and +520/day, "everything in one response" had no
- *     ceiling; it already took 25–30s and `jq` could not parse the result.
- *   - List rows carry configs WITHOUT `configs[].sample` — 58.6% of the
- *     corpus by weight (23.8MB of 40.7MB across 45,756 configs).
- *   - The sample is not gone. `?repo=owner/name` returns one entry complete
- *     with it — the trust contract ("this is WHY we counted it") in the only
- *     context a reader can use it: one repo at a time.
+ *   - `/api/v1/sources` (`buildRegistryBody`) PAGES — default 100, max 1000.
+ *     It has no UI consumer. At 31,764 entries and +520/day, "everything in
+ *     one response" had no ceiling; it took 25–30s and `jq` could not parse
+ *     the result.
+ *   - `/api/registry` (`buildRegistryFullBody`) returns EVERY entry and has
+ *     no `page`, because `Dashboard.tsx:256` polls it and draws one map dot
+ *     per located entry. Paging it would thin that layer to nothing while the
+ *     map still looked like it worked.
+ *
+ * BOTH drop `configs[].sample` from entry lists — 58.6% of the corpus by
+ * weight (23.8MB of 40.7MB across 45,756 configs), and nothing in
+ * `src/components` reads it. The sample is not gone: `?repo=owner/name`
+ * returns one entry complete with it, the trust contract ("this is WHY we
+ * counted it") in the only context a reader can use it — one repo at a time.
  *
  * `degraded` keeps its meaning exactly: true means the registry could not be
  * READ, and the entries array carries no information. It never means "empty".
