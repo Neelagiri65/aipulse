@@ -1,4 +1,4 @@
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 import type { EventMeta } from "@/components/globe/event-detail";
 
 /**

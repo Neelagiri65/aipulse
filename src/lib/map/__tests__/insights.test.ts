@@ -12,7 +12,7 @@ import {
   pickClusterDelta,
   formatClusterDelta,
 } from "@/lib/map/insights";
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 
 const SF: [number, number] = [37.7749, -122.4194];
 const LDN: [number, number] = [51.5074, -0.1278];

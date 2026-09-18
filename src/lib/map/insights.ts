@@ -26,7 +26,7 @@
  * would violate the trust contract.
  */
 
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 import { cityFromCoords } from "@/lib/geocoding";
 
 /** Result of the "most active city" aggregation. `null` when no live

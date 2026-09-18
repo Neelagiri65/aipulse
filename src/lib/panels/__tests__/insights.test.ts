@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 import type { ModelsResult, HuggingFaceModel } from "@/lib/data/fetch-models";
 import type {
   BenchmarksPayload,

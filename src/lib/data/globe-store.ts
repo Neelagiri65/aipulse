@@ -23,7 +23,7 @@
 
 import type { Redis } from "@upstash/redis";
 import { createRedis } from "@/lib/redis-client";
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 
 const EVENTS_KEY = "aipulse:globe-events";
 const META_KEY = "aipulse:globe-ingest-meta";

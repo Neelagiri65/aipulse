@@ -119,7 +119,7 @@ export default async function CardPage({
           still in gawk.dev — see the latest cards on the home feed.
         </p>
         <p>
-          <Link href="/" className="text-[var(--ap-accent,#2dd4bf)] underline">
+          <Link href="/" className="text-[var(--ap-accent)] underline">
             ← back to gawk.dev
           </Link>
         </p>

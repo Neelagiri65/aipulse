@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { splitByPrecision } from "@/lib/map/precision";
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 
 const point = (
   lat: number,

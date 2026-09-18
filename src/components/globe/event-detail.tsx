@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef } from "react";
-import type { GlobePoint } from "./Globe";
+import type { GlobePoint } from "./types";
 import { shortEventType } from "@/components/globe/event-types";
 import { formatAgeLabel } from "@/lib/data/registry-shared";
 import type { ConfigKind } from "@/lib/data/registry-shared";
@@ -140,6 +140,9 @@ const SLATE = "#cbd5e1";
  * globe, flat map, and filter chips all read the same semantic.
  */
 export const EVENT_TYPE_COLOR: Record<string, string> = {
+  // Teal here is a CATEGORY, not the old brand: event-palette.ts pairs every hue
+  // with a light-ground twin tuned to clear 3:1 on the positron basemap
+  // (PRD web-restyle-v2 §7). Recolouring one member breaks a contrast-checked set.
   PushEvent: "#2dd4bf", // teal
   PullRequestEvent: "#60a5fa", // blue
   PullRequestReviewEvent: "#60a5fa",
@@ -320,7 +323,7 @@ export const EventCard = forwardRef<HTMLDivElement, EventCardProps>(function Eve
             <>
               {cluster.liveCount} live
               {cluster.aiCount > 0 && (
-                <span className="text-[#2dd4bf]"> · {cluster.aiCount} w/ AI cfg</span>
+                <span className="text-[var(--ap-accent)]"> · {cluster.aiCount} w/ AI cfg</span>
               )}
             </>
           )}
@@ -480,7 +483,7 @@ function EventRow({ point }: { point: GlobePoint }) {
             href={repoLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-[#2dd4bf] hover:underline"
+            className="hover:text-[var(--ap-accent)] hover:underline"
           >
             {repo}
           </a>
@@ -537,7 +540,7 @@ function RegistryRow({ point }: { point: GlobePoint }) {
             href={repoLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-[#2dd4bf] hover:underline"
+            className="hover:text-[var(--ap-accent)] hover:underline"
           >
             {repo}
           </a>
