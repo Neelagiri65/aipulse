@@ -70,13 +70,26 @@ describe("the Model Usage row anchor", () => {
     expect(DOT_RULE![0]).not.toMatch(/background:\s*(#|rgb)/);
   });
 
-  it.each([["light"], ["dark"]] as const)(
-    "clears 3:1 against its own ground in %s",
-    (scope) => {
-      const ratio = contrast(tokenIn(scope, "--ink-muted"), tokenIn(scope, "--paper"));
-      expect(ratio, `--ink-muted on --paper in ${scope} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
-    },
-  );
+  /**
+   * The dot has TWO grounds, which driving the journeys is what revealed:
+   * the standalone panel paints it on --paper, and the dashboard board paints
+   * it on --surface (#FFFFFF light / #1F2226 dark, measured at 4.90:1 and
+   * 5.67:1 in the browser). Asserting only --paper would let a re-step of
+   * --surface toward mid-grey make the dashboard dot illegible with this file
+   * still green — the same one-ground blindness that shipped the original bug.
+   */
+  it.each([
+    ["light", "--paper"],
+    ["light", "--surface"],
+    ["dark", "--paper"],
+    ["dark", "--surface"],
+  ] as const)("clears 3:1 against %s %s", (scope, ground) => {
+    const ratio = contrast(tokenIn(scope, "--ink-muted"), tokenIn(scope, ground));
+    expect(
+      ratio,
+      `--ink-muted on ${ground} in ${scope} is ${ratio.toFixed(2)}:1`,
+    ).toBeGreaterThanOrEqual(3);
+  });
 
   it("declares no per-vendor colour variant", () => {
     // Fourteen mutually distinguishable hues do not exist: at eight slots the
