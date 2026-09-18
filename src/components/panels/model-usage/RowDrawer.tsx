@@ -20,6 +20,7 @@
  */
 
 import * as React from "react";
+import { dateUtc } from "@/lib/format/utc-stamp";
 import { useCallback, useEffect } from "react";
 
 import { SparklineMini } from "@/components/charts/SparklineMini";
@@ -170,7 +171,7 @@ export function RowDrawer({
           {row.knowledgeCutoff ? (
             <div className="stat">
               <span className="stat-label">Knowledge cutoff</span>
-              <span className="stat-value">{row.knowledgeCutoff}</span>
+              <span className="stat-value">{dateUtc(row.knowledgeCutoff)}</span>
             </div>
           ) : null}
         </section>
