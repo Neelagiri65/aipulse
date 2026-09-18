@@ -10,6 +10,13 @@
  *
  * Actor logins are namespaced `gl:{username}` for GitLab; the profile
  * URL and display strip the prefix.
+ *
+ * WHICH VALUES BELONG HERE: any repo name that came from the EVENTS
+ * payload, because that stream carries both platforms in one field. A
+ * curated registry value typed `githubRepo` (`agents-registry.ts`) is
+ * GitHub by construction and does not need the rule — routing it through
+ * here would only add a null case that cannot happen. The distinction is
+ * the value's origin, not the file it is rendered in.
  */
 
 /** Canonical repo/project URL for an event. Null when the name is absent. */
