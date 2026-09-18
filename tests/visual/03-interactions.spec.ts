@@ -62,9 +62,17 @@ test.describe("interactions", () => {
     const coverage = await page.locator(".ap-wire__coverage").first().textContent();
     const hnInWindow = Number(coverage?.match(/(\d+) hn\)/)?.[1] ?? "0");
     skipWhenLocalAndEmpty(hnInWindow, "The Wire has no HN stories");
-    // The wire pages at 200 rows, newest first — HN stories may sit past the first page.
+    // The wire pages at 200 rows, newest first, and HN stories are the rare,
+    // slower half of the stream — they sit at the very end. Page until the
+    // button is GONE rather than a fixed number of clicks: a cap silently
+    // becomes wrong as the wire grows. Measured 2026-09-18, this needed
+    // ELEVEN clicks to reach the HN rows (2,406 rows in the window, of which
+    // 30 hn) while the cap here was ten, so the assertion failed on a wire
+    // that was working perfectly — the coverage line and the rendered rows
+    // reconcile exactly once fully paged. The bound below only stops a
+    // runaway; it is not a guess at how deep the HN rows are.
     const hnPill = page.locator("span.ap-hnpill").first();
-    for (let i = 0; i < 10 && (await hnPill.count()) === 0; i++) {
+    for (let i = 0; i < 100 && (await hnPill.count()) === 0; i++) {
       const more = page.getByRole("button", { name: /^Show \d+ more$/ });
       if ((await more.count()) === 0) break;
       await more.click();
