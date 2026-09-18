@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { dateUtc } from "@/lib/format/utc-stamp";
 import { MCP_URL } from "@/lib/mcp-prompt";
 import { useEffect, useState } from "react";
 import type { StatusResult } from "@/lib/data/fetch-status";
@@ -340,7 +341,18 @@ function useUtcClock(): string {
   return now;
 }
 
-function fmtUtc(d: Date): string {
+/**
+ * The header clock, `dd/mm/yyyy hh:mm:ss UTC`.
+ *
+ * It used to put the month first. On one homepage render the chrome said
+ * "09/18/2026 19:58:28 UTC" while the panels beneath it said
+ * "18/09/2026 16:42 UTC" — two date orders on one screen, and the American
+ * one in the part that appears on every page. The date half now comes from
+ * `dateUtc` so the order cannot drift from the rest of the product again;
+ * the seconds stay, because this clock ticks.
+ */
+export function fmtUtc(d: Date): string {
   const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(d.getUTCMonth() + 1)}/${p(d.getUTCDate())}/${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`;
+  const time = `${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`;
+  return `${dateUtc(d.toISOString())} ${time} UTC`;
 }

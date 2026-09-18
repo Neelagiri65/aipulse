@@ -43,3 +43,17 @@ describe("dateUtc", () => {
     expect(stampUtc(iso).startsWith(dateUtc(iso))).toBe(true);
   });
 });
+
+describe("the header clock shares the house date order", () => {
+  it("puts the day first, not the month", async () => {
+    const { fmtUtc } = await import("@/components/chrome/TopBar");
+    // The live render that exposed this said "09/18/2026 19:58:28 UTC" in the
+    // chrome while the panels below it said "18/09/2026 16:42 UTC".
+    expect(fmtUtc(new Date("2026-09-18T19:58:28.000Z"))).toBe("18/09/2026 19:58:28 UTC");
+  });
+
+  it("agrees with dateUtc on the date half", () => {
+    const d = new Date("2026-01-02T03:04:05.000Z");
+    expect(dateUtc(d.toISOString())).toBe("02/01/2026");
+  });
+});
