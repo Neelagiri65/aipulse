@@ -13,7 +13,7 @@
  * `labs-to-points.test.ts` pin the contract.
  */
 
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 import type { LabActivity } from "@/lib/data/fetch-labs";
 import { CATEGORY_META } from "@/lib/data/labs-registry";
 

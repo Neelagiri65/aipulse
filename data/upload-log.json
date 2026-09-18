@@ -1234,5 +1234,29 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-09-16",
+    "videoId": "-d2Spge2f2k",
+    "url": "https://youtu.be/-d2Spge2f2k",
+    "title": "GPT-5.6 Luna holds #1 on OpenRouter | Gawk Daily — 16 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-16T12:35:20.218Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
+  },
+  {
+    "date": "2026-09-17",
+    "videoId": "6dZXsgAS_vc",
+    "url": "https://youtu.be/6dZXsgAS_vc",
+    "title": "GPT-5.6 Luna holds #1 on OpenRouter | Gawk Daily — 17 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-17T12:34:50.719Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]

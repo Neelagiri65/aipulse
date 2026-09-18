@@ -195,7 +195,7 @@ export default function MethodologyPage() {
       </section>
 
       <p>
-        <Link href="/" className="text-[var(--ap-accent,#2dd4bf)] underline">
+        <Link href="/" className="text-[var(--ap-accent)] underline">
           ← back to gawk.dev
         </Link>
       </p>

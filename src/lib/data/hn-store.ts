@@ -31,7 +31,7 @@ import type {
   HnWireItem,
   HnWireResult,
 } from "@/lib/data/wire-hn";
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 
 const ITEM_KEY_PREFIX = "hn:item:";
 const AUTHOR_KEY_PREFIX = "hn:author:";

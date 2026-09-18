@@ -54,14 +54,18 @@ const VALID_BLOCK_IDS: ReadonlySet<GenesisBlockId> = new Set<GenesisBlockId>([
   "agents-velocity-30d",
 ]);
 
-/** Hex colour palette per block id. Climbers / gainers = teal (positive
- *  signal); fallers / losers = amber-red (negative). Neutral blocks =
- *  slate. Single source of truth so charts stay visually consistent. */
+/** Hex colour palette per block id.
+ *
+ *  Climbers / gainers carry the site's own "operational" green and fallers its
+ *  "outage" red (globals.css --op / --out), because the thing being encoded here
+ *  IS up-versus-down and the palette already has a pair that means exactly that.
+ *  It was teal-and-salmon from the S40 identity, which meant nothing on its own.
+ *  The remaining blocks are categorical, not directional, and keep distinct hues. */
 const BLOCK_PALETTE: Record<GenesisBlockId, string> = {
-  "sdk-adoption-gainers-30d": "#2dd4bf",
-  "sdk-adoption-losers-30d": "#f87171",
-  "openrouter-rank-climbers-30d": "#2dd4bf",
-  "openrouter-rank-fallers-30d": "#f87171",
+  "sdk-adoption-gainers-30d": "#157A40",
+  "sdk-adoption-losers-30d": "#C0392B",
+  "openrouter-rank-climbers-30d": "#157A40",
+  "openrouter-rank-fallers-30d": "#C0392B",
   "labs-activity-leaders-30d": "#a855f7",
   "tool-incidents-30d": "#f59e0b",
   "agents-velocity-30d": "#60a5fa",

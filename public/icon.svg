@@ -1,11 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AI Pulse">
-  <rect width="512" height="512" fill="#06080a"/>
-  <!-- Pulsing ring -->
-  <circle cx="256" cy="256" r="180" fill="none" stroke="#2dd4bf" stroke-width="6" stroke-opacity="0.35"/>
-  <circle cx="256" cy="256" r="140" fill="none" stroke="#2dd4bf" stroke-width="6" stroke-opacity="0.55"/>
-  <!-- Solid pulse dot -->
-  <circle cx="256" cy="256" r="92" fill="#2dd4bf"/>
-  <!-- Inner darker recess for "live" feel -->
-  <circle cx="256" cy="256" r="44" fill="#06080a"/>
-  <circle cx="256" cy="256" r="20" fill="#2dd4bf"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"
+     role="img" aria-label="gawk.dev">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#C8401F"/>
+      <stop offset="1" stop-color="#A8341A"/>
+    </linearGradient>
+    <linearGradient id="b" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EFEDE4"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#g)"/>
+  <rect x="149.4" y="373.5" width="725.2" height="277.0"
+        rx="138.5" fill="url(#b)"/>
+  <circle cx="292.7" cy="512.0" r="32.7" fill="#A33219"/>
+  <circle cx="418.7" cy="512.0" r="52.9" fill="#672615"/>
+  <circle cx="597.6" cy="512.0" r="85.6" fill="#16160F"/>
+  <circle cx="756.3" cy="512.0" r="32.7" fill="#A33219"/>
 </svg>

@@ -103,7 +103,7 @@ const brand = {
   fontWeight: 700,
   letterSpacing: "0.18em",
   textTransform: "uppercase" as const,
-  color: "#2dd4bf",
+  color: "#C8401F",
   margin: 0,
 };
 const lead = {
@@ -117,7 +117,7 @@ const sample = {
   margin: "16px 0",
   padding: "12px 14px",
   backgroundColor: "#0b1322",
-  borderLeft: "3px solid #2dd4bf",
+  borderLeft: "3px solid #C8401F",
   borderRadius: "4px",
 };
 const sampleLabel = {
@@ -142,7 +142,7 @@ const sampleSrc = {
 };
 const buttonSection = { margin: "20px 0 8px 0" };
 const button = {
-  backgroundColor: "#2dd4bf",
+  backgroundColor: "#C8401F",
   color: "#052e2b",
   padding: "12px 20px",
   borderRadius: "8px",

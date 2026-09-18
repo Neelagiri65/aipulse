@@ -17,7 +17,7 @@
 /** Minimum HN points required for a story to enter the wire. */
 export const HN_MIN_WIRE_POINTS = 5;
 
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 import { geocode } from "@/lib/geocoding";
 import {
   isHnStoreAvailable,
