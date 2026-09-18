@@ -14,6 +14,7 @@ import type { RegistryEntry, RegistryMeta } from "@/lib/data/registry-shared";
 
 const readEntriesPage = vi.fn();
 const readEntry = vi.fn();
+const readEntryDetailed = vi.fn();
 const readMeta = vi.fn();
 const countEntries = vi.fn();
 
@@ -23,6 +24,7 @@ vi.mock("@/lib/data/repo-registry", async () => {
     ...shared,
     readEntriesPage: (o: unknown) => readEntriesPage(o),
     readEntry: (n: string) => readEntry(n),
+    readEntryDetailed: (n: string) => readEntryDetailed(n),
     readMeta: () => readMeta(),
     countEntries: () => countEntries(),
   };
@@ -68,6 +70,7 @@ const url = (qs = "") => new URL(`https://gawk.dev/api/v1/sources${qs}`);
 beforeEach(() => {
   readEntriesPage.mockReset();
   readEntry.mockReset();
+  readEntryDetailed.mockReset();
   readMeta.mockReset();
   countEntries.mockReset();
   readMeta.mockResolvedValue(META);
@@ -179,11 +182,11 @@ describe("list — degraded still means 'could not read', never 'empty'", () => 
 
 describe("?repo= — the sample survives, per repo", () => {
   it("returns the FULL entry including configs[].sample", async () => {
-    readEntry.mockResolvedValue(entry("NVIDIA/cuopt", "the quote"));
+    readEntryDetailed.mockResolvedValue({ ok: true, entry: entry("NVIDIA/cuopt", "the quote") });
 
     const body = await buildRegistryBody(url("?repo=NVIDIA/cuopt"));
 
-    expect(readEntry).toHaveBeenCalledWith("NVIDIA/cuopt");
+    expect(readEntryDetailed).toHaveBeenCalledWith("NVIDIA/cuopt");
     expect(isDetailBody(body)).toBe(true);
     if (!isDetailBody(body)) return;
     // The trust contract: "this is WHY we counted it" is still reachable.
@@ -193,13 +196,13 @@ describe("?repo= — the sample survives, per repo", () => {
   });
 
   it("does not read a page when asked for one repo", async () => {
-    readEntry.mockResolvedValue(entry("a/one"));
+    readEntryDetailed.mockResolvedValue({ ok: true, entry: entry("a/one") });
     await buildRegistryBody(url("?repo=a/one"));
     expect(readEntriesPage).not.toHaveBeenCalled();
   });
 
   it("distinguishes 'not registered' (measured) from 'could not read'", async () => {
-    readEntry.mockResolvedValue(null);
+    readEntryDetailed.mockResolvedValue({ ok: true, entry: null });
 
     const body = await buildRegistryBody(url("?repo=nobody/here"));
     if (!isDetailBody(body)) throw new Error("expected a detail");
@@ -219,6 +222,102 @@ describe("?repo= — the sample survives, per repo", () => {
     const body = await buildRegistryBody(url("?repo=%20"));
 
     expect(isDetailBody(body)).toBe(false);
-    expect(readEntry).not.toHaveBeenCalled();
+    expect(readEntryDetailed).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The three holes found in review, each in the contract this change claims to
+ * preserve. Every one of them publishes a confident value nobody measured.
+ */
+describe("a null is only an answer when the read succeeded", () => {
+  it("?repo= with the store DOWN is degraded, not 'not registered'", async () => {
+    readEntry.mockReset();
+    readEntryDetailed.mockResolvedValue({
+      ok: false,
+      reason: "error",
+      message: "hget failed",
+    });
+
+    const body = await buildRegistryBody(url("?repo=a/one"));
+    if (!isDetailBody(body)) throw new Error("expected a detail");
+
+    expect(body.entry).toBe(null);
+    // Without this the response says "we looked, it is not there" about a
+    // repo nobody could look up.
+    expect(body.degraded).toBe(true);
+    expect(body.degradedReason).toBe("error");
+  });
+
+  it("?repo= with Redis unconfigured is degraded too", async () => {
+    readEntryDetailed.mockResolvedValue({
+      ok: false,
+      reason: "unconfigured",
+      message: "no creds",
+    });
+
+    const body = await buildRegistryBody(url("?repo=a/one"));
+    if (!isDetailBody(body)) throw new Error("expected a detail");
+    expect(body.degraded).toBe(true);
+    expect(body.degradedReason).toBe("unconfigured");
+  });
+
+  it("page.total is null when the page read failed, even though HLEN said 0", async () => {
+    // HLEN on a missing key returns 0, not an error. On the `absent` path that
+    // is a perfectly confident zero for a registry that was evicted — the
+    // 2026-06-05 number, in the response that promises never to print it.
+    readEntriesPage.mockResolvedValue({
+      ok: false,
+      reason: "absent",
+      message: "key gone",
+    });
+    countEntries.mockResolvedValue(0);
+
+    const body = await buildRegistryBody(url());
+    if (isDetailBody(body)) throw new Error("expected a list");
+
+    expect(body.degraded).toBe(true);
+    expect(body.page.total).toBe(null);
+  });
+
+  it("keeps a real zero when the read SUCCEEDED and the registry is empty", async () => {
+    readEntriesPage.mockResolvedValue({ ok: true, entries: [], nextCursor: null });
+    countEntries.mockResolvedValue(0);
+
+    const body = await buildRegistryBody(url());
+    if (isDetailBody(body)) throw new Error("expected a list");
+
+    expect(body.degraded).toBe(false);
+    expect(body.page.total).toBe(0);
+  });
+});
+
+describe("a bad ?cursor= is a client typo, not a store outage", () => {
+  beforeEach(() => {
+    readEntriesPage.mockResolvedValue({
+      ok: true,
+      entries: [entry("a/one")],
+      nextCursor: "512",
+    });
+  });
+
+  it("restarts the walk and echoes cursor 0 rather than making Redis throw", async () => {
+    for (const bad of ["garbage", "-1", "12a", "0x10", "'; DROP"]) {
+      const body = await buildRegistryBody(
+        url(`?cursor=${encodeURIComponent(bad)}`),
+      );
+      if (isDetailBody(body)) throw new Error("expected a list");
+      // Passing it through would surface as degraded — a store outage — and
+      // the CDN would hold that answer for five minutes.
+      expect(body.page.cursor).toBe("0");
+      expect(body.degraded).toBe(false);
+    }
+  });
+
+  it("still honours a real cursor", async () => {
+    const body = await buildRegistryBody(url("?cursor=512"));
+    if (isDetailBody(body)) throw new Error("expected a list");
+    expect(body.page.cursor).toBe("512");
+    expect(readEntriesPage).toHaveBeenLastCalledWith({ cursor: "512", limit: 100 });
   });
 });

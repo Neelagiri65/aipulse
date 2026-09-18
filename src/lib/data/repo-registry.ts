@@ -369,20 +369,56 @@ export async function readAllEntries(): Promise<RegistryEntry[]> {
   return res.ok ? res.entries : [];
 }
 
-export async function readEntry(
+/** One entry, distinguishing "not registered" from "could not look". */
+export type RegistryEntryRead =
+  | { ok: true; entry: RegistryEntry | null }
+  | { ok: false; reason: RegistryReadFailure; message: string };
+
+/**
+ * Read one entry, reporting WHY when there is nothing to return.
+ *
+ * `readEntry` collapses "this repo is not in the registry" and "Redis threw"
+ * into the same `null`. Published through an API that is the difference
+ * between a measurement and a fabrication: a consumer told `entry: null,
+ * degraded: false` will say "gawk.dev has not verified this repo" when the
+ * truth is that nobody could look. Same class as the 2026-06-05 zero, one
+ * repo at a time.
+ */
+export async function readEntryDetailed(
   fullName: string,
-): Promise<RegistryEntry | null> {
+): Promise<RegistryEntryRead> {
   const r = redis();
-  if (!r) return null;
+  if (!r) {
+    return {
+      ok: false,
+      reason: "unconfigured",
+      message: "Redis is not configured (UPSTASH_REDIS_REST_* absent)",
+    };
+  }
   try {
     const v = await r.hget(ENTRIES_KEY, fullName);
     const parsed = parseEntry(v);
     // The detail path is the one that still carries `configs[].sample`, so it
     // is the one that must not emit a half-emoji left by the 500-char cap.
-    return parsed ? sanitiseEntry(parsed) : null;
-  } catch {
-    return null;
+    return { ok: true, entry: parsed ? sanitiseEntry(parsed) : null };
+  } catch (e) {
+    return {
+      ok: false,
+      reason: "error",
+      message: e instanceof Error ? e.message : String(e),
+    };
   }
+}
+
+/**
+ * Fail-soft single read. `null` means "absent OR unreadable" — fine for a
+ * render path, never for a published answer. Use `readEntryDetailed` there.
+ */
+export async function readEntry(
+  fullName: string,
+): Promise<RegistryEntry | null> {
+  const res = await readEntryDetailed(fullName);
+  return res.ok ? res.entry : null;
 }
 
 export async function removeEntries(fullNames: string[]): Promise<void> {

@@ -26,7 +26,7 @@ import {
   clampPageLimit,
   countEntries,
   readEntriesPage,
-  readEntry,
+  readEntryDetailed,
   readMeta,
   toListEntry,
   type ListedRegistryEntry,
@@ -83,32 +83,45 @@ export function isDetailBody(body: RegistryBody): body is RegistryDetailBody {
  * Build the response body for a registry request.
  *
  * `?repo=owner/name` → one full entry. Anything else → a page of listed
- * entries. A repo that is absent from the registry is `entry: null` with
- * `degraded: false`: we looked, it is not there. That is a measurement, unlike
- * a read failure, which sets `degraded`.
+ * entries.
+ *
+ * `entry: null` is only an answer when `degraded` is false: we looked, and
+ * this repo is not in the registry. With `degraded: true` the same null means
+ * we could not look, and a consumer must not turn it into "gawk.dev has not
+ * verified this repo".
  */
 export async function buildRegistryBody(url: URL): Promise<RegistryBody> {
   const generatedAt = new Date().toISOString();
   const repo = url.searchParams.get("repo");
 
   if (repo && repo.trim() !== "") {
-    const [entry, meta] = await Promise.all([
-      readEntry(repo.trim()),
+    const [read, meta] = await Promise.all([
+      readEntryDetailed(repo.trim()),
       readMeta(),
     ]);
+    // `entry: null` means one of two opposite things and the caller must be
+    // able to tell them apart: we looked and this repo is not registered
+    // (a measurement), or we could not look (`degraded`). Collapsing them is
+    // how a consumer ends up publishing "not verified" about a repo nobody
+    // checked.
     return {
       ok: true,
-      entry,
+      entry: read.ok ? read.entry : null,
       repo: repo.trim(),
       meta,
-      degraded: false,
-      degradedReason: null,
+      degraded: !read.ok,
+      degradedReason: read.ok ? null : read.reason,
       generatedAt,
     };
   }
 
   const limit = clampPageLimit(url.searchParams.get("limit"));
-  const cursor = url.searchParams.get("cursor") ?? "0";
+  // A Redis cursor is always a decimal integer. Anything else is a client
+  // typo, and passing it through makes Redis throw — which would surface as
+  // `degraded: true` (a store outage) and get CDN-cached under that URL for
+  // five minutes. A bad cursor restarts the walk and says so by echoing "0".
+  const rawCursor = url.searchParams.get("cursor")?.trim() ?? "";
+  const cursor = /^\d+$/.test(rawCursor) ? rawCursor : "0";
   const [read, meta, total] = await Promise.all([
     readEntriesPage({ cursor, limit }),
     readMeta(),
@@ -120,9 +133,13 @@ export async function buildRegistryBody(url: URL): Promise<RegistryBody> {
     entries: read.ok ? read.entries.map(toListEntry) : [],
     page: {
       limit,
-      cursor: cursor.trim() === "" ? "0" : cursor,
+      cursor,
       nextCursor: read.ok ? read.nextCursor : null,
-      total,
+      // HLEN on a missing key is 0, not an error — so on the `absent` path
+      // `countEntries` would hand back a perfectly confident zero for a
+      // registry that was evicted. That is the 2026-06-05 number exactly.
+      // A count is only a count when the read behind it succeeded.
+      total: read.ok ? total : null,
     },
     meta,
     degraded: !read.ok,
