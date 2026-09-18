@@ -54,34 +54,6 @@ const SORT_ORDER: ModelUsageSortOption[] = [
 
 const TOP_HIGHLIGHT_RANKS = 3;
 
-/**
- * Provider author → CSS-modifier slug for the colour dot. Lower-cased
- * lookup so "Anthropic" / "anthropic" both resolve. Anything not in the
- * map renders the neutral fallback dot (still visually present, just
- * grey) — never invents a colour for an unknown vendor.
- */
-const PROVIDER_DOT_SLUG: Record<string, string> = {
-  anthropic: "anthropic",
-  openai: "openai",
-  google: "google",
-  "google-ai-studio": "google",
-  deepseek: "deepseek",
-  moonshotai: "moonshot",
-  moonshot: "moonshot",
-  "meta-llama": "meta",
-  meta: "meta",
-  mistralai: "mistral",
-  mistral: "mistral",
-  qwen: "qwen",
-  alibaba: "qwen",
-  xai: "xai",
-  cohere: "cohere",
-  microsoft: "microsoft",
-  nvidia: "nvidia",
-  perplexity: "perplexity",
-  amazon: "amazon",
-};
-
 export type ModelUsageListProps = {
   data: ModelUsageDto;
   focusedSlug?: string | null;
@@ -143,7 +115,6 @@ export function ModelUsageList({
         {sorted.map((row) => {
           const focused = focusedSlug === row.slug;
           const top3 = row.rank <= TOP_HIGHLIGHT_RANKS;
-          const providerSlug = providerDotSlug(row.author);
           const barFraction = computeRankBarFraction(row.rank, maxRank);
           const pricingTooltip =
             row.pricing.completionPerMTok !== null
@@ -168,11 +139,11 @@ export function ModelUsageList({
                 <RankChange row={row} ordering={data.ordering} />
               </span>
               <span className="model-usage-label">
-                <span
-                  className={`provider-dot provider-dot-${providerSlug}`}
-                  aria-hidden="true"
-                  title={row.authorDisplay}
-                />
+                {/* A row anchor, not a provider code. It used to take a
+                    per-vendor colour class; those colours were illegible on
+                    the paper board and no set of fourteen could have been
+                    legible. `authorDisplay` is rendered as text below. */}
+                <span className="provider-dot" aria-hidden="true" />
                 <span className="model-usage-name" title={row.slug}>
                   {row.shortName}
                 </span>
@@ -273,16 +244,6 @@ export function formatContextLength(tokens: number): string {
     return `${Math.round(tokens / 1_000)}K`;
   }
   return tokens.toString();
-}
-
-/**
- * Map a raw author string to the provider-dot CSS modifier slug. Falls
- * back to "neutral" for unknown vendors — never invents a colour for
- * an author we haven't curated.
- */
-export function providerDotSlug(author: string): string {
-  const key = author.toLowerCase();
-  return PROVIDER_DOT_SLUG[key] ?? "neutral";
 }
 
 /**
