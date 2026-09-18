@@ -40,9 +40,13 @@
  *
  * Command budget (Upstash free tier, 10k/day):
  *   - Discovery cron every 6h: 4 HSET + 4 SET meta = 8 commands/day.
- *   - Reads: 1 HGETALL per UI poll. At 60s poll cadence × 3 clients avg
- *     that's ~4k reads/day. Comfortably inside budget alongside the
- *     existing globe-store's ~4k commands/day.
+ *   - Reads: this said "1 HGETALL per UI poll" long after the read became a
+ *     paged HSCAN walk. A FULL read is now ceil(total / REGISTRY_SCAN_BATCH)
+ *     commands — at 31,764 entries that is ~318, not 1, and it drags the
+ *     whole 38MB corpus out of Upstash every time. Which is why the public
+ *     endpoints do NOT do a full read: `readEntriesPage` is one HSCAN for
+ *     one page, and `countEntries` is one HLEN. Pinned by a test that counts
+ *     the calls, because this comment was wrong for two months.
  *
  * Graceful degradation:
  *   - When Redis is unconfigured, every function is a silent no-op and
@@ -64,16 +68,24 @@
 
 import type { Redis } from "@upstash/redis";
 import { createRedis } from "@/lib/redis-client";
+import { sanitiseEntry } from "./registry-shared";
 
 // Types + pure helpers are defined in `registry-shared.ts` so client
 // components can import them without pulling in the Upstash SDK. This
 // module adds the Redis-backed read/write path on top.
 export {
   CONFIG_PATHS,
+  REGISTRY_PAGE_DEFAULT,
+  REGISTRY_PAGE_MAX,
+  clampPageLimit,
   decayScore,
   formatAgeLabel,
+  sanitiseEntry,
+  stripLoneSurrogates,
+  toListEntry,
   type ConfigKind,
   type DetectedConfig,
+  type ListedRegistryEntry,
   type RegistryEntry,
   type RegistryLocation,
   type RegistryMeta,
@@ -255,6 +267,96 @@ export async function readAllEntriesDetailed(): Promise<RegistryRead> {
   return { ok: true, entries: out };
 }
 
+/** One page of the registry. `nextCursor` is null when the walk is complete. */
+export type RegistryPage =
+  | { ok: true; entries: RegistryEntry[]; nextCursor: string | null }
+  | { ok: false; reason: RegistryReadFailure; message: string };
+
+/**
+ * Read ONE page of the registry — a single HSCAN, not a walk.
+ *
+ * This is what the public endpoints use. `readAllEntriesDetailed` pulls the
+ * whole corpus (38MB / ~318 commands as of 2026-09-18, and growing ~520
+ * entries a day); serving that to answer "what is in the registry" is what
+ * made /api/v1/sources a 25-second response that `jq` could not parse.
+ *
+ * The cursor is Redis's own and is passed straight back to the caller as an
+ * opaque string. That is deliberate: an `?offset=` would have to re-walk the
+ * hash from the start on every page, so paging by offset would read MORE
+ * from Upstash than returning everything once did.
+ *
+ * SCAN semantics are weaker than a snapshot and the caller should be told so:
+ * an entry written or removed mid-walk may be seen twice or missed. For a
+ * registry that changes on a 6-hourly cron that is a non-issue in practice,
+ * but it is the reason `page.total` comes from HLEN rather than from summing
+ * the pages a client received.
+ *
+ * `count` is advisory in Redis — a page may hold fewer (or slightly more)
+ * entries than asked for, and an empty page with a non-null `nextCursor` is
+ * normal, not the end. Only `nextCursor === null` means done.
+ */
+export async function readEntriesPage(opts: {
+  cursor?: string;
+  limit?: number;
+}): Promise<RegistryPage> {
+  const r = redis();
+  if (!r) {
+    return {
+      ok: false,
+      reason: "unconfigured",
+      message: "Redis is not configured (UPSTASH_REDIS_REST_* absent)",
+    };
+  }
+  const cursor = opts.cursor && opts.cursor.trim() !== "" ? opts.cursor : "0";
+  const limit = Math.max(1, Math.floor(opts.limit ?? REGISTRY_SCAN_BATCH));
+  let next: string;
+  let flat: (string | number)[];
+  try {
+    const res = await r.hscan(ENTRIES_KEY, cursor, { count: limit });
+    next = String(res[0]);
+    flat = res[1];
+  } catch (e) {
+    return {
+      ok: false,
+      reason: "error",
+      message: e instanceof Error ? e.message : String(e),
+    };
+  }
+  const entries: RegistryEntry[] = [];
+  for (let i = 0; i + 1 < flat.length; i += 2) {
+    const parsed = parseEntry(flat[i + 1]);
+    if (parsed) entries.push(sanitiseEntry(parsed));
+  }
+  // A first page that completes the scan with nothing in it means the key is
+  // gone — the same "absent, not empty" distinction `readAllEntriesDetailed`
+  // draws. A LATER empty page is ordinary SCAN behaviour and says nothing.
+  if (cursor === "0" && next === "0" && flat.length === 0) {
+    return {
+      ok: false,
+      reason: "absent",
+      message: `registry key ${ENTRIES_KEY} holds no fields — evicted, expired, or never seeded`,
+    };
+  }
+  return { ok: true, entries, nextCursor: next === "0" ? null : next };
+}
+
+/**
+ * Number of entries in the registry — one HLEN.
+ *
+ * Returns null when the store is unreachable rather than 0: a published count
+ * of zero that nobody measured is the 2026-06-05 incident in miniature.
+ */
+export async function countEntries(): Promise<number | null> {
+  const r = redis();
+  if (!r) return null;
+  try {
+    const n = await r.hlen(ENTRIES_KEY);
+    return typeof n === "number" ? n : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Fail-soft read. Returns `[]` on every failure mode.
  *
@@ -274,7 +376,10 @@ export async function readEntry(
   if (!r) return null;
   try {
     const v = await r.hget(ENTRIES_KEY, fullName);
-    return parseEntry(v);
+    const parsed = parseEntry(v);
+    // The detail path is the one that still carries `configs[].sample`, so it
+    // is the one that must not emit a half-emoji left by the 500-char cap.
+    return parsed ? sanitiseEntry(parsed) : null;
   } catch {
     return null;
   }

@@ -41,8 +41,26 @@
  */
 
 import type { ConfigKind } from "./repo-registry";
+import { stripLoneSurrogates } from "./registry-shared";
 
 const VERIFY_BYTE_LIMIT = 500;
+
+/**
+ * Cut to the limit WITHOUT splitting a surrogate pair.
+ *
+ * `String.prototype.slice` counts UTF-16 code units, so a cut can land between
+ * the two halves of an emoji and leave a lone surrogate. `JSON.stringify`
+ * emits that as `\ud83d` — valid to JS, invalid JSON to a stricter parser. On
+ * 2026-09-18 three configs on `NVIDIA/cuopt`, each cut at index 499, made `jq`
+ * fail on the entire 38MB /api/v1/sources body. One bad character in 40MB.
+ *
+ * The read path sanitises too (`sanitiseEntry`), because ~45k configs were
+ * already stored before this existed — but a value that is never written
+ * malformed needs no reader to be careful.
+ */
+function capSample(text: string): string {
+  return stripLoneSurrogates(text.slice(0, VERIFY_BYTE_LIMIT));
+}
 
 export type VerifyResult = {
   /** Whether the file passed verification (score >= 0.4). */
@@ -136,7 +154,7 @@ export async function verifyConfigFile(
  * existing registry samples if the heuristics ever change.
  */
 export function scoreContent(text: string, kind: ConfigKind): VerifyResult {
-  const capped = text.slice(0, VERIFY_BYTE_LIMIT);
+  const capped = capSample(text);
   const trimmed = capped.trim();
   const nonWs = trimmed.replace(/\s/g, "").length;
 
