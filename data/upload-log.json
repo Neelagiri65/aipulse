@@ -1258,5 +1258,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-09-18",
+    "videoId": "VLh0ZBqBa2E",
+    "url": "https://youtu.be/VLh0ZBqBa2E",
+    "title": "sponsors/supabase trending on GitHub (586 stars today) | Gawk Daily — 18 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-18T12:13:25.329Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
