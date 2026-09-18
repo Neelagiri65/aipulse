@@ -17,6 +17,7 @@ const readEntry = vi.fn();
 const readEntryDetailed = vi.fn();
 const readMeta = vi.fn();
 const countEntries = vi.fn();
+const readAllEntriesDetailed = vi.fn();
 
 vi.mock("@/lib/data/repo-registry", async () => {
   const shared = await import("@/lib/data/registry-shared");
@@ -27,12 +28,15 @@ vi.mock("@/lib/data/repo-registry", async () => {
     readEntryDetailed: (n: string) => readEntryDetailed(n),
     readMeta: () => readMeta(),
     countEntries: () => countEntries(),
+    readAllEntriesDetailed: () => readAllEntriesDetailed(),
   };
 });
 
 import {
   buildRegistryBody,
+  buildRegistryFullBody,
   isDetailBody,
+  isPagedBody,
   responseCount,
 } from "@/lib/data/registry-response";
 
@@ -91,14 +95,14 @@ describe("list — a page, not the corpus", () => {
 
     expect(readEntriesPage).toHaveBeenCalledWith({ cursor: "0", limit: 100 });
     expect(isDetailBody(body)).toBe(false);
-    if (isDetailBody(body)) return;
+    if (!isPagedBody(body)) throw new Error("expected a paged list");
     expect(body.page.limit).toBe(100);
     expect(body.page.cursor).toBe("0");
   });
 
   it("strips `sample` from every listed config — the 58.6% of the weight", async () => {
     const body = await buildRegistryBody(url());
-    if (isDetailBody(body)) throw new Error("expected a list");
+    if (!isPagedBody(body)) throw new Error("expected a paged list");
 
     for (const e of body.entries) {
       for (const c of e.configs) expect(c).not.toHaveProperty("sample");
@@ -111,7 +115,7 @@ describe("list — a page, not the corpus", () => {
 
   it("hands back the cursor for the next page and clamps the limit", async () => {
     const body = await buildRegistryBody(url("?cursor=512&limit=999999"));
-    if (isDetailBody(body)) throw new Error("expected a list");
+    if (!isPagedBody(body)) throw new Error("expected a paged list");
 
     expect(readEntriesPage).toHaveBeenCalledWith({ cursor: "512", limit: 1000 });
     expect(body.page.cursor).toBe("512");
@@ -120,7 +124,7 @@ describe("list — a page, not the corpus", () => {
 
   it("carries the corpus total separately from this page's length", async () => {
     const body = await buildRegistryBody(url());
-    if (isDetailBody(body)) throw new Error("expected a list");
+    if (!isPagedBody(body)) throw new Error("expected a paged list");
 
     // The distinction a client MUST be able to make: 2 here, 31,764 in all.
     expect(body.entries).toHaveLength(2);
@@ -154,7 +158,7 @@ describe("list — degraded still means 'could not read', never 'empty'", () => 
     countEntries.mockResolvedValue(null);
 
     const body = await buildRegistryBody(url());
-    if (isDetailBody(body)) throw new Error("expected a list");
+    if (!isPagedBody(body)) throw new Error("expected a paged list");
 
     expect(body.degraded).toBe(true);
     expect(body.degradedReason).toBe("absent");
@@ -173,7 +177,7 @@ describe("list — degraded still means 'could not read', never 'empty'", () => 
     });
 
     const body = await buildRegistryBody(url("?cursor=512"));
-    if (isDetailBody(body)) throw new Error("expected a list");
+    if (!isPagedBody(body)) throw new Error("expected a paged list");
 
     expect(body.degraded).toBe(false);
     expect(body.page.nextCursor).toBe("900");
@@ -274,7 +278,7 @@ describe("a null is only an answer when the read succeeded", () => {
     countEntries.mockResolvedValue(0);
 
     const body = await buildRegistryBody(url());
-    if (isDetailBody(body)) throw new Error("expected a list");
+    if (!isPagedBody(body)) throw new Error("expected a paged list");
 
     expect(body.degraded).toBe(true);
     expect(body.page.total).toBe(null);
@@ -285,7 +289,7 @@ describe("a null is only an answer when the read succeeded", () => {
     countEntries.mockResolvedValue(0);
 
     const body = await buildRegistryBody(url());
-    if (isDetailBody(body)) throw new Error("expected a list");
+    if (!isPagedBody(body)) throw new Error("expected a paged list");
 
     expect(body.degraded).toBe(false);
     expect(body.page.total).toBe(0);
@@ -306,7 +310,7 @@ describe("a bad ?cursor= is a client typo, not a store outage", () => {
       const body = await buildRegistryBody(
         url(`?cursor=${encodeURIComponent(bad)}`),
       );
-      if (isDetailBody(body)) throw new Error("expected a list");
+      if (!isPagedBody(body)) throw new Error("expected a paged list");
       // Passing it through would surface as degraded — a store outage — and
       // the CDN would hold that answer for five minutes.
       expect(body.page.cursor).toBe("0");
@@ -316,8 +320,66 @@ describe("a bad ?cursor= is a client typo, not a store outage", () => {
 
   it("still honours a real cursor", async () => {
     const body = await buildRegistryBody(url("?cursor=512"));
-    if (isDetailBody(body)) throw new Error("expected a list");
+    if (!isPagedBody(body)) throw new Error("expected a paged list");
     expect(body.page.cursor).toBe("512");
     expect(readEntriesPage).toHaveBeenLastCalledWith({ cursor: "512", limit: 100 });
+  });
+});
+
+/**
+ * `/api/registry` must NOT page, and the reason is a live consumer.
+ *
+ * `Dashboard.tsx:256` polls it on an interval and turns every entry carrying a
+ * location into a dot on the map's registry layer (`registryPoints`, line
+ * 320). Paging it would leave the map rendering with almost nothing on it —
+ * the worst kind of break, because it still looks like it works. Nothing in
+ * `src/components` reads `configs[].sample`, so the projection is free.
+ */
+describe("buildRegistryFullBody — the map's endpoint keeps every entry", () => {
+  beforeEach(() => {
+    readAllEntriesDetailed.mockReset();
+  });
+
+  it("returns EVERY entry, and never a page", async () => {
+    const all = Array.from({ length: 250 }, (_, i) => entry(`o${i}/r${i}`));
+    readAllEntriesDetailed.mockResolvedValue({ ok: true, entries: all });
+
+    const body = await buildRegistryFullBody(url());
+
+    expect(isPagedBody(body)).toBe(false);
+    expect("entries" in body && body.entries).toHaveLength(250);
+    // Paging this is the regression: the map layer would silently thin out.
+    expect(readEntriesPage).not.toHaveBeenCalled();
+  });
+
+  it("still drops the sample — 58.6% off every polling client", async () => {
+    readAllEntriesDetailed.mockResolvedValue({
+      ok: true,
+      entries: [entry("a/one")],
+    });
+
+    const body = await buildRegistryFullBody(url());
+    if (!("entries" in body)) throw new Error("expected entries");
+
+    expect(body.entries[0].configs[0]).not.toHaveProperty("sample");
+    // The fields the map actually reads must all survive.
+    expect(body.entries[0].configs[0].kind).toBe("claude-md");
+    expect(body.entries[0].fullName).toBe("a/one");
+    expect(body.entries[0].stars).toBe(42);
+  });
+
+  it("keeps the degraded contract", async () => {
+    readAllEntriesDetailed.mockResolvedValue({
+      ok: false,
+      reason: "absent",
+      message: "gone",
+    });
+
+    const body = await buildRegistryFullBody(url());
+    if (!("entries" in body)) throw new Error("expected entries");
+
+    expect(body.degraded).toBe(true);
+    expect(body.degradedReason).toBe("absent");
+    expect(body.entries).toEqual([]);
   });
 });

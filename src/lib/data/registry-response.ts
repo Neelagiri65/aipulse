@@ -25,6 +25,7 @@
 import {
   clampPageLimit,
   countEntries,
+  readAllEntriesDetailed,
   readEntriesPage,
   readEntryDetailed,
   readMeta,
@@ -69,7 +70,23 @@ export type RegistryDetailBody = {
   generatedAt: string;
 };
 
-export type RegistryBody = RegistryListBody | RegistryDetailBody;
+/**
+ * The whole corpus, projected. `/api/registry` only — see `buildRegistryBody`.
+ * No `page`, because there is no paging: this IS everything.
+ */
+export type RegistryFullBody = {
+  ok: true;
+  entries: ListedRegistryEntry[];
+  meta: RegistryMeta | null;
+  degraded: boolean;
+  degradedReason: string | null;
+  generatedAt: string;
+};
+
+export type RegistryBody =
+  | RegistryListBody
+  | RegistryDetailBody
+  | RegistryFullBody;
 
 /** Shared cache header. Unchanged from what both routes already sent. */
 export const REGISTRY_CACHE_CONTROL =
@@ -77,6 +94,49 @@ export const REGISTRY_CACHE_CONTROL =
 
 export function isDetailBody(body: RegistryBody): body is RegistryDetailBody {
   return "entry" in body;
+}
+
+export function isPagedBody(body: RegistryBody): body is RegistryListBody {
+  return "page" in body;
+}
+
+/**
+ * `/api/registry` — the WHOLE corpus, projected.
+ *
+ * It does not page, and that is deliberate. `Dashboard.tsx:256` polls this
+ * endpoint on an interval and turns every entry carrying a location into a dot
+ * on the map's registry layer (`registryPoints`, line 320). A page of 100
+ * would quietly gut that layer — the map would still render, just with almost
+ * nothing on it, which is the worst kind of break.
+ *
+ * What it CAN shed is the sample: the only consumer reads `configs[].kind`,
+ * `location`, `lastActivity`, `stars`, `language` and `fullName`, and nothing
+ * anywhere in `src/components` reads `configs[].sample`. Dropping it takes
+ * 58.6% off the payload every polling client was downloading, with no shape
+ * change for the code that consumes it.
+ *
+ * The real fix is a point-shaped endpoint serving only located entries and
+ * only the fields a dot needs — a separate PR, because it changes what the map
+ * renders from and deserves its own verification.
+ */
+export async function buildRegistryFullBody(
+  url: URL,
+): Promise<RegistryDetailBody | RegistryFullBody> {
+  const generatedAt = new Date().toISOString();
+  const repo = url.searchParams.get("repo");
+  if (repo && repo.trim() !== "") {
+    const detail = await buildRegistryBody(url);
+    return detail as RegistryDetailBody;
+  }
+  const [read, meta] = await Promise.all([readAllEntriesDetailed(), readMeta()]);
+  return {
+    ok: true,
+    entries: read.ok ? read.entries.map(toListEntry) : [],
+    meta,
+    degraded: !read.ok,
+    degradedReason: read.ok ? null : read.reason,
+    generatedAt,
+  };
 }
 
 /**
