@@ -141,7 +141,7 @@ export default async function SourcesPage() {
       <p>
         <Link
           href="/"
-          className="text-[var(--ap-accent,#2dd4bf)] underline text-sm"
+          className="text-[var(--ap-accent)] underline text-sm"
         >
           ← back to gawk.dev
         </Link>

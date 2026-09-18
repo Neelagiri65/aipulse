@@ -66,6 +66,14 @@ export type GlobeEventsResult = {
   source: "redis" | "inprocess-fallback";
 };
 
+/**
+ * Vestigial. These tint the `color` field on an emitted point, and nothing reads
+ * it: FlatMap recolours every marker through `colorForTypeIn` (event-palette.ts)
+ * and the iOS map draws every mark in its own accent. Left as-is rather than
+ * recoloured, because recolouring a field no renderer consumes is churn that
+ * looks like a fix. If the payload field is genuinely dead it should be deleted,
+ * which is a change to the API shape and not to a palette.
+ */
 const TEAL = "#2dd4bf";
 const WHITE = "#cbd5e1";
 
