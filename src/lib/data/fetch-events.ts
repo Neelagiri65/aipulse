@@ -33,7 +33,7 @@ import {
   type GeoPrecision,
 } from "@/lib/geocoding";
 import { placeFromCoords } from "@/lib/geocoding-places";
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 import {
   fetchArchiveHour,
   recentArchiveHours,

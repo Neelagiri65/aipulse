@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type MouseEvent } from "react";
 import type { GlobeEventsResult } from "@/lib/data/fetch-events";
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 import { shortEventType } from "@/components/globe/event-types";
 import { actorHref, actorLabel, repoHref, repoLabel } from "@/lib/data/event-links";
 import {

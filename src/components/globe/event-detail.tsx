@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef } from "react";
-import type { GlobePoint } from "./Globe";
+import type { GlobePoint } from "./types";
 import { shortEventType } from "@/components/globe/event-types";
 import { formatAgeLabel } from "@/lib/data/registry-shared";
 import type { ConfigKind } from "@/lib/data/registry-shared";

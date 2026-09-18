@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { precisionForCoords } from "@/lib/geocoding";
 import { useEffect, useMemo, useState, useSyncExternalStore, useRef } from "react";
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 import { HealthCardGrid } from "@/components/health/HealthCardGrid";
 import { WorldBand } from "@/components/health/WorldBand";
 import { BoardView } from "@/components/dashboard/BoardView";

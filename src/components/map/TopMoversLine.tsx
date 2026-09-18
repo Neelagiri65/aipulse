@@ -21,7 +21,7 @@
  */
 
 import * as React from "react";
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 import { pickTopActiveCity } from "@/lib/map/insights";
 
 export type RegionalDelta = {

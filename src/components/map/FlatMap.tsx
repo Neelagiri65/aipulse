@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import type L from "leaflet";
 import type { MarkerClusterGroup } from "leaflet";
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 import {
   EventCard,
   colorForType,

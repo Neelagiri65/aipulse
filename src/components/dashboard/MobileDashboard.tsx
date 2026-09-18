@@ -31,7 +31,7 @@ import { RegionalWirePanel } from "@/components/wire/RegionalWirePanel";
 import { SdkAdoptionPanel } from "@/components/panels/sdk-adoption/SdkAdoptionPanel";
 import { ModelUsagePanel } from "@/components/panels/model-usage/ModelUsagePanel";
 import { AgentsPanel } from "@/components/panels/agents/AgentsPanel";
-import type { GlobePoint } from "@/components/globe/Globe";
+import type { GlobePoint } from "@/components/globe/types";
 import type { GlobeEventsResult } from "@/lib/data/fetch-events";
 import type { StatusResult } from "@/lib/data/fetch-status";
 import type { ModelsResult } from "@/lib/data/fetch-models";
