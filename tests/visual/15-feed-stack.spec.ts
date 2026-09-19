@@ -16,6 +16,13 @@ const DIVIDER = /Everything else · \d+ · still ranked, nothing hidden|Nothing 
 // cold local build composes it from live sources and can take a while.
 const FEED_READY_MS = 120_000;
 
+// Without this the 120s above is fiction: `playwright.config.ts` caps a test
+// at 90s, so the wait would be cut short by 30s and report as a test timeout
+// rather than as "the feed never arrived". Only the FIRST wait in a journey is
+// ever cold — the rest hit a warm feed — so one cold wait plus the remaining
+// steps fits comfortably here.
+test.describe.configure({ timeout: 300_000 });
+
 test.describe("feed × stack", () => {
   test("journey from the landing tab: pick on Health → Feed partitions, reload persists, show all clears", async ({ page }) => {
     await openDashboard(page);

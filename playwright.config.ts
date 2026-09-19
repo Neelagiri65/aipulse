@@ -24,8 +24,15 @@ export default defineConfig({
   globalSetup: "./tests/visual/_global-setup.ts",
   // Live-site polls can be slow on first navigation (Vercel cold start,
   // initial data fetches for /api/globe-events + /api/registry + ...).
-  // 60s global + 45s per-action gives the UI time to stabilise before
-  // Playwright starts screenshotting.
+  // 90s per test + 15s per action gives the UI time to stabilise before
+  // Playwright starts screenshotting. (This said "60s global + 45s
+  // per-action"; neither number was ever in the file.)
+  //
+  // THIS IS THE CEILING ON EVERY `expect(...).toBeVisible({ timeout })`
+  // INSIDE A TEST. An in-spec wait longer than this can never be honoured —
+  // the test is killed first — so a spec that genuinely needs longer must
+  // raise its own with `test.describe.configure({ timeout })`, as
+  // 15-feed-stack does.
   timeout: 90_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
