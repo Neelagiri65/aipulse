@@ -80,9 +80,14 @@ const ENDPOINTS: Endpoint[] = [
     method: "GET",
     path: "/api/v1/sources",
     description:
-      "Data source registry — every source gawk.dev tracks, with metadata and freshness indicators. When `degraded` is true the registry could not be read: `entries` is empty but carries no information, so do not read its length as a count of zero.",
-    example: `curl ${BASE}/sources`,
-    responseHint: `{ "ok": true, "entries": [...], "meta": { "lastRunAt": "...", "totalEntries": 42 }, "degraded": false, "degradedReason": null, "generatedAt": "..." }`,
+      "Verified AI-config repo registry — every public repository where gawk.dev has verified an AI tool config file (CLAUDE.md, AGENTS.md, .cursorrules and the rest). Paged: `entries` is one page, `page.total` is the whole registry. List rows carry each config's kind, path, score and verifiedAt; add `?repo=owner/name` for a single repo complete with the verbatim file sample that made it qualify. When `degraded` is true the registry could not be read: `entries` is empty but carries no information, so do not read its length as a count of zero — and `page.total` is null rather than a zero nobody measured.",
+    params: [
+      "limit (1-1000, default 100) — page size, advisory",
+      "cursor — opaque cursor from the previous response's page.nextCursor; omit for the first page, and null means the walk is complete",
+      "repo (owner/name) — return this one repo in full, with configs[].sample, instead of a page",
+    ],
+    example: `curl "${BASE}/sources?limit=5"`,
+    responseHint: `{ "ok": true, "entries": [ { "fullName": "owner/repo", "configs": [ { "kind": "claude-md", "path": "CLAUDE.md", ... } ], ... } ], "page": { "limit": 100, "cursor": "0", "nextCursor": "512", "total": 31764 }, "meta": { "totalEntries": 31764, "lastDiscoveryRun": "..." }, "degraded": false, "degradedReason": null, "generatedAt": "..." }`,
   },
 ];
 

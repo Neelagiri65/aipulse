@@ -96,7 +96,7 @@ import type { ResearchResult } from "@/lib/data/fetch-research";
 import type { HnWireResult } from "@/lib/data/wire-hn";
 import {
   decayScore,
-  type RegistryEntry,
+  type ListedRegistryEntry,
   type RegistryMeta,
 } from "@/lib/data/registry-shared";
 import { ModelsPanel } from "@/components/models/ModelsPanel";
@@ -189,7 +189,11 @@ const FEED_POLL_MS = 60 * 1000;
 
 type RegistryResult = {
   ok: boolean;
-  entries: RegistryEntry[];
+  // `ListedRegistryEntry`, not `RegistryEntry`: /api/registry drops
+  // `configs[].sample` from every row (58.6% of the payload, and nothing here
+  // reads it). Typing it as the full entry would promise a field the response
+  // does not carry.
+  entries: ListedRegistryEntry[];
   meta: RegistryMeta | null;
   generatedAt: string;
 };
