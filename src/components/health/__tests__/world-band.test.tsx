@@ -97,7 +97,12 @@ describe("WorldBand", () => {
     );
     expect(html).toContain('data-state="stale"');
     expect(solid(html)).toBe(1);
-    expect(html).toContain("last good poll 07:01 UTC; the latest poll failed (timeout)");
+    // Dated deliberately. This assertion previously pinned "last good poll
+    // 07:01 UTC" — no date — which is the exact defect: the stale branch can be
+    // days old, and a bare time reads as this morning. The live branch below
+    // ("polled HH:MM") keeps the bare time, because it is recent by definition.
+    expect(html).toContain("last good poll 05/09/2026 07:01 UTC; the latest poll failed (timeout)");
+    expect(html).not.toMatch(/last good poll 07:01 UTC/);
   });
 
   it("degraded: a poll that located nothing or ran without its store says so, and is not 'live'", () => {

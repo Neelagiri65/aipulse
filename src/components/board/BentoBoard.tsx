@@ -25,6 +25,7 @@ import {
   EMPTY_BOARD_SERIES,
   type BoardSeries,
 } from "@/lib/board/series";
+import { stampUtc } from "@/lib/format/utc-stamp";
 
 type Domain = {
   key: string;
@@ -60,15 +61,6 @@ function hasSeries(series: Array<number | null> | undefined): boolean {
   return !!series && series.filter((v) => v !== null).length >= 2;
 }
 
-function fmtTime(iso: string): string {
-  // Deterministic HH:MM UTC — no locale drift between server/client.
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  const hh = String(d.getUTCHours()).padStart(2, "0");
-  const mm = String(d.getUTCMinutes()).padStart(2, "0");
-  return `${hh}:${mm} UTC`;
-}
-
 /** Severity → a single non-colour-only accent label + dot class. */
 function severityAccent(sev: number): { label: string; dot: string } {
   if (sev >= 80) return { label: "high", dot: "bg-red-400" };
@@ -89,7 +81,7 @@ function CardRow({ card }: { card: Card }) {
           href={card.sourceUrl}
           target="_blank"
           rel="noopener noreferrer"
-          title={`Source: ${card.sourceName} · ${fmtTime(card.timestamp)} · severity ${card.severity} (${a.label})`}
+          title={`Source: ${card.sourceName} · ${stampUtc(card.timestamp)} · severity ${card.severity} (${a.label})`}
           className="block truncate text-[13px] leading-tight text-neutral-100 hover:text-white hover:underline decoration-neutral-600"
         >
           {card.headline}
@@ -101,7 +93,7 @@ function CardRow({ card }: { card: Card }) {
         ) : null}
       </div>
       <span className="shrink-0 text-[10px] tabular-nums text-neutral-500">
-        {fmtTime(card.timestamp)}
+        {stampUtc(card.timestamp)}
       </span>
     </li>
   );
@@ -168,10 +160,10 @@ function Tile({
               </span>
             ) : staleAsOf ? (
               <span
-                title={`Live fetch failed — showing last-known data as of ${fmtTime(staleAsOf)}`}
+                title={`Live fetch failed — showing last-known data as of ${stampUtc(staleAsOf)}`}
                 className="text-amber-500/80"
               >
-                ◐ as of {fmtTime(staleAsOf)}
+                ◐ as of {stampUtc(staleAsOf)}
               </span>
             ) : (
               `${cards.length}`
@@ -187,7 +179,7 @@ function Tile({
           <p>{contained.reasons.join(" · ")}</p>
           <p className="mt-1 not-italic text-neutral-600">
             {contained.lastKnownAt
-              ? `last known value · as of ${fmtTime(contained.lastKnownAt)}`
+              ? `last known value · as of ${stampUtc(contained.lastKnownAt)}`
               : "no trustworthy value available"}
           </p>
         </div>
@@ -242,7 +234,7 @@ export function BentoBoard({
           <span aria-hidden className="text-neutral-700">
             ·
           </span>
-          <span>as of {fmtTime(feed.lastComputed)}</span>
+          <span>as of {stampUtc(feed.lastComputed)}</span>
           {feed.monitoringImpaired ? (
             <span
               className="text-amber-500/80"
