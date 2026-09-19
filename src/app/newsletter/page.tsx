@@ -49,7 +49,7 @@ export default async function NewsletterPage() {
       <h1 className="mb-3 font-mono text-3xl tracking-tight">
         The Daily gawk.dev
       </h1>
-      <p className="mb-8 font-mono text-sm text-teal-300">
+      <p className="mb-8 font-mono text-sm text-muted-foreground">
         ~2 minutes · {sourceCount} verified sources · zero noise
       </p>
 
@@ -84,7 +84,7 @@ export default async function NewsletterPage() {
           See for yourself:{" "}
           <Link
             href={`/digest/${latestIssue}`}
-            className="text-teal-300 underline underline-offset-2 hover:text-teal-200"
+            className="underline underline-offset-2"
           >
             read the latest issue ({latestIssue})
           </Link>{" "}
@@ -93,7 +93,7 @@ export default async function NewsletterPage() {
       )}
       <p className="mb-10 text-sm text-muted-foreground">
         Every past issue is in the{" "}
-        <Link href="/digest" className="text-teal-300 underline underline-offset-2 hover:text-teal-200">
+        <Link href="/digest" className="underline underline-offset-2">
           digest archive
         </Link>
         .

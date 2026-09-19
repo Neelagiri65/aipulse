@@ -75,12 +75,13 @@ function BrandHeader() {
       className="mb-8 inline-flex items-center gap-3"
       data-testid="unsub-brand-header"
     >
-      <span
-        aria-hidden="true"
-        className="inline-block h-3 w-3 rounded-full bg-primary shadow-[0_0_12px_rgba(45,212,191,0.6)]"
-      />
-      <span className="font-mono text-[16px] font-bold tracking-[0.36em] text-foreground">
-        GAWK
+      {/* The site header's lockup, not a second one. This was a pulse dot
+          wearing a glow in the pre-rename accent, beside a letterspaced
+          wordmark without the .dev — the old identity, on one of the two pages
+          a new subscriber actually lands on. */}
+      <span className="ap-brand__mark" aria-hidden />
+      <span className="font-mono text-[16px] font-bold text-foreground">
+        gawk.dev
       </span>
     </Link>
   );

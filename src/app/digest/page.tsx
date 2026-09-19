@@ -83,13 +83,13 @@ export default async function DigestArchiveIndexPage() {
         Archive
       </p>
       <h1 className="mb-3 font-mono text-3xl tracking-tight">The Daily gawk.dev, every issue</h1>
-      <p className="mb-8 font-mono text-sm text-teal-300">
+      <p className="mb-8 font-mono text-sm text-muted-foreground">
         {dates.length} {dates.length === 1 ? "issue" : "issues"} · newest first
       </p>
       <p className="mb-10 text-[15px] leading-relaxed text-muted-foreground">
         The web version of each morning&apos;s email, exactly as subscribers received it. Quiet days
         say so. Every number links to the public source it was read from.{" "}
-        <Link href="/newsletter" className="text-teal-300 underline underline-offset-2 hover:text-teal-200">
+        <Link href="/newsletter" className="underline underline-offset-2">
           Get it by email
         </Link>
         .
