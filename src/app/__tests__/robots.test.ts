@@ -66,9 +66,11 @@ const NOT_CRAWLABLE = new Set([
   "/api/subscribe/confirm",
   "/api/subscribe/unsubscribe",
   // Renders a PNG for one report block. The only consumer in the tree is
-  // `/admin/reports/[slug]/launch-check`, which is itself robots-disallowed;
-  // the public report page pins its og:image to a STATIC /public/og/{slug}.png
-  // (see reports/[slug]/page.tsx), so no unfurl or render path needs this.
+  // `/admin/reports/[slug]/launch-check`, which is itself robots-disallowed.
+  // The report's unfurl card is `reports/[slug]/opengraph-image.tsx`, which
+  // renders from the report config alone and fetches no chart, so no unfurl
+  // or render path needs this. (It used to say the page pinned a static
+  // /public/og/{slug}.png — that pin was removed in S126c.)
   "/api/reports/[slug]/chart/[blockId]",
   // Fetched server-side or on demand, not needed to render a page.
   "/api/registry/deps",
