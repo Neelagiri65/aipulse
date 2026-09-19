@@ -5,6 +5,7 @@ import type { GlobeEventsResult } from "@/lib/data/fetch-events";
 import type { GlobePoint } from "@/components/globe/types";
 import { shortEventType } from "@/components/globe/event-types";
 import { actorHref, actorLabel, repoHref, repoLabel } from "@/lib/data/event-links";
+import { stampUtc } from "@/lib/format/utc-stamp";
 import {
   cellMark,
   groupByCell,
@@ -432,6 +433,10 @@ export const WorldBand = memo(function WorldBand({
   };
 
   const polled = hhmmUtc(events?.polledAt);
+  // The stale branch says "last good poll", which can be days old — it needs its
+  // date. The live branch below says "polled", which is by definition recent, so
+  // it keeps the bare time. Same distinction as the board's stale badge.
+  const polledStamp = events?.polledAt ? stampUtc(events.polledAt) : null;
   const windowMin = events?.coverage.windowMinutes ?? 240;
   const hours = windowMin / 60;
   const degraded: string[] = [];
@@ -467,7 +472,7 @@ export const WorldBand = memo(function WorldBand({
       ` · a location was known for ${cov.locationCoveragePct}% of events received` +
       (outside > 0 ? ` · ${outside} outside the band's 74°N–56°S span` : "") +
       (degraded.length > 0 ? ` · ${degraded.join(" · ")}` : "") +
-      (state === "stale" ? ` · last good poll ${polled ?? "unknown"}; the latest poll failed (${error})` : "");
+      (state === "stale" ? ` · last good poll ${polledStamp ?? "unknown"}; the latest poll failed (${error})` : "");
   }
 
   const hoverPos = hover ? { cx: (hover.cell % grid.cols) * PITCH + PITCH / 2, cy: Math.floor(hover.cell / grid.cols) * PITCH + PITCH / 2 } : null;
