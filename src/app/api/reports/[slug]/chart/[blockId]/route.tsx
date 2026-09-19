@@ -195,7 +195,7 @@ function ReportBlockChart({
               color: "#94a3b8",
             }}
           >
-            GAWK · {blockId.toUpperCase()}
+            gawk.dev · {blockId.toUpperCase()}
           </div>
         </div>
         <div style={{ fontSize: "13px", color: "#94a3b8" }}>
