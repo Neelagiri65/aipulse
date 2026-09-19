@@ -1771,34 +1771,34 @@
   text-overflow: ellipsis;
 }
 
-/* Provider colour dot. Same approach as the SDK Adoption registry chips,
- * but as a 7px circle. Each provider gets a curated colour; unknown vendors
- * fall back to neutral grey — we never invent a colour. */
+/* Row anchor before the model name in Model Usage.
+ *
+ * It carries NO colour code. It used to: fourteen `.provider-dot-<vendor>`
+ * rules, one per lab, in hardcoded Tailwind 400s. They were stepped for the
+ * pre-rename dark board and never re-stepped when the ground became warm
+ * paper -- measured 2026-09-18, all fourteen sit at 1.44:1--2.64:1 on
+ * --paper #FAFAF6 (3:1 is the non-text minimum) while passing 6.44:1--11.81:1
+ * on the dark ground. The fallback, whose comment promised a dot "still
+ * visually present, just grey", measured 1.29:1.
+ *
+ * Re-stepping them was not the fix. A per-vendor colour code needs one
+ * legible hue per vendor, and fourteen mutually distinguishable hues do not
+ * exist: at eight slots the worst pair sits at normal-vision dE 7.1 against a
+ * floor of 15 -- indistinguishable with full colour vision, before CVD is
+ * considered. Three is the most that validates. So the dot stopped claiming
+ * to identify anyone: the author is a text column two cells to the right,
+ * which is where identity was actually being read from all along.
+ *
+ * --ink-muted is the board's own token, already stepped per mode: 5.16:1 on
+ * paper, 7.34:1 on dark. No new colour enters a palette that rations it. */
 .provider-dot {
   display: inline-block;
   width: 7px;
   height: 7px;
   border-radius: 50%;
   flex: none;
-  background: rgba(148, 163, 184, 0.4);
-  box-shadow: 0 0 6px rgba(148, 163, 184, 0.0);
+  background: var(--ink-muted);
 }
-
-.provider-dot-anthropic { background: #2dd4bf; box-shadow: 0 0 6px rgba(45, 212, 191, 0.5); }
-.provider-dot-openai    { background: #34d399; box-shadow: 0 0 6px rgba(52, 211, 153, 0.5); }
-.provider-dot-google    { background: #60a5fa; box-shadow: 0 0 6px rgba(96, 165, 250, 0.5); }
-.provider-dot-deepseek  { background: #fb923c; box-shadow: 0 0 6px rgba(251, 146, 60, 0.5); }
-.provider-dot-moonshot  { background: #facc15; box-shadow: 0 0 6px rgba(250, 204, 21, 0.5); }
-.provider-dot-meta      { background: #c084fc; box-shadow: 0 0 6px rgba(192, 132, 252, 0.5); }
-.provider-dot-mistral   { background: #f87171; box-shadow: 0 0 6px rgba(248, 113, 113, 0.5); }
-.provider-dot-qwen      { background: #22d3ee; box-shadow: 0 0 6px rgba(34, 211, 238, 0.5); }
-.provider-dot-xai       { background: #94a3b8; box-shadow: 0 0 6px rgba(148, 163, 184, 0.5); }
-.provider-dot-cohere    { background: #a3e635; box-shadow: 0 0 6px rgba(163, 230, 53, 0.5); }
-.provider-dot-microsoft { background: #38bdf8; box-shadow: 0 0 6px rgba(56, 189, 248, 0.5); }
-.provider-dot-nvidia    { background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.5); }
-.provider-dot-perplexity{ background: #06b6d4; box-shadow: 0 0 6px rgba(6, 182, 212, 0.5); }
-.provider-dot-amazon    { background: #fbbf24; box-shadow: 0 0 6px rgba(251, 191, 36, 0.5); }
-.provider-dot-neutral   { background: rgba(148, 163, 184, 0.4); }
 
 /* Rank-position bar. Width is (N - rank + 1) / N — the higher the rank,
  * the longer the bar. Track is a thin neutral line; fill picks up the

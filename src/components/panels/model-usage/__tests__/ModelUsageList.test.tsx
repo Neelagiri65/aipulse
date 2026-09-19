@@ -6,7 +6,6 @@ import {
   computeRankBarFraction,
   formatContextLength,
   formatPricing,
-  providerDotSlug,
   sortRows,
 } from "@/components/panels/model-usage/ModelUsageList";
 import type { ModelUsageDto, ModelUsageRow } from "@/lib/data/openrouter-types";
@@ -149,7 +148,7 @@ describe("ModelUsageList — rendering", () => {
     expect(top3Matches!.length).toBe(3);
   });
 
-  it("attaches a provider colour dot per row, picking the curated slug", () => {
+  it("gives every row the same anchor dot — it is not a provider code", () => {
     const html = renderToStaticMarkup(
       <ModelUsageList
         data={mkDto([
@@ -160,11 +159,15 @@ describe("ModelUsageList — rendering", () => {
         ])}
       />,
     );
-    expect(html).toContain("provider-dot-anthropic");
-    expect(html).toContain("provider-dot-moonshot");
-    expect(html).toContain("provider-dot-deepseek");
-    // Unknown vendor falls back to the neutral dot — no colour invented.
-    expect(html).toContain("provider-dot-neutral");
+    // Four different vendors, four identical dots. The dot used to take a
+    // per-vendor colour class; those colours were illegible on the paper
+    // board (1.44:1–2.64:1, measured 2026-09-18) and no set of fourteen could
+    // have been legible. Identity is the author column, which is text.
+    expect(html.match(/class="provider-dot"/g)).toHaveLength(4);
+    expect(html).not.toMatch(/provider-dot-[a-z]/);
+    for (const author of ["anthropic", "moonshotai", "deepseek", "no-such-vendor"]) {
+      expect(html).toContain(author);
+    }
   });
 
   it("renders a rank-position bar with honest aria-label (not 'spend')", () => {
@@ -243,25 +246,6 @@ describe("formatContextLength", () => {
   });
   it("renders raw count below 1K", () => {
     expect(formatContextLength(512)).toBe("512");
-  });
-});
-
-describe("providerDotSlug", () => {
-  it("maps known authors to their curated slug", () => {
-    expect(providerDotSlug("anthropic")).toBe("anthropic");
-    expect(providerDotSlug("openai")).toBe("openai");
-    expect(providerDotSlug("moonshotai")).toBe("moonshot");
-    expect(providerDotSlug("deepseek")).toBe("deepseek");
-    expect(providerDotSlug("meta-llama")).toBe("meta");
-    expect(providerDotSlug("mistralai")).toBe("mistral");
-  });
-  it("is case-insensitive", () => {
-    expect(providerDotSlug("Anthropic")).toBe("anthropic");
-    expect(providerDotSlug("OPENAI")).toBe("openai");
-  });
-  it("falls back to neutral for unknown vendors (no colour invented)", () => {
-    expect(providerDotSlug("brand-new-lab")).toBe("neutral");
-    expect(providerDotSlug("")).toBe("neutral");
   });
 });
 
