@@ -19,6 +19,7 @@
  */
 
 import * as React from "react";
+import { stampUtc } from "@/lib/format/utc-stamp";
 import { useCallback, useEffect } from "react";
 import type { SdkAdoptionPackage } from "@/lib/data/sdk-adoption";
 import { SparklineMini } from "@/components/charts/SparklineMini";
@@ -44,9 +45,12 @@ export function composeShareHeadline(pkg: SdkAdoptionPackage): string {
 
 export function formatLatestStamp(fetchedAt: string | null): string {
   if (!fetchedAt) return "never";
-  // Surface ISO date + UTC time for citation; consumers parse this
-  // server-side too so locale-specific formatting is avoided.
-  return fetchedAt.replace("T", " ").replace(/\..*/, "Z");
+  // Was a hand-rolled ISO-ish shape ("2026-04-25 04:00:00Z") justified by a
+  // comment claiming "consumers parse this server-side too". Nothing did:
+  // this function has exactly one caller, the JSX below, and no parser
+  // anywhere reads its output. The claim was the only reason this panel
+  // printed a different time format from the rest of the product.
+  return stampUtc(fetchedAt);
 }
 
 export function RowDrawer({

@@ -67,7 +67,8 @@ describe("RowDrawer render", () => {
       <RowDrawer pkg={pkg()} open={true} onClose={() => {}} originUrl="https://gawk.dev" />,
     );
     expect(html).toContain("12,345");
-    expect(html).toMatch(/2026-04-25/);
+    // House format, not the ISO shape this panel used to print on its own.
+    expect(html).toContain("as of 25/04/2026 04:00 UTC");
   });
 
   it("renders the third-party-aggregator caveat for pypi rows", () => {
@@ -135,7 +136,9 @@ describe("RowDrawer render", () => {
 
 describe("formatLatestStamp", () => {
   it("returns ISO date when fetchedAt present", () => {
-    expect(formatLatestStamp("2026-04-25T04:00:00Z")).toMatch(/2026-04-25/);
+    // The house format, dd/mm/yyyy hh:mm UTC — the same one Health tiles,
+    // the wire and the feed already use.
+    expect(formatLatestStamp("2026-04-25T04:00:00Z")).toBe("25/04/2026 04:00 UTC");
   });
 
   it("returns 'never' when fetchedAt is null", () => {
