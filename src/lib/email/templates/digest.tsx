@@ -2,9 +2,14 @@
  * Daily-digest email template — Direction A v3, Nativerse brand system.
  *
  * v3 applies the canonical Nativerse Brand Bible (~/nativerse-site/brand/
- * BRAND-BIBLE.md, "warm technical"): GAWK is the live-telemetry track of a
- * branded house, so the digest is an endorsed sub-brand — "GAWK, by
- * nativerse". Warm paper #FAFAF6 ground, ink #16160F, ONE accent (royal
+ * BRAND-BIBLE.md, "warm technical"): gawk.dev is the live-telemetry track of a
+ * branded house, so the digest is an endorsed sub-brand — "gawk.dev, by
+ * nativerse".
+ *
+ * NOTE on the wordmark: the bible's naming rule (line 106) still reads
+ * "GAWK (uppercase)". That rule predates the product rename and the founder
+ * superseded it on 2026-09-07 — the name is "gawk.dev" everywhere, masthead
+ * included. Do not "restore" the uppercase form from the bible. Warm paper #FAFAF6 ground, ink #16160F, ONE accent (royal
  * blue #2A33C2), Sentient 500 for display (Fontshare link with the
  * bible's own fallbacks — Gmail falls back gracefully, Apple Mail gets
  * the real face), Tabular mono kickers at 0.18em, brand status colours
@@ -148,7 +153,7 @@ export function DigestEmail({
             <Row>
               <Column>
                 <Text style={styles.bandKicker}>LIVE TELEMETRY</Text>
-                <Text style={styles.bandBrand}>GAWK</Text>
+                <Text style={styles.bandBrand}>gawk.dev</Text>
                 <Text style={styles.bandBy}>
                   <Img
                     src={`${baseUrl}/brand/nativerse-mark.png`}
@@ -295,7 +300,7 @@ export function DigestEmail({
           </Section>
 
           <Text className="ge-mut" style={styles.footer}>
-            GAWK is the live-telemetry track of Nativerse. Clarity. Trust.
+            gawk.dev is the live-telemetry track of Nativerse. Clarity. Trust.
             You&rsquo;re receiving this because you subscribed to the daily
             digest. Every number traces to a public source.{" "}
             <Link

@@ -187,7 +187,7 @@ export function DigestTileBoard({
                 className="gd-mono mt-1 text-3xl sm:text-4xl"
                 style={{ color: C.paper, fontWeight: 500, letterSpacing: "0.16em" }}
               >
-                GAWK
+                gawk.dev
               </p>
               <p className="mt-2 flex items-center gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -439,7 +439,7 @@ export function DigestTileBoard({
           className="mt-4 border-t pt-4 text-xs leading-relaxed"
           style={{ borderColor: C.hairline, color: C.muted }}
         >
-          GAWK is the live-telemetry track of{" "}
+          gawk.dev is the live-telemetry track of{" "}
           <a href="https://nativerse-ventures.com/" style={{ color: C.blue }}>
             Nativerse
           </a>

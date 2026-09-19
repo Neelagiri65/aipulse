@@ -127,13 +127,13 @@ describe("renderDigestHtml — sources", () => {
 });
 
 describe("renderDigestHtml — TL;DR + chrome", () => {
-  it("renders the Direction-A masthead band: GAWK wordmark + issue date", async () => {
+  it("renders the Direction-A masthead band: gawk.dev wordmark + issue date", async () => {
     const html = await renderDigestHtml(BASE);
     // The dark masthead band is the brand anchor (a16z lesson: every
     // issue unmistakably gawk.dev before a word is read). Wordmark + mono
     // date, once, at the top.
-    expect(html).toMatch(/>GAWK</);
-    expect(html.match(/>GAWK</g)).toHaveLength(1);
+    expect(html).toMatch(/>gawk\.dev</);
+    expect(html.match(/>gawk\.dev</g)).toHaveLength(1);
     expect(html).toContain("2026-04-22");
   });
 
