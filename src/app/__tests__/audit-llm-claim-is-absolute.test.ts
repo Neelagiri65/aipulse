@@ -19,8 +19,16 @@
  *      makes the absolute claim true. If deep scan is ever built, THIS test
  *      fails first and forces the copy to be re-decided before it ships.
  *
- * Scope: `src/`. `scripts/video/*` is out — the video pipeline is a separate
- * surface with its own TTS/render toolchain and makes no /audit claim.
+ * Scope: `src/`, and the boundary is load-bearing rather than incidental.
+ * `scripts/video/*` DOES call an LLM — `curate-stories.ts:52` and
+ * `generate-script.ts:176` both POST to
+ * `https://integrate.api.nvidia.com/v1/chat/completions` (NVIDIA NIM, keyed by
+ * `NVIDIA_NIM_KEY`, with `GEMINI_API_KEY` as an alternative) to phrase the
+ * daily video's narration. That is a build-time content pipeline, it is not
+ * the dashboard, and it makes no /audit claim — so it does not falsify the
+ * copy this file pins. But nothing here should be read as "gawk.dev never
+ * calls an LLM": it does, in the video pipeline, and that surface needs its
+ * own disclosure decision rather than silence.
  */
 import fs from "node:fs";
 import path from "node:path";
