@@ -1,4 +1,4 @@
 {
-  "errors": 104,
-  "note": "eslint error count on main when the ratchet was introduced (2026-09-12). CI fails if the count rises. Lower it whenever a cleanup lands; never raise it."
+  "errors": 101,
+  "note": "eslint error count on main. CI fails if the count rises. Lower it whenever a cleanup lands; never raise it. 2026-09-12: introduced at 104. 2026-09-18: 101 after the ModelUsageList rules-of-hooks fix (which was a real crash, not lint debt) plus two cleanups that had already landed unrecorded."
 }

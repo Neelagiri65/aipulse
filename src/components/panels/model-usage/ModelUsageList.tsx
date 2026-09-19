@@ -97,6 +97,18 @@ export function ModelUsageList({
 }: ModelUsageListProps): React.ReactElement {
   const [sort, setSort] = React.useState<ModelUsageSortOption>(initialSort);
 
+  // Every hook runs before the empty-state return, and that ordering is the
+  // whole point. This `useMemo` used to sit BELOW it, so the first render of a
+  // cold panel ran one hook and the render after the data arrived ran two —
+  // React error #310, "rendered more hooks than during the previous render".
+  // It took down the error boundary for the entire page, not just this panel,
+  // and it fired on exactly the transition the empty state promises:
+  // "Rankings appear after the first OpenRouter cron fire".
+  const sorted = React.useMemo(
+    () => sortRows(data.rows, sort),
+    [data.rows, sort],
+  );
+
   if (data.rows.length === 0) {
     return (
       <div className="model-usage-empty" role="status">
@@ -104,11 +116,6 @@ export function ModelUsageList({
       </div>
     );
   }
-
-  const sorted = React.useMemo(
-    () => sortRows(data.rows, sort),
-    [data.rows, sort],
-  );
 
   // Rank bar normalisation uses the visible range of ranks present in
   // the trimmed DTO. With limit=30 we run from #1..#30; #1 = full bar,
