@@ -113,7 +113,7 @@ function HeroScene({ durationInFrames }: { durationInFrames: number }) {
       )}
       <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 80 }}>
         <FadeSlideIn>
-          <div style={{ fontSize: 14, color: C.accent, letterSpacing: 10, textTransform: "uppercase", fontWeight: 400, fontFamily: "monospace" }}>GAWK · DAILY BRIEF</div>
+          <div style={{ fontSize: 14, color: C.accent, letterSpacing: 10, fontWeight: 400, fontFamily: "monospace" }}>gawk.dev · DAILY BRIEF</div>
         </FadeSlideIn>
         <FadeSlideIn delay={8}><GlowLine /></FadeSlideIn>
         <FadeSlideIn delay={14}>
