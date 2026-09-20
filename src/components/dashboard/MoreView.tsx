@@ -23,7 +23,7 @@ export const WIRE_HREF = "/?tab=feed&view=wire";
 const ABOUT_ROWS: ReadonlyArray<{ href: string; label: string; sub: string }> = [
   { href: "/sources", label: "Sources", sub: "every source with endpoint, cadence and sanity range" },
   { href: "/methodology", label: "Methodology", sub: "how each number is made · what it does not mean" },
-  { href: "/audit", label: "Audit", sub: "CLAUDE.md checker · deterministic pattern matching · no LLM by default" },
+  { href: "/audit", label: "Audit", sub: "CLAUDE.md checker · deterministic pattern matching · no LLM calls" },
   { href: "/newsletter", label: "Daily email", sub: "the digest, 08:00 UTC" },
   { href: "/digest", label: "Digest archive", sub: "every past issue, newest first" },
   { href: "/privacy", label: "Privacy", sub: "no data sold · no ad network" },
