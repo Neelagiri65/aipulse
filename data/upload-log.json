@@ -1282,5 +1282,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-09-20",
+    "videoId": "TiTlXw8JXxU",
+    "url": "https://youtu.be/TiTlXw8JXxU",
+    "title": "DeepSeek V4.1 Flash takes #1 on OpenRouter | Gawk Daily — 20 September 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-09-20T12:13:41.614Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
