@@ -122,3 +122,45 @@ describe("BentoBoard — quarantined (containment actuation)", () => {
     expect(html).not.toContain("monitoring impaired");
   });
 });
+
+/**
+ * A stale badge that shows a time and no date reads as "this morning".
+ *
+ * The badge appears precisely when a live fetch FAILED and the board is
+ * serving last-known data. It rendered `◐ as of 06:22 UTC` — no date — so
+ * week-old fallback data was indistinguishable from data fetched minutes ago.
+ * The badge is the one element whose entire job is to say the number is old,
+ * and it was the element making it look fresh.
+ *
+ * Nothing failed when this was fixed: 2650 tests passed before and after,
+ * because no test looked at what the badge said. Hence this file.
+ *
+ * The format is `stampUtc`, the house format — deliberately NOT an adaptive
+ * "show the date only when it is not today". Adaptive output depends on `now`,
+ * which differs between the server render and the client render and would
+ * reintroduce a hydration mismatch that a static-markup suite cannot see.
+ */
+describe("the board's staleness stamps carry their date", () => {
+  const WEEK_OLD = "2026-06-23T06:22:00.000Z";
+
+  it("names the date on the stale badge, not just the time", () => {
+    const html = renderToStaticMarkup(
+      <BentoBoard
+        feed={feed({
+          cards: [launchCard],
+          staleSources: [{ source: "Product Hunt", staleAsOf: WEEK_OLD }],
+        })}
+      />,
+    );
+    expect(html).toContain("23/06/2026 06:22 UTC");
+    // The bare time alone must not be what the reader sees.
+    expect(html).not.toMatch(/as of\s*06:22 UTC/);
+  });
+
+  it("stamps the board's own compute time with a date", () => {
+    const html = renderToStaticMarkup(
+      <BentoBoard feed={feed({ cards: [launchCard], lastComputed: WEEK_OLD })} />,
+    );
+    expect(html).toContain("23/06/2026 06:22 UTC");
+  });
+});
