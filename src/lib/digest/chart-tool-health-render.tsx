@@ -84,7 +84,7 @@ export function ToolHealthChart({
               color: "#6B6B5E",
             }}
           >
-            GAWK · TOOL HEALTH · DAILY 04:00 UTC SNAPSHOT
+            gawk.dev · TOOL HEALTH · DAILY 04:00 UTC SNAPSHOT
           </div>
         </div>
         <div style={{ fontSize: "14px", color: "#6B6B5E" }}>{date}</div>
