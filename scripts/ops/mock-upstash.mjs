@@ -25,6 +25,7 @@
  *   UPSTASH_REDIS_REST_URL=http://127.0.0.1:7777 UPSTASH_REDIS_REST_TOKEN=x npx next start
  */
 import http from "node:http";
+import { readFileSync } from "node:fs";
 
 export const DATES = ["2026-09-11", "2026-09-10", "2026-09-09"];
 
@@ -87,10 +88,34 @@ function registryEntry(i) {
   });
 }
 
-/** 250 entries: more than one default page (100), so paging is real. */
-const registry = new Map(
-  Array.from({ length: 250 }, (_, n) => [`owner${n}/repo${n}`, registryEntry(n)]),
-);
+/**
+ * 250 entries: more than one default page (100), so paging is real.
+ *
+ * MOCK_REGISTRY_FILE=<path> seeds the hash from a captured `/api/registry`
+ * body instead (its `entries` array), so the map can be exercised at the real
+ * corpus size (33,996 entries / 25,083 located on 2026-09-22) and real
+ * geography — the synthetic seed piles everything near Paris, which says
+ * nothing about clustering cost. Rows carry no `sample` (the list shape
+ * drops it); an empty one is filled in so `parseEntry` accepts them.
+ */
+function seedRegistry() {
+  const file = process.env.MOCK_REGISTRY_FILE;
+  if (file) {
+    const body = JSON.parse(readFileSync(file, "utf8"));
+    const rows = Array.isArray(body) ? body : body.entries;
+    const m = new Map();
+    for (const e of rows) {
+      const configs = (e.configs ?? []).map((c) => ({ sample: "", ...c }));
+      m.set(e.fullName, JSON.stringify({ ...e, configs }));
+    }
+    console.error(`mock-upstash: registry seeded from ${file}: ${m.size} entries`);
+    return m;
+  }
+  return new Map(
+    Array.from({ length: 250 }, (_, n) => [`owner${n}/repo${n}`, registryEntry(n)]),
+  );
+}
+const registry = seedRegistry();
 
 /** HSCAN over an insertion-ordered Map: the cursor is the next index. */
 function hscan(cursor, count) {

@@ -313,7 +313,12 @@ export function Dashboard({
   //   - hasAiConfig = true by definition (every registry entry has ≥1
   //     verified config file), so filters["ai-config-only"] keeps the
   //     entire registry layer when toggled on.
-  const registryPoints: GlobePoint[] = (registry.data?.points ?? [])
+  // Memoised on the payload: this list is 25k objects and was rebuilt on
+  // every render (every poll tick of any endpoint). decayScore therefore
+  // refreshes on the 2-minute registry poll rather than per render — its
+  // bands are ≤24h/≤7d/≤30d/≤90d, so nothing visible changes.
+  const registryData = registry.data;
+  const registryPoints: GlobePoint[] = useMemo(() => (registryData?.points ?? [])
     .map((e) => {
       const decay = decayScore(e.lastActivity);
       const kinds = e.kinds;
@@ -346,7 +351,7 @@ export function Dashboard({
           hasAiConfig: true,
         },
       };
-    });
+    }), [registryData]);
 
   // Globe filters — client-side only. Filter the point list before it
   // reaches the globe; coverage/count in CoverageBadge stays honest to
