@@ -12,9 +12,11 @@
  *     one response" had no ceiling; it took 25–30s and `jq` could not parse
  *     the result.
  *   - `/api/registry` (`buildRegistryFullBody`) returns EVERY entry and has
- *     no `page`, because `Dashboard.tsx:256` polls it and draws one map dot
- *     per located entry. Paging it would thin that layer to nothing while the
- *     map still looked like it worked.
+ *     no `page`. It used to be what `Dashboard.tsx` polled for the map's
+ *     registry layer; the map now reads `/api/registry/points` (located
+ *     entries, dot fields only — `registry-points.ts`). This shape is kept
+ *     whole for any external caller, and it has no known consumer in the
+ *     tree. Whether it should page is a separate decision.
  *
  * BOTH drop `configs[].sample` from entry lists — 58.6% of the corpus by
  * weight (23.8MB of 40.7MB across 45,756 configs), and nothing in
@@ -107,21 +109,15 @@ export function isPagedBody(body: RegistryBody): body is RegistryListBody {
 /**
  * `/api/registry` — the WHOLE corpus, projected.
  *
- * It does not page, and that is deliberate. `Dashboard.tsx:256` polls this
- * endpoint on an interval and turns every entry carrying a location into a dot
- * on the map's registry layer (`registryPoints`, line 320). A page of 100
- * would quietly gut that layer — the map would still render, just with almost
- * nothing on it, which is the worst kind of break.
+ * It does not page. That was load-bearing while `Dashboard.tsx` polled it for
+ * the map's registry layer (a page of 100 would have gutted the layer while
+ * the map still looked like it worked). The map now reads
+ * `/api/registry/points` — located entries, dot fields only — so this body
+ * has no consumer in `src/components`. It is kept whole, minus the sample,
+ * for external callers; nothing here decides whether it should page.
  *
- * What it CAN shed is the sample: the only consumer reads `configs[].kind`,
- * `location`, `lastActivity`, `stars`, `language` and `fullName`, and nothing
- * anywhere in `src/components` reads `configs[].sample`. Dropping it takes
- * 58.6% off the payload every polling client was downloading, with no shape
- * change for the code that consumes it.
- *
- * The real fix is a point-shaped endpoint serving only located entries and
- * only the fields a dot needs — a separate PR, because it changes what the map
- * renders from and deserves its own verification.
+ * It sheds `configs[].sample` (58.6% of the corpus by weight); `?repo=` still
+ * returns one entry with it.
  */
 export async function buildRegistryFullBody(
   url: URL,

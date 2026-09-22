@@ -65,6 +65,16 @@ function registryEntry(i) {
     firstSeen: "2026-01-01T00:00:00.000Z",
     lastActivity: "2026-09-01T00:00:00.000Z",
     stars: 100 + i,
+    // Every third entry is located, so /api/registry/points has dots to serve;
+    // two are malformed (lat only; string lat) to prove the point filter.
+    location:
+      i === 6
+        ? { lat: 51.5 }
+        : i === 9
+          ? { lat: "51.5", lng: -0.1, label: "London, UK" }
+          : i % 3 === 0
+            ? { lat: 48.85 + i / 1000, lng: 2.35, label: `City ${i}` }
+            : undefined,
     configs: [
       {
         kind: "claude-md",

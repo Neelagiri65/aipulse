@@ -94,11 +94,8 @@ import type { StatusResult } from "@/lib/data/fetch-status";
 import type { ModelsResult } from "@/lib/data/fetch-models";
 import type { ResearchResult } from "@/lib/data/fetch-research";
 import type { HnWireResult } from "@/lib/data/wire-hn";
-import {
-  decayScore,
-  type ListedRegistryEntry,
-  type RegistryMeta,
-} from "@/lib/data/registry-shared";
+import { decayScore } from "@/lib/data/registry-shared";
+import type { RegistryPointsBody } from "@/lib/data/registry-points";
 import { ModelsPanel } from "@/components/models/ModelsPanel";
 import { ResearchPanel } from "@/components/research/ResearchPanel";
 import { BenchmarksPanel } from "@/components/benchmarks/BenchmarksPanel";
@@ -187,16 +184,10 @@ const REGIONAL_DELTAS_POLL_MS = 5 * 60 * 1000;
 // the underlying snapshots — picking 60s avoids fighting the route TTL.
 const FEED_POLL_MS = 60 * 1000;
 
-type RegistryResult = {
-  ok: boolean;
-  // `ListedRegistryEntry`, not `RegistryEntry`: /api/registry drops
-  // `configs[].sample` from every row (58.6% of the payload, and nothing here
-  // reads it). Typing it as the full entry would promise a field the response
-  // does not carry.
-  entries: ListedRegistryEntry[];
-  meta: RegistryMeta | null;
-  generatedAt: string;
-};
+// `/api/registry/points`: located entries only, nine fields each. The map
+// used to poll `/api/registry` (every entry, every field: 16.2 MB / 8.5 s a
+// poll on 2026-09-22) and read nine fields of 25,083 located rows.
+type RegistryResult = RegistryPointsBody;
 
 type CronHealthResult = {
   total: number;
@@ -258,7 +249,7 @@ export function Dashboard({
     EVENTS_POLL_MS,
   );
   const registry = usePolledEndpoint<RegistryResult>(
-    "/api/registry",
+    "/api/registry/points",
     REGISTRY_POLL_MS,
   );
   const models = usePolledEndpoint<ModelsResult>("/api/models", MODELS_POLL_MS);
@@ -312,22 +303,22 @@ export function Dashboard({
   const rawPoints: GlobePoint[] = events.data?.points ?? [];
   const lastUpdatedAt = events.data?.polledAt;
 
-  // Map registry entries → base-layer GlobePoints.
-  //   - Entries without a resolved location are dropped (can't plot
-  //     without lat/lng; trust contract says no made-up coords).
+  // Map registry points → base-layer GlobePoints.
+  //   - The endpoint already dropped entries without a resolved location
+  //     (can't plot without lat/lng; trust contract says no made-up coords),
+  //     and says how many it dropped via `located` vs `corpus`.
   //   - Each registry point carries kind="registry", decayScore, and
   //     the config kinds that verified the repo — enough for the
   //     EventCard's RegistryRow to render context on hover.
   //   - hasAiConfig = true by definition (every registry entry has ≥1
   //     verified config file), so filters["ai-config-only"] keeps the
   //     entire registry layer when toggled on.
-  const registryPoints: GlobePoint[] = (registry.data?.entries ?? [])
-    .filter((e) => e.location && Number.isFinite(e.location.lat))
+  const registryPoints: GlobePoint[] = (registry.data?.points ?? [])
     .map((e) => {
       const decay = decayScore(e.lastActivity);
-      const kinds = e.configs.map((c) => c.kind);
-      const lat = e.location!.lat;
-      const lng = e.location!.lng;
+      const kinds = e.kinds;
+      const lat = e.lat;
+      const lng = e.lng;
       return {
         lat,
         lng,
@@ -351,7 +342,7 @@ export function Dashboard({
           lastActivity: e.lastActivity,
           decayScore: decay,
           configKinds: kinds,
-          locationLabel: e.location!.label,
+          locationLabel: e.label,
           hasAiConfig: true,
         },
       };
