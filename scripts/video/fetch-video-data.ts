@@ -8,6 +8,8 @@
 import { writeFileSync } from "fs";
 import { resolve } from "path";
 import type { VideoData, ModelEntry, PanelCount } from "../../src/video/types";
+import { VERIFIED_SOURCES } from "../../src/lib/data-sources";
+import { buildEcosystemStats } from "../../src/lib/video/ecosystem-stats";
 
 const BASE_URL = process.env.GAWK_BASE_URL || "https://gawk.dev";
 const HN_MIN_POINTS = 50;
@@ -24,7 +26,7 @@ async function fetchJSON<T>(path: string): Promise<T | null> {
 }
 
 async function main() {
-  const [feedRes, modelsRes, hnRes, regionRes, labsRes, agentsRes, sdkRes, statusRes, benchRes, researchRes] =
+  const [feedRes, modelsRes, hnRes, regionRes, labsRes, agentsRes, sdkRes, statusRes, benchRes, researchRes, cronHealthRes] =
     await Promise.all([
       fetchJSON<{
         cards: {
@@ -87,6 +89,7 @@ async function main() {
       }>("/api/v1/status"),
       fetchJSON<{ rows: unknown[] }>("/api/benchmarks"),
       fetchJSON<{ papers: unknown[] }>("/api/research"),
+      fetchJSON<{ total: number }>("/api/cron-health"),
     ]);
 
   // --- Feed cards ---
@@ -166,9 +169,6 @@ async function main() {
   // --- Top repos ---
   const topRepos = deriveTopRepos(allLabsRaw);
 
-  // --- Total events ---
-  const totalEvents = Object.values(byCountry).reduce((s, c) => s + (c.current24h ?? 0), 0);
-  const activeCountries = Object.keys(byCountry).length;
 
   // --- Panel counts ---
   const panelCounts: PanelCount[] = [
@@ -183,13 +183,13 @@ async function main() {
   ];
 
   // --- Ecosystem stats ---
-  const ecosystemStats = {
-    sources: 40,
-    crons: 22,
-    labs: allLabs.length || 38,
-    totalEvents,
-    activeCountries,
-  };
+  // Each value is read or null; the hero omits a null tile. No stand-ins.
+  const ecosystemStats = buildEcosystemStats({
+    verifiedSourceCount: VERIFIED_SOURCES.length,
+    cronHealth: cronHealthRes,
+    labs: labsRes ? allLabsRaw : null,
+    byCountry,
+  });
 
   const inferences = feedRes?.inferences ?? [];
   const now = new Date();

@@ -104,6 +104,15 @@ function useCountUp(target: number, dur = 35, delay = 0): number {
 function HeroScene({ durationInFrames }: { durationInFrames: number }) {
   const d = __VIDEO_DATA__;
   const hasMap = __HAS_SCREENSHOTS__;
+  // A null stat is one the fetch could not read: the tile is omitted, never
+  // shown as 0 or a stand-in. Filtered BEFORE the map so the hook count per
+  // render is fixed (useCountUp runs inside the loop; the data is a
+  // build-time constant, so the list never changes between renders).
+  const heroStats = [
+    { label: "SOURCES", value: d.ecosystemStats.sources, d: 36 },
+    { label: "CRONS", value: d.ecosystemStats.crons, d: 40 },
+    { label: "AI LABS", value: d.ecosystemStats.labs, d: 44 },
+  ].filter((s): s is { label: string; value: number; d: number } => s.value !== null);
   return (
     <SceneWrap durationInFrames={durationInFrames}>
       {hasMap && (
@@ -126,11 +135,7 @@ function HeroScene({ durationInFrames }: { durationInFrames: number }) {
         </FadeSlideIn>
         <FadeSlideIn delay={34}>
           <div style={{ display: "flex", gap: 56, marginTop: 48 }}>
-            {[
-              { label: "SOURCES", value: d.ecosystemStats.sources, d: 36 },
-              { label: "CRONS", value: d.ecosystemStats.crons, d: 40 },
-              { label: "AI LABS", value: d.ecosystemStats.labs, d: 44 },
-            ].map((s) => {
+            {heroStats.map((s) => {
               const c = useCountUp(s.value, 22, s.d);
               return (
                 <div key={s.label} style={{ textAlign: "center" }}>
