@@ -167,8 +167,12 @@ export function SubscribeModal(): React.JSX.Element | null {
       // Above the bottom chrome, not on top of it: at `bottom-6` this sat over the live ticker,
       // which is content in motion — a prompt covering the thing the reader came to watch. The
       // token is the same one the metrics row anchors to, so the two move together.
-      className="fixed right-6 z-40 w-[min(360px,calc(100%-3rem))] rounded-xl border border-border bg-background/95 p-4 shadow-2xl backdrop-blur-md"
-      style={{ bottom: "calc(var(--ap-chrome-bottom, 24px) + 16px)" }}
+      className="fixed z-40 w-[min(360px,calc(100%-3rem))] rounded-xl border border-border bg-background/95 p-4 shadow-2xl backdrop-blur-md"
+      style={{
+        bottom: "calc(var(--ap-chrome-bottom, 24px) + 16px)",
+        // Clear the FilterPanel rail/panel when one is open (see FilterPanel).
+        right: "calc(var(--ap-chrome-right, 0px) + 24px)",
+      }}
     >
       <div className="mb-2 flex items-start justify-between gap-2">
         <div>

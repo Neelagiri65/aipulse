@@ -106,6 +106,21 @@ export function FilterPanel({ filters, onToggle, onReset }: FilterPanelProps) {
     }
   }, []);
 
+  // Publish "a right-edge panel is open" to the document so bottom-right
+  // nudges (SubscribeModal, McpPromptModal) can offset themselves past it via
+  // `--ap-chrome-right` (globals.css). Both the 44px rail and the 220px panel
+  // sit at right-3 z-40, the same z as the nudges; without this the nudge's
+  // right edge lands under the rail and the rail's lower buttons land under
+  // the nudge — whichever is later in the DOM wins, and at 1280x720 that was
+  // the nudge covering every toggle from "Stars" down.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    if (open) root.setAttribute("data-ap-filter-open", "1");
+    else root.removeAttribute("data-ap-filter-open");
+    return () => root.removeAttribute("data-ap-filter-open");
+  }, [open]);
+
   const setOpenPersist = (next: boolean) => {
     setOpen(next);
     if (typeof window === "undefined") return;

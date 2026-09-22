@@ -155,8 +155,12 @@ export function McpPromptModal({
       role="dialog"
       aria-label="mcpgawk — one gateway in front of every MCP server"
       data-testid="mcp-modal"
-      className="fixed right-6 z-40 w-[min(360px,calc(100%-3rem))] overflow-hidden rounded-xl border border-border bg-background/95 shadow-2xl backdrop-blur-md"
-      style={{ bottom: "calc(var(--ap-chrome-bottom, 24px) + 16px)" }}
+      className="fixed z-40 w-[min(360px,calc(100%-3rem))] overflow-hidden rounded-xl border border-border bg-background/95 shadow-2xl backdrop-blur-md"
+      style={{
+        bottom: "calc(var(--ap-chrome-bottom, 24px) + 16px)",
+        // Clear the FilterPanel rail/panel when one is open (see FilterPanel).
+        right: "calc(var(--ap-chrome-right, 0px) + 24px)",
+      }}
     >
       <div className="flex items-start justify-between gap-2 px-4 pt-3">
         <h2 className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
