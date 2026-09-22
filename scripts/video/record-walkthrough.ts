@@ -931,7 +931,7 @@ async function main() {
   console.log(`Manifest saved: ${manifestPath}`);
   console.log(`\nTotal segments: ${manifest.length}`);
   console.log(`Estimated duration: ${Math.round(clock)}s`);
-  console.log(`\nNext: npx tsx scripts/video/generate-narration.ts --format ${FORMAT}`);
+  console.log("\nNext: npx tsx scripts/video/generate-narration-locked.ts");
 }
 
 main().catch((e) => {
