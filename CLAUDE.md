@@ -45,7 +45,7 @@ Checkpoints where Auditor review is mandatory:
 - **Cache:** Upstash Redis free tier (10k cmd/day, 24h TTL for GH Events, 5-min TTL for status pages).
 - **Workers:** GitHub Actions cron for scheduled aggregation (writes static JSON to `data/`).
 - **Data layer:** Static JSON in `data/` + Redis for live events. No Postgres.
-- **LLM:** Gemini 2.5 Flash only for `/audit` deep scan, opt-in with user's own key.
+- **LLM:** none on any live path (verified 2026-09-22). Nothing under `src/` calls one: no `GEMINI_API_KEY`, `deepScan` or `generativelanguage` reference exists there, so the `/audit` deep scan is a spec intent, not code. Three scripts can call one, none reachable from `daily.ts` or any workflow, and no LLM key is set in any workflow: `scripts/video/curate-stories.ts --llm` (NVIDIA NIM, `meta/llama-4-maverick-17b-128e-instruct`, per-story editorial sentence; `daily.ts` runs it without `--llm`), `scripts/video/generate-script.ts` (NIM or Gemini 2.0 Flash; only via the manual `npm run video:script`), and `scripts/video/generate-narration.ts` (local Ollama; referenced by nothing). The daily video ships template editorials. If a deep scan is ever built, it stays opt-in with the user's own key. Update this line when any of these facts change.
 - **Tests:** Vitest for unit, Playwright for e2e (to be added when first real logic lands).
 
 ## Out of scope for Phase 1 (MVP, see spec Part 8)
@@ -67,7 +67,8 @@ Everything beyond: Globe + 4 tool health cards + live event feed + 6-metric tick
 ## Secrets
 - `GH_TOKEN` — GitHub personal access token, repo secret for Actions + Vercel env var. Never in client code.
 - `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` — Vercel env vars only.
-- `GEMINI_API_KEY` — only used by `/audit` deep scan, and that call is server-side from the user's session, never bundled.
+- `GEMINI_API_KEY` — read only by `scripts/video/generate-script.ts` (manual `npm run video:script`, not on the `daily.ts` path); no deep scan exists. Set in no workflow. If a deep scan ships, that call is server-side from the user's session, never bundled.
+- `NVIDIA_NIM_KEY` — read only by `scripts/video/curate-stories.ts --llm` and `scripts/video/generate-script.ts`; set in no workflow, so the daily video runs without it.
 - Read from macOS Keychain via `security find-generic-password` when populating `.env.local` locally.
 
 ## What NOT to do
