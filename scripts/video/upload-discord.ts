@@ -87,7 +87,7 @@ async function main() {
   const formData = new FormData();
   formData.append(
     "payload_json",
-    JSON.stringify({ content: caption, username: "Gawk Daily" }),
+    JSON.stringify({ content: caption, username: "gawk.dev Daily" }),
   );
   formData.append("files[0]", blob, basename(VIDEO_PATH));
 

@@ -18,21 +18,32 @@
  * the tool-health chart header and the report chart header — subscriber-facing
  * and unfurl-facing surfaces.
  *
- * Scope: every `.ts`/`.tsx` file under `src/`, with no exclusions.
- * `src/video/DailyBrief.tsx` was excluded while its fix was in flight (the
- * video overlay additionally applied textTransform:"uppercase", so the string
- * alone would still have rendered `GAWK.DEV`; it re-renders the daily video,
- * so it shipped as its own PR). That PR has landed, so the exclusion is gone
- * and the video overlay is guarded like every other surface.
+ * Scope: every `.ts`/`.tsx` file under `src/` AND under `scripts/video/`,
+ * with no exclusions. `src/video/DailyBrief.tsx` was excluded while its fix
+ * was in flight (the video overlay additionally applied
+ * textTransform:"uppercase", so the string alone would still have rendered
+ * `GAWK.DEV`; it re-renders the daily video, so it shipped as its own PR).
+ * That PR landed, so the exclusion went, and the video overlay is guarded
+ * like every other surface.
  *
- * NOT in scope: `scripts/video/`, which is a build-time pipeline outside
- * `src/` and still carries the uppercase form in four places.
+ * `scripts/video/` is the build-time video pipeline: it writes the segment
+ * labels, data-card source lines and upload titles that viewers see, so it is
+ * a rendered surface even though it lives outside `src/`. It carried the
+ * uppercase form in four places (two dead `segmentLabel` map entries, a
+ * console banner) until it was brought under this guard.
+ *
+ * Only the uppercase form is guarded. `Gawk` (title case) also appears in
+ * public API header names (`X-Gawk-*`) and the real Discord server name
+ * (`Gawk Dev`), which are contracts rather than wordmark renders, so that
+ * form is not pinned here.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const SRC = path.join(process.cwd(), "src");
+const VIDEO_SCRIPTS = path.join(process.cwd(), "scripts", "video");
+const ROOT = process.cwd();
 
 function filesUnder(dir: string): string[] {
   const out: string[] = [];
@@ -53,13 +64,15 @@ const COMMENT = /^\s*(?:\/\/|\/\*|\*)/;
 const UPPERCASE_WORDMARK = /\bGAWK\b/;
 
 describe("the product wordmark", () => {
-  const files = filesUnder(SRC);
+  const files = [...filesUnder(SRC), ...filesUnder(VIDEO_SCRIPTS)];
 
   it("finds the files it is meant to guard", () => {
     expect(files.length).toBeGreaterThan(100);
     expect(files.some((f) => f.endsWith("lib/email/templates/digest.tsx"))).toBe(true);
     expect(files.some((f) => f.endsWith("components/digest/DigestTileBoard.tsx"))).toBe(true);
     expect(files.some((f) => f.endsWith("video/DailyBrief.tsx"))).toBe(true);
+    expect(files.some((f) => f.endsWith("scripts/video/record-walkthrough.ts"))).toBe(true);
+    expect(files.some((f) => f.endsWith("scripts/video/daily.ts"))).toBe(true);
   });
 
   it("is never rendered as uppercase GAWK", () => {
@@ -69,7 +82,7 @@ describe("the product wordmark", () => {
         .split("\n")
         .map((line, i) => ({ line, n: i + 1 }))
         .filter(({ line }) => !COMMENT.test(line) && UPPERCASE_WORDMARK.test(line))
-        .map(({ line, n }) => `${path.relative(SRC, f)}:${n} — ${line.trim()}`),
+        .map(({ line, n }) => `${path.relative(ROOT, f)}:${n} — ${line.trim()}`),
     );
     expect(offenders).toEqual([]);
   });

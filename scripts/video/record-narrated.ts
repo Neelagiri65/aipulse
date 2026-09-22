@@ -300,19 +300,19 @@ function segmentLabel(seg: string): string {
     community: "COMMUNITY",
     radar: "ON THE RADAR",
     map: "GLOBAL VIEW",
-    intro: "GAWK DAILY",
-    outro: "GAWK DAILY",
+    // No intro/outro entry — see record-walkthrough.ts: the wordmark is
+    // never a segment label (this class is uppercase-transformed).
   };
   return map[seg] ?? seg.toUpperCase();
 }
 
 function sourceLabel(scene: string): string {
   const map: Record<string, string> = {
-    "sdk-adoption": "Source: Gawk SDK Tracker",
-    models: "Source: Gawk Models Leaderboard",
-    tools: "Source: Gawk Tool Health",
-    wire: "Source: Gawk Wire",
-    labs: "Source: Gawk Labs",
+    "sdk-adoption": "Source: gawk.dev SDK Tracker",
+    models: "Source: gawk.dev Models Leaderboard",
+    tools: "Source: gawk.dev Tool Health",
+    wire: "Source: gawk.dev Wire",
+    labs: "Source: gawk.dev Labs",
     globe: "Source: gawk.dev",
   };
   return map[scene] ?? "Source: gawk.dev";

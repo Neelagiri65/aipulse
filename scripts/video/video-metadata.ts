@@ -54,7 +54,7 @@ export function buildMetadata(platform: "youtube" | "instagram" | "facebook" | "
   switch (platform) {
     case "youtube":
       return {
-        title: `${lead.slice(0, 60)} | Gawk Daily — ${date}`,
+        title: `${lead.slice(0, 60)} | gawk.dev Daily — ${date}`,
         caption: buildYouTubeDescription(stories, storyCount, duration),
         hashtags: HASHTAGS.core,
         stories,
@@ -97,7 +97,7 @@ export function buildMetadata(platform: "youtube" | "instagram" | "facebook" | "
 
     case "facebook":
       return {
-        title: `${lead} | Gawk Daily — ${date}`,
+        title: `${lead} | gawk.dev Daily — ${date}`,
         caption: [
           `${lead}`,
           "",
@@ -117,7 +117,7 @@ export function buildMetadata(platform: "youtube" | "instagram" | "facebook" | "
 
     case "discord":
       return {
-        title: `Gawk Daily — ${date}`,
+        title: `gawk.dev Daily — ${date}`,
         caption: [
           `**${lead}**`,
           "",

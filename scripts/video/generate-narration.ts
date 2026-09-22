@@ -149,7 +149,7 @@ function generateScriptWithLLM(narratives: Narrative[], manifest: ManifestEntry[
     return `[${i}] ${context}`;
   }).join("\n\n");
 
-  const prompt = `You are writing a voiceover script for a 2-minute AI news video called "Gawk Daily".
+  const prompt = `You are writing a voiceover script for a 2-minute AI news video called "gawk.dev Daily".
 
 VOICE: Confident tech analyst. Like a Bloomberg anchor who also ships code. Short punchy sentences. No filler. No "let's dive in" or "interesting to see". Never read the headline verbatim — rephrase with insight.
 
@@ -577,8 +577,8 @@ function main() {
   // Intro
   const introAvail = availableSec("intro", 20);
   const introText = config.introStyle === "full"
-    ? `Gawk Daily, ${DATE_SPOKEN}. Here's what moved.`
-    : `Gawk Daily, ${DATE_SPOKEN}.`;
+    ? `gawk dot dev daily, ${DATE_SPOKEN}. Here's what moved.`
+    : `gawk dot dev daily, ${DATE_SPOKEN}.`;
 
   console.log(`[INTRO] ${wordCount(introText)} words (${introAvail.toFixed(1)}s avail)`);
 
@@ -643,7 +643,7 @@ function main() {
   const outroAvail = availableSec("outro", 25);
   const outroText = config.outroStyle === "full"
     ? `That's the briefing for ${DATE_SPOKEN}. Every number on gawk dot dev links to its public source. Subscribe for tomorrow's update.`
-    : `Gawk Daily for ${DATE_SPOKEN}. More at gawk dot dev.`;
+    : `gawk dot dev daily for ${DATE_SPOKEN}. More at gawk dot dev.`;
 
   console.log(`\n[OUTRO] ${wordCount(outroText)} words (${outroAvail.toFixed(1)}s avail)`);
 
