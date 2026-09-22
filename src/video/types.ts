@@ -1,3 +1,5 @@
+import type { EcosystemStats } from "../lib/video/ecosystem-stats";
+
 export type VideoScene = {
   id: string;
   durationInSeconds: number;
@@ -60,13 +62,8 @@ export type VideoData = {
     url: string;
   } | null;
   inferences: string[];
-  ecosystemStats: {
-    sources: number;
-    crons: number;
-    labs: number;
-    totalEvents: number;
-    activeCountries: number;
-  };
+  /** See `src/lib/video/ecosystem-stats.ts`: a stat the fetch could not read is null. */
+  ecosystemStats: EcosystemStats;
   modelsFetchedAt: string | null;
   sdkMovers: {
     name: string;

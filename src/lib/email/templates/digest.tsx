@@ -59,6 +59,7 @@ import {
   splitFirstSignedToken,
   type DeltaDirection,
 } from "@/lib/email/delta";
+import { VERIFIED_SOURCES } from "@/lib/data-sources";
 import { renderGreeting } from "@/lib/email/greeting";
 import { buildShareUrl, composeShareText } from "@/lib/email/share-urls";
 import { markPngFor } from "@/lib/digest/marks";
@@ -171,7 +172,7 @@ export function DigestEmail({
               </Column>
               <Column style={styles.bandRight}>
                 <Text style={styles.bandLive}>
-                  <span style={styles.liveDot}>●</span> LIVE · 40 sources
+                  <span style={styles.liveDot}>●</span> LIVE · {VERIFIED_SOURCES.length} sources
                 </Text>
                 <Text style={styles.bandDate}>{digest.date}</Text>
               </Column>
