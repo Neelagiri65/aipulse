@@ -74,6 +74,9 @@ const NOT_CRAWLABLE = new Set([
   "/api/reports/[slug]/chart/[blockId]",
   // Fetched server-side or on demand, not needed to render a page.
   "/api/registry/deps",
+  // Polled by the map on an interval (Dashboard.tsx); the page renders
+  // without it and it is not page content.
+  "/api/registry/points",
   "/api/pkg/brew",
   "/api/pkg/crates",
   "/api/pkg/docker",

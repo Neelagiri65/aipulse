@@ -1,7 +1,6 @@
 /**
- * Registry read endpoint — public, cheap. Returns a PAGE of the registry plus
- * meta so the frontend (future archives page, decay-coded globe layer) can
- * consume it without pulling the whole corpus.
+ * Registry read endpoint — public. Returns EVERY entry (configs without
+ * `sample`) plus meta.
  *
  * Response shape:
  *   {
@@ -19,11 +18,10 @@
  * It used to return every entry with every sample: 38,451,538 bytes, identical
  * to /api/v1/sources because both duplicated the same read.
  *
- * It still returns EVERY entry, because `Dashboard.tsx` polls this on an
- * interval and draws one map dot per located entry — a page would gut that
- * layer. What it sheds is the sample, 58.6% of the weight, which no consumer
- * in `src/components` reads. /api/v1/sources, which has no UI consumer, is the
- * one that pages.
+ * The map's registry layer no longer reads this: `Dashboard.tsx` polls
+ * `/api/registry/points` (located entries, dot fields only). This full body
+ * is kept for external callers and has no consumer in `src/components`.
+ * /api/v1/sources is the one that pages.
  *
  * `degraded` exists because `entries: []` on its own is ambiguous: it
  * reads as "we looked and there are no repos" when it can equally mean
