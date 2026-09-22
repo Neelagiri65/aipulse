@@ -582,7 +582,10 @@ function segmentLabel(seg: string): string {
   const map: Record<string, string> = {
     hook: "BREAKING", lead: "TOP STORY", story: "IN FOCUS",
     community: "COMMUNITY", radar: "ON THE RADAR",
-    intro: "GAWK DAILY", outro: "GAWK DAILY",
+    // No intro/outro entry: `segment` is typed hook|lead|story|community|
+    // radar|map, so those keys were dead — and this label renders under
+    // `text-transform: uppercase`, which would turn the wordmark into
+    // GAWK.DEV. The wordmark is never a segment label.
   };
   return map[seg] ?? seg.toUpperCase();
 }

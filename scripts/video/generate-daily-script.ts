@@ -350,7 +350,7 @@ function buildMoverStory(event: CurationEvent, narrative: Narrative, models: Mod
           number: `${direction === "up" ? "↑" : "↓"} ${absPct.toFixed(0)}%`,
           direction,
           title: narrative.headline,
-          source: `Source: Gawk wire · ${DATE}`,
+          source: `Source: gawk.dev wire · ${DATE}`,
         },
       },
       narration: {

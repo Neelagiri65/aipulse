@@ -73,7 +73,7 @@ function main() {
   const pipelineStart = Date.now();
 
   console.log(`\n${"━".repeat(60)}`);
-  console.log(`  GAWK DAILY — ${DATE}`);
+  console.log(`  gawk.dev daily — ${DATE}`);
   console.log(`  Formats: ${FORMATS.join(", ")}`);
   console.log(`${"━".repeat(60)}`);
 

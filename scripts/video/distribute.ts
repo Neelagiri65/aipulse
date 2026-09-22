@@ -135,7 +135,7 @@ type DistResult = {
 };
 
 function main() {
-  console.log(`\n  Gawk Daily Distribution — ${DATE}`);
+  console.log(`\n  gawk.dev daily distribution — ${DATE}`);
   console.log(`  ${"─".repeat(40)}\n`);
 
   const results: DistResult[] = [];

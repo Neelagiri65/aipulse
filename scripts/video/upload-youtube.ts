@@ -58,7 +58,7 @@ function buildMetadata(): { title: string; description: string; tags: string[] }
   });
 
   const lead = stories[0]?.headline || "AI Infrastructure Daily Brief";
-  const title = `${lead.slice(0, 60)} | Gawk Daily — ${dateFormatted}`;
+  const title = `${lead.slice(0, 60)} | gawk.dev Daily — ${dateFormatted}`;
 
   const timestamps = stories
     .map((s) => {

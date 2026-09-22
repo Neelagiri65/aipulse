@@ -97,7 +97,7 @@ function fallbackEditorial(n: Narrative): string {
 }
 
 async function main() {
-  console.log("=== Gawk Curation Pipeline ===\n");
+  console.log("=== gawk.dev curation pipeline ===\n");
 
   console.log("1. Ingesting from 9 sources...");
   const raw = await ingestAll();
