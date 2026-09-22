@@ -77,6 +77,10 @@
   --ap-hero-h: 56px;
   --ap-chrome-top: calc(var(--ap-topbar-h) + var(--ap-statusbar-h) + var(--ap-hero-h));
   --ap-chrome-bottom: 68px;
+  /* Width a right-edge panel (FilterPanel rail/full) reserves; bottom-right
+     nudges add it to their `right`. 0 unless FilterPanel sets
+     data-ap-filter-open on <html>. */
+  --ap-chrome-right: 0px;
 
   --background: var(--paper);
   --foreground: var(--ink);
@@ -2861,4 +2865,12 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
 }
 @media (max-width: 767px) {
   .ap-stack { padding: 6px 12px 8px; gap: 5px; }
+}
+
+/* FilterPanel is open: the 44px icon rail below 1440px, the 220px full panel
+   at 1440px+, both at right-3 (12px). Nudges offset by this so neither covers
+   the other. */
+html[data-ap-filter-open="1"] { --ap-chrome-right: 56px; }
+@media (min-width: 1440px) {
+  html[data-ap-filter-open="1"] { --ap-chrome-right: 232px; }
 }
