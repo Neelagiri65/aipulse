@@ -7,6 +7,7 @@
  * goes there. Then the "about the numbers" rows.
  */
 
+import { APP_STORE_URL } from "@/lib/app-store";
 import Link from "next/link";
 import type { NavItem } from "@/components/chrome/nav-items";
 import { boardHref, isBoardId, type BoardId } from "@/components/chrome/primary-tabs";
@@ -20,7 +21,8 @@ export type MoreViewProps = {
 
 export const WIRE_HREF = "/?tab=feed&view=wire";
 
-const ABOUT_ROWS: ReadonlyArray<{ href: string; label: string; sub: string }> = [
+const ABOUT_ROWS: ReadonlyArray<{ href: string; label: string; sub: string; external?: true }> = [
+  { href: APP_STORE_URL, label: "iOS app", sub: "gawk.dev on the App Store · iPhone, iOS 17+", external: true },
   { href: "/sources", label: "Sources", sub: "every source with endpoint, cadence and sanity range" },
   { href: "/methodology", label: "Methodology", sub: "how each number is made · what it does not mean" },
   { href: "/audit", label: "Audit", sub: "CLAUDE.md checker · deterministic pattern matching · no LLM calls" },
@@ -90,8 +92,13 @@ export function MoreView({ items, currentBoard, onOpenBoard, onOpenWire }: MoreV
       <div className="ap-inset">
         <div className="ap-inset__head">About the numbers</div>
         {ABOUT_ROWS.map((r) => (
-          <Link key={r.href} href={r.href} className="ap-list-row">
-            <span className="ap-list-row__main">{r.label}</span>
+          <Link
+            key={r.href}
+            href={r.href}
+            className="ap-list-row"
+            {...(r.external ? { target: "_blank", rel: "noopener" } : {})}
+          >
+            <span className="ap-list-row__main">{r.label}{r.external ? " ↗" : ""}</span>
             <span className="ap-list-row__meta">{r.sub}</span>
           </Link>
         ))}

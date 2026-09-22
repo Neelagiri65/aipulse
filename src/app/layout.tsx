@@ -1,3 +1,4 @@
+import { APP_STORE_ID } from "@/lib/app-store";
 import type { Metadata, Viewport } from "next";
 import { Khand } from "next/font/google";
 import "./globals.css";
@@ -91,6 +92,9 @@ export const metadata: Metadata = {
   // apex/www split is handled by the host redirect in Vercel, which is where
   // it belongs.
   robots: { index: true, follow: true },
+  // Smart App Banner on iOS Safari (<meta name="apple-itunes-app">): the
+  // banner links to the same App Store id the More tab and the digest use.
+  itunes: { appId: APP_STORE_ID },
   verification: { google: "VGOiZtYerTvyrJmA9ah20FzezWkTv-7GofMebrT2mhE" },
   manifest: "/manifest.json",
   appleWebApp: {

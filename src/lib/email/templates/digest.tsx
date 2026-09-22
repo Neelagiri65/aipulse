@@ -59,6 +59,7 @@ import {
   splitFirstSignedToken,
   type DeltaDirection,
 } from "@/lib/email/delta";
+import { APP_STORE_URL } from "@/lib/app-store";
 import { VERIFIED_SOURCES } from "@/lib/data-sources";
 import { renderGreeting } from "@/lib/email/greeting";
 import { buildShareUrl, composeShareText } from "@/lib/email/share-urls";
@@ -304,6 +305,10 @@ export function DigestEmail({
             gawk.dev is the live-telemetry track of Nativerse. Clarity. Trust.
             You&rsquo;re receiving this because you subscribed to the daily
             digest. Every number traces to a public source.{" "}
+            <Link href={APP_STORE_URL} className="ge-link" style={styles.link}>
+              Get the iOS app
+            </Link>
+            {"  ·  "}
             <Link
               href={`${baseUrl}/privacy`}
               className="ge-link"

@@ -20,5 +20,7 @@ describe("MoreView", () => {
     expect(html).toContain("ap-list-row--soon");
     expect(html).not.toContain('href="/?tab=more&amp;board=audit"');
     expect(html).toContain("1,703");
+    // The iOS app row is an external link that opens in a new tab.
+    expect(html).toMatch(/<a class="ap-list-row" target="_blank" rel="noopener" href="https:\/\/apps\.apple\.com\/app\/gawk-dev\/id6810342350">/);
   });
 });
