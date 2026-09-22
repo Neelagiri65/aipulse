@@ -63,17 +63,27 @@ export async function generateMetadata({
     subtitleText.length >= 100
       ? subtitleText
       : `${subtitleText} gawk.dev AI Genesis Report — ${config.window}. Source-cited AI tooling intelligence.`;
-  // S62g.4: pin og:image to a STATIC pre-baked PNG in /public/og/.
-  // Why: the dynamic /reports/[slug]/opengraph-image route built
-  // via next/og + ImageResponse is throwing on prod for this route
-  // (returns Next.js error-page HTML with image/png header — caught
-  // by LinkedIn Post Inspector reporting "No image found"). The
-  // site-wide /opengraph-image works fine; the per-report variant
-  // breaks somewhere in the registry-import chain. For this one-shot
-  // launch the editorial copy is locked, so a hand-rendered static
-  // PNG is more reliable than debugging the Satori render. Future
-  // dynamic OGs are TBD; this ships the launch.
-  const ogImageUrl = `https://gawk.dev/og/${slug}.png`;
+  // S126c: the og:image is the route's own `opengraph-image.tsx` again.
+  //
+  // S62g.4 pinned it to a hand-rendered PNG in /public/og/ because the
+  // dynamic route was returning Next's error-page HTML under an
+  // image/png header, which LinkedIn's Post Inspector read as "No
+  // image found". That workaround then froze the card: the PNG was
+  // baked 2026-05-06, so it still carried the pre-rename identity —
+  // dark #06080a, the teal AI Pulse pulse-dot, and a wordmark reading
+  // "G A W K" — for four months after #155–#157 moved the site to warm
+  // paper, and through the rename that made "gawk.dev" the only
+  // spelling. A static asset cannot follow a redesign.
+  //
+  // The route was rebuilt in #156 and verified working on prod before
+  // this change: /reports/2026-04-tooling/opengraph-image returns a
+  // real 1200×630 PNG (not error HTML) in the current identity. So the
+  // cause of the pin is gone, and letting Next supply the URL means the
+  // next report — and the next redesign — needs no hand-rendered file.
+  //
+  // Leaving `images` unset entirely is what routes the metadata to the
+  // colocated opengraph-image; Next fills in url/width/height/alt/type
+  // from the route's own exports.
   // S62g.5: article-type metadata for LinkedIn unfurl. The Post
   // Inspector flagged "No author found" + "No publication date
   // found" — both come from `og:article:author` + `og:article:
@@ -123,15 +133,6 @@ export async function generateMetadata({
       authors: [REPORT_AUTHOR_URL],
       url: `https://gawk.dev/reports/${slug}`,
       siteName: "gawk.dev",
-      images: [
-        {
-          url: ogImageUrl,
-          width: 1200,
-          height: 630,
-          alt: `gawk.dev AI Genesis Report — ${config.window}`,
-          type: "image/png",
-        },
-      ],
     },
   };
 }
