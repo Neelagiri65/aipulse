@@ -96,3 +96,74 @@ export function formatAgeLabel(
   if (months < 12) return `Last activity: ${Math.round(months)}mo ago`;
   return `Last activity: ${Math.round(months / 12)}y ago`;
 }
+
+/* ---- List projection + paging -------------------------------------------------------------- */
+
+/**
+ * A config as the LIST shape carries it: everything except `sample`.
+ *
+ * The sample is a verbatim quote of the file that made a repo qualify and it
+ * is the trust contract — but it is 58.6% of the corpus by weight (23.8MB of
+ * 40.7MB, measured 2026-09-18 across 45,756 configs). Shipping it 45,756
+ * times to answer "which repos are in the registry" is what made
+ * /api/v1/sources a 38MB response. It stays reachable per repo (`?repo=`),
+ * which is the only context a reader can actually use it in.
+ */
+export type ListedConfig = Omit<DetectedConfig, "sample">;
+
+export type ListedRegistryEntry = Omit<RegistryEntry, "configs"> & {
+  configs: ListedConfig[];
+};
+
+/** Default page size for a registry list response. */
+export const REGISTRY_PAGE_DEFAULT = 100;
+
+/** Ceiling on `?limit`. 1000 entries ≈ 1.3MB in the full shape, ≈ 0.5MB listed. */
+export const REGISTRY_PAGE_MAX = 1000;
+
+/**
+ * Clamp a caller-supplied `?limit`. Anything unparseable, absent, zero or
+ * negative falls back to the default rather than erroring: a page size is a
+ * hint, and refusing the request would be a worse answer than a sane page.
+ */
+export function clampPageLimit(raw: string | null | undefined): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 1) return REGISTRY_PAGE_DEFAULT;
+  return Math.min(Math.floor(n), REGISTRY_PAGE_MAX);
+}
+
+/**
+ * Drop unpaired UTF-16 surrogates.
+ *
+ * `config-verifier` quotes the first 500 characters of a file, and slicing at
+ * a fixed count can cut an emoji's surrogate pair in half. One such half is a
+ * lone surrogate, which `JSON.stringify` happily emits as `\ud83d` — valid for
+ * JS, invalid JSON to a stricter parser. On 2026-09-18 three configs on
+ * `NVIDIA/cuopt` (cut at index 499) made `jq` fail on the whole 38MB
+ * /api/v1/sources body. The cap now avoids splitting pairs, and this runs on
+ * the read path because ~45k configs were already stored the old way.
+ */
+export function stripLoneSurrogates(text: string): string {
+  // Matches a high surrogate not followed by a low one, or a low surrogate
+  // not preceded by a high one.
+  return text.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
+}
+
+/** Project an entry into the list shape: same entry, configs without samples. */
+export function toListEntry(entry: RegistryEntry): ListedRegistryEntry {
+  return {
+    ...entry,
+    configs: entry.configs.map(({ sample: _sample, ...rest }) => rest),
+  };
+}
+
+/** Sanitise an entry's samples for serving. Identity apart from lone surrogates. */
+export function sanitiseEntry(entry: RegistryEntry): RegistryEntry {
+  return {
+    ...entry,
+    configs: entry.configs.map((c) => ({
+      ...c,
+      sample: stripLoneSurrogates(c.sample),
+    })),
+  };
+}
