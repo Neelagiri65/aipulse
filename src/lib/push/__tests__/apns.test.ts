@@ -88,6 +88,8 @@ describe("one push — headers and body", () => {
     expect(h.authorization).toBe("bearer JWT");
     const body = JSON.parse(apnsBody(payload));
     expect(body.aps.alert).toEqual({ title: payload.title, body: payload.body });
+    expect(body.aps.sound).toBeUndefined();
+    expect(body.aps.badge).toBeUndefined();
     expect(body).toMatchObject({ source: "Anthropic Status", generatedAt: "2026-09-23T09:00:00Z", toolId: "claude-code", url: "https://gawk.dev" });
   });
   it("returns the status and Apple's reason", async () => {

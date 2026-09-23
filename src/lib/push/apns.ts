@@ -86,7 +86,8 @@ export function apnsBody(payload: PushPayload): string {
   return JSON.stringify({
     aps: {
       alert: { title: payload.title, body: payload.body },
-      sound: "default",
+      // No sound and no badge by default (iOS PRD §14). Time-sensitive
+      // interruption for outages needs its own entitlement — later.
       "thread-id": payload.tag ?? "gawk",
     },
     url: payload.url ?? null,

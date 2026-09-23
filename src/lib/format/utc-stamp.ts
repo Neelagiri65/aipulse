@@ -6,6 +6,14 @@ export function stampUtc(iso: string): string {
   return `${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}/${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
 }
 
+/** `hh:mm UTC` for an ISO time; the input echoed back when it does not parse. */
+export function hhmmUtc(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
+}
+
 /**
  * `dd/mm/yyyy` for an ISO instant that means a DATE; the input echoed back
  * when it does not parse, same contract as `stampUtc`.

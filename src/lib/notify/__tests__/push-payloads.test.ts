@@ -19,7 +19,7 @@ describe("alertPushPayload", () => {
     const t: AlertTransition = { kind: "alert", primaryKey: "cursor-status:cursor", card };
     expect(alertPushPayload(t)).toEqual({
       title: "gawk.dev: Cursor degraded",
-      body: "Upstream status page reports degraded.",
+      body: "Upstream status page reports degraded. · Cursor Status · 12:00 UTC",
       url: "https://gawk.dev",
       tag: "tool-alert-Cursor",
       toolId: "cursor",
@@ -37,7 +37,7 @@ describe("alertPushPayload", () => {
     };
     const p = alertPushPayload(t);
     expect(p.toolId).toBe("cursor");
-    expect(p.body).toBe("Status changed to outage");
+    expect(p.body).toBe("Status changed to outage · Cursor Status · 12:00 UTC");
   });
 });
 
@@ -47,7 +47,7 @@ describe("recoveryPushPayload", () => {
     const r: RecoveryTransition = { kind: "recovery", primaryKey: "cursor-status:cursor", state: { ...base, toolId: "cursor" } };
     expect(recoveryPushPayload(r, new Date("2026-09-15T12:00:00Z"))).toEqual({
       title: "gawk.dev: Cursor recovered",
-      body: "Back to operational from degraded",
+      body: "Back to operational from degraded · n · 12:00 UTC",
       url: "https://gawk.dev",
       tag: "tool-alert-Cursor",
       toolId: "cursor",
