@@ -2,7 +2,8 @@
  * POST /api/push/apns — the iOS app registers its APNs device token.
  * DELETE /api/push/apns — the app unregisters (opt-out).
  *
- * Body: { token: 64-hex, env: "sandbox" | "production", tools?: ToolId[] }
+ * Body: { token: lowercase hex (Apple says the length may change; a 2026
+ *         simulator gives 160 chars, devices 64), env: "sandbox" | "production", tools?: ToolId[] }
  *
  * `env` is mandatory and strict: a debug build's token only works against
  * the sandbox gateway and an App Store build's only against production; a
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
   const body = await readBody(request);
   if (!body) return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   if (!isApnsToken(body.token)) {
-    return NextResponse.json({ ok: false, error: "invalid_token", expected: "64 lowercase hex characters" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "invalid_token", expected: "lowercase hex, even length, 32-256 characters" }, { status: 400 });
   }
   if (!isApnsEnv(body.env)) {
     return NextResponse.json({ ok: false, error: "invalid_env", expected: ["sandbox", "production"] }, { status: 400 });

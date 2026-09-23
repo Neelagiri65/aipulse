@@ -2,7 +2,7 @@
  * POST /api/push/apns/send — send an APNs push. INGEST_SECRET gated.
  *
  * Body: { title, body, url?, tag?, toolId?, source?, generatedAt?,
- *         token?: 64-hex, env?: "sandbox" | "production" }
+ *         token?: lowercase hex device token, env?: "sandbox" | "production" }
  *
  * With `token` + `env`: ONE device, and the raw APNs status is returned —
  * this is the PRD §5a spike made permanent: hitting it from Vercel with the

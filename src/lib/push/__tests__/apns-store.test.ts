@@ -20,10 +20,13 @@ const TOKEN = "a".repeat(64);
 const at = new Date("2026-09-23T09:00:00Z");
 
 describe("validation — the app cannot register garbage", () => {
-  it("accepts exactly 64 lowercase hex characters", () => {
+  it("accepts lowercase hex of any even length Apple might use — 64 (devices) and 160 (a 2026 simulator) — and nothing else", () => {
     expect(isApnsToken(TOKEN)).toBe(true);
+    expect(isApnsToken("a".repeat(160))).toBe(true);
     expect(isApnsToken("A".repeat(64))).toBe(false);
     expect(isApnsToken("a".repeat(63))).toBe(false);
+    expect(isApnsToken("a".repeat(30))).toBe(false);
+    expect(isApnsToken("a".repeat(258))).toBe(false);
     expect(isApnsToken(42)).toBe(false);
   });
   it("accepts only the two APNs environments", () => {
