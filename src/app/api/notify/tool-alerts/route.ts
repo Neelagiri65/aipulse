@@ -37,6 +37,7 @@ import {
   postEmbeds,
 } from "@/lib/notify/discord";
 import { broadcastPush, type BroadcastResult } from "@/lib/push/send";
+import { broadcastApns } from "@/lib/push/apns";
 import { alertPushPayload, recoveryPushPayload } from "@/lib/notify/push-payloads";
 import {
   computeTransitions,
@@ -227,11 +228,17 @@ export const POST = withIngest<RouteResult>({
     const pushJobs: Array<Promise<BroadcastResult | null>> = [];
     // Payloads carry `toolId`, so broadcastPush sends each alert only to
     // subscriptions whose stack includes that tool (or that carry no stack).
+    // The APNs rail (native app) runs beside web push with the same payload
+    // and the same targeting; unconfigured APNs returns zeros, not an error.
     for (const t of alerts) {
-      pushJobs.push(broadcastPush(alertPushPayload(t)).catch(() => null));
+      const p = alertPushPayload(t);
+      pushJobs.push(broadcastPush(p).catch(() => null));
+      pushJobs.push(broadcastApns(p).catch(() => null));
     }
     for (const r of recoveries) {
-      pushJobs.push(broadcastPush(recoveryPushPayload(r)).catch(() => null));
+      const p = recoveryPushPayload(r);
+      pushJobs.push(broadcastPush(p).catch(() => null));
+      pushJobs.push(broadcastApns(p).catch(() => null));
     }
     if (pushJobs.length > 0) {
       // Record the push-send beacon HERE — the real execution site.

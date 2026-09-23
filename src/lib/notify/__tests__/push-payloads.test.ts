@@ -23,6 +23,10 @@ describe("alertPushPayload", () => {
       url: "https://gawk.dev",
       tag: "tool-alert-Cursor",
       toolId: "cursor",
+      // Source name + the card's own timestamp: the iOS app renders nothing
+      // without both (constraint test 1), and web push ignores the extras.
+      source: card.sourceName,
+      generatedAt: "2026-09-15T12:00:00.000Z",
     });
   });
   it("falls back to the id inside the primary key when the card has none, and to a generic body when detail is empty", () => {
@@ -41,12 +45,15 @@ describe("recoveryPushPayload", () => {
   const base = { status: "degraded" as const, alertedAt: "2026-09-15T11:00:00Z", sourceUrl: "u", sourceName: "n", toolDisplayName: "Cursor" };
   it("targets the tool the alert targeted", () => {
     const r: RecoveryTransition = { kind: "recovery", primaryKey: "cursor-status:cursor", state: { ...base, toolId: "cursor" } };
-    expect(recoveryPushPayload(r)).toEqual({
+    expect(recoveryPushPayload(r, new Date("2026-09-15T12:00:00Z"))).toEqual({
       title: "gawk.dev: Cursor recovered",
       body: "Back to operational from degraded",
       url: "https://gawk.dev",
       tag: "tool-alert-Cursor",
       toolId: "cursor",
+      // The app renders nothing without a source and a time (iOS constraint test 1).
+      source: "n",
+      generatedAt: "2026-09-15T12:00:00.000Z",
     });
   });
   it("legacy cached state without a tool id still targets, via the primary key", () => {

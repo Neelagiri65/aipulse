@@ -126,6 +126,9 @@ function hscan(cursor, count) {
   return [end >= fields.length ? "0" : String(end), flat];
 }
 
+/** Generic hashes written at runtime (HSET/HDEL/HGETALL). */
+const hashes = new Map();
+
 function run(cmd) {
   const [op, ...args] = (Array.isArray(cmd) ? cmd : []).map(String);
   switch ((op ?? "").toUpperCase()) {
@@ -143,6 +146,24 @@ function run(cmd) {
       return args[0] === REGISTRY_KEY ? registry.size : 0;
     case "HGET":
       return args[0] === REGISTRY_KEY ? (registry.get(args[1]) ?? null) : null;
+    // Generic hashes (the APNs token store: `apns:tokens:<env>`). Real Redis
+    // answers HGETALL on a missing key with an EMPTY ARRAY, never null — the
+    // SDK's deserialiser throws on null, which is what a `default: null`
+    // reply produced here before these cases existed.
+    case "HSET": {
+      const h = hashes.get(args[0]) ?? new Map();
+      let added = 0;
+      for (let i = 1; i + 1 < args.length; i += 2) { if (!h.has(args[i])) added++; h.set(args[i], args[i + 1]); }
+      hashes.set(args[0], h);
+      return added;
+    }
+    case "HDEL": {
+      const h = hashes.get(args[0]); let n = 0;
+      for (const f of args.slice(1)) if (h?.delete(f)) n++;
+      return n;
+    }
+    case "HGETALL":
+      return [...(hashes.get(args[0]) ?? new Map()).entries()].flat();
     case "PING":
       return "PONG";
     default:

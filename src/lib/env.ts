@@ -26,7 +26,10 @@ export type EnvVarName =
   | "INGEST_SECRET"
   | "UPSTASH_REDIS_REST_URL"
   | "UPSTASH_REDIS_REST_TOKEN"
-  | "DISCORD_TOOL_ALERTS_WEBHOOK_URL";
+  | "DISCORD_TOOL_ALERTS_WEBHOOK_URL"
+  | "APNS_KEY_ID"
+  | "APNS_TEAM_ID"
+  | "APNS_P8";
 
 export function requireEnv(name: EnvVarName): string {
   const v = process.env[name];

@@ -60,6 +60,8 @@ const NOT_CRAWLABLE = new Set([
   "/api/consent/delete",
   "/api/digest/send",
   "/api/notify/tool-alerts",
+  "/api/push/apns",
+  "/api/push/apns/send",
   "/api/push/send",
   "/api/push/subscribe",
   "/api/subscribe",
