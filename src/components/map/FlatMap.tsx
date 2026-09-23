@@ -215,9 +215,14 @@ export function FlatMap({
     };
   }, [points]);
 
-  // Re-populate markers whenever the points list changes. Cluster group
-  // is wiped + refilled — at current density (~1000) this is fast
-  // enough; we'd only optimise to diff if we sustained 10k+ markers.
+  // Re-populate markers whenever the points list changes. The cluster group
+  // is wiped and refilled — and `points` is a new array on every Dashboard
+  // render, so this runs on every poll tick (events: 30 s) and every filter
+  // toggle, not only when a dot changes. Density is ~25k (the registry layer
+  // alone is 25,083 located repos on 2026-09-22), so the markers are collected
+  // and handed to the cluster in ONE `addLayers` call: markercluster
+  // re-clusters once per batch, where per-marker `addLayer` re-clustered
+  // 25k times (measured 600–750 ms per rebuild; see PR for the after-number).
   useEffect(() => {
     const L = leafletRef.current;
     const cluster = clusterRef.current;
@@ -225,6 +230,7 @@ export function FlatMap({
     if (!L || !cluster || !map || !ready) return;
 
     cluster.clearLayers();
+    const batch: L.Marker[] = [];
 
     // Placements that are not places are drawn once per centroid with a count,
     // never as a pile of dots that look like addresses. See `splitByPrecision`.
@@ -270,7 +276,7 @@ export function FlatMap({
           },
         });
       });
-      cluster.addLayer(marker);
+      batch.push(marker);
     }
 
     for (const p of precise) {
@@ -352,8 +358,9 @@ export function FlatMap({
           },
         });
       });
-      cluster.addLayer(marker);
+      batch.push(marker);
     }
+    cluster.addLayers(batch);
   }, [points, ready, theme]);
 
   // Cluster icons need a manual refresh when regionalDeltas change —
