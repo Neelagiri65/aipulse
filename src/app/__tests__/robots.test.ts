@@ -78,6 +78,7 @@ const NOT_CRAWLABLE = new Set([
   "/api/registry/deps",
   // Polled by the map on an interval (Dashboard.tsx); the page renders
   // without it and it is not page content.
+  "/api/registry/cells",
   "/api/registry/points",
   "/api/pkg/brew",
   "/api/pkg/crates",
