@@ -153,6 +153,14 @@ describe("parseFeed dispatcher", () => {
     expect(parseFeed(RSS20_FIXTURE, "rss")).toHaveLength(2);
     expect(parseFeed(ATOM_FIXTURE, "atom")).toHaveLength(2);
   });
+
+  // The Register moved headlines.atom to RSS 2.0 behind a redirect; the source
+  // still declared "atom", parseAtom found no <entry> and the feed read as
+  // empty for months. The body decides, the declaration is only a fallback.
+  it("parses by what the body is, not by what the source declares", () => {
+    expect(parseFeed(RSS20_FIXTURE, "atom")).toHaveLength(2);
+    expect(parseFeed(ATOM_FIXTURE, "rss")).toHaveLength(2);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -416,6 +424,24 @@ describe("runRssIngest", () => {
     const call = store.writeSource.mock.calls[0][0];
     expect(call.id).toBe("src-en");
     expect(call.lastError).toContain("boom");
+  });
+
+  // Analytics Vidhya's /blog/feed/ became an empty comments channel and the
+  // source reported healthy with zero items. A feed that fetches but yields
+  // nothing is a failure the dashboard must see, not a quiet success.
+  it("records an error when a fetched feed parses to zero items", async () => {
+    const EMPTY_CHANNEL = `<?xml version="1.0"?><rss version="2.0"><channel><title>Comments on: Blog</title></channel></rss>`;
+    const fetchFn = vi.fn(async () => EMPTY_CHANNEL);
+    const result = await runRssIngest({
+      sources: [SRC_EN],
+      fetchFn,
+      store,
+      now: new Date("2026-04-20T00:00:00.000Z"),
+    });
+    expect(result.ok).toBe(false);
+    const call = store.writeSource.mock.calls[0][0];
+    expect(call.lastFetchOkTs).toBeNull();
+    expect(call.lastError).toContain("0 items");
   });
 
   it("prunes the wire ZSET after ingest", async () => {

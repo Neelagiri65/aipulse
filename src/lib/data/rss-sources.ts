@@ -6,7 +6,8 @@
  * (non-SV counterweight) in session 21; reframed in session 59 as
  * "AI publishers" once the slate grew beyond regional-bias mitigation
  * to include practitioner newsletters (latent.space, SF) alongside
- * regional press (Heise DE, Synced CN, Analytics Vidhya IN, etc.).
+ * regional press (Heise DE, Analytics Vidhya IN, etc.). Synced Review
+ * (CN) was retired 2026-09-24: its feed stopped publishing in August 2025.
  *
  * Discipline mirrors `labs-registry.ts`:
  *   - hqSourceUrl must be https and citation-grade.
@@ -15,7 +16,7 @@
  *   - keywordFilterScope declares whether the ingest pipeline should
  *     apply the AI-keyword filter (for publication-wide feeds like
  *     Heise) or trust the publisher's own AI-topic scope (Register AI,
- *     MIT TR AI, MarkTechPost, Synced Review, latent.space, AV).
+ *     MIT TR AI, MarkTechPost, latent.space, AV).
  *
  * Every change to this file is a CHECKPOINT under the dual-model build
  * protocol. AUDITOR-REVIEW: PENDING until the feature branch merges to
@@ -196,10 +197,10 @@ export const RSS_SOURCES: readonly RssSource[] = [
     rssUrl: "https://www.theregister.com/software/ai_ml/headlines.atom",
     hqSourceUrl: "https://en.wikipedia.org/wiki/The_Register",
     publisherUrl: "https://www.theregister.com/software/ai_ml/",
-    feedFormat: "atom",
+    feedFormat: "rss",
     keywordFilterScope: "all",
     caveat:
-      "Topic-scoped Atom feed (AI/ML section). UK tech press tone; skews toward enterprise IT and security angles rather than research.",
+      "Topic-scoped feed (AI/ML section); the headlines.atom URL has served RSS 2.0 since at least September 2026. UK tech press tone; skews toward enterprise IT and security angles rather than research.",
   },
   {
     id: "heise-ai",
@@ -216,22 +217,6 @@ export const RSS_SOURCES: readonly RssSource[] = [
     keywordFilterScope: "ai-only",
     caveat:
       "Heise Online does not publish a topic-scoped AI feed; the global publication Atom is used and filtered with the same deterministic keyword list applied to HN (English + German AI terms). No LLM inference. Titles remain in German.",
-  },
-  {
-    id: "synced-review",
-    displayName: "Synced Review",
-    city: "Beijing",
-    country: "CN",
-    lat: 39.9042,
-    lng: 116.4074,
-    lang: "en",
-    rssUrl: "https://syncedreview.com/feed/",
-    hqSourceUrl: "https://syncedreview.com/about/",
-    publisherUrl: "https://syncedreview.com/",
-    feedFormat: "rss",
-    keywordFilterScope: "all",
-    caveat:
-      "English-language publication covering Chinese and global AI research. Editorial team headquartered in Beijing; this is a curated-and-translated layer, not a native Chinese-language primary source.",
   },
   {
     id: "marktechpost",
@@ -290,7 +275,7 @@ export const RSS_SOURCES: readonly RssSource[] = [
     lat: 28.4595,
     lng: 77.0266,
     lang: "en",
-    rssUrl: "https://www.analyticsvidhya.com/blog/feed/",
+    rssUrl: "https://www.analyticsvidhya.com/feed/",
     hqSourceUrl: "https://www.analyticsvidhya.com/about-me/",
     publisherUrl: "https://www.analyticsvidhya.com/",
     feedFormat: "rss",

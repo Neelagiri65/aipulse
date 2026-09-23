@@ -102,7 +102,7 @@ export const CATEGORIES: readonly CategoryDescriptor[] = [
     id: "ai-publishers",
     label: "AI Publishers",
     blurb:
-      "Editor-curated AI publishers with verifiable HQ coordinates. Mix of regional press (Heise DE, Synced CN, MarkTechPost IN, Analytics Vidhya IN, The Register UK, MIT TR US) and practitioner newsletters (latent.space SF). Each feed is parsed by the deterministic ingest pipeline; no LLM relevance scoring.",
+      "Editor-curated AI publishers with verifiable HQ coordinates. Mix of regional press (Heise DE, MarkTechPost IN, Analytics Vidhya IN, The Register UK, MIT TR US) and practitioner newsletters (latent.space SF). Each feed is parsed by the deterministic ingest pipeline; no LLM relevance scoring.",
   },
 ] as const;
 
@@ -213,8 +213,6 @@ const TRACKS: Record<string, string> = {
   "rss-the-register-ai": "AI/ML headlines from The Register (UK tech press, London).",
   "rss-heise-ai":
     "German-language AI headlines from Heise Online, filtered through the same AI-keyword allowlist.",
-  "rss-synced-review":
-    "English-language AI research coverage with strong China/global lab depth (editorial team, Beijing).",
   "rss-marktechpost":
     "AI research news from MarkTechPost (India-based editorial team).",
   "rss-mit-tech-review-ai":
@@ -270,7 +268,6 @@ const POWERED_FEATURE: Record<string, string> = {
   "gitlab-project-events": "Map · Wire (GitLab dots, rendered identically)",
   "rss-the-register-ai": "Wire panel + map",
   "rss-heise-ai": "Wire panel + map",
-  "rss-synced-review": "Wire panel + map",
   "rss-marktechpost": "Wire panel + map",
   "rss-mit-tech-review-ai": "Wire panel + map",
   "rss-latent-space": "Wire panel + map",
@@ -334,7 +331,6 @@ const CATEGORY_OF: Record<string, CategoryId> = {
   // AI publishers
   "rss-the-register-ai": "ai-publishers",
   "rss-heise-ai": "ai-publishers",
-  "rss-synced-review": "ai-publishers",
   "rss-marktechpost": "ai-publishers",
   "rss-mit-tech-review-ai": "ai-publishers",
   "rss-latent-space": "ai-publishers",
@@ -375,7 +371,6 @@ const FRESHNESS_OF: Record<string, FreshnessSource> = {
   "gitlab-project-events": { kind: "cron", workflow: "globe-ingest" },
   "rss-the-register-ai": { kind: "cron", workflow: "wire-ingest-rss" },
   "rss-heise-ai": { kind: "cron", workflow: "wire-ingest-rss" },
-  "rss-synced-review": { kind: "cron", workflow: "wire-ingest-rss" },
   "rss-marktechpost": { kind: "cron", workflow: "wire-ingest-rss" },
   "rss-mit-tech-review-ai": { kind: "cron", workflow: "wire-ingest-rss" },
   "rss-latent-space": { kind: "cron", workflow: "wire-ingest-rss" },

@@ -69,7 +69,6 @@ The PyPI, npm, and GitHub Repository Metadata sources also power the Agents pane
 ### AI publishers (7)
 - The Register — AI/ML section feed
 - Heise Online — global Atom, AI-filtered
-- Synced Review — AI research, China/global
 - MarkTechPost — AI research, India-based team
 - Analytics Vidhya — Indian AI / data-science publisher
 - MIT Technology Review — AI topic feed
