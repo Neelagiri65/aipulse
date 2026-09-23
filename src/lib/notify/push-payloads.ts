@@ -23,16 +23,20 @@ export function alertPushPayload(t: AlertTransition): PushPayload {
     url: SITE_URL,
     tag: `tool-alert-${toolName}`,
     toolId,
+    source: t.card.sourceName,
+    generatedAt: t.card.timestamp,
   };
 }
 
 /** A recovery targets the same tool the alert did; legacy state without an id falls back to the key. */
-export function recoveryPushPayload(r: RecoveryTransition): PushPayload {
+export function recoveryPushPayload(r: RecoveryTransition, now = new Date()): PushPayload {
   return {
     title: `gawk.dev: ${r.state.toolDisplayName} recovered`,
     body: `Back to operational from ${r.state.status}`,
     url: SITE_URL,
     tag: `tool-alert-${r.state.toolDisplayName}`,
     toolId: r.state.toolId || toolIdFromPrimaryKey(r.primaryKey),
+    source: r.state.sourceName,
+    generatedAt: now.toISOString(),
   };
 }

@@ -9,6 +9,11 @@ export type PushPayload = {
   tag?: string;
   /** The tool this alert is about, when it is about one. Drives targeting. */
   toolId?: string;
+  /** Where the status came from (the vendor status page name). The iOS
+   *  app renders nothing without a source and a time — constraint test 1. */
+  source?: string;
+  /** ISO time the transition was observed. */
+  generatedAt?: string;
 };
 
 export type BroadcastResult = {
