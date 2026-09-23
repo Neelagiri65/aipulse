@@ -2,8 +2,8 @@
  * APNs device-token storage in Upstash Redis.
  *
  * One HASH per APNs environment — `apns:tokens:sandbox` (Xcode debug builds)
- * and `apns:tokens:production` (TestFlight + App Store) — field = the 64-hex
- * device token, value = `{ tools, addedAt }`. A hash dedupes for free and
+ * and `apns:tokens:production` (TestFlight + App Store) — field = the hex
+ * device token (length is Apple's to choose), value = `{ tools, addedAt }`. A hash dedupes for free and
  * costs ONE command per alert (HGETALL) where per-token keys would SCAN.
  * Budget: 1 HSET per install, 1 HDEL per unsubscribe, 1 HGETALL per alert.
  *
@@ -28,7 +28,11 @@ export type ApnsRecord = {
   addedAt: string;
 };
 
-const TOKEN_RE = /^[0-9a-f]{64}$/;
+// Apple: "the length of the device token may change in the future — do not
+// hardcode it." It did: a 2026 simulator on Apple silicon hands over 80 bytes
+// (160 hex), where devices have long given 32. Lowercase hex, even length,
+// bounded — never a fixed 64.
+const TOKEN_RE = /^(?:[0-9a-f]{2}){16,128}$/;
 
 export function isApnsToken(v: unknown): v is string {
   return typeof v === "string" && TOKEN_RE.test(v);
