@@ -130,9 +130,28 @@ export default function MethodologyPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Sort order</h2>
         <p className="text-sm text-muted-foreground">
-          Cards are sorted by severity descending, then by underlying-event
-          timestamp descending within the same tier. Sort is deterministic
-          and stable; identical inputs produce identical orderings.
+          Cards are sorted by severity descending. Within one severity, a
+          story covered by more outlets and threads comes first; within
+          News, Hacker News stories come before subreddit posts; then the
+          newest event first. No more than two cards of one kind run in a
+          row: the next place goes to another kind, and that place rotates
+          among the kinds, the one shown least recently first. Sort is
+          deterministic and stable; identical inputs produce identical
+          orderings.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">One story, one card</h2>
+        <p className="text-sm text-muted-foreground">
+          When publisher articles, Hacker News posts or subreddit posts from
+          the last 48 hours report the same story, they fold into one card.
+          Two items are the same story when they link to the same article,
+          or share a name (a product, model or company) and enough rare
+          words; two articles from one publisher are never merged. The card
+          kept is the earliest publisher article, headline unedited; the
+          others are listed on it as sources and discussion, each linked.
+          Nothing is scored and no headline is rewritten.
         </p>
       </section>
 

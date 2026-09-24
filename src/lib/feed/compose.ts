@@ -40,6 +40,7 @@ import {
   diversifyCards,
   rankCards,
 } from "@/lib/feed/rank";
+import { articleCorpus, mergeStoryCards } from "@/lib/stories/story-cards";
 import { isQuietDay } from "@/lib/feed/quiet-day";
 import type { CurrentState, FeedResponse } from "@/lib/feed/types";
 
@@ -90,7 +91,13 @@ export function composeFeed(
   // type (e.g. 10 MODEL_MOVERs) doesn't read as "this product does one
   // thing". Both passes are loss-free relative to their own contracts —
   // see rank.ts for the rules.
-  const ranked = rankCards(cards);
+  // Cards reporting the same story (publishers, Hacker News, Reddit) fold into one, which carries
+  // the others as sources and discussion — see src/lib/stories/story-cards.ts.
+  const storied = mergeStoryCards(
+    cards,
+    articleCorpus({ rss: snapshots.rss, hn: snapshots.hn.items, reddit: snapshots.reddit }),
+  );
+  const ranked = rankCards(storied);
   const deduped = dedupeCardsBySource(ranked);
   const composed = diversifyCards(deduped, 2);
 
