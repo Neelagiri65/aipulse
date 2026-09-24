@@ -306,6 +306,28 @@ describe("normaliseItem", () => {
 // AI-keyword filter (ai-only scope)
 // ---------------------------------------------------------------------------
 
+describe("isRssAiRelevant — whole words, not substrings (real Heise titles, 2026-09-24)", () => {
+  // "rag" matched inside "Snapdragon" and " ai" inside "AirPods": a phone launch reached the Feed.
+  it.each([
+    "Qualcomm Snapdragon 8 Elite Extreme Gen 6: 5 GHz im Benchmark",
+    "Xiaomi 18 Pro und 18 Pro Max: Top-Handys mit neuen Snapdragon-Chips",
+    "Enorme Nachfrage nach openDesk – Partnerprogramm startet jetzt",
+    "Wellenkraftwerke: Forscher maximieren Energieertrag von Bojen in Hausgröße",
+    "heise+ | AirPods 5 im Test: ANC endlich für alle",
+  ])("rejects %s", (t) => expect(isRssAiRelevant(t, "de")).toBe(false));
+  it.each([
+    "Mercedes-Benz will Serienfahrzeuge mit dem Wayve AI Driver ausstatten",
+    "AWS CloudWatch: KI soll bei Incidents mit ermitteln",
+    "Neu von AWS: Weniger Kontextpflege für selbst gebaute KI-Agenten",
+    "KI-Ausgaben in Deutschland steigen um 50 Prozent auf 28,7 Milliarden Euro",
+    "Geschrumpfte Chatbots: So passt die KI plötzlich in 4 GByte RAM",
+    "heise-Angebot: betterCode() .NET 11.0: Workshops zu KI, ASP.NET, C# 15.0, EF Core",
+    "Anthropic veröffentlicht Claude Opus 5.5: Fokus auf Effizienz und Sicherheit",
+    "GPT-6 Sol und Luna: OpenAI halbiert die Preise",
+    "Why LLMs fail at fine-tuning on small data",
+  ])("keeps %s", (t) => expect(isRssAiRelevant(t, "de")).toBe(true));
+});
+
 describe("isRssAiRelevant", () => {
   it("accepts English AI keywords", () => {
     expect(isRssAiRelevant("OpenAI launches new model", "en")).toBe(true);

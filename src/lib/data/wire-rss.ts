@@ -16,6 +16,7 @@
  *     the batch.
  */
 
+import { titleHasKeyword } from "@/lib/data/keyword-match";
 import { createHash } from "node:crypto";
 import type { RssSource } from "@/lib/data/rss-sources";
 
@@ -342,16 +343,9 @@ export const KEYWORD_ALLOWLIST_DE: readonly string[] = [
  * for de-language feeds.
  */
 export function isRssAiRelevant(title: string, lang: string): boolean {
-  const t = title.toLowerCase();
-  for (const kw of KEYWORD_ALLOWLIST_EN) {
-    if (t.includes(kw)) return true;
-  }
-  if (lang === "de") {
-    for (const kw of KEYWORD_ALLOWLIST_DE) {
-      if (t.includes(kw)) return true;
-    }
-  }
-  return false;
+  // Whole words (keyword-match.ts): substrings let "rag" match "Snapdragon".
+  if (titleHasKeyword(title, KEYWORD_ALLOWLIST_EN)) return true;
+  return lang === "de" && titleHasKeyword(title, KEYWORD_ALLOWLIST_DE);
 }
 
 // ---------------------------------------------------------------------------
