@@ -154,4 +154,24 @@ describe("deltasFromCounts", () => {
     const out = deltasFromCounts(input);
     expect(out[1].delta).toBeCloseTo(4.0, 6);
   });
+
+  it("never returns a change below -100%: a negative count has no delta and stays out of baselines", () => {
+    const out = deltasFromCounts([
+      { date: "d1", count: 1000 },
+      { date: "d2", count: -2500 }, // an artefact, not a count
+      { date: "d3", count: 1294 },
+    ]);
+    expect(out[1].delta).toBeNull();
+    expect(out[2].delta).toBeCloseTo(0.294, 3); // vs 1000 only; the -2500 is not in the baseline
+  });
+
+  it("returns null delta when the baseline mean is negative", () => {
+    // Only possible from bad upstream data; a percentage against it would be meaningless.
+    const out = deltasFromCounts([
+      { date: "d1", count: -1270 },
+      { date: "d2", count: 1294 },
+    ]);
+    expect(out[1].delta).toBeNull();
+  });
 });
+

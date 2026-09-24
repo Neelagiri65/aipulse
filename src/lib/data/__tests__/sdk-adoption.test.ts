@@ -200,7 +200,10 @@ describe("assembleSdkAdoption", () => {
     expect(row.days[1].count).toBe(300);
   });
 
-  it("derives brew daily count as lastMonth diff", () => {
+  it("reads brew's 30-day install count as published — never a day-over-day diff of it", () => {
+    // Homebrew's "30d" is a ROLLING window, not a cumulative counter: today's value minus
+    // yesterday's is today's installs minus the day that fell out of the window, and goes negative
+    // whenever that old day was busier (the source of a live "ollama on brew -203%", 2026-09-25).
     const snaps = [
       makeSnapshot("2026-04-24", {
         brew: [{ name: "ollama", lastMonth: 50000 }],
@@ -223,8 +226,8 @@ describe("assembleSdkAdoption", () => {
       windowDays: 2,
     });
     const row = dto.packages[0];
-    expect(row.counterName).toBe("lastMonth diff");
-    expect(row.days[1].count).toBe(800);
+    expect(row.counterName).toBe("lastMonth");
+    expect(row.days.map((d) => d.count)).toEqual([50000, 50800]);
   });
 
   it("renders a column-per-day for the requested windowDays even when snapshots are sparse", () => {
