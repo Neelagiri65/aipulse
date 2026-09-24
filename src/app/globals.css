@@ -1930,7 +1930,9 @@
 }
 
 .ap-feed-card {
-  background: rgba(10, 13, 16, 0.7);
+  /* Theme tokens, not the April dark-only rgba: on the light theme that drew a dark-grey box whose
+     muted text had almost no contrast (found on /feed/<id>, 2026-09-24). */
+  background: var(--ap-bg-panel);
   border: 1px solid var(--ap-border);
   border-left: 3px solid var(--ap-border);
   border-radius: 4px;
@@ -1971,16 +1973,17 @@
 .ap-feed-card-badge[data-severity="100"] { color: var(--sev-outage); }
 .ap-feed-card-badge[data-severity="80"]  { color: var(--sev-degrade); }
 .ap-feed-card-badge[data-severity="60"]  { color: var(--ap-accent); }
-.ap-feed-card-badge[data-severity="40"]  { color: rgba(226, 232, 240, 0.9); }
-.ap-feed-card-badge[data-severity="20"]  { color: rgba(148, 163, 184, 0.9); }
-.ap-feed-card-badge[data-severity="10"]  { color: rgba(148, 163, 184, 0.7); }
+.ap-feed-card-badge[data-severity="45"]  { color: var(--ink); }
+.ap-feed-card-badge[data-severity="40"]  { color: var(--ink); }
+.ap-feed-card-badge[data-severity="20"]  { color: var(--ink2); }
+.ap-feed-card-badge[data-severity="10"]  { color: var(--ink-muted); }
 
 .ap-feed-card-headline {
   margin: 0;
   font-size: 14px;
   line-height: 1.35;
   font-weight: 600;
-  color: rgba(226, 232, 240, 0.96);
+  color: var(--ap-fg);
 }
 
 .ap-feed-card-detail {
@@ -2023,7 +2026,7 @@
 
 .ap-feed-card-source {
   font-size: 11px;
-  color: var(--ap-accent);
+  color: var(--link);
   text-decoration: none;
   letter-spacing: 0.04em;
 }
@@ -2054,7 +2057,7 @@
 }
 
 .ap-feed-card-skeleton {
-  background: rgba(10, 13, 16, 0.5);
+  background: var(--ap-bg-panel-2);
   border: 1px solid var(--ap-border);
   border-radius: 4px;
   padding: 12px 14px;
