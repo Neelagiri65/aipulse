@@ -15,6 +15,7 @@ function card(partial: Partial<Card> & Pick<Card, "type" | "severity">): Card {
     sourceUrl: partial.sourceUrl ?? "https://example.com",
     timestamp: partial.timestamp ?? "2026-04-27T12:00:00.000Z",
     meta: partial.meta ?? {},
+    story: partial.story,
   };
 }
 
@@ -135,5 +136,44 @@ describe("FeedCard — discuss affordance", () => {
       <FeedCard card={card({ type: "TOOL_ALERT", severity: 100 })} discuss={null} />,
     );
     expect(html).not.toContain("feed-card-discuss");
+  });
+
+  describe("a card carrying a story", () => {
+    const src = (publisher: string, n: number) => ({
+      publisher, country: "US", lang: "en", url: `https://example.com/${n}`, timestamp: "2026-09-22T18:00:00.000Z",
+    });
+    const storied = card({
+      type: "PRESS", severity: 45, headline: "Anthropic veröffentlicht Claude Opus 5.5", sourceName: "Heise Online",
+      story: {
+        sources: [src("MarkTechPost", 1), src("Analytics Vidhya", 2), src("latent.space", 3), src("The Register", 4), src("MIT TR", 5)],
+        discussion: [
+          { site: "Hacker News", url: "https://news.ycombinator.com/item?id=1", points: 120, timestamp: "2026-09-22T20:00:00Z" },
+          { site: "r/LocalLLaMA", url: "https://reddit.com/r/LocalLLaMA/x", points: null, timestamp: "2026-09-22T21:00:00Z" },
+        ],
+      },
+    });
+
+    it("lists the other outlets as links, the first three by name and the rest as a count", () => {
+      const html = renderToStaticMarkup(<FeedCard card={storied} showShare={false} />);
+      expect(html).toContain("Also reported by");
+      for (const n of [1, 2, 3]) expect(html).toContain(`href="https://example.com/${n}"`);
+      expect(html).toContain("MarkTechPost");
+      expect(html).not.toContain(`href="https://example.com/4"`);
+      expect(html).toContain("+2 more");
+    });
+
+    it("lists the discussion threads, saying what a number counts", () => {
+      const html = renderToStaticMarkup(<FeedCard card={storied} showShare={false} />);
+      expect(html).toContain("Discussed on");
+      expect(html).toContain('href="https://news.ycombinator.com/item?id=1"');
+      expect(html).toContain("120 points");
+      expect(html).toContain("r/LocalLLaMA");
+    });
+
+    it("renders neither line for a card without a story", () => {
+      const html = renderToStaticMarkup(<FeedCard card={card({ type: "PRESS", severity: 45 })} showShare={false} />);
+      expect(html).not.toContain("Also reported by");
+      expect(html).not.toContain("Discussed on");
+    });
   });
 });
