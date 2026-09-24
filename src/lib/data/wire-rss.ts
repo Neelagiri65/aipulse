@@ -439,8 +439,23 @@ export function parseAtom(xml: string): RssRawItem[] {
 }
 
 /** Format-dispatching parser. */
+/**
+ * What the body actually is. Publishers move feeds between formats behind
+ * redirects (The Register's `headlines.atom` now serves RSS 2.0), so the
+ * body is authoritative and a source's declared format is only the fallback
+ * when the body carries neither marker.
+ */
+export function detectFeedFormat(xml: string): "rss" | "atom" | null {
+  const hasItem = /<item[\s>]/i.test(xml);
+  const hasEntry = /<entry[\s>]/i.test(xml);
+  if (hasEntry && !hasItem) return "atom";
+  if (hasItem && !hasEntry) return "rss";
+  return null;
+}
+
 export function parseFeed(xml: string, format: "rss" | "atom"): RssRawItem[] {
-  return format === "atom" ? parseAtom(xml) : parseRss20(xml);
+  const actual = detectFeedFormat(xml) ?? format;
+  return actual === "atom" ? parseAtom(xml) : parseRss20(xml);
 }
 
 // ---------------------------------------------------------------------------
@@ -542,6 +557,14 @@ export async function runRssIngest(opts: {
 
     if (err === null) {
       raw = parseFeed(xml, source.feedFormat);
+      if (raw.length === 0) {
+        // A fetch that yields nothing is not a healthy source: two feeds sat
+        // at zero items for months while reporting fresh.
+        err = `feed parsed to 0 items (declared ${source.feedFormat}, body ${detectFeedFormat(xml) ?? "unrecognised"})`;
+      }
+    }
+
+    if (err === null) {
       for (const r of raw) {
         // AI-filter (only when scope === ai-only)
         if (source.keywordFilterScope === "ai-only") {

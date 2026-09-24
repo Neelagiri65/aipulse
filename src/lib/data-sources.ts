@@ -1150,12 +1150,12 @@ export const RSS_THE_REGISTER_AI: DataSource = {
     "AI/ML-scoped headlines from The Register — title, url, guid, pubDate, source id. gawk.dev does not summarise, score, or re-title; the items are mirrored verbatim and linked back to the publisher's canonical URL. UK tech press editorial angle (enterprise IT, security); editorial tone is a provenance note, not a sentiment signal.",
   sanityCheck: {
     description:
-      "Topic-scoped feed; expect 2–25 items per 24h. Zero across consecutive polls indicates either a CDN outage or that the publisher has moved the feed URL — investigate before attributing to a slow news day. Feed format MUST parse as Atom; a parse failure marks the source stale rather than dropping silently.",
+      "Topic-scoped feed; expect 2–25 items per 24h. Zero across consecutive polls indicates either a CDN outage or that the publisher has moved the feed URL — investigate before attributing to a slow news day. The URL still ends .atom but has served RSS 2.0 since at least September 2026; ingest parses by the body, and a feed that yields zero items is recorded as an error rather than a quiet success.",
     expectedMin: 2,
     expectedMax: 25,
     unit: "items per 24h",
   },
-  verifiedAt: "2026-04-20",
+  verifiedAt: "2026-09-24",
   license: {
     label: "The Register linking policy — headline + link permitted",
     termsUrl: "https://www.theregister.com/Profile/linking/",
@@ -1199,41 +1199,6 @@ export const RSS_HEISE_AI: DataSource = {
   },
   caveat:
     "Heise Online does not publish a topic-scoped AI feed; the global publication Atom is used and filtered with the same deterministic keyword list applied to HN (English + German AI terms). Transparency: the filter is imperfect — a story about 'KI' used metaphorically would match; a story about a specific model that doesn't mention 'AI/KI' in the title would miss. No LLM inference is used to correct these. HQ pin is Hannover per the publisher's Wikipedia infobox.",
-  powersFeature: ["regional-wire", "map", "wire-panel"],
-};
-
-export const RSS_SYNCED_REVIEW: DataSource = {
-  id: "rss-synced-review",
-  name: "Synced Review — AI research, China/global",
-  category: "press-rss",
-  url: "https://syncedreview.com",
-  apiUrl: "https://syncedreview.com/feed/",
-  responseFormat: "rss",
-  updateFrequency: "minutely",
-  rateLimit: {
-    note: "WordPress-backed RSS; no documented limit. Polled at :25,:55 (48/day).",
-  },
-  auth: "none",
-  measures:
-    "English-language AI-research headlines covering Chinese and global labs — title, url, guid, pubDate, source id. Editor-curated; gawk.dev mirrors verbatim and links back to the publisher's article.",
-  sanityCheck: {
-    description:
-      "Topic-scoped AI publication; expect 1–15 items per 24h. A zero-day over >48h indicates the publisher may have stopped updating or moved the feed URL.",
-    expectedMin: 1,
-    expectedMax: 20,
-    unit: "items per 24h",
-  },
-  verifiedAt: "2026-04-20",
-  license: {
-    label: "No published terms",
-    termsUrl: "https://syncedreview.com",
-    obligation: "unverified",
-    verifiedAt: "",
-    notes:
-      "No terms, copyright, or privacy page exists anywhere on the domain — over ten candidate URLs returned 404, and the sitemap lists only /about-us, /shop, /newsletter and a poll archive. Nothing grants permission and nothing prohibits reuse. Headline + attribution + link-back is the right posture.",
-  },
-  caveat:
-    "English-language publication covering Chinese and global AI research. Editorial team headquartered in Beijing per the publisher's about page (hqSourceUrl); this is a curated-and-translated layer, not a native Chinese-language primary source. Including a native zh-CN feed in a future iteration would further reduce the English-only bias — queued as AUDITOR-PENDING for a v2 pass.",
   powersFeature: ["regional-wire", "map", "wire-panel"],
 };
 
@@ -1348,7 +1313,7 @@ export const RSS_ANALYTICS_VIDHYA: DataSource = {
   name: "Analytics Vidhya — Indian AI / data-science publisher",
   category: "press-rss",
   url: "https://www.analyticsvidhya.com",
-  apiUrl: "https://www.analyticsvidhya.com/blog/feed/",
+  apiUrl: "https://www.analyticsvidhya.com/feed/",
   responseFormat: "rss",
   updateFrequency: "minutely",
   rateLimit: {
@@ -1364,7 +1329,7 @@ export const RSS_ANALYTICS_VIDHYA: DataSource = {
     expectedMax: 30,
     unit: "items per 24h",
   },
-  verifiedAt: "2026-05-03",
+  verifiedAt: "2026-09-24",
   license: {
     label: "Analytics Vidhya ToS — reproduction prohibited without consent",
     termsUrl: "https://www.analyticsvidhya.com/terms/",
@@ -1718,7 +1683,6 @@ export const ALL_SOURCES: readonly DataSource[] = [
   GITLAB_PROJECT_EVENTS,
   RSS_THE_REGISTER_AI,
   RSS_HEISE_AI,
-  RSS_SYNCED_REVIEW,
   RSS_AIM,
   RSS_MIT_TR_AI,
   RSS_LATENT_SPACE,

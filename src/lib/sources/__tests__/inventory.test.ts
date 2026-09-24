@@ -55,14 +55,14 @@ describe("sources inventory", () => {
       expect(grouped.has(cat.id)).toBe(true);
     }
     // Per spec brief: 5 tool-status, 6 sdk-adoption (PyPI + npm + crates +
-    // Docker + Homebrew + VS Code Marketplace), 7 ai-publishers (5 regional
-    // press + Analytics Vidhya + latent.space, S59 expansion),
+    // Docker + Homebrew + VS Code Marketplace), 6 ai-publishers (4 regional
+    // press + Analytics Vidhya + latent.space; Synced Review retired 2026-09-24),
     // 1 discussion, 1 research. Models is 3 (HF + Arena + OpenRouter).
     // Agents is 1 (github-repo-meta — PyPI + npm appear under
     // SDK Adoption since they primarily power that panel).
     expect(grouped.get("sdk-adoption")?.length).toBe(6);
     expect(grouped.get("agents")?.length).toBe(1);
-    expect(grouped.get("ai-publishers")?.length).toBe(7);
+    expect(grouped.get("ai-publishers")?.length).toBe(6);
     expect(grouped.get("discussion")?.length).toBe(4);
     expect(grouped.get("research")?.length).toBe(2);
     expect(grouped.get("models")?.length).toBe(3);
