@@ -1147,7 +1147,7 @@ export const RSS_THE_REGISTER_AI: DataSource = {
   },
   auth: "none",
   measures:
-    "AI/ML-scoped headlines from The Register — title, url, guid, pubDate, source id. gawk.dev does not summarise, score, or re-title; the items are mirrored verbatim and linked back to the publisher's canonical URL. UK tech press editorial angle (enterprise IT, security); editorial tone is a provenance note, not a sentiment signal.",
+    "AI/ML-scoped headlines from The Register — title, url, guid, pubDate, source id, and the image URL the publisher attaches to the item (when it attaches one). gawk.dev does not summarise, score, or re-title; the items are mirrored verbatim and linked back to the publisher's canonical URL. UK tech press editorial angle (enterprise IT, security); editorial tone is a provenance note, not a sentiment signal.",
   sanityCheck: {
     description:
       "Topic-scoped feed; expect 2–25 items per 24h. Zero across consecutive polls indicates either a CDN outage or that the publisher has moved the feed URL — investigate before attributing to a slow news day. The URL still ends .atom but has served RSS 2.0 since at least September 2026; ingest parses by the body, and a feed that yields zero items is recorded as an error rather than a quiet success.",
@@ -1180,7 +1180,7 @@ export const RSS_HEISE_AI: DataSource = {
   },
   auth: "none",
   measures:
-    "German-language AI headlines from Heise Online — title, url, guid, pubDate, source id. Items pass a deterministic AI-keyword match (no LLM inference). Titles remain in German (translation would require LLM inference and would violate the deterministic-only pipeline discipline).",
+    "German-language AI headlines from Heise Online — title, url, guid, pubDate, source id, and the image URL the publisher attaches to the item (when it attaches one). Items pass a deterministic AI-keyword match (no LLM inference). Titles remain in German (translation would require LLM inference and would violate the deterministic-only pipeline discipline).",
   sanityCheck: {
     description:
       "Global Atom filtered for AI keywords. Expect 0–10 AI-relevant items per 24h. A zero-day is plausible on weekends/holidays (Heise is a general tech publisher), so the source is NOT auto-stale on single-poll zeros — it only escalates to stale when lastFetchOkTs exceeds RSS_STALE_HOURS_THRESHOLD.",
@@ -1215,7 +1215,7 @@ export const RSS_AIM: DataSource = {
   },
   auth: "none",
   measures:
-    "AI-research headlines from MarkTechPost — title, url, guid, pubDate, source id. Editor-curated; gawk.dev mirrors verbatim. The India regional slot was filled with MarkTechPost after a review showed Analytics India Magazine's feed gated behind a paywall/fragile URL structure; MarkTechPost's feed is publicly accessible, AI-focused, and editorially led by an India-based team.",
+    "AI-research headlines from MarkTechPost — title, url, guid, pubDate, source id, and the image URL the publisher attaches to the item (when it attaches one). Editor-curated; gawk.dev mirrors verbatim. The India regional slot was filled with MarkTechPost after a review showed Analytics India Magazine's feed gated behind a paywall/fragile URL structure; MarkTechPost's feed is publicly accessible, AI-focused, and editorially led by an India-based team.",
   sanityCheck: {
     description:
       "AI-focused feed with steady publication cadence; expect 3–30 items per 24h. High end is normal (the publisher posts news digests and research summaries frequently). Consecutive zero-days indicate the feed may have moved.",
@@ -1251,7 +1251,7 @@ export const RSS_MIT_TR_AI: DataSource = {
   },
   auth: "none",
   measures:
-    "AI-topic headlines from MIT Technology Review — title, url, guid, pubDate, source id. Editor-curated; gawk.dev mirrors verbatim.",
+    "AI-topic headlines from MIT Technology Review — title, url, guid, pubDate, source id, and the image URL the publisher attaches to the item (when it attaches one). Editor-curated; gawk.dev mirrors verbatim.",
   sanityCheck: {
     description:
       "Topic-scoped feed; expect 0–8 items per 24h (MIT TR publishes less frequently than the WordPress peers, so zero-days are common and not a broken-source signal until >48h).",
@@ -1286,7 +1286,7 @@ export const RSS_LATENT_SPACE: DataSource = {
   },
   auth: "none",
   measures:
-    "Practitioner-focused AI engineering essays + podcast notes by swyx and Alessio Fanelli — title, url, guid, pubDate, source id. Editorial scope is wholly AI / AI-engineering; no keyword filter applied. gawk.dev mirrors items verbatim and links back to the publisher's article.",
+    "Practitioner-focused AI engineering essays + podcast notes by swyx and Alessio Fanelli — title, url, guid, pubDate, source id, and the image URL the publisher attaches to the item (when it attaches one). Editorial scope is wholly AI / AI-engineering; no keyword filter applied. gawk.dev mirrors items verbatim and links back to the publisher's article.",
   sanityCheck: {
     description:
       "Newsletter cadence (Substack); expect 1–10 items per 24h on a publish day, zero on quiet days. Newsletter publishes intermittently rather than daily, so multi-day zero-windows are normal — only escalate to stale when lastFetchOkTs exceeds RSS_STALE_HOURS_THRESHOLD.",
@@ -1321,7 +1321,7 @@ export const RSS_ANALYTICS_VIDHYA: DataSource = {
   },
   auth: "none",
   measures:
-    "AI / data-science headlines from Analytics Vidhya — title, url, guid, pubDate, source id. Editor-curated; gawk.dev mirrors verbatim. Selected as the Indian-publisher addition after Analytics India Magazine was verified to no longer expose RSS (their site moved to a custom Supabase-backed CMS in 2026 — confirmed empirically on 2026-05-03 by 404 / SPA-shell responses on /feed/, /rss, /rss.xml, /feeds/posts/default).",
+    "AI / data-science headlines from Analytics Vidhya — title, url, guid, pubDate, source id, and the image URL the publisher attaches to the item (when it attaches one). Editor-curated; gawk.dev mirrors verbatim. Selected as the Indian-publisher addition after Analytics India Magazine was verified to no longer expose RSS (their site moved to a custom Supabase-backed CMS in 2026 — confirmed empirically on 2026-05-03 by 404 / SPA-shell responses on /feed/, /rss, /rss.xml, /feeds/posts/default).",
   sanityCheck: {
     description:
       "AI / data-science focused publication with steady cadence; expect 2–25 items per 24h. Zero across consecutive polls indicates feed URL drift — investigate before attributing to a slow news day.",

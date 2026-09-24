@@ -30,6 +30,8 @@ export type RssRawItem = {
   pubDate: string;
   guid: string;
   description: string;
+  /** The publisher's own image for this item, as it appears in the feed; null when none. */
+  imageUrl?: string | null;
 };
 
 /** Stored item shape written to Redis. */
@@ -45,6 +47,11 @@ export type RssItem = {
   /** ISO timestamp of last ingest pass that touched this item. */
   lastRefreshTs: string;
   description: string;
+  /**
+   * The publisher's own image for the article, as published in its feed (https only).
+   * Null when the feed carries none. Absent on items stored before 2026-09-24.
+   */
+  imageUrl?: string | null;
 };
 
 /** Per-source status recorded at the end of each ingest pass. */
@@ -159,6 +166,8 @@ function hoursSince(iso: string | null, nowMs: number): number | null {
 function toWireItem(item: RssItem, source: RssSource): RssWireItem {
   return {
     ...item,
+    // Items stored before images were kept have no field; say "none known", not absent.
+    imageUrl: item.imageUrl ?? null,
     kind: "rss",
     sourceDisplayName: source.displayName,
     city: source.city,
@@ -377,6 +386,37 @@ function extractTagText(block: string, tag: string): string {
   return decodeXmlEntities(stripCData(m[1]));
 }
 
+/**
+ * The publisher's own image for one feed item. Order: media:content (image), media:thumbnail,
+ * an enclosure whose type is image/*, then the first <img> in the item's HTML. Audio enclosures
+ * (podcast feeds) and empty urls never count. Only https URLs are kept.
+ */
+export function extractImageUrl(block: string): string | null {
+  const attr = (tag: string, name: string): string | null => {
+    const m = tag.match(new RegExp(`\\s${name}=["']([^"']*)["']`, "i"));
+    return m ? m[1] : null;
+  };
+  const candidates: string[] = [];
+  for (const tag of block.match(/<media:content\b[^>]*>/gi) ?? []) {
+    const medium = attr(tag, "medium");
+    const type = attr(tag, "type");
+    if ((medium && medium !== "image") || (type && !type.startsWith("image/"))) continue;
+    candidates.push(attr(tag, "url") ?? "");
+  }
+  for (const tag of block.match(/<media:thumbnail\b[^>]*>/gi) ?? []) candidates.push(attr(tag, "url") ?? "");
+  for (const tag of block.match(/<enclosure\b[^>]*>/gi) ?? []) {
+    if ((attr(tag, "type") ?? "").startsWith("image/")) candidates.push(attr(tag, "url") ?? "");
+  }
+  const html = decodeXmlEntities(block.replace(/<!\[CDATA\[|\]\]>/g, ""));
+  const img = html.match(/<img\b[^>]*\ssrc=["']([^"']+)["']/i);
+  if (img) candidates.push(img[1]);
+  for (const raw of candidates) {
+    const url = decodeXmlEntities(raw).trim();
+    if (url.startsWith("https://") && url.length <= 2048) return url;
+  }
+  return null;
+}
+
 function extractAtomLink(block: string): string {
   // Prefer rel="alternate" if present, else first <link href="..."/>.
   const alt = block.match(
@@ -401,7 +441,7 @@ export function parseRss20(xml: string): RssRawItem[] {
       const pubDate = extractTagText(block, "pubDate");
       const guid = extractTagText(block, "guid");
       const description = extractTagText(block, "description");
-      out.push({ title, link, pubDate, guid, description });
+      out.push({ title, link, pubDate, guid, description, imageUrl: extractImageUrl(block) });
     }
   } catch {
     return [];
@@ -430,6 +470,7 @@ export function parseAtom(xml: string): RssRawItem[] {
         pubDate: published || updated,
         guid: id,
         description: content,
+        imageUrl: extractImageUrl(block),
       });
     }
   } catch {
@@ -495,6 +536,7 @@ export function normaliseItem(
     firstSeenTs: nowIso,
     lastRefreshTs: nowIso,
     description: raw.description ?? "",
+    imageUrl: raw.imageUrl ?? null,
   };
 }
 
