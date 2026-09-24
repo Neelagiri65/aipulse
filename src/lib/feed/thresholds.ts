@@ -40,6 +40,11 @@ export const FEED_TRIGGERS = Object.freeze({
    *  expose a score field cleanly). */
   NEWS_REDDIT_WINDOW_HOURS: 12,
   NEWS_REDDIT_MAX_PER_SUB: 3,
+  /** Regional publishers (RSS): an article surfaces within this window of publication, at most
+   *  MAX_PER_SOURCE per publisher, in the publisher's own order. The cap exists because one
+   *  publisher (Heise, ≈92 AI stories a week) would otherwise bury every other source. */
+  NEWS_PUBLISHER_WINDOW_HOURS: 12,
+  NEWS_PUBLISHER_MAX_PER_SOURCE: 2,
   /** A HuggingFace model fires NEW_RELEASE when createdAt is within this window. */
   NEW_RELEASE_AGE_HOURS: 48,
   /** Likes are first-paint social proof on HF — more reliable than rolling

@@ -81,6 +81,9 @@ export function whySurfaced(card: Card): string {
       return `Daily downloads${registry ? ` on ${registry}` : ""} ${moved} against the baseline. A move of more than ${T.SDK_TREND_WOW_PCT}% either way becomes an SDK trend.`;
     }
     case "NEWS": {
+      if (str(m.publisher)) {
+        return `Published by ${card.sourceName} within the last ${T.NEWS_PUBLISHER_WINDOW_HOURS} hours; at most ${T.NEWS_PUBLISHER_MAX_PER_SOURCE} articles per publisher per window, in the publisher's own order. The headline is the publisher's, unedited.`;
+      }
       if (str(m.subreddit) || str(m.redditId)) {
         return `Posted on ${card.sourceName} within the last ${T.NEWS_REDDIT_WINDOW_HOURS} hours; at most ${T.NEWS_REDDIT_MAX_PER_SUB} posts per subreddit per window, and the subreddit's own curation is trusted, not a score. The link is the discussion.`;
       }

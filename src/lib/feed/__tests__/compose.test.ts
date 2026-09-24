@@ -61,6 +61,7 @@ describe("composeFeed", () => {
         hfRecent: [],
         reddit: [],
         productHunt: emptyProductHunt(),
+        rss: [],
       },
       NOW,
     );
@@ -91,6 +92,7 @@ describe("composeFeed", () => {
         hfRecent: [],
         reddit: [],
         productHunt: emptyProductHunt(),
+        rss: [],
       },
       NOW,
     );
@@ -136,6 +138,7 @@ describe("composeFeed", () => {
         hfRecent: [],
         reddit: [],
         productHunt: emptyProductHunt(),
+        rss: [],
       },
       NOW,
     );
@@ -154,6 +157,7 @@ describe("composeFeed", () => {
         hfRecent: [],
         reddit: [],
         productHunt: emptyProductHunt(),
+        rss: [],
       },
       NOW,
     );
@@ -178,9 +182,31 @@ describe("composeFeed", () => {
         hfRecent: [],
         reddit: [],
         productHunt: emptyProductHunt(),
+        rss: [],
       },
       NOW,
     );
     expect(out.lastComputed).toBe("2026-04-27T12:00:00.000Z");
+  });
+
+  it("regional publishers reach the composed Feed, capped per publisher, with their image path", () => {
+    const at = Math.floor(NOW / 1000) - 3600;
+    const mk = (i: number, sourceId: string, imageUrl: string | null) => ({
+      id: i.toString(16).padStart(16, "0"), sourceId, title: `${sourceId} ${i}`, url: `https://e.com/${sourceId}/${i}`,
+      publishedTs: at - i, firstSeenTs: "x", lastRefreshTs: "x", description: "", imageUrl,
+      kind: "rss" as const, sourceDisplayName: sourceId, city: "c", country: "DE", lat: 0, lng: 0, lang: "de",
+    });
+    const out = composeFeed(
+      {
+        status: emptyStatus(), models: emptyModels(), sdk: emptySdk(), hn: emptyHn(),
+        research: emptyResearch(), labs: emptyLabs(), hfRecent: [], reddit: [], productHunt: emptyProductHunt(),
+        rss: [mk(1, "heise-ai", "https://www.heise.de/a.jpg"), mk(2, "heise-ai", null), mk(3, "heise-ai", null), mk(4, "marktechpost", null)],
+      },
+      NOW,
+    );
+    const pub = out.cards.filter((c) => typeof c.meta.publisher === "string");
+    expect(pub.filter((c) => c.meta.publisher === "heise-ai")).toHaveLength(2);
+    expect(pub.filter((c) => c.meta.publisher === "marktechpost")).toHaveLength(1);
+    expect(pub.find((c) => c.headline === "heise-ai 1")?.meta.imagePath).toBe("/api/rss/image/0000000000000001");
   });
 });
