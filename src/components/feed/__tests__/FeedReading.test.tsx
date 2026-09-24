@@ -41,4 +41,30 @@ describe("FeedReading", () => {
     expect(html).toContain('class="ap-word ap-word--out">a major outage<');
     expect(html).toContain("Anthropic Status reported a major outage with 1 active incident.");
   });
+
+  it("a storied card names the other outlets and threads, each linked (live shape, 2026-09-24)", () => {
+    const storied: Card = {
+      ...card, id: "PRESS-muse", type: "PRESS", severity: 45, sourceName: "Heise Online",
+      headline: "Tamagotchi trifft KI-Agent: Meta kündigt KI-Gadget Muse Charm an", detail: undefined,
+      meta: { rssId: "d50da5fc14f3488a" },
+      story: {
+    sources: [
+      { publisher: "latent.space", country: "US", lang: "en", url: "https://www.latent.space/p/ainews-meta-connect-2026-muse-glasses", timestamp: "2026-09-24T08:00:00.000Z" },
+    ],
+    discussion: [
+      { site: "Hacker News", url: "https://news.ycombinator.com/item?id=1", points: 212, timestamp: "2026-09-24T09:00:00Z" },
+    ],
+  },
+    };
+    const html = renderToStaticMarkup(<FeedReading card={storied} nowMs={Date.parse("2026-09-24T10:00:00Z")} />);
+    expect(html).toContain("Also reported by");
+    expect(html).toContain('href="https://www.latent.space/p/ainews-meta-connect-2026-muse-glasses"');
+    expect(html).toContain("Discussed on");
+    expect(html).toContain("212 points");
+  });
+
+  it("a card without a story shows neither line", () => {
+    const html = renderToStaticMarkup(<FeedReading card={card} nowMs={Date.parse("2026-09-07T10:00:00Z")} />);
+    expect(html).not.toContain("Also reported by");
+  });
 });

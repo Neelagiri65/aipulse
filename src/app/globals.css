@@ -1990,8 +1990,8 @@
   color: var(--ap-fg-muted);
 }
 
-/* Other outlets and threads on the same story (src/lib/stories). Muted like the detail line, links
-   in the accent so each name reads as the way to that outlet's own article. */
+/* Other outlets and threads on the same story (src/lib/stories). Muted like the detail line; each
+   name is a link to that outlet's own article. */
 .ap-feed-card-story {
   display: flex;
   flex-direction: column;
@@ -2012,7 +2012,8 @@
 }
 
 .ap-feed-card-story a {
-  color: var(--ap-accent);
+  /* The site's link colour, as the reading pane's own links (--ap-accent is near-white now). */
+  color: var(--link);
   text-decoration: none;
 }
 

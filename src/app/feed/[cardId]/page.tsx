@@ -16,6 +16,8 @@ import type { RssWireItem } from "@/lib/data/wire-rss";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { StoryLines } from "@/components/feed/StoryLines";
+
 import { fetchAllStatus } from "@/lib/data/fetch-status";
 import { redisOpenRouterStore } from "@/lib/data/openrouter-store";
 import {
@@ -154,6 +156,7 @@ export default async function CardPage({
         {card.detail ? (
           <p className="ap-feed-card-detail">{card.detail}</p>
         ) : null}
+        {card.story ? <StoryLines story={card.story} /> : null}
         <a
           className="ap-feed-card-source"
           href={card.sourceUrl}
