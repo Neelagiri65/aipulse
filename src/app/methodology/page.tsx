@@ -148,7 +148,8 @@ export default function MethodologyPage() {
           the last 48 hours report the same story, they fold into one card.
           Two items are the same story when they link to the same article,
           or share a name (a product, model or company) and enough rare
-          words; two articles from one publisher are never merged. The card
+          words; two articles from one publisher, or two posts in one subreddit,
+          are never merged. The card
           kept is the earliest publisher article, headline unedited; the
           others are listed on it as sources and discussion, each linked.
           Nothing is scored and no headline is rewritten.
