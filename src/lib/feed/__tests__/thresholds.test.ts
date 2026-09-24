@@ -25,8 +25,8 @@ describe("FEED_SEVERITIES", () => {
       "NEW_RELEASE",
       "SDK_TREND",
       "PRODUCT_LAUNCH",
-      "NEWS",
       "PRESS",
+      "NEWS",
       "RESEARCH",
       "LAB_HIGHLIGHT",
     ];
@@ -35,7 +35,7 @@ describe("FEED_SEVERITIES", () => {
 
   it("severities sort cleanly into a strict descending order", () => {
     const values = Object.values(FEED_SEVERITIES).sort((a, b) => b - a);
-    expect(values).toEqual([100, 80, 70, 60, 50, 40, 30, 20, 10]);
+    expect(values).toEqual([100, 80, 70, 60, 50, 45, 40, 20, 10]);
   });
 });
 

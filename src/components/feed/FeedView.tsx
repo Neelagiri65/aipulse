@@ -57,8 +57,8 @@ const KINDS: readonly CardType[] = [
   "NEW_RELEASE",
   "SDK_TREND",
   "PRODUCT_LAUNCH",
-  "NEWS",
   "PRESS",
+  "NEWS",
   "RESEARCH",
   "LAB_HIGHLIGHT",
 ];

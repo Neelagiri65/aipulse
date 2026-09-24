@@ -21,9 +21,12 @@ export const FEED_SEVERITIES: Readonly<Record<CardType, Severity>> =
     NEW_RELEASE: 70,
     SDK_TREND: 60,
     PRODUCT_LAUNCH: 50,
+    // Above NEWS (founder, 2026-09-24): regional publishers "never surface in any of the tabs",
+    // and at 30 they sat behind every HN/Reddit story, so the diversifier's interleave slots always
+    // went to NEWS. Measured on a live run: at 45 publishers take slots 4/7/10/13 and HN/Reddit move
+    // to 14+ — the trade-off, made on purpose.
+    PRESS: 45,
     NEWS: 40,
-    // Below NEWS: an HN story arrives with an engagement signal; a publisher article with none.
-    PRESS: 30,
     RESEARCH: 20,
     LAB_HIGHLIGHT: 10,
   });

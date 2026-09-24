@@ -24,7 +24,7 @@ export type CardType =
    *  every non-Reddit NEWS card as a Hacker News story, which a publisher article is not. */
   | "PRESS";
 
-export type Severity = 100 | 80 | 70 | 60 | 50 | 40 | 30 | 20 | 10;
+export type Severity = 100 | 80 | 70 | 60 | 50 | 45 | 40 | 20 | 10;
 
 export type Card = {
   /** Stable hash of (type, primaryKey, hour-bucket). Used as the share-URL slug. */
