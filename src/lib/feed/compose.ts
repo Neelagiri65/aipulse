@@ -14,6 +14,8 @@
  *      quiet-day banner; available to UI regardless).
  */
 
+import { derivePublisherCards } from "@/lib/feed/derivers/publisher";
+import type { RssWireItem } from "@/lib/data/wire-rss";
 import type { StatusResult } from "@/lib/data/fetch-status";
 import type { HuggingFaceModel } from "@/lib/data/fetch-models";
 import type { ModelUsageDto } from "@/lib/data/openrouter-types";
@@ -60,6 +62,9 @@ export type FeedSnapshots = {
    *  PRODUCT_HUNT_TOKEN is unset or the fetch failed — deriver emits zero
    *  cards in that case. */
   productHunt: ProductHuntResult;
+  /** Regional publishers' AI articles (RSS wire, newest first). Empty when the store is
+   *  unreachable or not yet populated — the deriver then emits nothing. */
+  rss: RssWireItem[];
 };
 
 export function composeFeed(
@@ -73,6 +78,7 @@ export function composeFeed(
     ...deriveSdkTrendCards(snapshots.sdk),
     ...deriveNewsCards(snapshots.hn, nowMs),
     ...deriveRedditCards(snapshots.reddit, nowMs),
+    ...derivePublisherCards(snapshots.rss, nowMs),
     ...deriveResearchCards(snapshots.research, nowMs),
     ...deriveLabHighlightCards(snapshots.labs, nowMs),
     ...deriveProductLaunchCards(snapshots.productHunt),

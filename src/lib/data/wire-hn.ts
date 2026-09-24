@@ -17,6 +17,7 @@
 /** Minimum HN points required for a story to enter the wire. */
 export const HN_MIN_WIRE_POINTS = 5;
 
+import { titleHasKeyword } from "@/lib/data/keyword-match";
 import type { GlobePoint } from "@/components/globe/types";
 import { geocode } from "@/lib/geocoding";
 import {
@@ -174,10 +175,8 @@ export function isAiRelevant(title: string, urlHost: string): boolean {
   // Empty title + empty host = nothing to match on.
   if (!t && !h) return false;
 
-  // Keyword match in title.
-  for (const kw of KEYWORD_ALLOWLIST) {
-    if (t.includes(kw)) return true;
-  }
+  // Keyword match in title — whole words (keyword-match.ts), not substrings.
+  if (titleHasKeyword(t, KEYWORD_ALLOWLIST)) return true;
 
   // Domain suffix match.
   if (h) {

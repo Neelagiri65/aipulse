@@ -107,6 +107,7 @@ const LABEL: Record<Card["type"], string> = {
   SDK_TREND: "SDK TREND",
   PRODUCT_LAUNCH: "PRODUCT LAUNCH",
   NEWS: "NEWS",
+  PRESS: "PRESS",
   RESEARCH: "RESEARCH",
   LAB_HIGHLIGHT: "LAB HIGHLIGHT",
 };

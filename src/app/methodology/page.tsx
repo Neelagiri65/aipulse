@@ -37,6 +37,8 @@ const CARD_TYPE_DESCRIPTION: Record<CardType, string> = {
     "A most-upvoted launch in Product Hunt's Artificial Intelligence topic over the last 7 days (ordered by community upvotes, above a vote floor), read from the Product Hunt API. Cites the public launch page.",
   NEWS:
     "A Hacker News AI-filtered story whose points exceed the threshold within the configured time window.",
+  PRESS:
+    "An AI article from a tracked regional publisher (The Register, Heise, MarkTechPost, MIT Technology Review, latent.space, Analytics Vidhya) published in the last 12h — at most 2 per publisher per window, in the publisher's own order, headline unedited. Publication-wide feeds are filtered by whole-word AI keywords.",
   RESEARCH:
     "An arXiv paper in the current top-5-by-recency snapshot for cs.AI + cs.LG.",
   LAB_HIGHLIGHT:
@@ -49,6 +51,7 @@ const ORDERED: CardType[] = [
   "NEW_RELEASE",
   "SDK_TREND",
   "PRODUCT_LAUNCH",
+  "PRESS",
   "NEWS",
   "RESEARCH",
   "LAB_HIGHLIGHT",

@@ -33,6 +33,8 @@ import {
 } from "@/lib/data/fetch-models";
 import { fetchLabActivity } from "@/lib/data/fetch-labs";
 import { readRecentRedditItems } from "@/lib/data/reddit-feed";
+import { readRssWire } from "@/lib/data/rss-store";
+import type { RssWireItem } from "@/lib/data/wire-rss";
 import { fetchProductHuntLaunches } from "@/lib/data/fetch-producthunt";
 import { OPENROUTER_SOURCE_CAVEAT } from "@/lib/data/openrouter-types";
 import type { ResearchResult } from "@/lib/data/fetch-research";
@@ -71,7 +73,7 @@ export async function loadSnapshots(
 ): Promise<LoadedSnapshots> {
   const nowIso = new Date(nowMs).toISOString();
 
-  const [status, models, sdk, hn, research, labs, hfRecent, reddit, productHunt] = await Promise.all([
+  const [status, models, sdk, hn, research, labs, hfRecent, reddit, productHunt, rss] = await Promise.all([
     withLastKnown<StatusResult>(
       "status",
       () => fetchAllStatus(),
@@ -155,6 +157,14 @@ export async function loadSnapshots(
       console.error("[feed] fetchProductHuntLaunches failed", err);
       return { ok: false as const, posts: [], generatedAt: nowIso };
     }),
+    // Regional publishers — cron-driven into Redis, like Reddit: an empty list is the honest
+    // "nothing ingested / store unreachable" signal, and the deriver emits no cards for it.
+    readRssWire()
+      .then((w) => w.items)
+      .catch((err) => {
+        console.error("[feed] readRssWire failed", err);
+        return [] as RssWireItem[];
+      }),
   ]);
 
   const snapshots: FeedSnapshots = {
@@ -167,6 +177,7 @@ export async function loadSnapshots(
     hfRecent: hfRecent.data,
     reddit,
     productHunt,
+    rss,
   };
 
   const staleSources = collectStale(

@@ -13,6 +13,7 @@ export const KIND_LABEL: Readonly<Record<CardType, string>> = Object.freeze({
   SDK_TREND: "SDK trend",
   PRODUCT_LAUNCH: "Product launch",
   NEWS: "News",
+  PRESS: "Press",
   RESEARCH: "Research",
   LAB_HIGHLIGHT: "Lab highlight",
 });
@@ -24,6 +25,7 @@ export const KIND_PLURAL: Readonly<Record<CardType, string>> = Object.freeze({
   SDK_TREND: "SDK trends",
   PRODUCT_LAUNCH: "Product launches",
   NEWS: "News",
+  PRESS: "Press",
   RESEARCH: "Research",
   LAB_HIGHLIGHT: "Lab highlights",
 });
@@ -86,6 +88,8 @@ export function whySurfaced(card: Card): string {
       }
       return `Passed ${T.NEWS_HN_POINTS} points on Hacker News within ${T.NEWS_HN_WINDOW_HOURS} hours of landing. The link is the discussion, not the article.`;
     }
+    case "PRESS":
+      return `Published by ${card.sourceName} within the last ${T.NEWS_PUBLISHER_WINDOW_HOURS} hours; at most ${T.NEWS_PUBLISHER_MAX_PER_SOURCE} articles per publisher per window, in the publisher's own order. The headline is the publisher's, unedited.`;
     case "NEW_RELEASE":
       return `Published on Hugging Face by a major lab within the last ${T.NEW_RELEASE_AGE_HOURS} hours with at least ${T.NEW_RELEASE_MIN_LIKES} likes.`;
     case "PRODUCT_LAUNCH": {
