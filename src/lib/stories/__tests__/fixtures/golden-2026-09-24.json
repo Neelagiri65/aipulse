@@ -1,0 +1,134 @@
+{
+ "note": "Hand-labelled 2026-09-24 from the fixture headlines. stories = same news event (any source). ambiguous = excluded from pair scoring (round-ups, the week-long Jev coverage, unclear pairs). mustStaySeparate = named near-misses. Every labelled item not in a story or ambiguous is a singleton.",
+ "stories": {
+  "claude-opus-5.5": [
+   "rss:4fd15ce28a0e8382",
+   "rss:2278a397869846db",
+   "rss:779b85bfbfa84911",
+   "rss:8552174f627f5844"
+  ],
+  "gpt-6-sol-luna": [
+   "rss:e059408899247772",
+   "rss:488a1a75b0e91939"
+  ],
+  "openai-medicare": [
+   "hn:49822457",
+   "hn:49822556",
+   "hn:NEWS-z6jaqg-anp9",
+   "hn:49822654",
+   "hn:49822973",
+   "hn:49823062",
+   "hn:49824127",
+   "hn:49825024",
+   "hn:49825363",
+   "hn:49825580",
+   "hn:49826285",
+   "rss:8759f50174cb00d0"
+  ],
+  "claude-code-projects": [
+   "rss:8674f81495271cfe",
+   "rss:cf57341072d4cece"
+  ],
+  "ternary-bonsai-2": [
+   "reddit:NEWS-p23rxy-anla",
+   "rss:d1fd46ede0d8517f"
+  ],
+  "qwen-image-2.1": [
+   "rss:a9f4e8db72fb9039",
+   "rss:840815420fce38b3"
+  ],
+  "gemini-breach-test": [
+   "rss:4def3c6475402fce",
+   "rss:d7b3c332b1fba72b"
+  ],
+  "gemini-3.8-tts": [
+   "hn:49817615",
+   "rss:31263b3a1f51fd3a"
+  ],
+  "muse-amazon-block": [
+   "rss:a0500b2cd7e6b9c5"
+  ],
+  "muse-charm": [
+   "rss:d50da5fc14f3488a",
+   "rss:f632946bee2fee6d"
+  ],
+  "muse-mac-launch": [
+   "rss:9d4fffb4804d4ae0"
+  ]
+ },
+ "ambiguous": [
+  "rss:c4f97118a381b81a",
+  "rss:f8b4ca4df7524581",
+  "rss:10af503f68b9a0ea",
+  "rss:68403b974e276c9f",
+  "reddit:NEWS-tqotzt-anl9",
+  "rss:fe7b908b62afd2c2",
+  "rss:3ec24be35baf7cdd",
+  "reddit:NEWS-1ujv82d-ann9",
+  "ph:PRODUCT_LAUNCH-di8eav-annj",
+  "reddit:NEWS-mzcqfa-annx",
+  "rss:155af9287347ac7f",
+  "rss:3ea6d3c66e4571c6",
+  "hn:49824733",
+  "rss:33fcf72be4bf18d7",
+  "reddit:NEWS-1yxxig4-anpi",
+  "reddit:NEWS-1wt6pay-anmn",
+  "rss:d07141e94aa087a3",
+  "rss:7021dbb57476d1f1",
+  "rss:6deb601f79a3944a",
+  "reddit:NEWS-savh1p-anlw",
+  "reddit:NEWS-un7u4y-anmm",
+  "hn:49826076",
+  "hn:49826565"
+ ],
+ "mustStaySeparate": [
+  [
+   "rss:9d4fffb4804d4ae0",
+   "rss:a0500b2cd7e6b9c5"
+  ],
+  [
+   "rss:9d4fffb4804d4ae0",
+   "rss:d50da5fc14f3488a"
+  ],
+  [
+   "rss:a0500b2cd7e6b9c5",
+   "rss:d50da5fc14f3488a"
+  ],
+  [
+   "hn:49814019",
+   "hn:49817404"
+  ],
+  [
+   "rss:cc7984dcd539bd67",
+   "rss:5bf5c91a4177e004"
+  ],
+  [
+   "rss:a7df699d12d73d7f",
+   "rss:e3d2356e2e94910e"
+  ],
+  [
+   "hn:NEWS-do702z-anlx",
+   "hn:49814947"
+  ],
+  [
+   "rss:0f040e5ae3a0a992",
+   "reddit:NEWS-ht7fh2-annw"
+  ],
+  [
+   "rss:7e5d6ed0bd4b689a",
+   "rss:3ec24be35baf7cdd"
+  ],
+  [
+   "rss:50246542ecc72aec",
+   "rss:3ec24be35baf7cdd"
+  ],
+  [
+   "reddit:NEWS-1pd0om8-anlw",
+   "rss:d1fd46ede0d8517f"
+  ],
+  [
+   "rss:5673862ff61e467e",
+   "rss:40570a8c096ecaab"
+  ]
+ ]
+}
