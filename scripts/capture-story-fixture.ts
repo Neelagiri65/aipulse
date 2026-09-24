@@ -17,6 +17,16 @@ type Item = {
   points?: number;
 };
 
+type FeedCard = {
+  type: string;
+  id: string;
+  headline: string;
+  sourceName: string;
+  sourceUrl: string;
+  timestamp: string;
+  meta?: Record<string, unknown>;
+};
+
 const bust = () => `cb=${Date.now()}`;
 
 async function main() {
@@ -41,7 +51,7 @@ async function main() {
 
   // Product Hunt, Reddit and older Hacker News: the cards that surfaced in the live Feed and in the daily
   // feed snapshots in gawk-data (18–24 Sep). Threshold-passing stories only.
-  const snaps: { cards: any[] }[] = [(await (await fetch(`https://gawk.dev/api/v1/feed?${bust()}`)).json())];
+  const snaps: { cards?: FeedCard[] }[] = [(await (await fetch(`https://gawk.dev/api/v1/feed?${bust()}`)).json())];
   for (let d = 18; d <= 24; d++) {
     const r = await fetch(
       `https://raw.githubusercontent.com/Neelagiri65/gawk-data/main/snapshots/2026/09/2026-09-${d}/feed.json`);
