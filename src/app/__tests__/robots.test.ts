@@ -62,6 +62,9 @@ const NOT_CRAWLABLE = new Set([
   "/api/notify/tool-alerts",
   "/api/push/apns",
   "/api/push/apns/send",
+  // iOS app registers its Live Activity tokens (push-to-start, and per running activity).
+  "/api/push/apns/live-activity",
+  "/api/push/apns/live-activity/activity",
   // Publisher images relayed for the iOS app — third-party pictures, not gawk.dev page content.
   "/api/rss/image/[id]",
   "/api/push/send",

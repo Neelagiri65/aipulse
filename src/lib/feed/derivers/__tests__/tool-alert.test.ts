@@ -126,6 +126,9 @@ describe("deriveToolAlertCards", () => {
       "Increased latency on Copilot completions",
     );
     expect(card.meta.activeIncidents).toBe(1);
+    // The vendor's incident title travels on the card, so the Live Activity can show it
+    // instead of the generic "status page reports" sentence.
+    expect(card.meta.incidentName).toBe("Increased latency on Copilot completions");
   });
 
   it("does NOT emit when status operational and no active incidents", () => {

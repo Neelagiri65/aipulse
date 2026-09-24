@@ -37,6 +37,7 @@ import {
   postEmbeds,
 } from "@/lib/notify/discord";
 import { broadcastPush, type BroadcastResult } from "@/lib/push/send";
+import { startLiveActivities, endLiveActivities } from "@/lib/push/live-activity";
 import { broadcastApns } from "@/lib/push/apns";
 import { alertPushPayload, recoveryPushPayload } from "@/lib/notify/push-payloads";
 import {
@@ -234,11 +235,15 @@ export const POST = withIngest<RouteResult>({
       const p = alertPushPayload(t);
       pushJobs.push(broadcastPush(p).catch(() => null));
       pushJobs.push(broadcastApns(p).catch(() => null));
+      // Dynamic Island / Lock Screen: start the tool-outage Live Activity on phones whose stack
+      // includes this tool. Same targeting; unconfigured APNs = zeros.
+      pushJobs.push(startLiveActivities(t).catch(() => null));
     }
     for (const r of recoveries) {
       const p = recoveryPushPayload(r);
       pushJobs.push(broadcastPush(p).catch(() => null));
       pushJobs.push(broadcastApns(p).catch(() => null));
+      pushJobs.push(endLiveActivities(r).catch(() => null));
     }
     if (pushJobs.length > 0) {
       // Record the push-send beacon HERE — the real execution site.
