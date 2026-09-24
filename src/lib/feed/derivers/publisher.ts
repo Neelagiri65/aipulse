@@ -1,7 +1,7 @@
 /**
- * gawk.dev — regional publisher NEWS deriver.
+ * gawk.dev — regional publisher PRESS deriver.
  *
- * Pure over the stored RSS wire items (newest first) and a now-ms reference. One NEWS card per
+ * Pure over the stored RSS wire items (newest first) and a now-ms reference. One PRESS card per
  * article published within NEWS_PUBLISHER_WINDOW_HOURS, at most NEWS_PUBLISHER_MAX_PER_SOURCE per
  * publisher, taken in the publisher's own order.
  *
@@ -42,9 +42,9 @@ export function derivePublisherCards(items: RssWireItem[], nowMs: number = Date.
     perSource.set(item.sourceId, taken + 1);
 
     cards.push({
-      id: cardId("NEWS", `rss:${item.id}`, itemMs),
-      type: "NEWS",
-      severity: FEED_SEVERITIES.NEWS,
+      id: cardId("PRESS", `rss:${item.id}`, itemMs),
+      type: "PRESS",
+      severity: FEED_SEVERITIES.PRESS,
       headline: item.title,
       detail: `Reported by ${item.sourceDisplayName} (${item.city}, ${item.country}).`,
       sourceName: item.sourceDisplayName,

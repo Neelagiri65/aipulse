@@ -22,6 +22,8 @@ export const FEED_SEVERITIES: Readonly<Record<CardType, Severity>> =
     SDK_TREND: 60,
     PRODUCT_LAUNCH: 50,
     NEWS: 40,
+    // Below NEWS: an HN story arrives with an engagement signal; a publisher article with none.
+    PRESS: 30,
     RESEARCH: 20,
     LAB_HIGHLIGHT: 10,
   });

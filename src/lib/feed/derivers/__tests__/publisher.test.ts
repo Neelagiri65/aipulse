@@ -24,9 +24,9 @@ function item(sourceId: string, h: number, extra: Partial<RssWireItem> = {}): Rs
 }
 
 describe("derivePublisherCards", () => {
-  it("one NEWS card per recent article, title verbatim, linked to the article, attributed to the publisher", () => {
+  it("one PRESS card per recent article, title verbatim, linked to the article, attributed to the publisher", () => {
     const [c] = derivePublisherCards([item("marktechpost", 1)], NOW);
-    expect(c.type).toBe("NEWS");
+    expect(c.type).toBe("PRESS");
     expect(c.headline).toBe("marktechpost story " + n);
     expect(c.sourceName).toBe("MarkTechPost");
     expect(c.sourceUrl).toBe(`https://example.com/marktechpost/${n}`);
