@@ -55,6 +55,23 @@ describe("clusterStories", () => {
     expect(near.some((c) => c.memberIds.length === 2)).toBe(true);
   });
 
+  it("two posts in one subreddit stay separate; two Hacker News posts of one story still merge", () => {
+    // Live 2026-09-24: both headlines verbatim (the second read from the post's Reddit RSS). Live they
+    // merged; the threshold is set to 0 so this pins the RULE (a subreddit is a publisher), not how rare
+    // "M5 Ultra" happens to be in one corpus.
+    const ask = item("r1", "Folks, have you purchased the Mac M5 Ultra with 256GB yet? We need serious benchmarks, because we only get YouTube clowns influencers results",
+      "2026-09-24T07:55:48Z", { source: "reddit", publisher: "r/LocalLLaMA" });
+    const results = item("r2", "M5 ultra AI test results", "2026-09-22T21:37:18Z",
+      { source: "reddit", publisher: "r/LocalLLaMA" });
+    expect(clusterStories([ask, results], { corpus: items, minScore: 0 }).every((c) => c.memberIds.length === 1)).toBe(true);
+
+    const hn1 = item("h1", "OpenAI agent hacked Australian Medicare portal", "2026-09-23T21:00:00Z",
+      { source: "hn", publisher: "Hacker News" });
+    const hn2 = item("h2", "OpenAI agents hacked Australian Medicare system", "2026-09-23T22:00:00Z",
+      { source: "hn", publisher: "Hacker News" });
+    expect(clusterStories([hn1, hn2], { corpus: items, minScore: 0 }).some((c) => c.memberIds.length === 2)).toBe(true);
+  });
+
   it("is deterministic: input order never changes the stories or their ids", () => {
     const shuffled = [...items].reverse();
     const norm = (cs: ReturnType<typeof clusterStories>) =>

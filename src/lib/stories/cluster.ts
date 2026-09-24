@@ -9,7 +9,8 @@
  *    corpus (the trailing window of all article-shaped items) reaches MIN_SCORE — and
  *  - they are not two articles of the same publisher. A publisher writes one article per story; two
  *    of its items together were its adverts, a multi-part series, or a round-up beside its own article.
- *    Hacker News and Reddit are exempt: many people post there, and a repost is the same story.
+ *    Hacker News is exempt: many people post the same news there, and a repost is the same story.
+ *    A subreddit counts as a publisher.
  * Stories are the connected components of those links.
  *
  * Measured on the hand-labelled golden set (231 real items, 18–24 Sep, labelled before this code):
@@ -44,7 +45,11 @@ export type Story = {
 export const WINDOW_HOURS = 48;
 export const MIN_SCORE = 9;
 
-const AGGREGATORS = new Set<ArticleItem["source"]>(["hn", "reddit"]);
+// Hacker News is one front page that many people post the same news to, so two HN items can be the
+// same story (the Medicare reposts). A subreddit is not: two posts in one subreddit are two
+// conversations — it counts as a publisher (seen live 2026-09-24: an r/LocalLLaMA request for M5 Ultra
+// benchmarks merged with another r/LocalLLaMA post of M5 Ultra results).
+const AGGREGATORS = new Set<ArticleItem["source"]>(["hn"]);
 
 const TRACKING = /^(utm_|wt_|fbclid$|gclid$|ref$|source$|cmpid$|mc_)/i;
 
