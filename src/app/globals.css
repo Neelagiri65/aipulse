@@ -1990,6 +1990,36 @@
   color: var(--ap-fg-muted);
 }
 
+/* Other outlets and threads on the same story (src/lib/stories). Muted like the detail line, links
+   in the accent so each name reads as the way to that outlet's own article. */
+.ap-feed-card-story {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ap-fg-muted);
+}
+
+.ap-feed-card-story p {
+  margin: 0;
+}
+
+.ap-feed-card-story-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+}
+
+.ap-feed-card-story a {
+  color: var(--ap-accent);
+  text-decoration: none;
+}
+
+.ap-feed-card-story a:hover {
+  text-decoration: underline;
+}
+
 .ap-feed-card-source {
   font-size: 11px;
   color: var(--ap-accent);
