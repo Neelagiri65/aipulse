@@ -60,4 +60,24 @@ describe("FeedView (SSR shape)", () => {
       "All quiet — 28 sources tracked, no significant moves today",
     );
   });
+
+  it("a storied card's row says how many more outlets and threads it carries", () => {
+    const storied = {
+      ...sampleResponse.cards[0], id: "PRESS-muse", type: "PRESS" as const, severity: 45 as const,
+      sourceName: "Heise Online", meta: { rssId: "d50da5fc14f3488a" },
+      story: {
+    sources: [
+      { publisher: "latent.space", country: "US", lang: "en", url: "https://www.latent.space/p/ainews-meta-connect-2026-muse-glasses", timestamp: "2026-09-24T08:00:00.000Z" },
+    ],
+    discussion: [
+      { site: "Hacker News", url: "https://news.ycombinator.com/item?id=1", points: 212, timestamp: "2026-09-24T09:00:00Z" },
+    ],
+  },
+    };
+    const html = renderToStaticMarkup(
+      <FeedView initialResponse={{ ...sampleResponse, cards: [storied] }} />,
+    );
+    expect(html).toContain("+1 outlet");
+    expect(html).toContain("+1 thread");
+  });
 });

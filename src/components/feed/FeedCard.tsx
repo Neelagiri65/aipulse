@@ -9,6 +9,7 @@
  */
 
 import { FeedCardShareButton } from "@/components/feed/FeedCardShareButton";
+import { StoryLines } from "@/components/feed/StoryLines";
 import type { Card } from "@/lib/feed/types";
 
 /**
@@ -80,50 +81,6 @@ export function FeedCard({ card, nowMs, showShare = true, discuss }: FeedCardPro
         {showShare ? <FeedCardShareButton card={card} /> : null}
       </div>
     </article>
-  );
-}
-
-/** How many outlets are named before the rest become "+N more". */
-const STORY_SOURCES_SHOWN = 3;
-
-/**
- * The other outlets and threads that reported this story (src/lib/stories). Every name is a link to
- * that outlet's own article or thread; the only number is a Hacker News score, labelled as points.
- */
-function StoryLines({ story }: { story: NonNullable<Card["story"]> }) {
-  const shown = story.sources.slice(0, STORY_SOURCES_SHOWN);
-  const more = story.sources.length - shown.length;
-  return (
-    <div className="ap-feed-card-story" data-testid="feed-card-story">
-      {shown.length > 0 ? (
-        <p>
-          <span className="ap-feed-card-story-label">Also reported by</span>{" "}
-          {shown.map((s, i) => (
-            <span key={s.url}>
-              {i > 0 ? " · " : null}
-              <a href={s.url} target="_blank" rel="noreferrer">
-                {s.publisher}
-              </a>
-            </span>
-          ))}
-          {more > 0 ? <span> · +{more} more</span> : null}
-        </p>
-      ) : null}
-      {story.discussion.length > 0 ? (
-        <p>
-          <span className="ap-feed-card-story-label">Discussed on</span>{" "}
-          {story.discussion.map((d, i) => (
-            <span key={d.url}>
-              {i > 0 ? " · " : null}
-              <a href={d.url} target="_blank" rel="noreferrer">
-                {d.site}
-                {d.points != null ? ` (${d.points} points)` : ""}
-              </a>
-            </span>
-          ))}
-        </p>
-      ) : null}
-    </div>
   );
 }
 

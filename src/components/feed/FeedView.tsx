@@ -14,6 +14,7 @@
  * (the tests pass `disablePolling: true` to opt out).
  */
 
+import { storyCaption } from "@/components/feed/StoryLines";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
@@ -244,6 +245,7 @@ export function FeedView({
                     <span className="ap-trow__cap">
                       {KIND_LABEL[card.type]} · {card.sourceName} ·{" "}
                       {formatAge(nowMs - new Date(card.timestamp).getTime())}
+                      {card.story ? ` · ${storyCaption(card)}` : null}
                     </span>
                   </span>
                   <span className="ap-trow__chev" aria-hidden>

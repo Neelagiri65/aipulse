@@ -3,6 +3,7 @@
  * the source line, "Why this surfaced" from the locked thresholds, and the two actions. Stateless,
  * safe for SSR; the digest and the deep-link page keep FeedCard.
  */
+import { StoryLines } from "@/components/feed/StoryLines";
 import { FeedCardShareButton } from "@/components/feed/FeedCardShareButton";
 import type { FeedCardDiscuss } from "@/components/feed/FeedCard";
 import type { Card } from "@/lib/feed/types";
@@ -63,6 +64,7 @@ export function FeedReading({ card, nowMs, discuss }: FeedReadingProps) {
       </div>
       <h2 className="ap-reading__headline">{card.headline}</h2>
       {card.detail ? <p className="ap-reading__body">{card.detail}</p> : null}
+      {card.story ? <StoryLines story={card.story} /> : null}
       <p className="ap-reading__src">
         <a href={card.sourceUrl} target="_blank" rel="noreferrer">
           {card.sourceName} ↗
