@@ -134,6 +134,35 @@ describe("diversifyCards", () => {
     ]);
   });
 
+  it("rotates the interleave slot among the other kinds instead of always taking the top one", () => {
+    // Real-world shape from 2026-09-24: a run of Product Hunt launches with publishers (45), Hacker
+    // News/Reddit (40) and a research paper (20) below it. Taking the highest other kind every time
+    // gave every slot to one of them; rotating gives each kind a turn, least recently shown first,
+    // ties to the higher-ranked card.
+    const pl = (n: number) => typedCard("PRODUCT_LAUNCH", `pl${n}`, 50);
+    const input: Card[] = [
+      ...[1, 2, 3, 4, 5, 6, 7, 8].map(pl),
+      typedCard("PRESS", "p1", 45),
+      typedCard("PRESS", "p2", 45),
+      typedCard("NEWS", "n1", 40),
+      typedCard("NEWS", "n2", 40),
+      typedCard("RESEARCH", "r1", 20),
+    ];
+    expect(diversifyCards(input, 2).map((c) => c.id)).toEqual([
+      "pl1", "pl2", "p1", "pl3", "pl4", "n1", "pl5", "pl6", "r1", "pl7", "pl8", "p2", "n2",
+    ]);
+  });
+
+  it("outside an interleave slot, the ranked order is untouched", () => {
+    const input = [
+      typedCard("PRESS", "p1", 45),
+      typedCard("NEWS", "n1", 40),
+      typedCard("RESEARCH", "r1", 20),
+      typedCard("NEWS", "n2", 40),
+    ];
+    expect(diversifyCards(input, 2).map((c) => c.id)).toEqual(["p1", "n1", "r1", "n2"]);
+  });
+
   it("flushes the tail when no other type remains", () => {
     const input = [
       typedCard("MODEL_MOVER", "m1"),
