@@ -14,10 +14,23 @@ import type { Card, CardType } from "@/lib/feed/types";
 export function rankCards(cards: Card[]): Card[] {
   return [...cards].sort((a, b) => {
     if (a.severity !== b.severity) return b.severity - a.severity;
+    const tier = withinSeverity(a) - withinSeverity(b);
+    if (tier !== 0) return tier;
     const aMs = new Date(a.timestamp).getTime();
     const bMs = new Date(b.timestamp).getTime();
     return bMs - aMs;
   });
+}
+
+/**
+ * Order inside one severity, before recency; lower goes first. NEWS carries two sources: a Hacker
+ * News story has passed a points threshold, a Reddit post has passed none (the subreddit's own
+ * curation is trusted, not scored), so the engagement-checked story goes first (founder,
+ * 2026-09-24: Hacker News "should take importance"). Every other kind: recency alone.
+ */
+function withinSeverity(c: Card): number {
+  if (c.type === "NEWS") return c.meta.hnId !== undefined ? 0 : 1;
+  return 0;
 }
 
 /**

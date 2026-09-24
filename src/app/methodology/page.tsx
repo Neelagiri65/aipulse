@@ -36,7 +36,7 @@ const CARD_TYPE_DESCRIPTION: Record<CardType, string> = {
   PRODUCT_LAUNCH:
     "A most-upvoted launch in Product Hunt's Artificial Intelligence topic over the last 7 days (ordered by community upvotes, above a vote floor), read from the Product Hunt API. Cites the public launch page.",
   NEWS:
-    "A Hacker News AI-filtered story whose points exceed the threshold within the configured time window.",
+    "A Hacker News AI-filtered story whose points exceed the threshold within the configured time window, or a top post of the day from a tracked AI subreddit (at most a few per subreddit per window; the subreddit's own curation is trusted, not scored). Hacker News stories come first, because they passed a points threshold and a subreddit post passed none; then newest first.",
   PRESS:
     "An AI article from a tracked regional publisher (The Register, Heise, MarkTechPost, MIT Technology Review, latent.space, Analytics Vidhya) published in the last 12h — at most 2 per publisher per window, in the publisher's own order, headline unedited. Publication-wide feeds are filtered by whole-word AI keywords.",
   RESEARCH:

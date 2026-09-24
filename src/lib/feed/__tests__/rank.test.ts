@@ -38,6 +38,19 @@ function typedCard(type: CardType, id: string, severity: Severity = 60): Card {
 }
 
 describe("rankCards", () => {
+  it("within News, a Hacker News story (passed a points threshold) ranks before a newer Reddit post", () => {
+    const reddit: Card = { ...typedCard("NEWS", "reddit", 40), timestamp: "2026-09-24T05:00:00Z", meta: { subreddit: "LocalLLaMA" } };
+    const hn: Card = { ...typedCard("NEWS", "hn", 40), timestamp: "2026-09-24T01:00:00Z", meta: { hnId: 1, points: 150 } };
+    const olderHn: Card = { ...typedCard("NEWS", "hn-old", 40), timestamp: "2026-09-23T23:00:00Z", meta: { hnId: 2, points: 120 } };
+    expect(rankCards([reddit, olderHn, hn]).map((c) => c.id)).toEqual(["hn", "hn-old", "reddit"]);
+  });
+
+  it("the News tie-break never lifts a card above a higher severity", () => {
+    const hn: Card = { ...typedCard("NEWS", "hn", 40), meta: { hnId: 1 } };
+    const press = typedCard("PRESS", "press", 45);
+    expect(rankCards([hn, press]).map((c) => c.id)).toEqual(["press", "hn"]);
+  });
+
   it("sorts strictly by severity descending", () => {
     const a = card(20, "2026-04-27T12:00:00Z", "a");
     const b = card(100, "2026-04-27T11:00:00Z", "b");
