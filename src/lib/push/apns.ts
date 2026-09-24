@@ -172,7 +172,7 @@ export function sendOnSession(
   });
 }
 
-async function defaultConnect(host: string): Promise<ApnsSession> {
+export async function defaultConnect(host: string): Promise<ApnsSession> {
   const http2 = await import("node:http2");
   // Happy Eyeballs. Apple publishes AAAA and A records; a network whose IPv6
   // route is dead (this Mac, 2026-09-23: 3/3 ETIMEDOUT on the default

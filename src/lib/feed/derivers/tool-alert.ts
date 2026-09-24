@@ -81,6 +81,8 @@ export function deriveToolAlertCards(snapshot: StatusResult): Card[] {
         status: health.status,
         statusSourceId: health.statusSourceId,
         activeIncidents: incidents.length,
+        // Present only when the page names one (meta values cannot be null).
+        ...(incidents[0]?.name ? { incidentName: incidents[0].name } : {}),
       },
     });
   }
