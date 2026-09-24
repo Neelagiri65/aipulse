@@ -62,6 +62,8 @@ const NOT_CRAWLABLE = new Set([
   "/api/notify/tool-alerts",
   "/api/push/apns",
   "/api/push/apns/send",
+  // Publisher images relayed for the iOS app — third-party pictures, not gawk.dev page content.
+  "/api/rss/image/[id]",
   "/api/push/send",
   "/api/push/subscribe",
   "/api/subscribe",
