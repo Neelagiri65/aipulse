@@ -13,7 +13,7 @@
  *   - npm   → lastDay (direct)
  *   - crates → allTime[d] − allTime[d−1] (derived diff)
  *   - docker → allTime[d] − allTime[d−1] (derived diff)
- *   - brew  → lastMonth[d] − lastMonth[d−1] (derived diff; noisier, surfaced as caveat)
+ *   - brew  → lastMonth as published (a rolling 30-day total; differencing it is not a daily count)
  *
  * Pure: same input → same output. Pass `now` to make `generatedAt`
  * deterministic in tests.
@@ -112,13 +112,16 @@ const REGISTRY_CONFIG: Record<SdkAdoptionRegistry, RegistryConfig> = {
     caveat: null,
   },
   brew: {
+    // Homebrew publishes installs over a ROLLING 30 days, not a cumulative counter, so a
+    // day-over-day diff of it is not a daily count (it went negative and produced "-203%",
+    // 2026-09-25). The published 30-day figure is used as it is.
     counterField: "lastMonth",
-    counterName: "lastMonth diff",
-    counterUnits: "30d-cumulative installs Δ",
-    derivedDaily: true,
+    counterName: "lastMonth",
+    counterUnits: "installs in the last 30 days",
+    derivedDaily: false,
     firstParty: true,
     caveat:
-      "Daily values are derived as day-over-day diffs of a 30-day cumulative counter — noisier than a direct daily counter but the most honest signal Homebrew exposes.",
+      "Homebrew publishes installs over a rolling 30 days, not per day, so this row is that 30-day total compared with its own average over the prior days — a slower signal than a daily count.",
   },
   vscode: {
     counterField: "allTime",

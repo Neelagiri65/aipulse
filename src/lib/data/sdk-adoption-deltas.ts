@@ -44,12 +44,19 @@ export function deltasFromCounts(
       out.push({ date, count: null, delta: null });
       continue;
     }
+    // A count below zero is not a count — it is an artefact of differencing a counter that is not
+    // cumulative (Homebrew's rolling 30-day window, 2026-09-25: "ollama on brew -203%"). It gets no
+    // delta, and it never enters a baseline, so no change below -100% can be produced.
+    if (count < 0) {
+      out.push({ date, count, delta: null });
+      continue;
+    }
     const start = Math.max(0, i - baselineWindow);
     let sum = 0;
     let n = 0;
     for (let j = start; j < i; j++) {
       const c = countsByDate[j].count;
-      if (c === null) continue;
+      if (c === null || c < 0) continue;
       sum += c;
       n += 1;
     }
@@ -58,7 +65,7 @@ export function deltasFromCounts(
       continue;
     }
     const baseline = sum / n;
-    if (Math.abs(baseline) < 1) {
+    if (baseline < 1) {
       out.push({ date, count, delta: null });
       continue;
     }
