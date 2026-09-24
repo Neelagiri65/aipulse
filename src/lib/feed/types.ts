@@ -43,6 +43,33 @@ export type Card = {
   timestamp: string;
   /** Type-specific structured fields. Kept as primitives so the response is JSON-safe. */
   meta: Record<string, string | number | boolean>;
+  /** Present when other outlets or threads covered the same story (src/lib/stories). Additive: a
+   *  client that does not read it still shows the card, which is the story's lead, unedited. */
+  story?: CardStory;
+};
+
+export type StorySource = {
+  publisher: string;
+  country: string | null;
+  lang: string;
+  url: string;
+  timestamp: string;
+};
+
+export type StoryThread = {
+  /** "Hacker News" or the subreddit ("r/LocalLLaMA"). */
+  site: string;
+  /** The discussion page. */
+  url: string;
+  points: number | null;
+  timestamp: string;
+};
+
+export type CardStory = {
+  /** Other publishers' articles on the same story, earliest first. */
+  sources: StorySource[];
+  /** Hacker News / Reddit threads on the same story, earliest first. */
+  discussion: StoryThread[];
 };
 
 export type CurrentState = {

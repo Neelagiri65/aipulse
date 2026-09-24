@@ -14,12 +14,20 @@ import type { Card, CardType } from "@/lib/feed/types";
 export function rankCards(cards: Card[]): Card[] {
   return [...cards].sort((a, b) => {
     if (a.severity !== b.severity) return b.severity - a.severity;
+    // A story covered by more outlets and threads outranks a single-source one of the same kind
+    // (src/lib/stories). Kinds keep their order; this only orders within one.
+    const coverage = storySize(b) - storySize(a);
+    if (coverage !== 0) return coverage;
     const tier = withinSeverity(a) - withinSeverity(b);
     if (tier !== 0) return tier;
     const aMs = new Date(a.timestamp).getTime();
     const bMs = new Date(b.timestamp).getTime();
     return bMs - aMs;
   });
+}
+
+function storySize(c: Card): number {
+  return 1 + (c.story ? c.story.sources.length + c.story.discussion.length : 0);
 }
 
 /**
