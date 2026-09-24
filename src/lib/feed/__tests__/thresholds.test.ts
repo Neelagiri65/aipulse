@@ -18,13 +18,14 @@ describe("FEED_SEVERITIES", () => {
     expect(Object.isFrozen(FEED_SEVERITIES)).toBe(true);
   });
 
-  it("covers all eight card types and nothing else", () => {
+  it("covers all nine card types and nothing else", () => {
     const expected: CardType[] = [
       "TOOL_ALERT",
       "MODEL_MOVER",
       "NEW_RELEASE",
       "SDK_TREND",
       "PRODUCT_LAUNCH",
+      "PRESS",
       "NEWS",
       "RESEARCH",
       "LAB_HIGHLIGHT",
@@ -34,7 +35,7 @@ describe("FEED_SEVERITIES", () => {
 
   it("severities sort cleanly into a strict descending order", () => {
     const values = Object.values(FEED_SEVERITIES).sort((a, b) => b - a);
-    expect(values).toEqual([100, 80, 70, 60, 50, 40, 20, 10]);
+    expect(values).toEqual([100, 80, 70, 60, 50, 45, 40, 20, 10]);
   });
 });
 

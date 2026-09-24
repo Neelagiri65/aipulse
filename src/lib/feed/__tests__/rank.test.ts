@@ -38,6 +38,19 @@ function typedCard(type: CardType, id: string, severity: Severity = 60): Card {
 }
 
 describe("rankCards", () => {
+  it("within News, a Hacker News story (passed a points threshold) ranks before a newer Reddit post", () => {
+    const reddit: Card = { ...typedCard("NEWS", "reddit", 40), timestamp: "2026-09-24T05:00:00Z", meta: { subreddit: "LocalLLaMA" } };
+    const hn: Card = { ...typedCard("NEWS", "hn", 40), timestamp: "2026-09-24T01:00:00Z", meta: { hnId: 1, points: 150 } };
+    const olderHn: Card = { ...typedCard("NEWS", "hn-old", 40), timestamp: "2026-09-23T23:00:00Z", meta: { hnId: 2, points: 120 } };
+    expect(rankCards([reddit, olderHn, hn]).map((c) => c.id)).toEqual(["hn", "hn-old", "reddit"]);
+  });
+
+  it("the News tie-break never lifts a card above a higher severity", () => {
+    const hn: Card = { ...typedCard("NEWS", "hn", 40), meta: { hnId: 1 } };
+    const press = typedCard("PRESS", "press", 45);
+    expect(rankCards([hn, press]).map((c) => c.id)).toEqual(["press", "hn"]);
+  });
+
   it("sorts strictly by severity descending", () => {
     const a = card(20, "2026-04-27T12:00:00Z", "a");
     const b = card(100, "2026-04-27T11:00:00Z", "b");
@@ -132,6 +145,35 @@ describe("diversifyCards", () => {
       "MODEL_MOVER",
       "SDK_TREND",
     ]);
+  });
+
+  it("rotates the interleave slot among the other kinds instead of always taking the top one", () => {
+    // Real-world shape from 2026-09-24: a run of Product Hunt launches with publishers (45), Hacker
+    // News/Reddit (40) and a research paper (20) below it. Taking the highest other kind every time
+    // gave every slot to one of them; rotating gives each kind a turn, least recently shown first,
+    // ties to the higher-ranked card.
+    const pl = (n: number) => typedCard("PRODUCT_LAUNCH", `pl${n}`, 50);
+    const input: Card[] = [
+      ...[1, 2, 3, 4, 5, 6, 7, 8].map(pl),
+      typedCard("PRESS", "p1", 45),
+      typedCard("PRESS", "p2", 45),
+      typedCard("NEWS", "n1", 40),
+      typedCard("NEWS", "n2", 40),
+      typedCard("RESEARCH", "r1", 20),
+    ];
+    expect(diversifyCards(input, 2).map((c) => c.id)).toEqual([
+      "pl1", "pl2", "p1", "pl3", "pl4", "n1", "pl5", "pl6", "r1", "pl7", "pl8", "p2", "n2",
+    ]);
+  });
+
+  it("outside an interleave slot, the ranked order is untouched", () => {
+    const input = [
+      typedCard("PRESS", "p1", 45),
+      typedCard("NEWS", "n1", 40),
+      typedCard("RESEARCH", "r1", 20),
+      typedCard("NEWS", "n2", 40),
+    ];
+    expect(diversifyCards(input, 2).map((c) => c.id)).toEqual(["p1", "n1", "r1", "n2"]);
   });
 
   it("flushes the tail when no other type remains", () => {

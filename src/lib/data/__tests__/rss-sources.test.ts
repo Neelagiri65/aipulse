@@ -24,32 +24,34 @@ function makeValid(overrides: Partial<RssSource> = {}): RssSource {
 }
 
 describe("RSS_SOURCES constant", () => {
-  it("contains exactly 7 entries", () => {
-    expect(RSS_SOURCES).toHaveLength(7);
+  it("contains exactly 6 entries", () => {
+    expect(RSS_SOURCES).toHaveLength(6);
   });
 
   it("passes its own validator", () => {
     const res = validateRssSources(RSS_SOURCES);
     expect(res.ok).toBe(true);
-    if (res.ok) expect(res.entries).toHaveLength(7);
+    if (res.ok) expect(res.entries).toHaveLength(6);
   });
 
-  it("covers at least 5 distinct countries (regional spread retained after expansion)", () => {
+  it("covers at least 4 distinct countries (UK, DE, IN, US)", () => {
     // Original five sources were one-per-country (UK, DE, CN, IN, US).
     // The S59 additions intentionally double up on existing countries
     // (latent.space → US, Analytics Vidhya → IN) since the registry
     // contract dropped the strict regional-counterweight framing.
+    // 2026-09-24: Synced Review (CN) retired — its feed stopped publishing
+    // in August 2025 — so China has no publisher. This floor records that
+    // loss; it is not a target. Raise it when CN coverage returns.
     const countries = new Set(RSS_SOURCES.map((s) => s.country));
-    expect(countries.size).toBeGreaterThanOrEqual(5);
+    expect(countries.size).toBeGreaterThanOrEqual(4);
   });
 
-  it("includes the seven confirmed sources by id", () => {
+  it("includes the six confirmed sources by id", () => {
     const ids = RSS_SOURCES.map((s) => s.id).sort();
     expect(ids).toEqual(
       [
         "the-register-ai",
         "heise-ai",
-        "synced-review",
         "marktechpost",
         "mit-tech-review-ai",
         "latent-space",

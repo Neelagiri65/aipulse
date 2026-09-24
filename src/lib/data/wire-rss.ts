@@ -16,6 +16,7 @@
  *     the batch.
  */
 
+import { titleHasKeyword } from "@/lib/data/keyword-match";
 import { createHash } from "node:crypto";
 import type { RssSource } from "@/lib/data/rss-sources";
 
@@ -30,6 +31,8 @@ export type RssRawItem = {
   pubDate: string;
   guid: string;
   description: string;
+  /** The publisher's own image for this item, as it appears in the feed; null when none. */
+  imageUrl?: string | null;
 };
 
 /** Stored item shape written to Redis. */
@@ -45,6 +48,11 @@ export type RssItem = {
   /** ISO timestamp of last ingest pass that touched this item. */
   lastRefreshTs: string;
   description: string;
+  /**
+   * The publisher's own image for the article, as published in its feed (https only).
+   * Null when the feed carries none. Absent on items stored before 2026-09-24.
+   */
+  imageUrl?: string | null;
 };
 
 /** Per-source status recorded at the end of each ingest pass. */
@@ -159,6 +167,8 @@ function hoursSince(iso: string | null, nowMs: number): number | null {
 function toWireItem(item: RssItem, source: RssSource): RssWireItem {
   return {
     ...item,
+    // Items stored before images were kept have no field; say "none known", not absent.
+    imageUrl: item.imageUrl ?? null,
     kind: "rss",
     sourceDisplayName: source.displayName,
     city: source.city,
@@ -333,16 +343,9 @@ export const KEYWORD_ALLOWLIST_DE: readonly string[] = [
  * for de-language feeds.
  */
 export function isRssAiRelevant(title: string, lang: string): boolean {
-  const t = title.toLowerCase();
-  for (const kw of KEYWORD_ALLOWLIST_EN) {
-    if (t.includes(kw)) return true;
-  }
-  if (lang === "de") {
-    for (const kw of KEYWORD_ALLOWLIST_DE) {
-      if (t.includes(kw)) return true;
-    }
-  }
-  return false;
+  // Whole words (keyword-match.ts): substrings let "rag" match "Snapdragon".
+  if (titleHasKeyword(title, KEYWORD_ALLOWLIST_EN)) return true;
+  return lang === "de" && titleHasKeyword(title, KEYWORD_ALLOWLIST_DE);
 }
 
 // ---------------------------------------------------------------------------
@@ -377,6 +380,37 @@ function extractTagText(block: string, tag: string): string {
   return decodeXmlEntities(stripCData(m[1]));
 }
 
+/**
+ * The publisher's own image for one feed item. Order: media:content (image), media:thumbnail,
+ * an enclosure whose type is image/*, then the first <img> in the item's HTML. Audio enclosures
+ * (podcast feeds) and empty urls never count. Only https URLs are kept.
+ */
+export function extractImageUrl(block: string): string | null {
+  const attr = (tag: string, name: string): string | null => {
+    const m = tag.match(new RegExp(`\\s${name}=["']([^"']*)["']`, "i"));
+    return m ? m[1] : null;
+  };
+  const candidates: string[] = [];
+  for (const tag of block.match(/<media:content\b[^>]*>/gi) ?? []) {
+    const medium = attr(tag, "medium");
+    const type = attr(tag, "type");
+    if ((medium && medium !== "image") || (type && !type.startsWith("image/"))) continue;
+    candidates.push(attr(tag, "url") ?? "");
+  }
+  for (const tag of block.match(/<media:thumbnail\b[^>]*>/gi) ?? []) candidates.push(attr(tag, "url") ?? "");
+  for (const tag of block.match(/<enclosure\b[^>]*>/gi) ?? []) {
+    if ((attr(tag, "type") ?? "").startsWith("image/")) candidates.push(attr(tag, "url") ?? "");
+  }
+  const html = decodeXmlEntities(block.replace(/<!\[CDATA\[|\]\]>/g, ""));
+  const img = html.match(/<img\b[^>]*\ssrc=["']([^"']+)["']/i);
+  if (img) candidates.push(img[1]);
+  for (const raw of candidates) {
+    const url = decodeXmlEntities(raw).trim();
+    if (url.startsWith("https://") && url.length <= 2048) return url;
+  }
+  return null;
+}
+
 function extractAtomLink(block: string): string {
   // Prefer rel="alternate" if present, else first <link href="..."/>.
   const alt = block.match(
@@ -401,7 +435,7 @@ export function parseRss20(xml: string): RssRawItem[] {
       const pubDate = extractTagText(block, "pubDate");
       const guid = extractTagText(block, "guid");
       const description = extractTagText(block, "description");
-      out.push({ title, link, pubDate, guid, description });
+      out.push({ title, link, pubDate, guid, description, imageUrl: extractImageUrl(block) });
     }
   } catch {
     return [];
@@ -430,6 +464,7 @@ export function parseAtom(xml: string): RssRawItem[] {
         pubDate: published || updated,
         guid: id,
         description: content,
+        imageUrl: extractImageUrl(block),
       });
     }
   } catch {
@@ -439,8 +474,23 @@ export function parseAtom(xml: string): RssRawItem[] {
 }
 
 /** Format-dispatching parser. */
+/**
+ * What the body actually is. Publishers move feeds between formats behind
+ * redirects (The Register's `headlines.atom` now serves RSS 2.0), so the
+ * body is authoritative and a source's declared format is only the fallback
+ * when the body carries neither marker.
+ */
+export function detectFeedFormat(xml: string): "rss" | "atom" | null {
+  const hasItem = /<item[\s>]/i.test(xml);
+  const hasEntry = /<entry[\s>]/i.test(xml);
+  if (hasEntry && !hasItem) return "atom";
+  if (hasItem && !hasEntry) return "rss";
+  return null;
+}
+
 export function parseFeed(xml: string, format: "rss" | "atom"): RssRawItem[] {
-  return format === "atom" ? parseAtom(xml) : parseRss20(xml);
+  const actual = detectFeedFormat(xml) ?? format;
+  return actual === "atom" ? parseAtom(xml) : parseRss20(xml);
 }
 
 // ---------------------------------------------------------------------------
@@ -480,6 +530,7 @@ export function normaliseItem(
     firstSeenTs: nowIso,
     lastRefreshTs: nowIso,
     description: raw.description ?? "",
+    imageUrl: raw.imageUrl ?? null,
   };
 }
 
@@ -542,6 +593,14 @@ export async function runRssIngest(opts: {
 
     if (err === null) {
       raw = parseFeed(xml, source.feedFormat);
+      if (raw.length === 0) {
+        // A fetch that yields nothing is not a healthy source: two feeds sat
+        // at zero items for months while reporting fresh.
+        err = `feed parsed to 0 items (declared ${source.feedFormat}, body ${detectFeedFormat(xml) ?? "unrecognised"})`;
+      }
+    }
+
+    if (err === null) {
       for (const r of raw) {
         // AI-filter (only when scope === ai-only)
         if (source.keywordFilterScope === "ai-only") {

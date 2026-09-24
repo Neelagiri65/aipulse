@@ -153,6 +153,81 @@ describe("parseFeed dispatcher", () => {
     expect(parseFeed(RSS20_FIXTURE, "rss")).toHaveLength(2);
     expect(parseFeed(ATOM_FIXTURE, "atom")).toHaveLength(2);
   });
+
+  // The Register moved headlines.atom to RSS 2.0 behind a redirect; the source
+  // still declared "atom", parseAtom found no <entry> and the feed read as
+  // empty for months. The body decides, the declaration is only a fallback.
+  it("parses by what the body is, not by what the source declares", () => {
+    expect(parseFeed(RSS20_FIXTURE, "atom")).toHaveLength(2);
+    expect(parseFeed(ATOM_FIXTURE, "rss")).toHaveLength(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Publisher images — tags captured from the live feeds on 2026-09-24
+// ---------------------------------------------------------------------------
+
+describe("imageUrl — the publisher's own image for the item", () => {
+  // The Register: an image enclosure plus media:thumbnail, &amp; in the URL.
+  const REGISTER = `<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel><item>
+    <title>KDE turns 30 and someone's brought an AI-native desktop proposal</title>
+    <link>https://www.theregister.com/2026/09/18/kde_30/</link>
+    <pubDate>Fri, 18 Sep 2026 16:25:00 +0200</pubDate>
+    <enclosure url="https://image.theregister.com/?imageId=5297398&amp;width=800" type="image/jpeg" />
+    <media:thumbnail url="https://image.theregister.com/?imageId=5297398&amp;width=800" />
+  </item></channel></rss>`;
+  // Heise: Atom, image inside the HTML content, no media tags.
+  const HEISE = `<feed xmlns="http://www.w3.org/2005/Atom"><entry>
+    <title>Bundestags-KI: Eigener Chatbot soll Schatten-KI im Parlament ablösen</title>
+    <link rel="alternate" href="https://www.heise.de/news/bundestags-ki.html"/>
+    <id>urn:heise:1</id><published>2026-09-23T16:31:00+02:00</published>
+    <content type="html"><![CDATA[<p><a href="https://www.heise.de/news/bundestags-ki.html"><img src="https://www.heise.de/scale/geometry/450/q80//imgs/18/5/1/7/0/4/1/3/shutterstock_1858565065-eb127cc2b2670920.jpeg" class="webfeedsFeaturedVisual" alt="" /></a></p>]]></content>
+  </entry></feed>`;
+  // latent.space: the only enclosure is the podcast mp3; the image is in content:encoded.
+  const LATENT = `<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><item>
+    <title>Bio-security is an AI Arms Race</title>
+    <link>https://www.latent.space/p/bio</link>
+    <pubDate>Wed, 23 Sep 2026 13:27:00 GMT</pubDate>
+    <enclosure url="https://api.substack.com/feed/podcast/216723291/8511fc2825689ad610a1ca70864be49f.mp3" length="0" type="audio/mpeg"/>
+    <content:encoded><![CDATA[<p><img src="https://substackcdn.com/image/fetch/w_1456/bio.png" width="1456"></p>]]></content:encoded>
+  </item></channel></rss>`;
+  // Analytics Vidhya: an empty media:content url.
+  const EMPTY_MEDIA = `<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel><item>
+    <title>Jev Explained</title><link>https://www.analyticsvidhya.com/blog/jev/</link>
+    <pubDate>Tue, 22 Sep 2026 19:35:05 +0000</pubDate>
+    <media:content url="" duration="5">
+  </item></channel></rss>`;
+  const INSECURE = `<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel><item>
+    <title>x</title><link>https://example.com/a</link><pubDate>Tue, 22 Sep 2026 19:35:05 +0000</pubDate>
+    <media:content url="http://example.com/a.jpg" medium="image" />
+    <description>&lt;img src="data:image/png;base64,AAAA"&gt;</description>
+  </item></channel></rss>`;
+
+  it("takes an image enclosure and decodes &amp;", () => {
+    expect(parseRss20(REGISTER)[0].imageUrl).toBe("https://image.theregister.com/?imageId=5297398&width=800");
+  });
+  it("finds the image inside Atom HTML content", () => {
+    expect(parseAtom(HEISE)[0].imageUrl).toBe(
+      "https://www.heise.de/scale/geometry/450/q80//imgs/18/5/1/7/0/4/1/3/shutterstock_1858565065-eb127cc2b2670920.jpeg",
+    );
+  });
+  it("never takes an audio enclosure for an image", () => {
+    expect(parseRss20(LATENT)[0].imageUrl).toBe("https://substackcdn.com/image/fetch/w_1456/bio.png");
+  });
+  it("returns null for an empty url", () => {
+    expect(parseRss20(EMPTY_MEDIA)[0].imageUrl).toBeNull();
+  });
+  it("rejects http: and data: images", () => {
+    expect(parseRss20(INSECURE)[0].imageUrl).toBeNull();
+  });
+  it("returns null when the item has no image", () => {
+    expect(parseRss20(RSS20_FIXTURE)[0].imageUrl).toBeNull();
+    expect(parseAtom(ATOM_FIXTURE)[0].imageUrl).toBeNull();
+  });
+  it("carries the image through to the stored item", () => {
+    const item = normaliseItem(parseRss20(REGISTER)[0], SRC_EN, "2026-09-24T00:00:00.000Z");
+    expect(item?.imageUrl).toBe("https://image.theregister.com/?imageId=5297398&width=800");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -230,6 +305,28 @@ describe("normaliseItem", () => {
 // ---------------------------------------------------------------------------
 // AI-keyword filter (ai-only scope)
 // ---------------------------------------------------------------------------
+
+describe("isRssAiRelevant — whole words, not substrings (real Heise titles, 2026-09-24)", () => {
+  // "rag" matched inside "Snapdragon" and " ai" inside "AirPods": a phone launch reached the Feed.
+  it.each([
+    "Qualcomm Snapdragon 8 Elite Extreme Gen 6: 5 GHz im Benchmark",
+    "Xiaomi 18 Pro und 18 Pro Max: Top-Handys mit neuen Snapdragon-Chips",
+    "Enorme Nachfrage nach openDesk – Partnerprogramm startet jetzt",
+    "Wellenkraftwerke: Forscher maximieren Energieertrag von Bojen in Hausgröße",
+    "heise+ | AirPods 5 im Test: ANC endlich für alle",
+  ])("rejects %s", (t) => expect(isRssAiRelevant(t, "de")).toBe(false));
+  it.each([
+    "Mercedes-Benz will Serienfahrzeuge mit dem Wayve AI Driver ausstatten",
+    "AWS CloudWatch: KI soll bei Incidents mit ermitteln",
+    "Neu von AWS: Weniger Kontextpflege für selbst gebaute KI-Agenten",
+    "KI-Ausgaben in Deutschland steigen um 50 Prozent auf 28,7 Milliarden Euro",
+    "Geschrumpfte Chatbots: So passt die KI plötzlich in 4 GByte RAM",
+    "heise-Angebot: betterCode() .NET 11.0: Workshops zu KI, ASP.NET, C# 15.0, EF Core",
+    "Anthropic veröffentlicht Claude Opus 5.5: Fokus auf Effizienz und Sicherheit",
+    "GPT-6 Sol und Luna: OpenAI halbiert die Preise",
+    "Why LLMs fail at fine-tuning on small data",
+  ])("keeps %s", (t) => expect(isRssAiRelevant(t, "de")).toBe(true));
+});
 
 describe("isRssAiRelevant", () => {
   it("accepts English AI keywords", () => {
@@ -416,6 +513,24 @@ describe("runRssIngest", () => {
     const call = store.writeSource.mock.calls[0][0];
     expect(call.id).toBe("src-en");
     expect(call.lastError).toContain("boom");
+  });
+
+  // Analytics Vidhya's /blog/feed/ became an empty comments channel and the
+  // source reported healthy with zero items. A feed that fetches but yields
+  // nothing is a failure the dashboard must see, not a quiet success.
+  it("records an error when a fetched feed parses to zero items", async () => {
+    const EMPTY_CHANNEL = `<?xml version="1.0"?><rss version="2.0"><channel><title>Comments on: Blog</title></channel></rss>`;
+    const fetchFn = vi.fn(async () => EMPTY_CHANNEL);
+    const result = await runRssIngest({
+      sources: [SRC_EN],
+      fetchFn,
+      store,
+      now: new Date("2026-04-20T00:00:00.000Z"),
+    });
+    expect(result.ok).toBe(false);
+    const call = store.writeSource.mock.calls[0][0];
+    expect(call.lastFetchOkTs).toBeNull();
+    expect(call.lastError).toContain("0 items");
   });
 
   it("prunes the wire ZSET after ingest", async () => {

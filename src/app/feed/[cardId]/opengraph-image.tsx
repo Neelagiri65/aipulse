@@ -11,6 +11,8 @@
  * brand, monospace claim text. Iterate after first LinkedIn unfurl.
  */
 
+import { readRssWire } from "@/lib/data/rss-store";
+import type { RssWireItem } from "@/lib/data/wire-rss";
 import { ImageResponse } from "next/og";
 import { BrandLockup, og, ogFont } from "@/lib/og-brand";
 
@@ -158,7 +160,7 @@ async function findCardById(cardId: string): Promise<Card | null> {
 
 async function loadSnapshots(): Promise<FeedSnapshots> {
   const nowIso = new Date().toISOString();
-  const [status, models, sdk, hn, research, labs, hfRecent, reddit, productHunt] = await Promise.all([
+  const [status, models, sdk, hn, research, labs, hfRecent, reddit, productHunt, rss] = await Promise.all([
     fetchAllStatus().catch(() => ({
       data: {},
       polledAt: nowIso,
@@ -220,8 +222,12 @@ async function loadSnapshots(): Promise<FeedSnapshots> {
       posts: [],
       generatedAt: nowIso,
     })),
+    // Publisher stories need their own page and unfurl card too — the same read the Feed uses.
+    readRssWire()
+      .then((w) => w.items)
+      .catch(() => [] as RssWireItem[]),
   ]);
-  return { status, models, sdk, hn, research, labs, hfRecent, reddit, productHunt };
+  return { status, models, sdk, hn, research, labs, hfRecent, reddit, productHunt, rss };
 }
 
 async function loadSdk(nowIso: string) {

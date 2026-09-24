@@ -11,6 +11,8 @@
  * via a LinkedIn / X unfurl and click through to the source.
  */
 
+import { readRssWire } from "@/lib/data/rss-store";
+import type { RssWireItem } from "@/lib/data/wire-rss";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -181,7 +183,7 @@ async function findCardById(cardId: string): Promise<Card | null> {
 
 async function loadSnapshots(): Promise<FeedSnapshots> {
   const nowIso = new Date().toISOString();
-  const [status, models, sdk, hn, research, labs, hfRecent, reddit, productHunt] = await Promise.all([
+  const [status, models, sdk, hn, research, labs, hfRecent, reddit, productHunt, rss] = await Promise.all([
     fetchAllStatus().catch(() => ({
       data: {},
       polledAt: nowIso,
@@ -243,8 +245,12 @@ async function loadSnapshots(): Promise<FeedSnapshots> {
       posts: [],
       generatedAt: nowIso,
     })),
+    // Publisher stories need their own page and unfurl card too — the same read the Feed uses.
+    readRssWire()
+      .then((w) => w.items)
+      .catch(() => [] as RssWireItem[]),
   ]);
-  return { status, models, sdk, hn, research, labs, hfRecent, reddit, productHunt };
+  return { status, models, sdk, hn, research, labs, hfRecent, reddit, productHunt, rss };
 }
 
 async function loadSdk(nowIso: string) {

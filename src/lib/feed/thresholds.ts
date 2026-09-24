@@ -21,6 +21,11 @@ export const FEED_SEVERITIES: Readonly<Record<CardType, Severity>> =
     NEW_RELEASE: 70,
     SDK_TREND: 60,
     PRODUCT_LAUNCH: 50,
+    // Above NEWS (founder, 2026-09-24): regional publishers "never surface in any of the tabs",
+    // and at 30 they sat behind every HN/Reddit story, so the diversifier's interleave slots always
+    // went to NEWS. Measured on a live run: at 45 publishers take slots 4/7/10/13 and HN/Reddit move
+    // to 14+ — the trade-off, made on purpose.
+    PRESS: 45,
     NEWS: 40,
     RESEARCH: 20,
     LAB_HIGHLIGHT: 10,
@@ -40,6 +45,11 @@ export const FEED_TRIGGERS = Object.freeze({
    *  expose a score field cleanly). */
   NEWS_REDDIT_WINDOW_HOURS: 12,
   NEWS_REDDIT_MAX_PER_SUB: 3,
+  /** Regional publishers (RSS): an article surfaces within this window of publication, at most
+   *  MAX_PER_SOURCE per publisher, in the publisher's own order. The cap exists because one
+   *  publisher (Heise, ≈92 AI stories a week) would otherwise bury every other source. */
+  NEWS_PUBLISHER_WINDOW_HOURS: 12,
+  NEWS_PUBLISHER_MAX_PER_SOURCE: 2,
   /** A HuggingFace model fires NEW_RELEASE when createdAt is within this window. */
   NEW_RELEASE_AGE_HOURS: 48,
   /** Likes are first-paint social proof on HF — more reliable than rolling

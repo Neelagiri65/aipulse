@@ -36,7 +36,9 @@ const CARD_TYPE_DESCRIPTION: Record<CardType, string> = {
   PRODUCT_LAUNCH:
     "A most-upvoted launch in Product Hunt's Artificial Intelligence topic over the last 7 days (ordered by community upvotes, above a vote floor), read from the Product Hunt API. Cites the public launch page.",
   NEWS:
-    "A Hacker News AI-filtered story whose points exceed the threshold within the configured time window.",
+    "A Hacker News AI-filtered story whose points exceed the threshold within the configured time window, or a top post of the day from a tracked AI subreddit (at most a few per subreddit per window; the subreddit's own curation is trusted, not scored). Hacker News stories come first, because they passed a points threshold and a subreddit post passed none; then newest first.",
+  PRESS:
+    "An AI article from a tracked regional publisher (The Register, Heise, MarkTechPost, MIT Technology Review, latent.space, Analytics Vidhya) published in the last 12h — at most 2 per publisher per window, in the publisher's own order, headline unedited. Publication-wide feeds are filtered by whole-word AI keywords.",
   RESEARCH:
     "An arXiv paper in the current top-5-by-recency snapshot for cs.AI + cs.LG.",
   LAB_HIGHLIGHT:
@@ -49,6 +51,7 @@ const ORDERED: CardType[] = [
   "NEW_RELEASE",
   "SDK_TREND",
   "PRODUCT_LAUNCH",
+  "PRESS",
   "NEWS",
   "RESEARCH",
   "LAB_HIGHLIGHT",
@@ -172,10 +175,10 @@ export default function MethodologyPage() {
         </p>
         <p className="text-sm text-muted-foreground leading-relaxed">
           The AI Publishers wire (MarkTechPost IN, Analytics Vidhya IN, Heise
-          DE, Synced Review CN, The Register UK, MIT Technology Review US) and
+          DE, The Register UK, MIT Technology Review US) and
           the curated AI Labs registry partially address this — both layers
           carry verifiable HQ coordinates and surface non-SF activity directly
-          without depending on the geocoder. The seventh AI Publisher slot
+          without depending on the geocoder. The sixth AI Publisher slot
           (latent.space) sits in San Francisco and adds practitioner-grade
           signal rather than regional counterweight. They are a counterweight,
           not a fix. Additional non-English sources are on the roadmap;

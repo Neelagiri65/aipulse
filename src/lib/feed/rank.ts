@@ -14,6 +14,8 @@ import type { Card, CardType } from "@/lib/feed/types";
 export function rankCards(cards: Card[]): Card[] {
   return [...cards].sort((a, b) => {
     if (a.severity !== b.severity) return b.severity - a.severity;
+    const tier = withinSeverity(a) - withinSeverity(b);
+    if (tier !== 0) return tier;
     const aMs = new Date(a.timestamp).getTime();
     const bMs = new Date(b.timestamp).getTime();
     return bMs - aMs;
@@ -21,22 +23,37 @@ export function rankCards(cards: Card[]): Card[] {
 }
 
 /**
+ * Order inside one severity, before recency; lower goes first. NEWS carries two sources: a Hacker
+ * News story has passed a points threshold, a Reddit post has passed none (the subreddit's own
+ * curation is trusted, not scored), so the engagement-checked story goes first (founder,
+ * 2026-09-24: Hacker News "should take importance"). Every other kind: recency alone.
+ */
+function withinSeverity(c: Card): number {
+  if (c.type === "NEWS") return c.meta.hnId !== undefined ? 0 : 1;
+  return 0;
+}
+
+/**
  * Diversity pass — interleave a ranked card list so the feed doesn't
  * read as a wall of identical card types.
  *
  * Rule: when the last `maxConsecutive` cards in the output all share a
- * type and the next candidate is the same type, pull the next
- * different-type card forward instead. The pulled card preserves its
+ * type and the next candidate is the same type, pull a different-type
+ * card forward instead. Which one ROTATES among the other kinds: the kind
+ * shown least recently wins, ties going to the higher-ranked card
+ * (2026-09-24). Taking the top other kind every time handed every slot
+ * to one kind — a run of Product Hunt launches interleaved only with
+ * publishers, and Hacker News and research papers never reached the top. The pulled card preserves its
  * own relative order (we only swap its position with the next-same-type
  * candidate, not its severity rank within its own type).
  *
  * Properties:
  *  - Pure: input array is not mutated.
  *  - Loss-free: every input card appears exactly once in the output.
- *  - Severity-aware: a higher-severity card never gets pushed behind a
- *    lower-severity one when there's still a different-type card at
- *    the higher tier (the look-ahead picks the first non-same-type
- *    candidate, which is at the highest available severity).
+ *  - Severity-aware outside the interleave slots: cards keep their
+ *    ranked order except the one pulled into a slot. Inside a slot the
+ *    rotation deliberately lets a lower kind in ahead of a higher one
+ *    that has already had a turn — that is the point of the slot.
  *  - Idempotent for already-diverse input: a list with no run > N is
  *    returned unchanged.
  *
@@ -54,7 +71,7 @@ export function diversifyCards(
   while (remaining.length > 0) {
     const candidate = remaining[0];
     if (shouldDeferType(out, candidate.type, maxConsecutive)) {
-      const altIdx = remaining.findIndex((c) => c.type !== candidate.type);
+      const altIdx = rotationPick(out, remaining, candidate.type);
       if (altIdx > 0) {
         out.push(remaining[altIdx]);
         remaining.splice(altIdx, 1);
@@ -65,6 +82,29 @@ export function diversifyCards(
     out.push(remaining.shift() as Card);
   }
   return out;
+}
+
+/** Index in `remaining` of the different-type card whose kind was shown least recently (never
+ *  shown counts as longest ago); ties go to the earlier, higher-ranked card. -1 when none. */
+function rotationPick(
+  out: readonly Card[],
+  remaining: readonly Card[],
+  deferredType: CardType,
+): number {
+  const lastShown = new Map<CardType, number>();
+  out.forEach((c, i) => lastShown.set(c.type, i));
+  let best = -1;
+  let bestSeen = Infinity;
+  for (let i = 1; i < remaining.length; i += 1) {
+    const t = remaining[i].type;
+    if (t === deferredType) continue;
+    const seen = lastShown.get(t) ?? -1;
+    if (seen < bestSeen) {
+      best = i;
+      bestSeen = seen;
+    }
+  }
+  return best;
 }
 
 function shouldDeferType(

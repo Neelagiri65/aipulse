@@ -65,6 +65,8 @@ const NOT_CRAWLABLE = new Set([
   // iOS app registers its Live Activity tokens (push-to-start, and per running activity).
   "/api/push/apns/live-activity",
   "/api/push/apns/live-activity/activity",
+  // Publisher images relayed for the iOS app — third-party pictures, not gawk.dev page content.
+  "/api/rss/image/[id]",
   "/api/push/send",
   "/api/push/subscribe",
   "/api/subscribe",
@@ -81,6 +83,7 @@ const NOT_CRAWLABLE = new Set([
   "/api/registry/deps",
   // Polled by the map on an interval (Dashboard.tsx); the page renders
   // without it and it is not page content.
+  "/api/registry/cells",
   "/api/registry/points",
   "/api/pkg/brew",
   "/api/pkg/crates",

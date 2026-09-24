@@ -36,6 +36,7 @@ const TYPE_LABEL: Record<Card["type"], string> = {
   SDK_TREND: "SDK trend",
   PRODUCT_LAUNCH: "Product launch",
   NEWS: "News",
+  PRESS: "Press",
   RESEARCH: "Research",
   LAB_HIGHLIGHT: "Lab highlight",
 };
