@@ -1574,7 +1574,7 @@ export const GITHUB_REPO_META: DataSource = {
   rateLimit: {
     authenticated: 5000,
     unauthenticated: 60,
-    note: "Authenticated via GH_TOKEN. Agents-ingest fetches 8 repos × 1 call once daily → 8 calls/day. Trivial under the 5000/hr authenticated cap; same token already powers GITHUB_EVENTS / GHARCHIVE.",
+    note: "Authenticated via GH_TOKEN. Agents-ingest fetches 8 repos × 1 call once daily → 8 calls/day. The feed also reads the `description` of the leading lab's ≤3 most active repos for its LAB_HIGHLIGHT summary, cached a day → ≤3 calls/day. Trivial under the 5000/hr authenticated cap; same token already powers GITHUB_EVENTS / GHARCHIVE.",
   },
   auth: "github-token",
   measures:
@@ -1597,7 +1597,7 @@ export const GITHUB_REPO_META: DataSource = {
   },
   caveat:
     "First-party provenance (api.github.com is GitHub's own REST API). `pushed_at` advances on any commit to any branch, so a recently-pushed dependabot branch can mask a long-quiet default branch — the dormant heuristic accepts this false-negative as the cost of using a single field. `archived: true` is the authoritative dormancy signal; `pushed_at > 90d` is the heuristic that catches projects that went quiet without explicit archival.",
-  powersFeature: ["agents-panel"],
+  powersFeature: ["agents-panel", "feed"],
 };
 
 // ---------------------------------------------------------------------------

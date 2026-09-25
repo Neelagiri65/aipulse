@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveLabHighlightCards } from "@/lib/feed/derivers/lab-highlight";
+import { deriveLabHighlightCards, leadingLab } from "@/lib/feed/derivers/lab-highlight";
 import type { LabActivity, LabsPayload } from "@/lib/data/fetch-labs";
 
 function lab(
@@ -31,6 +31,7 @@ function lab(
       WatchEvent: 0,
     },
     stale: partial.stale ?? false,
+    ...(partial.reposDescribed ? { reposDescribed: partial.reposDescribed } : {}),
   };
 }
 
@@ -100,3 +101,23 @@ describe("deriveLabHighlightCards", () => {
     expect(deriveLabHighlightCards(payload, NOW)).toEqual([]);
   });
 });
+
+describe("LAB_HIGHLIGHT summary — what the counted activity is", () => {
+  it("quotes the leading lab's active repositories as their owners describe them; none when undescribed", () => {
+    const described = "anthropics/claude-code — Claude Code is an agentic coding tool that lives in your terminal.";
+    const [card] = deriveLabHighlightCards(
+      { ...basePayload, labs: [lab({ id: "anthropic-sf", displayName: "Anthropic", total: 195, reposDescribed: described })] },
+      NOW,
+    );
+    expect(card.summary).toBe(described);
+    const [plain] = deriveLabHighlightCards({ ...basePayload, labs: [lab({ id: "x", displayName: "X", total: 3 })] }, NOW);
+    expect("summary" in plain).toBe(false);
+  });
+
+  it("leadingLab is the deriver's choice: most events, none when every lab is at zero", () => {
+    const labs = [lab({ id: "a", displayName: "A", total: 5 }), lab({ id: "b", displayName: "B", total: 9 })];
+    expect(leadingLab({ ...basePayload, labs })?.id).toBe("b");
+    expect(leadingLab({ ...basePayload, labs: [lab({ id: "z", displayName: "Z", total: 0 })] })).toBeUndefined();
+  });
+});
+

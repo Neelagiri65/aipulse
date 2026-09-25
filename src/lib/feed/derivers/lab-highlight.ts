@@ -22,9 +22,11 @@
  * too (freshness unverifiable → don't ship).
  */
 
-import { WINDOW_MS, type LabsPayload } from "@/lib/data/fetch-labs";
+import { WINDOW_MS, type LabActivity, type LabsPayload } from "@/lib/data/fetch-labs";
 import { cardId } from "@/lib/feed/card-id";
 import { FEED_SEVERITIES } from "@/lib/feed/thresholds";
+import { optionalSummary } from "@/lib/feed/derivers/publisher";
+import { toSummary } from "@/lib/feed/summary";
 import type { Card } from "@/lib/feed/types";
 
 const SOURCE_NAME = "AI Labs registry";
@@ -33,16 +35,21 @@ const SOURCE_NAME = "AI Labs registry";
  *  the headline claims to measure. Beyond it the claim is expired. */
 export const LABS_MAX_AGE_MS = WINDOW_MS;
 
+/** The lab a LAB_HIGHLIGHT card is about: most events, and only if it has any. */
+export function leadingLab(payload: LabsPayload): LabActivity | undefined {
+  if (payload.labs.length === 0) return undefined;
+  const top = payload.labs.reduce((best, lab) => (lab.total > best.total ? lab : best));
+  return top.total > 0 ? top : undefined;
+}
+
 export function deriveLabHighlightCards(
   payload: LabsPayload,
   nowMs: number = Date.now(),
 ): Card[] {
   if (payload.labs.length === 0) return [];
 
-  const top = payload.labs.reduce((best, lab) =>
-    lab.total > best.total ? lab : best,
-  );
-  if (top.total === 0) return [];
+  const top = leadingLab(payload);
+  if (!top) return [];
 
   const timestampMs = new Date(payload.generatedAt).getTime();
   // Freshness gate: drop expired or undated payloads (never served as live).
@@ -63,6 +70,8 @@ export function deriveLabHighlightCards(
         total: top.total,
         country: top.country,
       },
+      // What that activity is: the active repositories, in their owners' own words.
+      ...optionalSummary(toSummary(top.reposDescribed ?? "", `${top.displayName} leads 7-day GitHub activity`)),
     },
   ];
 }

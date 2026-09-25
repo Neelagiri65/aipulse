@@ -48,6 +48,8 @@ import {
 } from "@/lib/feed/last-known";
 import { deriveDegradedSources } from "@/lib/feed/degraded-sources";
 import { isNewReleaseCandidate } from "@/lib/feed/derivers/new-release";
+import { leadingLab } from "@/lib/feed/derivers/lab-highlight";
+import { describeLabRepos } from "@/lib/data/lab-repo-descriptions";
 import { fetchModelCardParagraph, MODEL_CARD_FETCH_CAP } from "@/lib/data/hf-model-card";
 import type {
   DegradedSource,
@@ -135,7 +137,7 @@ export async function loadSnapshots(
     ),
     withLastKnown<LabsPayload>(
       "labs",
-      async () => fetchLabActivity(),
+      async () => withLeadingLabRepos(await fetchLabActivity()),
       { labs: [], generatedAt: nowIso, failures: [] },
     ),
     withLastKnown<HuggingFaceModel[]>(
@@ -268,5 +270,17 @@ async function withModelCards(models: HuggingFaceModel[]): Promise<HuggingFaceMo
     const cardParagraph = paragraphs.get(m.id);
     return cardParagraph ? { ...m, cardParagraph } : m;
   });
+}
+
+/**
+ * Describes the active repositories of the one lab a LAB_HIGHLIGHT card will be about — the
+ * deriver's own choice (leadingLab) — and no other. A failed read leaves it undescribed.
+ */
+async function withLeadingLabRepos(payload: LabsPayload): Promise<LabsPayload> {
+  const lead = leadingLab(payload);
+  if (!lead) return payload;
+  const reposDescribed = await describeLabRepos(lead, process.env.GH_TOKEN);
+  if (!reposDescribed) return payload;
+  return { ...payload, labs: payload.labs.map((l) => (l.id === lead.id ? { ...l, reposDescribed } : l)) };
 }
 
