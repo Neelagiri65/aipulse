@@ -18,6 +18,8 @@ export type ProductHuntPost = {
   id: string;
   name: string;
   tagline: string;
+  /** The maker's description, plain text per the PH schema (`Post.description: String`, nullable). */
+  description?: string | null;
   url: string;
   votesCount: number;
   createdAt: string;
@@ -43,7 +45,7 @@ function buildQuery(): string {
   ).toISOString();
   return `query {
   posts(first: ${FETCH_N}, order: VOTES, postedAfter: "${postedAfter}", topic: "artificial-intelligence") {
-    edges { node { id name tagline url votesCount createdAt } }
+    edges { node { id name tagline description url votesCount createdAt } }
   }
 }`;
 }

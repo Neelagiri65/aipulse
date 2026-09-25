@@ -43,6 +43,10 @@ export type Card = {
   timestamp: string;
   /** Type-specific structured fields. Kept as primitives so the response is JSON-safe. */
   meta: Record<string, string | number | boolean>;
+  /** The source's own words about this item — a publisher's RSS description, an arXiv abstract,
+   *  a Product Hunt description — cleaned to plain text and cut at a sentence (src/lib/feed/summary.ts).
+   *  Never written or paraphrased by gawk.dev. Absent when the source gave none. */
+  summary?: string;
   /** Present when other outlets or threads covered the same story (src/lib/stories). Additive: a
    *  client that does not read it still shows the card, which is the story's lead, unedited. */
   story?: CardStory;

@@ -17,6 +17,8 @@
  * dateless product as "just launched" — the S88 fabrication class.
  */
 
+import { toSummary } from "@/lib/feed/summary";
+import { optionalSummary } from "@/lib/feed/derivers/publisher";
 import { cardId } from "@/lib/feed/card-id";
 import { FEED_SEVERITIES } from "@/lib/feed/thresholds";
 import type { Card } from "@/lib/feed/types";
@@ -44,6 +46,7 @@ export function deriveProductLaunchCards(result: ProductHuntResult): Card[] {
       sourceName: SOURCE_NAME,
       sourceUrl: post.url,
       timestamp: new Date(tsMs).toISOString(),
+      ...optionalSummary(toSummary(post.description, post.tagline)),
       meta: {
         votes: typeof post.votesCount === "number" ? post.votesCount : 0,
         tagline: post.tagline ?? "",

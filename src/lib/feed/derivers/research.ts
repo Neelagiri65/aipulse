@@ -21,6 +21,8 @@
  * unverifiable → don't ship). Empty output degrades gracefully.
  */
 
+import { toSummary } from "@/lib/feed/summary";
+import { optionalSummary } from "@/lib/feed/derivers/publisher";
 import { ARXIV_PAPERS } from "@/lib/data-sources";
 import type { ResearchResult } from "@/lib/data/fetch-research";
 import { cardId } from "@/lib/feed/card-id";
@@ -57,6 +59,8 @@ export function deriveResearchCards(
       sourceName: SOURCE_NAME,
       sourceUrl: paper.abstractUrl,
       timestamp: paper.published,
+      // The abstract's opening sentences, verbatim (a longer cap: an abstract's first sentence is long).
+      ...optionalSummary(toSummary(paper.abstract, paper.title, 400)),
       meta: {
         arxivId: paper.id,
         primaryCategory: paper.primaryCategory,

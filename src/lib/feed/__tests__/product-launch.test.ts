@@ -49,4 +49,15 @@ describe("deriveProductLaunchCards", () => {
     };
     expect(deriveProductLaunchCards(r)).toEqual([]);
   });
+  it("carries the maker's description as the summary; none when PH sent null or only the tagline again", () => {
+    const post = { id: "1", name: "Filvy", tagline: "Your family's document vault", url: "https://www.producthunt.com/posts/filvy", votesCount: 42, createdAt: AT };
+    const cards = deriveProductLaunchCards({ ok: true, generatedAt: AT, posts: [
+      { ...post, description: "Filvy keeps every family document in one vault. Search it in plain English." },
+      { ...post, id: "2", description: null },
+      { ...post, id: "3", description: "Your family's document vault." },
+    ] });
+    expect(cards[0].summary).toBe("Filvy keeps every family document in one vault. Search it in plain English.");
+    expect("summary" in cards[1]).toBe(false);
+    expect("summary" in cards[2]).toBe(false);
+  });
 });
