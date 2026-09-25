@@ -36,6 +36,12 @@ describe("isGrounded — rejects what a reader cannot check", () => {
   it("rejects an invented name", () => {
     expect(isGrounded("Mistral released Devstral 3 to compete with Anthropic.", source)).toBe(false);
   });
+  it("typography is not content: curly apostrophes, possessives, special hyphens and spaced thousands match", () => {
+    const src = "The Pentagon's 2-1 ruling covers 150,000 lines of code written by David Heinemeier Hansson.";
+    expect(isGrounded("The Pentagon\u2019s 2\u20111 ruling covers 150\u202F000 lines by David Heinemeier Hansson.", src)).toBe(true);
+    expect(isGrounded("The Pentagon ruling covers 250 000 lines of code written by Hansson.", src)).toBe(false);
+  });
+
   it("rejects a fragment: fewer than eight words, or no closing stop", () => {
     expect(isGrounded("Here", source)).toBe(false);
     expect(isGrounded("Mistral released Devstral 3, a 24B coding model", source)).toBe(false);

@@ -1713,7 +1713,7 @@ export const HF_MODEL_CARD: DataSource = {
 
 export const MACHINE_SUMMARY_NIM: DataSource = {
   id: "machine-summary-nim",
-  name: "Machine summary — linked article text summarised by NVIDIA NIM (meta/llama-4-maverick-17b-128e-instruct)",
+  name: "Machine summary — linked article text summarised by NVIDIA NIM (openai/gpt-oss-20b)",
   category: "community-sentiment",
   url: "https://build.nvidia.com",
   apiUrl: "https://integrate.api.nvidia.com/v1/chat/completions",

@@ -14,7 +14,13 @@
  *   7. Fails closed: no key, flag off, fetch or model failure → no summary, never a placeholder.
  */
 
-export const MACHINE_SUMMARY_MODEL = "meta/llama-4-maverick-17b-128e-instruct";
+/**
+ * Chosen by measurement (scripts/machine-summary-smoke.ts, 2026-09-26, 8 HN front-page articles ×
+ * 10 NIM models on the founder's free key): 4 models 404 for the account, 3 overloaded or timing
+ * out; of the reachable ones gpt-oss-20b had the most grounded, readable answers and the fewest
+ * failures (Nemotron Super mostly 503). meta/llama-4-maverick was no longer in the catalogue.
+ */
+export const MACHINE_SUMMARY_MODEL = "openai/gpt-oss-20b";
 export const MACHINE_SUMMARY_PROMPT_VERSION = "ms-1";
 const NIM_ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions";
 const USER_AGENT = "gawk.dev-summary/1.0 (+https://gawk.dev/sources)";
@@ -91,8 +97,23 @@ export function articleText(html: string): string {
  * purpose: it cannot prove a summary faithful, but it catches the invented figure and the
  * invented name, which are the failures a reader cannot check.
  */
+/**
+ * Typography is not content: models and publishers write the same token with different glyphs
+ * (curly vs straight apostrophes, non-breaking hyphens, thin-space thousands separators). Both
+ * sides are folded the same way before comparing, so a faithful "Pentagon's" or "150 000" is not
+ * dropped as invented — measured on the 2026-09-26 smoke runs.
+ */
+export function foldTypography(s: string): string {
+  return s
+    .normalize("NFKC")
+    .replace(/[\u2018\u2019\u02BC]/g, "'")
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/(\d)[\s\u00A0\u202F\u2009,](?=\d{3}\b)/g, "$1");
+}
+
 export function isGrounded(summary: string, source: string): boolean {
-  const text = summary.trim();
+  const text = foldTypography(summary.trim());
+  source = foldTypography(source);
   if (!text) return false;
   // A summary is at least one real sentence: a fragment ("Here") contains no invented fact and
   // would pass every other check (smoke run, 2026-09-26).
@@ -106,7 +127,8 @@ export function isGrounded(summary: string, source: string): boolean {
   for (const sentence of sentences) {
     const words = sentence.split(/\s+/).slice(1); // the first word of a sentence is capitalised anyway
     for (const raw of words) {
-      const w = raw.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+      // Possessive "'s" is grammar, not part of the name: "Pentagon's" is grounded by "Pentagon".
+      const w = raw.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "").replace(/'s$/u, "");
       if (w.length >= 2 && /^\p{Lu}/u.test(w) && !source.includes(w)) return false;
     }
   }
