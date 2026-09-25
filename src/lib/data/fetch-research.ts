@@ -37,6 +37,9 @@ export type ArxivPaper = {
   categories: string[];
   /** arxiv abstract page — canonical link for the row. */
   abstractUrl: string;
+  /** The paper's abstract (<summary>), whitespace-collapsed. arXiv metadata, abstracts included,
+   *  is CC0. Absent on results cached before 2026-09-25 (feed:lk:), empty when the entry has none. */
+  abstract?: string;
 };
 
 export type ResearchResult = {
@@ -116,6 +119,7 @@ function parseEntry(body: string): ArxivPaper | null {
   if (!idUrl) return null;
   const id = idUrl.replace(/^https?:\/\/arxiv\.org\/abs\//, "").trim();
   const title = collapseWs(textTag(body, "title") ?? "");
+  const abstract = collapseWs(textTag(body, "summary") ?? "");
   const published = textTag(body, "published") ?? "";
   const updated = textTag(body, "updated") ?? "";
 
@@ -164,6 +168,7 @@ function parseEntry(body: string): ArxivPaper | null {
     primaryCategory,
     categories: Array.from(categories),
     abstractUrl,
+    abstract,
   };
 }
 

@@ -20,6 +20,7 @@ import { FEED_SEVERITIES, FEED_TRIGGERS } from "@/lib/feed/thresholds";
 import type { Card } from "@/lib/feed/types";
 import { isRssAiRelevant, type RssWireItem } from "@/lib/data/wire-rss";
 import { RSS_SOURCES } from "@/lib/data/rss-sources";
+import { toSummary } from "@/lib/feed/summary";
 
 const WINDOW_MS = FEED_TRIGGERS.NEWS_PUBLISHER_WINDOW_HOURS * 60 * 60 * 1000;
 const AI_FILTERED = new Set(RSS_SOURCES.filter((s) => s.keywordFilterScope === "ai-only").map((s) => s.id));
@@ -50,6 +51,7 @@ export function derivePublisherCards(items: RssWireItem[], nowMs: number = Date.
       sourceName: item.sourceDisplayName,
       sourceUrl: item.url,
       timestamp: new Date(itemMs).toISOString(),
+      ...optionalSummary(toSummary(item.description, item.title)),
       meta: {
         rssId: item.id,
         publisher: item.sourceId,
@@ -60,4 +62,9 @@ export function derivePublisherCards(items: RssWireItem[], nowMs: number = Date.
     });
   }
   return cards;
+}
+
+/** Spread into a card so an absent summary leaves no `summary: undefined` key behind. */
+export function optionalSummary(summary: string | undefined): { summary?: string } {
+  return summary ? { summary } : {};
 }

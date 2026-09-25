@@ -64,4 +64,12 @@ describe("derivePublisherCards", () => {
     const cards = derivePublisherCards([phone, ki], NOW);
     expect(cards.map((c) => c.headline)).toEqual([ki.title]);
   });
+  it("carries the publisher's own description as the summary, cleaned; none when the feed gave none", () => {
+    const [withText] = derivePublisherCards([item("marktechpost", 1, {
+      description: "<p>Fastino Labs has released GLiNER2.5-Decide. It&#8217;s open-weight.</p><p>The post <a href=\"x\">Fastino</a> appeared first on <a href=\"y\">MarkTechPost</a>.</p>",
+    })], NOW);
+    expect(withText.summary).toBe("Fastino Labs has released GLiNER2.5-Decide. It’s open-weight.");
+    const [bare] = derivePublisherCards([item("marktechpost", 1)], NOW);
+    expect("summary" in bare).toBe(false);
+  });
 });

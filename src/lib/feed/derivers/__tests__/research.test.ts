@@ -14,6 +14,7 @@ function paper(
     primaryCategory: partial.primaryCategory ?? "cs.AI",
     categories: partial.categories ?? ["cs.AI"],
     abstractUrl: partial.abstractUrl ?? `https://arxiv.org/abs/${partial.id}`,
+    ...(partial.abstract !== undefined ? { abstract: partial.abstract } : {}),
   };
 }
 
@@ -86,5 +87,21 @@ describe("deriveResearchCards", () => {
     expect(
       deriveResearchCards({ ...baseResult, ok: false, papers: [], error: "fetch failed" }),
     ).toEqual([]);
+  });
+  it("the summary is the abstract's opening sentences, verbatim; none without an abstract", () => {
+    const abstract = "Ramp metering regulates flows from on-ramps. Previous studies update timings in real time. " +
+      "Traffic cameras cover larger areas and provide more detailed information than point detectors. " +
+      "In this work, we propose a deep reinforcement learning method to explore the potential of traffic video data " +
+      "in improving the efficiency of ramp metering on real freeways.";
+    const [c] = deriveResearchCards({ ...baseResult, papers: [paper({ id: "2609.1v1", title: "T", abstract })] }, NOW);
+    const long = abstract + " " + "The results suggest the method extracts useful information from the video data. ".repeat(3).trim();
+    const [l] = deriveResearchCards({ ...baseResult, papers: [paper({ id: "2609.3v1", title: "T", abstract: long })] }, NOW);
+    expect(l.summary!.length).toBeLessThanOrEqual(400);
+    expect(l.summary!.length).toBeLessThan(long.length);
+    expect(long.startsWith(l.summary!)).toBe(true);
+    expect(l.summary!.endsWith(".")).toBe(true);
+    expect(abstract.startsWith(c.summary!)).toBe(true);
+    const [bare] = deriveResearchCards({ ...baseResult, papers: [paper({ id: "2609.2v1", title: "T" })] }, NOW);
+    expect("summary" in bare).toBe(false);
   });
 });
