@@ -29,6 +29,9 @@
 import { NextResponse } from "next/server";
 import { withIngest } from "@/app/api/_lib/withIngest";
 import { runIngest } from "@/lib/data/wire-hn";
+import { readWire } from "@/lib/data/hn-store";
+import { runHnMachineSummaries } from "@/lib/summaries/run-hn";
+import { redisMachineSummaryStore } from "@/lib/summaries/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,7 +46,14 @@ export const POST = withIngest({
     const cap = capParam
       ? clamp(Number.parseInt(capParam, 10) || 20, 1, 20)
       : 20;
-    return runIngest({ cap, source });
+    const result = await runIngest({ cap, source });
+    // Machine summaries for new NEWS link posts (off unless MACHINE_SUMMARIES=on and a key is set).
+    // Runs after the items are written; never fails the ingest.
+    const machineSummaries = await runHnMachineSummaries({
+      items: (await readWire()).items,
+      store: redisMachineSummaryStore,
+    }).catch(() => undefined);
+    return { ...result, machineSummaries };
   },
   toOutcome: (result) =>
     result.ok

@@ -231,6 +231,8 @@ const TRACKS: Record<string, string> = {
     "Each tracked PyPI project's own one-line summary, quoted on its SDK story.",
   "hf-model-card":
     "The first paragraph of a new release's model card, quoted on its new-release story.",
+  "machine-summary-nim":
+    "A labelled machine summary of the article a Hacker News link points to, only when the source published no text.",
   "crates-downloads":
     "Recent (90d) + all-time download counters for four Rust ML crates (candle-core, burn, tch, ort).",
   "docker-hub-pulls":
@@ -283,6 +285,7 @@ const POWERED_FEATURE: Record<string, string> = {
   "npm-registry-meta": "Feed (story summaries)",
   "pypi-project-meta": "Feed (story summaries)",
   "hf-model-card": "Feed (story summaries)",
+  "machine-summary-nim": "Feed (labelled machine summaries)",
   "crates-downloads": "SDK Adoption panel · Feed",
   "docker-hub-pulls": "SDK Adoption panel · Feed",
   "homebrew-installs": "SDK Adoption panel · Feed",
@@ -316,6 +319,7 @@ const CATEGORY_OF: Record<string, CategoryId> = {
   "github-repo-meta": "agents",
   // Discussion
   "hn-ai-stories": "discussion",
+  "machine-summary-nim": "discussion",
   "reddit-localllama": "discussion",
   "reddit-claudeai": "discussion",
   "discord-widget": "discussion",
@@ -398,6 +402,7 @@ const FRESHNESS_OF: Record<string, FreshnessSource> = {
   "npm-registry-meta": { kind: "cron", workflow: "pkg-npm" },
   "pypi-project-meta": { kind: "cron", workflow: "pkg-pypi" },
   "hf-model-card": { kind: "on-demand" },
+  "machine-summary-nim": { kind: "cron", workflow: "wire-ingest-hn" },
 };
 
 /**

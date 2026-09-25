@@ -47,6 +47,10 @@ export type Card = {
    *  a Product Hunt description — cleaned to plain text and cut at a sentence (src/lib/feed/summary.ts).
    *  Never written or paraphrased by gawk.dev. Absent when the source gave none. */
   summary?: string;
+  /** A MACHINE-written summary of the linked content, present only when the source published no
+   *  text (never alongside `summary`). Always shown labelled with its model, never as the source's
+   *  words (src/lib/summaries/machine-summary.ts, AUDITOR-REVIEW: PENDING). */
+  machineSummary?: { text: string; model: string; generatedAt: string };
   /** Present when other outlets or threads covered the same story (src/lib/stories). Additive: a
    *  client that does not read it still shows the card, which is the story's lead, unedited. */
   story?: CardStory;

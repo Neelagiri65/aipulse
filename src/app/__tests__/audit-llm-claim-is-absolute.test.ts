@@ -99,7 +99,18 @@ describe("the /audit no-LLM claim", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("calls no LLM anywhere in src/, which is what makes the claim true", () => {
+  /**
+   * The ONE declared caller (2026-09-26, founder decision "Both", PRD prd-story-summaries): feed
+   * machine summaries of linked articles that published no text of their own, generated in the HN
+   * ingest cron, labelled wherever shown. The /audit copy describes the audit ENGINE, which still
+   * calls no model — pinned below by "the audit engine never reaches the summariser". Any other
+   * caller fails here and forces its own disclosure decision.
+   */
+  const DECLARED_CALLERS = ["lib/summaries/machine-summary.ts"];
+  /** The registry entry that declares that caller's endpoint (a declaration, not a call). */
+  const REGISTRY_DECLARATION = /^lib\/data-sources\.ts:\d+ — apiUrl: "https:\/\/integrate\.api\.nvidia\.com\/v1\/chat\/completions",$/;
+
+  it("calls no LLM anywhere in src/ except the one declared, labelled feed summariser", () => {
     const callers = files
       .map((f) => ({ f, lines: fs.readFileSync(f, "utf8").split("\n") }))
       .flatMap(({ f, lines }) =>
@@ -107,7 +118,26 @@ describe("the /audit no-LLM claim", () => {
           .map((line, i) => ({ line, n: i + 1 }))
           .filter(({ line }) => LLM_CLIENT.test(line))
           .map(({ line, n }) => `${path.relative(SRC, f)}:${n} — ${line.trim()}`),
-      );
+      )
+      .filter((hit) => !DECLARED_CALLERS.some((d) => hit.startsWith(`${d}:`)))
+      .filter((hit) => !REGISTRY_DECLARATION.test(hit));
     expect(callers).toEqual([]);
+    // The registry declares the endpoint once (the machine-summary-nim entry), and only that.
+    const declarations = fs.readFileSync(path.join(SRC, "lib/data-sources.ts"), "utf8")
+      .split("\n").filter((l) => LLM_CLIENT.test(l));
+    expect(declarations).toHaveLength(1);
+    expect(declarations[0]).toContain("integrate.api.nvidia.com");
+    // The declared caller is real: if it moves or stops calling, this list is wrong and must change.
+    for (const d of DECLARED_CALLERS) {
+      expect(LLM_CLIENT.test(fs.readFileSync(path.join(SRC, d), "utf8"))).toBe(true);
+    }
+  });
+
+  it("the audit engine never reaches the summariser, so /audit's absolute claim stays true", () => {
+    const auditFiles = files.filter((f) => /[\\/](app|lib)[\\/]audit[\\/]/.test(f) || /[\\/]api[\\/]audit/.test(f));
+    expect(auditFiles.length).toBeGreaterThan(0);
+    for (const f of auditFiles) {
+      expect(fs.readFileSync(f, "utf8")).not.toMatch(/lib\/summaries/);
+    }
   });
 });

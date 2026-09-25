@@ -48,6 +48,9 @@ import {
 } from "@/lib/feed/last-known";
 import { deriveDegradedSources } from "@/lib/feed/degraded-sources";
 import { isNewReleaseCandidate } from "@/lib/feed/derivers/new-release";
+import { machineSummaryKey, needsMachineSummary } from "@/lib/summaries/run-hn";
+import { redisMachineSummaryStore } from "@/lib/summaries/store";
+import type { HnWireResult } from "@/lib/data/wire-hn";
 import { leadingLab } from "@/lib/feed/derivers/lab-highlight";
 import { describeLabRepos } from "@/lib/data/lab-repo-descriptions";
 import { fetchModelCardParagraph, MODEL_CARD_FETCH_CAP } from "@/lib/data/hf-model-card";
@@ -108,7 +111,7 @@ export async function loadSnapshots(
       },
     ),
     loadSdk(nowIso),
-    readWire().catch((err) => {
+    readWire().then(withMachineSummaries).catch((err) => {
       console.error("[feed] readWire failed", err);
       return {
         ok: false as const,
@@ -282,5 +285,21 @@ async function withLeadingLabRepos(payload: LabsPayload): Promise<LabsPayload> {
   const reposDescribed = await describeLabRepos(lead, process.env.GH_TOKEN);
   if (!reposDescribed) return payload;
   return { ...payload, labs: payload.labs.map((l) => (l.id === lead.id ? { ...l, reposDescribed } : l)) };
+}
+
+/** Attaches stored machine summaries to the link posts that will be NEWS cards. Read-only. */
+async function withMachineSummaries(wire: HnWireResult): Promise<HnWireResult> {
+  const nowMs = Date.now();
+  const ids = wire.items.filter((i) => needsMachineSummary(i, nowMs)).map((i) => i.id);
+  if (ids.length === 0) return wire;
+  const found = await redisMachineSummaryStore.read(ids.map(machineSummaryKey));
+  if (found.size === 0) return wire;
+  return {
+    ...wire,
+    items: wire.items.map((i) => {
+      const m = found.get(machineSummaryKey(i.id));
+      return m ? { ...i, machineSummary: { text: m.text, model: m.model, generatedAt: m.generatedAt } } : i;
+    }),
+  };
 }
 

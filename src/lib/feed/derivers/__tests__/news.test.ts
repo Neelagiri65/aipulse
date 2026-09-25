@@ -23,6 +23,7 @@ function item(
     lng: partial.lng ?? null,
     locationLabel: partial.locationLabel ?? null,
     ...(partial.storyText ? { storyText: partial.storyText } : {}),
+    ...(partial.machineSummary ? { machineSummary: partial.machineSummary } : {}),
   };
 }
 
@@ -125,5 +126,20 @@ describe("deriveNewsCards", () => {
     const [self, link] = deriveNewsCards(result, NOW);
     expect(self.summary).toBe("I built a runner for local agents. It needs 16 GB of RAM & no GPU.");
     expect("summary" in link).toBe(false);
+  });
+  it("a link post carries the labelled machine summary on its own field; a post with its own words never gets one", () => {
+    const at = NOW / 1000 - ONE_HOUR_S;
+    const machine = { text: "Mistral released Devstral 3, a 24B coding model.", model: "meta/llama-4-maverick-17b-128e-instruct", generatedAt: "2026-09-26T10:00:00Z" };
+    const [link, self] = deriveNewsCards({
+      ...baseResult,
+      items: [
+        item({ id: "9", points: 150, createdAtI: at, url: "https://example.com/a", machineSummary: machine }),
+        item({ id: "10", points: 150, createdAtI: at, storyText: "I built a runner for local agents on a laptop.", machineSummary: machine }),
+      ],
+    }, NOW);
+    expect(link.machineSummary).toEqual(machine);
+    expect("summary" in link).toBe(false);
+    expect(self.summary).toBe("I built a runner for local agents on a laptop.");
+    expect("machineSummary" in self).toBe(false);
   });
 });
