@@ -22,6 +22,7 @@ function item(
     lat: partial.lat ?? null,
     lng: partial.lng ?? null,
     locationLabel: partial.locationLabel ?? null,
+    ...(partial.storyText ? { storyText: partial.storyText } : {}),
   };
 }
 
@@ -110,5 +111,19 @@ describe("deriveNewsCards", () => {
 
   it("returns [] on empty items", () => {
     expect(deriveNewsCards(baseResult, NOW)).toEqual([]);
+  });
+  it("an Ask/Show HN post carries the poster's own words as the summary (markup stripped); a link post has none", () => {
+    const at = NOW / 1000 - ONE_HOUR_S;
+    const result: HnWireResult = {
+      ...baseResult,
+      items: [
+        item({ id: "7", points: 150, createdAtI: at, title: "Show HN: Local agents on a laptop",
+               storyText: "I built a runner for local agents.<p>It needs 16&nbsp;GB of RAM &amp; no GPU." }),
+        item({ id: "8", points: 150, createdAtI: at, url: "https://example.com/a" }),
+      ],
+    };
+    const [self, link] = deriveNewsCards(result, NOW);
+    expect(self.summary).toBe("I built a runner for local agents. It needs 16 GB of RAM & no GPU.");
+    expect("summary" in link).toBe(false);
   });
 });

@@ -17,6 +17,8 @@ import type { HnWireResult } from "@/lib/data/wire-hn";
 import { cardId } from "@/lib/feed/card-id";
 import { FEED_SEVERITIES, FEED_TRIGGERS } from "@/lib/feed/thresholds";
 import type { Card } from "@/lib/feed/types";
+import { optionalSummary } from "@/lib/feed/derivers/publisher";
+import { toSummary } from "@/lib/feed/summary";
 
 const WINDOW_MS = FEED_TRIGGERS.NEWS_HN_WINDOW_HOURS * 60 * 60 * 1000;
 
@@ -47,6 +49,8 @@ export function deriveNewsCards(
         numComments: item.numComments,
         author: item.author,
       },
+      // Ask/Show HN: the poster's own words. A link post has none (a machine summary may come later).
+      ...optionalSummary(toSummary(item.storyText ?? "", item.title)),
     });
   }
   return cards;
