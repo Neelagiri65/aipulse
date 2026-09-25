@@ -22,6 +22,7 @@ import {
   overallStatus,
   type StatuspageComponentStatus,
   type StatuspageSummary,
+  type RawIncident,
 } from "@/lib/status-adapter";
 import type {
   ToolHealthData,
@@ -93,15 +94,24 @@ function activeIncidentsOf(summary: StatuspageSummary): ToolIncident[] {
   if (!summary.incidents) return [];
   return summary.incidents
     .filter((i) => ACTIVE_INCIDENT_STATES.has(i.status))
-    .map((i) => ({
-      id: i.id,
-      name: i.name,
-      status: i.status,
-      createdAt: i.created_at,
-    }));
+    .map(toToolIncident);
 }
 
-type IncidentsPayload = { incidents?: Array<{ id: string; name: string; status: string; created_at: string }> };
+/** One incident as the app carries it: the page's own name, state, start and newest update text. */
+export function toToolIncident(i: RawIncident): ToolIncident {
+  const newest = [...(i.incident_updates ?? [])]
+    .filter((u) => typeof u.body === "string" && u.body.trim())
+    .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))[0];
+  return {
+    id: i.id,
+    name: i.name,
+    status: i.status,
+    createdAt: i.created_at,
+    ...(newest ? { latestUpdate: newest.body!.trim() } : {}),
+  };
+}
+
+type IncidentsPayload = { incidents?: RawIncident[] };
 
 async function fetchIncidents(source: DataSource): Promise<ToolIncident[] | Error> {
   if (!source.apiUrl) return new Error(`no apiUrl on ${source.id}`);
@@ -118,12 +128,7 @@ async function fetchIncidents(source: DataSource): Promise<ToolIncident[] | Erro
     const all = json.incidents ?? [];
     return all
       .filter((i) => ACTIVE_INCIDENT_STATES.has(i.status))
-      .map((i) => ({
-        id: i.id,
-        name: i.name,
-        status: i.status,
-        createdAt: i.created_at,
-      }));
+      .map(toToolIncident);
   } catch (err) {
     return err instanceof Error ? err : new Error(String(err));
   }

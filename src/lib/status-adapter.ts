@@ -24,7 +24,16 @@ export type StatuspageSummary = {
     status: StatuspageComponentStatus;
     updated_at?: string;
   }>;
-  incidents?: Array<{ id: string; name: string; status: string; created_at: string }>;
+  incidents?: RawIncident[];
+};
+
+/** A Statuspage / incident.io incident as both publish it; `incident_updates` newest first by convention. */
+export type RawIncident = {
+  id: string;
+  name: string;
+  status: string;
+  created_at: string;
+  incident_updates?: Array<{ body?: string; created_at?: string }>;
 };
 
 export function indicatorToStatus(indicator: StatuspageIndicator): ToolHealthStatus {
