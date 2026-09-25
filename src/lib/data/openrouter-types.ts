@@ -64,6 +64,12 @@ export type ModelUsageRow = {
   modalitiesOut: string[];
   /** Canonical OpenRouter model page. */
   hubUrl: string;
+  /**
+   * The model's description as OpenRouter publishes it, verbatim, trimmed and capped at
+   * DESCRIPTION_MAX_CHARS at ingest (it is stored per row in Redis). Absent when the source
+   * sent none. Quoted on a MODEL_MOVER card as the source's own words — never rewritten.
+   */
+  description?: string;
 };
 
 export type ModelUsageDto = {

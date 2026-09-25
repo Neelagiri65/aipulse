@@ -25,6 +25,7 @@ function row(
     modalitiesIn: partial.modalitiesIn ?? ["text"],
     modalitiesOut: partial.modalitiesOut ?? ["text"],
     hubUrl: partial.hubUrl ?? `https://openrouter.ai/${partial.slug}`,
+    ...(partial.description ? { description: partial.description } : {}),
   };
 }
 
@@ -109,5 +110,22 @@ describe("deriveModelMoverCards", () => {
 
   it("returns [] on empty rows", () => {
     expect(deriveModelMoverCards({ ...baseDto, rows: [] })).toEqual([]);
+  });
+  it("quotes OpenRouter's own description as the summary, and leaves the key off when there is none", () => {
+    const dto: ModelUsageDto = {
+      ...baseDto,
+      rows: [
+        row({ rank: 7, previousRank: 31, slug: "stealth/space-bunny-alpha", name: "Space Bunny Alpha",
+              description: "Space Bunny Alpha is an anonymous large model with blazing-fast inference. It is free during testing." }),
+        row({ rank: 12, previousRank: 25, slug: "xiaomi/mimo" }),
+      ],
+    };
+    const [withText, without] = deriveModelMoverCards(dto);
+    expect(withText.summary).toBe(
+      "Space Bunny Alpha is an anonymous large model with blazing-fast inference. It is free during testing.");
+    expect("summary" in without).toBe(false);
+    // Every word of the summary is the source's.
+    const source = dto.rows[0].description!.split(/\s+/);
+    for (const w of withText.summary!.split(/\s+/)) expect(source).toContain(w);
   });
 });
