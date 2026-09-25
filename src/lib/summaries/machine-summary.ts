@@ -107,6 +107,8 @@ export async function summariseArticle(opts: {
   url: string;
   title: string;
   apiKey: string;
+  /** Defaults to MACHINE_SUMMARY_MODEL; overridden only by the model comparison script. */
+  model?: string;
   fetchImpl?: typeof fetch;
   now?: () => Date;
 }): Promise<SummariseOutcome> {
@@ -131,7 +133,7 @@ export async function summariseArticle(opts: {
       method: "POST",
       headers: { Authorization: `Bearer ${opts.apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: MACHINE_SUMMARY_MODEL,
+        model: opts.model ?? MACHINE_SUMMARY_MODEL,
         temperature: 0.2,
         max_tokens: 160,
         messages: [
@@ -153,7 +155,7 @@ export async function summariseArticle(opts: {
     ok: true,
     summary: {
       text: answer,
-      model: MACHINE_SUMMARY_MODEL,
+      model: opts.model ?? MACHINE_SUMMARY_MODEL,
       promptVersion: MACHINE_SUMMARY_PROMPT_VERSION,
       inputUrl: opts.url,
       inputHash: await sha256Hex(text),
