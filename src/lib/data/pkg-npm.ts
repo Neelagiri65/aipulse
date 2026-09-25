@@ -24,6 +24,7 @@
  */
 
 import {
+  fetchDescription,
   writeLatest,
   type PackageCounter,
   type PackageLatest,
@@ -47,6 +48,8 @@ export type NpmIngestResult = {
   written: number;
   failures: Array<{ pkg: string; message: string }>;
   counters: Record<string, PackageCounter>;
+  /** The registry's own description per package (a separate metadata request). */
+  descriptions: Record<string, string>;
   fetchedAt: string;
 };
 
@@ -80,6 +83,14 @@ export async function runNpmIngest(
     }
   }
 
+  // The package's own one-line description, from the registry's metadata (npm-registry-meta).
+  // Only for packages whose counter arrived; a failure leaves the description out, nothing else.
+  const descriptions: Record<string, string> = {};
+  for (const pkg of Object.keys(counters)) {
+    const text = await fetchDescription(`https://registry.npmjs.org/${pkg}/latest`, ["description"], fetchImpl, USER_AGENT);
+    if (text) descriptions[pkg] = text;
+  }
+
   const written = Object.keys(counters).length;
   const ok = written > 0;
   const fetchedAt = now().toISOString();
@@ -90,11 +101,12 @@ export async function runNpmIngest(
       fetchedAt,
       counters,
       failures,
+      ...(Object.keys(descriptions).length ? { descriptions } : {}),
     };
     await writeLatest(blob);
   }
 
-  return { ok, written, failures, counters, fetchedAt };
+  return { ok, written, failures, counters, descriptions, fetchedAt };
 }
 
 /** Fetch one package's three rolling windows. Throws if any window fails

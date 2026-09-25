@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { HuggingFaceModel } from "@/lib/data/fetch-models";
 import {
-  deriveNewReleaseCards,
+  deriveNewReleaseCards, isNewReleaseCandidate,
   isKnownLab,
 } from "@/lib/feed/derivers/new-release";
 
@@ -24,6 +24,7 @@ function model(partial: Partial<HuggingFaceModel> & { id: string }): HuggingFace
     license: partial.license,
     pipelineTag: partial.pipelineTag ?? "text-generation",
     hubUrl: partial.hubUrl ?? `https://huggingface.co/${partial.id}`,
+    ...(partial.cardParagraph ? { cardParagraph: partial.cardParagraph } : {}),
   };
 }
 
@@ -180,3 +181,26 @@ describe("deriveNewReleaseCards", () => {
     expect(card.detail).not.toMatch(/·\s*·/); // no double separator
   });
 });
+
+describe("NEW_RELEASE summary — the model card's first paragraph", () => {
+  it("quotes it when read; none when the card was not read or had no prose", () => {
+    const [withText, without] = deriveNewReleaseCards(
+      [
+        model({ id: "deepseek-ai/DeepSeek-V4", cardParagraph: "We introduce DeepSeek-V4, a mixture-of-experts model. It is open weight." }),
+        model({ id: "qwen/Qwen4" }),
+      ],
+      NOW,
+    );
+    expect(withText.summary).toBe("We introduce DeepSeek-V4, a mixture-of-experts model. It is open weight.");
+    expect("summary" in without).toBe(false);
+  });
+
+  it("isNewReleaseCandidate is the deriver's gate: a model outside it never gets a card", () => {
+    const old = model({ id: "deepseek-ai/Old", createdAt: "2026-04-01T00:00:00.000Z" });
+    const fresh = model({ id: "deepseek-ai/Fresh" });
+    expect(isNewReleaseCandidate(old, NOW)).toBe(false);
+    expect(isNewReleaseCandidate(fresh, NOW)).toBe(true);
+    expect(deriveNewReleaseCards([old, fresh], NOW).map((c) => c.meta.hfId)).toEqual(["deepseek-ai/Fresh"]);
+  });
+});
+

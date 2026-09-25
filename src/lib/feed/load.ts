@@ -47,6 +47,10 @@ import {
   type LastKnownResult,
 } from "@/lib/feed/last-known";
 import { deriveDegradedSources } from "@/lib/feed/degraded-sources";
+import { isNewReleaseCandidate } from "@/lib/feed/derivers/new-release";
+import { leadingLab } from "@/lib/feed/derivers/lab-highlight";
+import { describeLabRepos } from "@/lib/data/lab-repo-descriptions";
+import { fetchModelCardParagraph, MODEL_CARD_FETCH_CAP } from "@/lib/data/hf-model-card";
 import type {
   DegradedSource,
   FeedResponse,
@@ -133,7 +137,7 @@ export async function loadSnapshots(
     ),
     withLastKnown<LabsPayload>(
       "labs",
-      async () => fetchLabActivity(),
+      async () => withLeadingLabRepos(await fetchLabActivity()),
       { labs: [], generatedAt: nowIso, failures: [] },
     ),
     withLastKnown<HuggingFaceModel[]>(
@@ -141,7 +145,7 @@ export async function loadSnapshots(
       async () => {
         const r = await fetchRecentModels();
         if (!r.ok) throw new Error(r.error ?? "hf-recent soft-fail");
-        return r.models;
+        return withModelCards(r.models);
       },
       [] as HuggingFaceModel[],
     ),
@@ -247,3 +251,36 @@ async function loadSdk(nowIso: string) {
     return { packages: [], generatedAt: nowIso };
   }
 }
+
+/**
+ * Reads the model card's first paragraph for the models that will become NEW_RELEASE cards —
+ * the same gate the deriver applies, capped — and nothing else. A failed read leaves the
+ * model without a paragraph; it never fails the feed.
+ */
+async function withModelCards(models: HuggingFaceModel[]): Promise<HuggingFaceModel[]> {
+  const nowMs = Date.now();
+  const wanted = new Set(
+    models.filter((m) => isNewReleaseCandidate(m, nowMs)).slice(0, MODEL_CARD_FETCH_CAP).map((m) => m.id),
+  );
+  if (wanted.size === 0) return models;
+  const paragraphs = new Map(
+    await Promise.all([...wanted].map(async (id) => [id, await fetchModelCardParagraph(id)] as const)),
+  );
+  return models.map((m) => {
+    const cardParagraph = paragraphs.get(m.id);
+    return cardParagraph ? { ...m, cardParagraph } : m;
+  });
+}
+
+/**
+ * Describes the active repositories of the one lab a LAB_HIGHLIGHT card will be about — the
+ * deriver's own choice (leadingLab) — and no other. A failed read leaves it undescribed.
+ */
+async function withLeadingLabRepos(payload: LabsPayload): Promise<LabsPayload> {
+  const lead = leadingLab(payload);
+  if (!lead) return payload;
+  const reposDescribed = await describeLabRepos(lead, process.env.GH_TOKEN);
+  if (!reposDescribed) return payload;
+  return { ...payload, labs: payload.labs.map((l) => (l.id === lead.id ? { ...l, reposDescribed } : l)) };
+}
+

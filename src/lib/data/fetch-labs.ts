@@ -77,6 +77,11 @@ export type LabActivity = {
   byType: EventTypeCount;
   /** True when any of the lab's repos is stale. */
   stale: boolean;
+  /**
+   * The lab's active repositories as their owners describe them on GitHub ("owner/repo — …"),
+   * read only for the lab a LAB_HIGHLIGHT card is about. Absent otherwise.
+   */
+  reposDescribed?: string;
 };
 
 export type LabsPayload = {

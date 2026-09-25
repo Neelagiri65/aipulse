@@ -239,3 +239,26 @@ describe("runPyPiIngest", () => {
     expect(result.fetchedAt).toBe("2026-04-21T12:15:00.000Z");
   });
 });
+
+describe("PyPI summaries — the project's own one line, from pypi.org/pypi/{pkg}/json", () => {
+  beforeEach(() => {
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  });
+
+  it("reads info.summary; a project without one has no entry", async () => {
+    const fetchImpl = vi.fn().mockImplementation(async (url: string) => {
+      if (url === "https://pypi.org/pypi/anthropic/json")
+        return new Response(JSON.stringify({ info: { summary: "The official Python library for the anthropic API" } }), { status: 200 });
+      if (url === "https://pypi.org/pypi/torch/json")
+        return new Response(JSON.stringify({ info: { summary: "" } }), { status: 200 });
+      if (url.includes("pypistats.org"))
+        return new Response(JSON.stringify({ data: { last_day: 1, last_week: 7, last_month: 30 } }), { status: 200 });
+      return new Response("?", { status: 500 });
+    }) as unknown as typeof fetch;
+    const result = await runPyPiIngest({ fetchImpl, packages: ["anthropic", "torch"], sleepImpl: async () => {} });
+    expect(result.written).toBe(2);
+    expect(result.descriptions).toEqual({ anthropic: "The official Python library for the anthropic API" });
+  });
+});
+

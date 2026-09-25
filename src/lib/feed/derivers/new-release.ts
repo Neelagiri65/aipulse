@@ -29,6 +29,8 @@ import { isOpenWeight } from "@/lib/data/open-weight";
 import { MAJOR_LAB_AUTHORS } from "@/lib/data/openrouter-types";
 import { cardId } from "@/lib/feed/card-id";
 import { FEED_SEVERITIES, FEED_TRIGGERS } from "@/lib/feed/thresholds";
+import { optionalSummary } from "@/lib/feed/derivers/publisher";
+import { toSummary } from "@/lib/feed/summary";
 import type { Card } from "@/lib/feed/types";
 
 const SOURCE_NAME = "HuggingFace Models API";
@@ -57,24 +59,31 @@ export function isKnownLab(org: string | undefined | null): boolean {
   return KNOWN_LAB_SET.has(normaliseOrg(org));
 }
 
+/**
+ * The NEW_RELEASE gate on its own: created within the window, not future-dated, enough likes,
+ * from a known lab. Exported so the loader reads model cards for exactly these models.
+ */
+export function isNewReleaseCandidate(model: HuggingFaceModel, nowMs: number = Date.now()): boolean {
+  if (!model.createdAt) return false;
+  const createdMs = Date.parse(model.createdAt);
+  if (!Number.isFinite(createdMs)) return false;
+  const ageMs = nowMs - createdMs;
+  if (ageMs < 0) return false; // future-dated, skip rather than leak
+  if (ageMs > FEED_TRIGGERS.NEW_RELEASE_AGE_HOURS * 60 * 60 * 1000) return false;
+  if (model.likes < FEED_TRIGGERS.NEW_RELEASE_MIN_LIKES) return false;
+  return isKnownLab(model.author);
+}
+
 export function deriveNewReleaseCards(
   models: readonly HuggingFaceModel[],
   nowMs: number = Date.now(),
 ): Card[] {
   const cards: Card[] = [];
-  const ageWindowMs =
-    FEED_TRIGGERS.NEW_RELEASE_AGE_HOURS * 60 * 60 * 1000;
-  const minLikes = FEED_TRIGGERS.NEW_RELEASE_MIN_LIKES;
 
   for (const model of models) {
-    if (!model.createdAt) continue;
-    const createdMs = Date.parse(model.createdAt);
-    if (!Number.isFinite(createdMs)) continue;
+    if (!isNewReleaseCandidate(model, nowMs)) continue;
+    const createdMs = Date.parse(model.createdAt!);
     const ageMs = nowMs - createdMs;
-    if (ageMs < 0) continue; // future-dated, skip rather than leak
-    if (ageMs > ageWindowMs) continue;
-    if (model.likes < minLikes) continue;
-    if (!isKnownLab(model.author)) continue;
 
     const ageHours = Math.max(1, Math.round(ageMs / (60 * 60 * 1000)));
     const license = model.license?.trim() ?? "";
@@ -84,15 +93,16 @@ export function deriveNewReleaseCards(
     if (license) detailParts.push(license);
     detailParts.push(`${ageHours}h ago`);
 
+    const headline = `${model.author} released ${model.name}`;
     cards.push({
       id: cardId("NEW_RELEASE", `hf:${model.id}`, createdMs),
       type: "NEW_RELEASE",
       severity: FEED_SEVERITIES.NEW_RELEASE,
-      headline: `${model.author} released ${model.name}`,
+      headline,
       detail: detailParts.join(" · "),
       sourceName: SOURCE_NAME,
       sourceUrl: model.hubUrl,
-      timestamp: model.createdAt,
+      timestamp: model.createdAt!,
       meta: {
         hfId: model.id,
         author: model.author,
@@ -103,6 +113,8 @@ export function deriveNewReleaseCards(
         ageHours,
         registryUrl: HUGGINGFACE_MODELS.url,
       },
+      // The publisher's own first paragraph from the model card (hf-model-card).
+      ...optionalSummary(toSummary(model.cardParagraph ?? "", headline)),
     });
   }
   return cards;

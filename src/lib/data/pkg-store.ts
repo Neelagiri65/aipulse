@@ -82,6 +82,25 @@ export const PACKAGE_DESCRIPTION_MAX_CHARS = 500;
 /** A counter and, when the same response carries one, the package's own description. */
 export type FetchedPackage = { counter: PackageCounter; description?: string };
 
+/**
+ * A registry's own description of a package from a separate metadata request. Never throws:
+ * a description is optional text, so a failure here must never cost the package its counter.
+ */
+export async function fetchDescription(
+  url: string,
+  path: string[],
+  fetchImpl: typeof fetch,
+  userAgent: string,
+): Promise<string | undefined> {
+  try {
+    const res = await fetchImpl(url, { headers: { "User-Agent": userAgent, Accept: "application/json" } });
+    if (!res.ok) return undefined;
+    return descriptionAt((await res.json()) as unknown, path).description;
+  } catch {
+    return undefined;
+  }
+}
+
 /** The string at `path` in a registry body, trimmed and capped; nothing when absent or blank. */
 export function descriptionAt(body: unknown, path: string[]): { description?: string } {
   let v: unknown = body;

@@ -215,3 +215,25 @@ describe("runNpmIngest", () => {
     expect(result.fetchedAt).toBe("2026-04-21T12:25:00.000Z");
   });
 });
+
+describe("npm descriptions — the registry's own one line, from registry.npmjs.org/{pkg}/latest", () => {
+  beforeEach(() => {
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  });
+
+  it("keeps a package's description; a failed metadata request costs the package nothing", async () => {
+    const fetchImpl = vi.fn().mockImplementation(async (url: string) => {
+      if (url === "https://registry.npmjs.org/@anthropic-ai/sdk/latest")
+        return new Response(JSON.stringify({ description: "The official TypeScript library for the Anthropic API" }), { status: 200 });
+      if (url === "https://registry.npmjs.org/openai/latest") return new Response("down", { status: 503 });
+      if (url.includes("api.npmjs.org/downloads/point/")) return new Response(JSON.stringify({ downloads: 5 }), { status: 200 });
+      return new Response("?", { status: 500 });
+    }) as unknown as typeof fetch;
+    const result = await runNpmIngest({ fetchImpl, packages: ["@anthropic-ai/sdk", "openai"] });
+    expect(result.written).toBe(2);
+    expect(result.failures).toEqual([]);
+    expect(result.descriptions).toEqual({ "@anthropic-ai/sdk": "The official TypeScript library for the Anthropic API" });
+  });
+});
+

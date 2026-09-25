@@ -225,6 +225,12 @@ const TRACKS: Record<string, string> = {
     "Rolling download counters for seven AI Python SDKs (anthropic, openai, langchain, transformers, torch, huggingface-hub, diffusers).",
   "npm-downloads":
     "Rolling download counters for five AI JavaScript SDKs (@anthropic-ai/sdk, openai, @langchain/core, ai, llamaindex).",
+  "npm-registry-meta":
+    "Each tracked npm package's own one-line description, quoted on its SDK story.",
+  "pypi-project-meta":
+    "Each tracked PyPI project's own one-line summary, quoted on its SDK story.",
+  "hf-model-card":
+    "The first paragraph of a new release's model card, quoted on its new-release story.",
   "crates-downloads":
     "Recent (90d) + all-time download counters for four Rust ML crates (candle-core, burn, tch, ort).",
   "docker-hub-pulls":
@@ -274,6 +280,9 @@ const POWERED_FEATURE: Record<string, string> = {
   "rss-analytics-vidhya": "Wire panel + map",
   "pypi-downloads": "SDK Adoption panel · Feed",
   "npm-downloads": "SDK Adoption panel · Feed",
+  "npm-registry-meta": "Feed (story summaries)",
+  "pypi-project-meta": "Feed (story summaries)",
+  "hf-model-card": "Feed (story summaries)",
   "crates-downloads": "SDK Adoption panel · Feed",
   "docker-hub-pulls": "SDK Adoption panel · Feed",
   "homebrew-installs": "SDK Adoption panel · Feed",
@@ -314,9 +323,12 @@ const CATEGORY_OF: Record<string, CategoryId> = {
   "hf-models": "models",
   "lmarena-leaderboard": "models",
   "openrouter-rankings": "models",
+  "hf-model-card": "models",
   // SDK adoption
   "pypi-downloads": "sdk-adoption",
   "npm-downloads": "sdk-adoption",
+  "npm-registry-meta": "sdk-adoption",
+  "pypi-project-meta": "sdk-adoption",
   "crates-downloads": "sdk-adoption",
   "docker-hub-pulls": "sdk-adoption",
   "homebrew-installs": "sdk-adoption",
@@ -383,6 +395,9 @@ const FRESHNESS_OF: Record<string, FreshnessSource> = {
   "vscode-marketplace": { kind: "cron", workflow: "pkg-vscode" },
   "openrouter-rankings": { kind: "cron", workflow: "openrouter-rankings" },
   "github-repo-meta": { kind: "cron", workflow: "agents-ingest" },
+  "npm-registry-meta": { kind: "cron", workflow: "pkg-npm" },
+  "pypi-project-meta": { kind: "cron", workflow: "pkg-pypi" },
+  "hf-model-card": { kind: "on-demand" },
 };
 
 /**

@@ -46,6 +46,11 @@ export type HuggingFaceModel = {
   pipelineTag: string | null;
   /** Derived hub URL so the UI can link out without string-building. */
   hubUrl: string;
+  /**
+   * The first prose paragraph of the model card (hf-model-card), read only for models that
+   * pass the NEW_RELEASE gate. Absent when not read or when the card has no prose.
+   */
+  cardParagraph?: string;
 };
 
 export type ModelsResult = {

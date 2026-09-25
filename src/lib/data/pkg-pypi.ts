@@ -23,6 +23,7 @@
  */
 
 import {
+  fetchDescription,
   writeLatest,
   type PackageCounter,
   type PackageLatest,
@@ -48,6 +49,8 @@ export type PyPiIngestResult = {
   failures: Array<{ pkg: string; message: string }>;
   /** Keyed by package name — the counters that were fetched. */
   counters: Record<string, PackageCounter>;
+  /** The registry's own description per package (a separate metadata request). */
+  descriptions: Record<string, string>;
   /** ISO of the fetch run. */
   fetchedAt: string;
 };
@@ -121,6 +124,14 @@ export async function runPyPiIngest(
     }
   }
 
+  // The package's own one-line description, from the registry's metadata (pypi-project-meta).
+  // Only for packages whose counter arrived; a failure leaves the description out, nothing else.
+  const descriptions: Record<string, string> = {};
+  for (const pkg of Object.keys(counters)) {
+    const text = await fetchDescription(`https://pypi.org/pypi/${encodeURIComponent(pkg)}/json`, ["info", "summary"], fetchImpl, USER_AGENT);
+    if (text) descriptions[pkg] = text;
+  }
+
   const written = Object.keys(counters).length;
   const ok = written > 0;
   const fetchedAt = now().toISOString();
@@ -131,11 +142,12 @@ export async function runPyPiIngest(
       fetchedAt,
       counters,
       failures,
+      ...(Object.keys(descriptions).length ? { descriptions } : {}),
     };
     await writeLatest(blob);
   }
 
-  return { ok, written, failures, counters, fetchedAt };
+  return { ok, written, failures, counters, descriptions, fetchedAt };
 }
 
 /**
