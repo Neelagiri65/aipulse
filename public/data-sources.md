@@ -39,15 +39,18 @@ These four track the services gawk.dev itself runs on. Surfaced operator-side on
 - Cloudflare Status — DNS + proxy
 - Upstash Status — Redis cache
 
-### Model distribution + research (4)
+### Model distribution + research (5)
 - GitHub Issues — anthropics/claude-code
 - HuggingFace Models API — text-generation by downloads
+- HuggingFace — model card (first paragraph quoted on new-release stories)
 - OpenRouter — model usage rankings (top-weekly)
 - arXiv API — cs.AI + cs.LG, recent
 
-### Package adoption (6)
+### Package adoption (8)
 - PyPI — recent download counters (via pypistats.org)
 - npm — download counters (api.npmjs.org)
+- npm — package metadata (description quoted on SDK stories)
+- PyPI — project metadata (summary quoted on SDK stories)
 - crates.io — Rust crate download counters
 - Docker Hub — container pull counters
 - Homebrew — formula install counters

@@ -40,7 +40,7 @@ export type DataSourceCategory =
   | "regulatory"
   | "market";
 
-export type ResponseFormat = "json" | "rss" | "html";
+export type ResponseFormat = "json" | "rss" | "html" | "text";
 
 export type SanityCheck = {
   description: string;
@@ -1601,6 +1601,117 @@ export const GITHUB_REPO_META: DataSource = {
 };
 
 // ---------------------------------------------------------------------------
+// SOURCE'S-OWN-WORDS METADATA — added 2026-09-26 (AUDITOR-REVIEW: PENDING, checkpoint 1)
+// Text only: each supplies the one-line description a card quotes as the source's own words.
+// No number on the dashboard comes from these.
+// ---------------------------------------------------------------------------
+
+export const NPM_REGISTRY_META: DataSource = {
+  id: "npm-registry-meta",
+  name: "npm — package metadata (registry.npmjs.org/{pkg}/latest)",
+  category: "package-adoption",
+  url: "https://www.npmjs.com",
+  apiUrl: "https://registry.npmjs.org/{pkg}/latest",
+  responseFormat: "json",
+  updateFrequency: "six-hourly",
+  rateLimit: {
+    note: "One call per tracked package per npm ingest run (5 packages every 6h → 20 calls/day). The /latest document is the single latest version manifest — small, unlike the full packument.",
+  },
+  auth: "none",
+  measures:
+    "The package's own `description` string from its latest published manifest, quoted verbatim (trimmed, capped at 500 chars) as the summary on an SDK_TREND card. Text only.",
+  sanityCheck: {
+    description:
+      "A tracked package's description should be a short sentence, 10–500 characters. Empty is allowed (not every package publishes one) and yields no summary; anything longer is capped.",
+    expectedMin: 0,
+    expectedMax: 500,
+    unit: "characters of description",
+  },
+  verifiedAt: "2026-09-26",
+  license: {
+    label: "npm Open Source Terms — replication via public API expressly permitted",
+    termsUrl: "https://docs.npmjs.com/policies/open-source-terms",
+    obligation: "see-terms",
+    verifiedAt: "2026-09-26",
+    notes:
+      "Same grant as npm-downloads: 'You may replicate data from the Public Registry using the Public APIs per this Agreement.' A description is package metadata the publisher wrote for display on the registry.",
+  },
+  caveat:
+    "The description is the publisher's own words and can be stale or promotional; it is quoted, attributed, never edited.",
+  powersFeature: ["feed"],
+};
+
+export const PYPI_PROJECT_META: DataSource = {
+  id: "pypi-project-meta",
+  name: "PyPI — project metadata (pypi.org/pypi/{pkg}/json)",
+  category: "package-adoption",
+  url: "https://pypi.org",
+  apiUrl: "https://pypi.org/pypi/{pkg}/json",
+  responseFormat: "json",
+  updateFrequency: "six-hourly",
+  rateLimit: {
+    note: "One call per tracked package per PyPI ingest run (7 packages every 6h → 28 calls/day). PyPI's JSON API is CDN-served; no documented per-IP cap.",
+  },
+  auth: "none",
+  measures:
+    "The project's own `info.summary` string, quoted verbatim (trimmed, capped at 500 chars) as the summary on an SDK_TREND card. Text only.",
+  sanityCheck: {
+    description:
+      "A project summary should be one short sentence, 10–500 characters. Empty yields no summary.",
+    expectedMin: 0,
+    expectedMax: 500,
+    unit: "characters of summary",
+  },
+  verifiedAt: "2026-09-26",
+  license: {
+    label: "PyPI Terms of Use — not read for the JSON API",
+    termsUrl: "https://policies.python.org/pypi.org/Terms-of-Use/",
+    obligation: "unverified",
+    verifiedAt: "2026-09-26",
+    notes:
+      "The pypistats download counts are CC-BY via the PSF BigQuery dataset; that grant has not been confirmed to cover the JSON API's project metadata. Recorded as unverified until the terms are read.",
+  },
+  caveat:
+    "The summary is the maintainer's own words; quoted, attributed, never edited.",
+  powersFeature: ["feed"],
+};
+
+export const HF_MODEL_CARD: DataSource = {
+  id: "hf-model-card",
+  name: "HuggingFace — model card (huggingface.co/{id}/raw/main/README.md)",
+  category: "model-distribution",
+  url: "https://huggingface.co",
+  apiUrl: "https://huggingface.co/{id}/raw/main/README.md",
+  responseFormat: "text",
+  updateFrequency: "daily",
+  rateLimit: {
+    note: "Fetched only for models that pass the NEW_RELEASE gate (≤ 10 per feed build), cached for a day per model. A few calls per day.",
+  },
+  auth: "none",
+  measures:
+    "The first prose paragraph of a new release's model card (front-matter, headings, images, tables and code skipped; markdown links and emphasis reduced to their text), quoted as the summary on a NEW_RELEASE card. Text only.",
+  sanityCheck: {
+    description:
+      "The paragraph should be 20–1000 characters. A card with no prose paragraph (badges and tables only) yields no summary.",
+    expectedMin: 0,
+    expectedMax: 1000,
+    unit: "characters of paragraph",
+  },
+  verifiedAt: "2026-09-26",
+  license: {
+    label: "Each repository's own licence (model card is repo content)",
+    termsUrl: "https://huggingface.co/terms-of-service",
+    obligation: "unverified",
+    verifiedAt: "2026-09-26",
+    notes:
+      "A README is repository content, governed by the model repo's licence, which varies per model. Quoted as a short excerpt with attribution and a link.",
+  },
+  caveat:
+    "Written by the model's publisher; can be promotional. Quoted, attributed, never edited.",
+  powersFeature: ["feed"],
+};
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -1694,6 +1805,9 @@ export const ALL_SOURCES: readonly DataSource[] = [
   HOMEBREW_INSTALLS,
   VSCODE_MARKETPLACE,
   GITHUB_REPO_META,
+  NPM_REGISTRY_META,
+  PYPI_PROJECT_META,
+  HF_MODEL_CARD,
   DISCORD_WIDGET,
 ] as const;
 
