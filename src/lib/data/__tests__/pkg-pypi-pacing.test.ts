@@ -17,9 +17,15 @@ import { describe, expect, it, vi } from "vitest";
 
 import { retryAfterMs, runPyPiIngest } from "@/lib/data/pkg-pypi";
 
-vi.mock("@/lib/data/pkg-store", () => ({
+vi.mock("@/lib/data/pkg-store", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/data/pkg-store")>()),
   writeLatest: vi.fn(async () => undefined),
 }));
+
+/** Calls to pypistats only: the separate pypi.org metadata request is not paced and not retried. */
+function statsCalls(fetchImpl: { mock: { calls: unknown[][] } }): number {
+  return fetchImpl.mock.calls.filter((c) => String(c[0]).includes("pypistats")).length;
+}
 
 function ok(count: number) {
   return {
@@ -76,7 +82,7 @@ describe("pypi ingest — pacing", () => {
     // `writeLatest` overwriting means dropped is destroyed, not just missing.
     expect(result.failures).toEqual([]);
     expect(result.counters.anthropic?.lastDay).toBe(42);
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(statsCalls(fetchImpl)).toBe(2);
   });
 
   it("gives up after one retry rather than hammering", async () => {
@@ -88,7 +94,7 @@ describe("pypi ingest — pacing", () => {
       sleepImpl: async () => {},
     });
 
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(statsCalls(fetchImpl)).toBe(2);
     expect(result.failures[0]?.message).toContain("429");
   });
 
