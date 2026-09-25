@@ -63,6 +63,9 @@ The PyPI, npm, and GitHub Repository Metadata sources also power the Agents pane
 - Reddit — r/LocalLLaMA (top-of-day, AI-themed sub)
 - Reddit — r/ClaudeAI (top-of-day, Anthropic-adjacent sub)
 
+### Machine summaries (1)
+- NVIDIA NIM (gpt-oss-20b) — a labelled, machine-written summary of the article a Hacker News link points to, only when the source published no text of its own. Always shown as machine-written, with the model named; never presented as the source's words.
+
 ### Community presence (1)
 - Discord — Gawk Dev server widget (members online now; includes bots)
 

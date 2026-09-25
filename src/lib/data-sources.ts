@@ -25,7 +25,7 @@ export type UpdateFrequency =
   | "weekly"
   | "event-driven";
 
-export type AuthRequirement = "none" | "github-token" | "upstash-redis";
+export type AuthRequirement = "none" | "github-token" | "upstash-redis" | "nvidia-nim-key";
 
 export type DataSourceCategory =
   | "status-page" // uptime / incidents
@@ -1711,6 +1711,41 @@ export const HF_MODEL_CARD: DataSource = {
   powersFeature: ["feed"],
 };
 
+export const MACHINE_SUMMARY_NIM: DataSource = {
+  id: "machine-summary-nim",
+  name: "Machine summary — linked article text summarised by NVIDIA NIM (openai/gpt-oss-20b)",
+  category: "community-sentiment",
+  url: "https://build.nvidia.com",
+  apiUrl: "https://integrate.api.nvidia.com/v1/chat/completions",
+  responseFormat: "json",
+  updateFrequency: "event-driven",
+  rateLimit: {
+    note: "Off unless MACHINE_SUMMARIES=on and NVIDIA_NIM_KEY is set. At most 5 per ingest run (every 15 min) and 60 per UTC day (Redis counter); no new summary starts after 60 s of a run. One article fetch + one model call each.",
+  },
+  auth: "nvidia-nim-key",
+  measures:
+    "A ≤ 2-sentence machine summary of the article a Hacker News link post points to, generated ONLY when the source published no text of its own. Stored with model id, prompt version, input URL, input hash and generatedAt; carried on the card as `machineSummary` (never `summary`) and shown labelled as machine-written with the model named. Text only — no displayed number comes from it.",
+  sanityCheck: {
+    description:
+      "Grounded or dropped: every number and every capitalised name in the output must appear in the article text; ≤ 2 sentences, ≤ 60 words, no quotation marks. A day with more than 60 attempts means the cap is broken — investigate before shipping another summary.",
+    expectedMin: 0,
+    expectedMax: 60,
+    unit: "machine summaries per UTC day",
+  },
+  verifiedAt: "2026-09-26",
+  license: {
+    label: "NVIDIA API terms; article text belongs to its publisher",
+    termsUrl: "https://build.nvidia.com/legal",
+    obligation: "unverified",
+    verifiedAt: "2026-09-26",
+    notes:
+      "NVIDIA's API terms were not read for this use. Linked articles are fetched server-side regardless of robots.txt (founder decision 2026-09-26, recorded in the private PRD); the summary is a short transformative description with the source linked one tap below.",
+  },
+  caveat:
+    "Machine-written: it can misstate what the article says in ways the grounding check does not catch (a wrong verb, a wrong emphasis). It is never presented as the source's words.",
+  powersFeature: ["feed"],
+};
+
 // ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
@@ -1808,6 +1843,7 @@ export const ALL_SOURCES: readonly DataSource[] = [
   NPM_REGISTRY_META,
   PYPI_PROJECT_META,
   HF_MODEL_CARD,
+  MACHINE_SUMMARY_NIM,
   DISCORD_WIDGET,
 ] as const;
 

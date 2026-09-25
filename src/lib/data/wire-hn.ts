@@ -87,6 +87,8 @@ export type HnWireItem = HnItem & {
   lat: number | null;
   lng: number | null;
   locationLabel: string | null;
+  /** Attached by the feed loader from the machine-summary store; never stored on the item. */
+  machineSummary?: { text: string; model: string; generatedAt: string };
 };
 
 /** Shape exposed by GET /api/hn. */
