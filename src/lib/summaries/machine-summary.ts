@@ -19,7 +19,8 @@ export const MACHINE_SUMMARY_PROMPT_VERSION = "ms-1";
 const NIM_ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions";
 const USER_AGENT = "gawk.dev-summary/1.0 (+https://gawk.dev/sources)";
 const FETCH_TIMEOUT_MS = 10_000;
-const MODEL_TIMEOUT_MS = 30_000;
+/** Large models reading a 12k-char article can take longer than a small one; 45 s still fits the run budget. */
+const MODEL_TIMEOUT_MS = 45_000;
 /** Article text sent to the model. Enough for a news story's substance, bounded for cost. */
 export const ARTICLE_MAX_CHARS = 12_000;
 /** Below this the page is a paywall stub, a video, or a link hub — nothing to summarise. */
@@ -38,7 +39,13 @@ export type MachineSummary = {
 
 export type SummariseOutcome =
   | { ok: true; summary: MachineSummary }
-  | { ok: false; reason: "fetch" | "too-short" | "model" | "ungrounded" };
+  | {
+      ok: false;
+      reason: "fetch" | "too-short" | "model" | "ungrounded";
+      /** Why, for the operator: an HTTP status and body excerpt, an error name, or the rejected
+       *  answer. Never shown to readers. */
+      detail?: string;
+    };
 
 const NAMED: Record<string, string> = {
   amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", hellip: "…", mdash: "—", ndash: "–",
@@ -143,13 +150,20 @@ export async function summariseArticle(opts: {
       }),
       signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
     });
-    if (!res.ok) return { ok: false, reason: "model" };
+    if (!res.ok) {
+      const excerpt = (await res.text().catch(() => "")).slice(0, 200);
+      return { ok: false, reason: "model", detail: `HTTP ${res.status} ${excerpt}` };
+    }
     const body = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    answer = (body.choices?.[0]?.message?.content ?? "").replace(/\s+/g, " ").trim();
-  } catch {
-    return { ok: false, reason: "model" };
+    answer = (body.choices?.[0]?.message?.content ?? "")
+      // Reasoning models may prefix their thinking; only the answer after it is the summary.
+      .replace(/<think>[\s\S]*?<\/think>/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  } catch (e) {
+    return { ok: false, reason: "model", detail: e instanceof Error ? `${e.name}: ${e.message}` : String(e) };
   }
-  if (!isGrounded(answer, `${opts.title}\n${text}`)) return { ok: false, reason: "ungrounded" };
+  if (!isGrounded(answer, `${opts.title}\n${text}`)) return { ok: false, reason: "ungrounded", detail: answer };
 
   return {
     ok: true,

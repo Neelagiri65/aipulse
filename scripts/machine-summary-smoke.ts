@@ -55,7 +55,7 @@ async function main() {
       ms.push(Date.now() - t0);
       const key = out.ok ? "grounded" : out.reason;
       tally[key] = (tally[key] ?? 0) + 1;
-      console.log(`[${key}] ${h.title}${out.ok ? `\n   → ${out.summary.text}` : ""}`);
+      console.log(`[${key}] ${h.title}${out.ok ? `\n   → ${out.summary.text}` : out.detail ? `\n   ✗ ${out.detail}` : ""}`);
     }
     ms.sort((a, b) => a - b);
     table.push(`${model.padEnd(40)} ${JSON.stringify(tally)}  median ${ms[Math.floor(ms.length / 2)]} ms`);

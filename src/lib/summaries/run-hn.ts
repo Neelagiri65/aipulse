@@ -11,8 +11,9 @@ import type { MachineSummaryStore } from "@/lib/summaries/store";
 
 /** Per ingest run (every 15 min), so one run cannot spend the day or outlast the function. */
 export const MACHINE_SUMMARIES_PER_RUN = 5;
-/** No new summary starts after this much of the run: the route's maxDuration is 120 s. */
-export const MACHINE_SUMMARY_TIME_BUDGET_MS = 60_000;
+/** No new summary starts after this much of the run: one summary can take 10 s (page) + 45 s
+ *  (model), and the route's maxDuration is 120 s including the ingest itself. */
+export const MACHINE_SUMMARY_TIME_BUDGET_MS = 40_000;
 
 export function machineSummaryKey(hnId: string): string {
   return `hn:${hnId}`;

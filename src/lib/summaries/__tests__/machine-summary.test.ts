@@ -69,17 +69,27 @@ describe("summariseArticle — fails closed at every step", () => {
 
   it("an ungrounded answer is dropped, not shown", async () => {
     const out = await summariseArticle({ ...base, fetchImpl: fetchWith(new Response(ARTICLE), nim("Mistral released Devstral 3 with 99% accuracy.")) });
-    expect(out).toEqual({ ok: false, reason: "ungrounded" });
+    expect(out).toMatchObject({ ok: false, reason: "ungrounded" });
   });
 
   it("a page too short to be an article, a failed fetch, a failed model call: no summary", async () => {
     expect(await summariseArticle({ ...base, fetchImpl: fetchWith(new Response("<p>" + "x".repeat(ARTICLE_MIN_CHARS / 4) + "</p>"), nim("x")) }))
-      .toEqual({ ok: false, reason: "too-short" });
+      .toMatchObject({ ok: false, reason: "too-short" });
     expect(await summariseArticle({ ...base, fetchImpl: fetchWith(new Response("", { status: 403 }), nim("x")) }))
-      .toEqual({ ok: false, reason: "fetch" });
+      .toMatchObject({ ok: false, reason: "fetch" });
     expect(await summariseArticle({ ...base, fetchImpl: fetchWith(new Error("timeout"), nim("x")) }))
-      .toEqual({ ok: false, reason: "fetch" });
+      .toMatchObject({ ok: false, reason: "fetch" });
     expect(await summariseArticle({ ...base, fetchImpl: fetchWith(new Response(ARTICLE), new Response("busy", { status: 429 })) }))
-      .toEqual({ ok: false, reason: "model" });
+      .toMatchObject({ ok: false, reason: "model" });
+  });
+
+  it("a reasoning model's <think> block is not part of the summary", async () => {
+    const out = await summariseArticle({ ...base, fetchImpl: fetchWith(new Response(ARTICLE), nim("<think>Let me read. 99 things.</think> Mistral released Devstral 3, a 24B coding model.")) });
+    expect(out.ok && out.summary.text).toBe("Mistral released Devstral 3, a 24B coding model.");
+  });
+
+  it("a model failure says why, for the operator (status and body excerpt)", async () => {
+    const out = await summariseArticle({ ...base, fetchImpl: fetchWith(new Response(ARTICLE), new Response('{"detail":"Function not found"}', { status: 404 })) });
+    expect(out).toMatchObject({ ok: false, reason: "model", detail: 'HTTP 404 {"detail":"Function not found"}' });
   });
 });
