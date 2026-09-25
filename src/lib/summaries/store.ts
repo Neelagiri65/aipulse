@@ -29,7 +29,10 @@ export type MachineSummaryStore = {
   available(): boolean;
   read(keys: string[]): Promise<Map<string, MachineSummary>>;
   write(key: string, summary: MachineSummary): Promise<void>;
-  /** Claims one unit of today's budget; false when the day's cap is spent. */
+  /** Summaries written today. The cap counts SUCCESSES: on a bad hour for the free endpoint,
+   *  timeouts must not spend the day's allowance (smoke run 2026-09-26: 7 of 8 timed out). */
+  spent(day: string): Promise<number>;
+  /** Records one written summary against today's cap. */
   claim(day: string): Promise<boolean>;
 };
 
@@ -54,6 +57,12 @@ export const redisMachineSummaryStore: MachineSummaryStore = {
     const r = redis();
     if (!r) return;
     await r.set(KEY_PREFIX + key, JSON.stringify(summary), { ex: SUMMARY_TTL_SECONDS });
+  },
+  async spent(day) {
+    const r = redis();
+    if (!r) return MACHINE_SUMMARIES_PER_DAY;
+    const n = Number(await r.get(COUNT_PREFIX + day));
+    return Number.isFinite(n) ? n : 0;
   },
   async claim(day) {
     const r = redis();

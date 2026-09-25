@@ -7,7 +7,7 @@
 import type { HnWireItem } from "@/lib/data/wire-hn";
 import { isNewsCandidate } from "@/lib/feed/derivers/news";
 import { summariseArticle } from "@/lib/summaries/machine-summary";
-import type { MachineSummaryStore } from "@/lib/summaries/store";
+import { MACHINE_SUMMARIES_PER_DAY, type MachineSummaryStore } from "@/lib/summaries/store";
 
 /** Per ingest run (every 15 min), so one run cannot spend the day or outlast the function. */
 export const MACHINE_SUMMARIES_PER_RUN = 5;
@@ -64,7 +64,7 @@ export async function runHnMachineSummaries(opts: {
       break;
     }
     try {
-      if (!(await opts.store.claim(day))) {
+      if ((await opts.store.spent(day)) >= MACHINE_SUMMARIES_PER_DAY) {
         run.capped = true;
         break;
       }
@@ -74,6 +74,7 @@ export async function runHnMachineSummaries(opts: {
       });
       if (outcome.ok) {
         await opts.store.write(machineSummaryKey(item.id), outcome.summary);
+        await opts.store.claim(day);
         run.written += 1;
       } else {
         run.skipped[outcome.reason] = (run.skipped[outcome.reason] ?? 0) + 1;

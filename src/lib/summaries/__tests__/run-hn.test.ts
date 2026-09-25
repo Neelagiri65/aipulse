@@ -16,14 +16,15 @@ function item(id: string, over: Partial<HnWireItem> = {}): HnWireItem {
   };
 }
 
-function memoryStore(budget = 60, existing: Record<string, MachineSummary> = {}) {
+function memoryStore(alreadySpent = 0, existing: Record<string, MachineSummary> = {}) {
   const saved = new Map<string, MachineSummary>(Object.entries(existing));
-  let used = 0;
+  let used = alreadySpent;
   const store: MachineSummaryStore = {
     available: () => true,
     read: async (keys) => new Map(keys.filter((k) => saved.has(k)).map((k) => [k, saved.get(k)!])),
     write: async (k, s) => { saved.set(k, s); },
-    claim: async () => ++used <= budget,
+    spent: async () => used,
+    claim: async () => ++used <= 60,
   };
   return { store, saved, used: () => used };
 }
@@ -55,7 +56,7 @@ describe("runHnMachineSummaries", () => {
 
   it("summarises only NEWS link posts without text of their own, and not twice", async () => {
     const done: MachineSummary = { text: "old", model: "m", promptVersion: "ms-1", inputUrl: "u", inputHash: "h", generatedAt: "t" };
-    const { store, saved } = memoryStore(60, { [machineSummaryKey("4")]: done });
+    const { store, saved } = memoryStore(0, { [machineSummaryKey("4")]: done });
     const run = await runHnMachineSummaries({
       items: [item("1"), item("2", { storyText: "Ask HN: …" }), item("3", { url: null }), item("4"), item("5", { points: 50 })],
       store, env: ON, nowMs: NOW, fetchImpl: fetchOk, clock: () => NOW,
@@ -67,7 +68,7 @@ describe("runHnMachineSummaries", () => {
 
   it("stops at the day's cap, at the per-run cap, and at the time budget", async () => {
     const items = ["a", "b", "c", "d", "e", "f"].map((id) => item(id));
-    const capped = memoryStore(2);
+    const capped = memoryStore(58);
     const r1 = await runHnMachineSummaries({ items, store: capped.store, env: ON, nowMs: NOW, fetchImpl: fetchOk, clock: () => NOW });
     expect(r1.written).toBe(2);
     expect(r1.capped).toBe(true);
@@ -81,5 +82,16 @@ describe("runHnMachineSummaries", () => {
     const r3 = await runHnMachineSummaries({ items, store: slow.store, env: ON, nowMs: NOW, fetchImpl: fetchOk, clock: () => (t += 40_000) });
     expect(r3.written).toBe(1);
     expect(r3.skipped.time).toBe(1);
+  });
+
+  it("the day's cap counts written summaries, not failed attempts", async () => {
+    const failing = vi.fn(async (url: string) =>
+      url.includes("nvidia") ? new Response("busy", { status: 503 }) : new Response(PAGE),
+    ) as unknown as typeof fetch;
+    const mem = memoryStore(0);
+    const run = await runHnMachineSummaries({ items: ["a", "b", "c"].map((id) => item(id)), store: mem.store, env: ON, nowMs: NOW, fetchImpl: failing, clock: () => NOW });
+    expect(run.written).toBe(0);
+    expect(run.skipped.model).toBe(3);
+    expect(mem.used()).toBe(0);
   });
 });
