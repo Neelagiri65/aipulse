@@ -26,6 +26,18 @@ export const ARTICLE_MAX_CHARS = 12_000;
 /** Below this the page is a paywall stub, a video, or a link hub — nothing to summarise. */
 export const ARTICLE_MIN_CHARS = 400;
 export const SUMMARY_MAX_WORDS = 60;
+export const SUMMARY_MIN_WORDS = 8;
+
+/**
+ * Per-model request options that switch reasoning off, so the answer is the summary and not the
+ * model's thinking (measured: gpt-oss spent its tokens reasoning and answered nothing; the
+ * Nemotrons wrote "Here's a thinking process: …" into the answer).
+ */
+export function modelOptions(model: string): Record<string, unknown> {
+  if (model.startsWith("openai/gpt-oss")) return { reasoning_effort: "low", max_tokens: 1024 };
+  if (model.startsWith("nvidia/nemotron")) return { chat_template_kwargs: { enable_thinking: false }, max_tokens: 200 };
+  return { max_tokens: 160 };
+}
 
 export type MachineSummary = {
   text: string;
@@ -82,6 +94,9 @@ export function articleText(html: string): string {
 export function isGrounded(summary: string, source: string): boolean {
   const text = summary.trim();
   if (!text) return false;
+  // A summary is at least one real sentence: a fragment ("Here") contains no invented fact and
+  // would pass every other check (smoke run, 2026-09-26).
+  if (text.split(/\s+/).length < SUMMARY_MIN_WORDS || !/[.!?]$/.test(text)) return false;
   if (/["“”«»]/.test(text)) return false;
   if (text.split(/\s+/).length > SUMMARY_MAX_WORDS) return false;
   if ((text.match(/[.!?](\s|$)/g) ?? []).length > 2) return false;
@@ -142,7 +157,7 @@ export async function summariseArticle(opts: {
       body: JSON.stringify({
         model: opts.model ?? MACHINE_SUMMARY_MODEL,
         temperature: 0.2,
-        max_tokens: 160,
+        ...modelOptions(opts.model ?? MACHINE_SUMMARY_MODEL),
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: `Headline: ${opts.title}\n\nArticle text:\n${text}` },
