@@ -25,6 +25,8 @@
 import {
   writeLatest,
   type PackageCounter,
+  descriptionAt,
+  type FetchedPackage,
   type PackageLatest,
 } from "@/lib/data/pkg-store";
 
@@ -42,6 +44,8 @@ export type CratesIngestResult = {
   written: number;
   failures: Array<{ pkg: string; message: string }>;
   counters: Record<string, PackageCounter>;
+  /** The registry's own description per package, from the same responses. */
+  descriptions: Record<string, string>;
   fetchedAt: string;
 };
 
@@ -62,11 +66,14 @@ export async function runCratesIngest(
   const packages = opts.packages ?? CRATES_TRACKED_PACKAGES;
 
   const counters: Record<string, PackageCounter> = {};
+  const descriptions: Record<string, string> = {};
   const failures: Array<{ pkg: string; message: string }> = [];
 
   for (const pkg of packages) {
     try {
-      counters[pkg] = await fetchCratesCounter(pkg, fetchImpl);
+      const fetched = await fetchCratesPackage(pkg, fetchImpl);
+      counters[pkg] = fetched.counter;
+      if (fetched.description) descriptions[pkg] = fetched.description;
     } catch (e) {
       failures.push({
         pkg,
@@ -85,18 +92,19 @@ export async function runCratesIngest(
       fetchedAt,
       counters,
       failures,
+      ...(Object.keys(descriptions).length ? { descriptions } : {}),
     };
     await writeLatest(blob);
   }
 
-  return { ok, written, failures, counters, fetchedAt };
+  return { ok, written, failures, counters, descriptions, fetchedAt };
 }
 
 /** Hit crates.io for one crate. Throws on non-2xx or malformed body. */
-export async function fetchCratesCounter(
+export async function fetchCratesPackage(
   pkg: string,
   fetchImpl: typeof fetch,
-): Promise<PackageCounter> {
+): Promise<FetchedPackage> {
   const url = `${CRATES_BASE}/${encodeURIComponent(pkg)}`;
   const res = await fetchImpl(url, {
     headers: {
@@ -108,7 +116,7 @@ export async function fetchCratesCounter(
     throw new Error(`crates ${pkg} HTTP ${res.status}`);
   }
   const body = (await res.json()) as unknown;
-  return parseCratesCounter(body);
+  return { counter: parseCratesCounter(body), ...descriptionAt(body, ["crate", "description"]) };
 }
 
 /** Parse a crates.io /crates/{name} body. Pure — no I/O. */
@@ -133,4 +141,9 @@ function toCount(value: unknown, field: string): number {
     throw new Error(`crates: ${field} is not a non-negative finite number`);
   }
   return Math.round(n);
+}
+
+/** The counter alone — the shape every caller had before descriptions were kept. */
+export async function fetchCratesCounter(pkg: string, fetchImpl: typeof fetch): Promise<PackageCounter> {
+  return (await fetchCratesPackage(pkg, fetchImpl)).counter;
 }

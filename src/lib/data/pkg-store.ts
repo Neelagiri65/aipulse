@@ -69,7 +69,26 @@ export type PackageLatest = {
    * today.
    */
   carried?: Record<string, string>;
+  /**
+   * The registry's own one-line description per package, verbatim (trimmed, capped at
+   * PACKAGE_DESCRIPTION_MAX_CHARS), from the same response the counter came from. Absent when
+   * the registry sent none. Quoted on an SDK_TREND card as the source's words.
+   */
+  descriptions?: Record<string, string>;
 };
+
+export const PACKAGE_DESCRIPTION_MAX_CHARS = 500;
+
+/** A counter and, when the same response carries one, the package's own description. */
+export type FetchedPackage = { counter: PackageCounter; description?: string };
+
+/** The string at `path` in a registry body, trimmed and capped; nothing when absent or blank. */
+export function descriptionAt(body: unknown, path: string[]): { description?: string } {
+  let v: unknown = body;
+  for (const k of path) v = v && typeof v === "object" ? (v as Record<string, unknown>)[k] : undefined;
+  const text = typeof v === "string" ? v.trim() : "";
+  return text ? { description: text.slice(0, PACKAGE_DESCRIPTION_MAX_CHARS) } : {};
+}
 
 let cached: Redis | null | undefined;
 

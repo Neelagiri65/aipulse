@@ -5,6 +5,7 @@ import {
   parseCratesCounter,
   runCratesIngest,
 } from "@/lib/data/pkg-crates";
+import { descriptionAt, PACKAGE_DESCRIPTION_MAX_CHARS } from "@/lib/data/pkg-store";
 
 describe("parseCratesCounter", () => {
   it("reads {downloads, recent_downloads} → {allTime, last90d}", () => {
@@ -185,3 +186,33 @@ describe("runCratesIngest", () => {
     expect(result.fetchedAt).toBe("2026-04-21T12:35:00.000Z");
   });
 });
+
+describe("descriptions — the registry's own words, from the response the counter came from", () => {
+  beforeEach(() => {
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  });
+
+  it("keeps crate.description (trimmed) and skips a crate that has none", async () => {
+    const bodies: Record<string, unknown> = {
+      "candle-core": { crate: { downloads: 1, recent_downloads: 1, description: "  Minimalist ML framework.  " } },
+      burn: { crate: { downloads: 1, recent_downloads: 1, description: "   " } },
+    };
+    const fetchImpl = vi.fn().mockImplementation(async (url: string) =>
+      new Response(JSON.stringify(bodies[url.split("/").pop()!]), { status: 200 }),
+    ) as unknown as typeof fetch;
+    const result = await runCratesIngest({ fetchImpl, packages: ["candle-core", "burn"] });
+    expect(result.descriptions).toEqual({ "candle-core": "Minimalist ML framework." });
+    // The counter path is unchanged.
+    expect(await fetchCratesCounter("candle-core", fetchImpl)).toEqual({ last90d: 1, allTime: 1 });
+  });
+
+  it("descriptionAt reads a path, caps the length and ignores non-strings", () => {
+    expect(descriptionAt({ desc: "Get up and running with LLMs." }, ["desc"])).toEqual({ description: "Get up and running with LLMs." });
+    expect(descriptionAt({ desc: 42 }, ["desc"])).toEqual({});
+    expect(descriptionAt(null, ["crate", "description"])).toEqual({});
+    expect(descriptionAt({ description: "x".repeat(PACKAGE_DESCRIPTION_MAX_CHARS + 9) }, ["description"]).description)
+      .toHaveLength(PACKAGE_DESCRIPTION_MAX_CHARS);
+  });
+});
+
