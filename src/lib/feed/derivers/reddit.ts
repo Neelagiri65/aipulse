@@ -21,6 +21,8 @@
 
 import { cardId } from "@/lib/feed/card-id";
 import { FEED_SEVERITIES, FEED_TRIGGERS } from "@/lib/feed/thresholds";
+import { optionalSummary } from "@/lib/feed/derivers/publisher";
+import { toSummary } from "@/lib/feed/summary";
 import type { Card } from "@/lib/feed/types";
 import type { RedditItem } from "@/lib/data/reddit-feed";
 
@@ -55,6 +57,8 @@ export function deriveRedditCards(
         redditId: item.id,
         subreddit: item.sourceId,
       },
+      // The poster's own words (self-posts); a link post carries only Reddit's footer, so none.
+      ...optionalSummary(toSummary(item.body ?? "", item.title)),
     });
   }
   return cards;
