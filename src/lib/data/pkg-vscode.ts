@@ -30,6 +30,7 @@
  */
 
 import {
+  descriptionAt,
   writeLatest,
   type PackageCounter,
   type PackageLatest,
@@ -59,6 +60,8 @@ export type VSCodeIngestResult = {
   failures: Array<{ pkg: string; message: string }>;
   /** Keyed by extension id — counters that were ingested. */
   counters: Record<string, PackageCounter>;
+  /** The extension's own shortDescription per extension, from the same query. */
+  descriptions: Record<string, string>;
   /** ISO of the fetch run. */
   fetchedAt: string;
 };
@@ -94,6 +97,7 @@ export async function runVSCodeIngest(
   const fetchedAt = now().toISOString();
 
   const counters: Record<string, PackageCounter> = {};
+  const descriptions: Record<string, string> = {};
   const failures: Array<{ pkg: string; message: string }> = [];
 
   let extensionsByKey: Map<string, ParsedExtension>;
@@ -110,6 +114,7 @@ export async function runVSCodeIngest(
       written: 0,
       failures: extensions.map((pkg) => ({ pkg, message })),
       counters: {},
+      descriptions: {},
       fetchedAt,
     };
   }
@@ -132,6 +137,7 @@ export async function runVSCodeIngest(
       continue;
     }
     counters[ext] = { allTime: installs };
+    if (found.description) descriptions[ext] = found.description;
   }
 
   const written = Object.keys(counters).length;
@@ -143,17 +149,20 @@ export async function runVSCodeIngest(
       fetchedAt,
       counters,
       failures,
+      ...(Object.keys(descriptions).length ? { descriptions } : {}),
     };
     await writeLatest(blob);
   }
 
-  return { ok, written, failures, counters, fetchedAt };
+  return { ok, written, failures, counters, descriptions, fetchedAt };
 }
 
 type ParsedExtension = {
   /** "{publisher}.{extensionName}", lowercased — the lookup key. */
   key: string;
   installs: number | null;
+  /** The extension's own one-line `shortDescription`, trimmed and capped; absent when none. */
+  description?: string;
 };
 
 export async function fetchExtensionStats(
@@ -229,8 +238,10 @@ function parseExtensionRow(value: unknown): ParsedExtension | null {
     typeof e.extensionName === "string" ? e.extensionName : null;
   if (!publisherName || !extensionName) return null;
   const key = `${publisherName}.${extensionName}`.toLowerCase();
+  // The same row carries the publisher's own one-liner; kept for the SDK_TREND summary.
+  const described = descriptionAt(e, ["shortDescription"]);
   const stats = e.statistics;
-  if (!Array.isArray(stats)) return { key, installs: null };
+  if (!Array.isArray(stats)) return { key, installs: null, ...described };
   let installs: number | null = null;
   for (const s of stats) {
     if (!s || typeof s !== "object") continue;
@@ -241,5 +252,5 @@ function parseExtensionRow(value: unknown): ParsedExtension | null {
       break;
     }
   }
-  return { key, installs };
+  return { key, installs, ...described };
 }

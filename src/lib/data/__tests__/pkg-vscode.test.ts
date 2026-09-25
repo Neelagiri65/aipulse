@@ -144,3 +144,24 @@ describe("runVSCodeIngest", () => {
     expect(VSCODE_TRACKED_EXTENSIONS).toHaveLength(6);
   });
 });
+
+describe("VS Code descriptions — the extension's own shortDescription, from the same query", () => {
+  it("parses it per row and the ingest keeps it; a row without one has no entry", async () => {
+    const body = {
+      results: [{ extensions: [
+        { publisher: { publisherName: "Codeium" }, extensionName: "codeium",
+          shortDescription: "The modern coding superpower: free AI code acceleration plugin for your favorite languages.",
+          statistics: [{ statisticName: "install", value: 10 }] },
+        { publisher: { publisherName: "GitHub" }, extensionName: "copilot", shortDescription: "  ",
+          statistics: [{ statisticName: "install", value: 20 }] },
+      ] }],
+    };
+    expect(parseExtensionQueryResponse(body).get("codeium.codeium")?.description)
+      .toBe("The modern coding superpower: free AI code acceleration plugin for your favorite languages.");
+    const result = await runVSCodeIngest({ fetchImpl: makeFetch(200, body), now: () => NOW, extensions: ["Codeium.codeium", "GitHub.copilot"] });
+    expect(result.descriptions).toEqual({
+      "Codeium.codeium": "The modern coding superpower: free AI code acceleration plugin for your favorite languages.",
+    });
+  });
+});
+
