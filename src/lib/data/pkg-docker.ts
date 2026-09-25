@@ -24,6 +24,8 @@
 import {
   writeLatest,
   type PackageCounter,
+  descriptionAt,
+  type FetchedPackage,
   type PackageLatest,
 } from "@/lib/data/pkg-store";
 
@@ -42,6 +44,8 @@ export type DockerIngestResult = {
   written: number;
   failures: Array<{ pkg: string; message: string }>;
   counters: Record<string, PackageCounter>;
+  /** The registry's own description per package, from the same responses. */
+  descriptions: Record<string, string>;
   fetchedAt: string;
 };
 
@@ -62,11 +66,14 @@ export async function runDockerIngest(
   const images = opts.images ?? DOCKER_TRACKED_IMAGES;
 
   const counters: Record<string, PackageCounter> = {};
+  const descriptions: Record<string, string> = {};
   const failures: Array<{ pkg: string; message: string }> = [];
 
   for (const image of images) {
     try {
-      counters[image] = await fetchDockerCounter(image, fetchImpl);
+      const fetched = await fetchDockerPackage(image, fetchImpl);
+      counters[image] = fetched.counter;
+      if (fetched.description) descriptions[image] = fetched.description;
     } catch (e) {
       failures.push({
         pkg: image,
@@ -85,18 +92,19 @@ export async function runDockerIngest(
       fetchedAt,
       counters,
       failures,
+      ...(Object.keys(descriptions).length ? { descriptions } : {}),
     };
     await writeLatest(blob);
   }
 
-  return { ok, written, failures, counters, fetchedAt };
+  return { ok, written, failures, counters, descriptions, fetchedAt };
 }
 
 /** Hit hub.docker.com for one image. Throws on non-2xx or malformed body. */
-export async function fetchDockerCounter(
+export async function fetchDockerPackage(
   image: string,
   fetchImpl: typeof fetch,
-): Promise<PackageCounter> {
+): Promise<FetchedPackage> {
   const slash = image.indexOf("/");
   if (slash <= 0 || slash === image.length - 1) {
     throw new Error(`docker: image id must be namespace/name, got "${image}"`);
@@ -114,7 +122,7 @@ export async function fetchDockerCounter(
     throw new Error(`docker ${image} HTTP ${res.status}`);
   }
   const body = (await res.json()) as unknown;
-  return parseDockerCounter(body);
+  return { counter: parseDockerCounter(body), ...descriptionAt(body, ["description"]) };
 }
 
 /** Parse a hub.docker.com /v2/repositories body. Pure — no I/O. */
@@ -134,4 +142,9 @@ function toCount(value: unknown, field: string): number {
     throw new Error(`docker: ${field} is not a non-negative finite number`);
   }
   return Math.round(n);
+}
+
+/** The counter alone — the shape every caller had before descriptions were kept. */
+export async function fetchDockerCounter(image: string, fetchImpl: typeof fetch): Promise<PackageCounter> {
+  return (await fetchDockerPackage(image, fetchImpl)).counter;
 }

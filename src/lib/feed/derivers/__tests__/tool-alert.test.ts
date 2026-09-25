@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { deriveToolAlertCards } from "@/lib/feed/derivers/tool-alert";
-import type { StatusResult } from "@/lib/data/fetch-status";
+import { toToolIncident, type StatusResult } from "@/lib/data/fetch-status";
 
 const baseSnapshot: StatusResult = {
   data: {},
@@ -192,5 +192,34 @@ describe("deriveToolAlertCards", () => {
       },
     };
     expect(deriveToolAlertCards(snapshot).length).toBeLessThanOrEqual(7);
+  });
+  it("quotes the status page's newest update as the summary; no text, no summary", () => {
+    const incident = toToolIncident({
+      id: "inc-2", name: "Elevated errors", status: "investigating", created_at: "2026-09-25T17:00:00Z",
+      incident_updates: [
+        { body: "We are investigating elevated error rates on the API.", created_at: "2026-09-25T17:02:00Z" },
+        { body: "  A fix has been implemented and we are monitoring the results.  ", created_at: "2026-09-25T17:40:00Z" },
+        { body: "   ", created_at: "2026-09-25T18:00:00Z" },
+      ],
+    });
+    expect(incident.latestUpdate).toBe("A fix has been implemented and we are monitoring the results.");
+    expect("latestUpdate" in toToolIncident({ id: "x", name: "n", status: "investigating", created_at: "t" })).toBe(false);
+
+    const snapshot: StatusResult = {
+      ...baseSnapshot,
+      data: {
+        "claude-code": {
+          status: "degraded", statusSourceId: "anthropic-status", lastCheckedAt: "2026-09-25T18:01:00.000Z",
+          activeIncidents: [incident],
+        },
+      },
+    };
+    const [card] = deriveToolAlertCards(snapshot);
+    expect(card.summary).toBe("A fix has been implemented and we are monitoring the results.");
+    const quiet: StatusResult = {
+      ...baseSnapshot,
+      data: { "claude-code": { status: "degraded", statusSourceId: "anthropic-status", lastCheckedAt: "2026-09-25T18:01:00.000Z" } },
+    };
+    expect("summary" in deriveToolAlertCards(quiet)[0]).toBe(false);
   });
 });

@@ -47,7 +47,12 @@ export type HnStoryRaw = {
   num_comments: number;
   created_at_i: number;
   created_at: string;
+  /** Ask/Show HN self-post text (HN markup), capped; absent for link posts. */
+  story_text?: string;
 };
+
+/** HN self-post text kept per item; the card cuts it further at a sentence boundary. */
+export const HN_STORY_TEXT_MAX_CHARS = 1000;
 
 /** Stored shape for an HN item. Written on every poll; first_seen_ts is
  *  preserved across overwrites so we keep the original sighting time. */
@@ -62,6 +67,8 @@ export type HnItem = {
   createdAt: string;
   firstSeenTs: string;
   lastRefreshTs: string;
+  /** The poster's own text on an Ask/Show HN post, verbatim HN markup; absent for link posts. */
+  storyText?: string;
 };
 
 /** Cached author location. TTL 7d in Redis. */
@@ -281,6 +288,9 @@ export async function fetchAlgolia(limit = 100): Promise<HnStoryRaw[]> {
         typeof o.num_comments === "number" ? o.num_comments : 0,
       created_at_i: o.created_at_i,
       created_at: o.created_at,
+      ...(typeof o.story_text === "string" && o.story_text.trim()
+        ? { story_text: o.story_text.trim().slice(0, HN_STORY_TEXT_MAX_CHARS) }
+        : {}),
     });
   }
   return out;
@@ -457,6 +467,7 @@ export async function runIngest(opts: {
       createdAt: s.created_at,
       firstSeenTs: nowIso,
       lastRefreshTs: nowIso,
+      ...(s.story_text ? { storyText: s.story_text } : {}),
     };
     if (storeOn) {
       await writeItem(item);

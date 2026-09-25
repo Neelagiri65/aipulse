@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   assembleModelUsage,
+  DESCRIPTION_MAX_CHARS,
   computeTopKTurnover,
   parsePricing,
   type RawFrontendModel,
@@ -124,6 +125,24 @@ describe("assembleModelUsage", () => {
     expect(dto.rows[0].slug).toBe("anthropic/claude-sonnet-4.6");
     expect(dto.rows[0].rank).toBe(1);
     expect(dto.rows[1].rank).toBe(2);
+  });
+
+  it("keeps the source's own description verbatim (trimmed, capped) and omits the key when there is none", () => {
+    const long = "A".repeat(DESCRIPTION_MAX_CHARS + 50);
+    const models = padToSanity([
+      mkRaw("stealth/space-bunny-alpha", { description: "  Space Bunny Alpha is an anonymous large model.  " }),
+      mkRaw("anthropic/claude-sonnet-4.6", { description: long }),
+      mkRaw("deepseek/deepseek-v3.2"),
+    ]);
+    const dto = assembleModelUsage({
+      primary: { data: { models } },
+      frontendErrored: false,
+      primaryOrdering: "top-weekly",
+      now: fixedClock,
+    });
+    expect(dto.rows[0].description).toBe("Space Bunny Alpha is an anonymous large model.");
+    expect(dto.rows[1].description).toHaveLength(DESCRIPTION_MAX_CHARS);
+    expect("description" in dto.rows[2]).toBe(false);
   });
 
   it("preserves null pricing when source pricing missing", () => {

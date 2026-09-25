@@ -248,7 +248,16 @@ function normaliseRow(
     modalitiesIn: Array.isArray(m.input_modalities) ? m.input_modalities : [],
     modalitiesOut: Array.isArray(m.output_modalities) ? m.output_modalities : [],
     hubUrl: `https://openrouter.ai/${slug}`,
+    ...descriptionOf(m),
   };
+}
+
+/** Stored per row in Redis, so capped; the card cuts it further at a sentence boundary. */
+export const DESCRIPTION_MAX_CHARS = 1000;
+
+function descriptionOf(m: RawFrontendModel): { description?: string } {
+  const text = typeof m.description === "string" ? m.description.trim() : "";
+  return text ? { description: text.slice(0, DESCRIPTION_MAX_CHARS) } : {};
 }
 
 function buildPreviousRankIndex(

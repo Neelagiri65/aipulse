@@ -25,6 +25,8 @@
 import {
   writeLatest,
   type PackageCounter,
+  descriptionAt,
+  type FetchedPackage,
   type PackageLatest,
 } from "@/lib/data/pkg-store";
 
@@ -37,6 +39,8 @@ export type BrewIngestResult = {
   written: number;
   failures: Array<{ pkg: string; message: string }>;
   counters: Record<string, PackageCounter>;
+  /** The registry's own description per package, from the same responses. */
+  descriptions: Record<string, string>;
   fetchedAt: string;
 };
 
@@ -57,11 +61,14 @@ export async function runBrewIngest(
   const formulae = opts.formulae ?? BREW_TRACKED_FORMULAE;
 
   const counters: Record<string, PackageCounter> = {};
+  const descriptions: Record<string, string> = {};
   const failures: Array<{ pkg: string; message: string }> = [];
 
   for (const formula of formulae) {
     try {
-      counters[formula] = await fetchBrewCounter(formula, fetchImpl);
+      const fetched = await fetchBrewPackage(formula, fetchImpl);
+      counters[formula] = fetched.counter;
+      if (fetched.description) descriptions[formula] = fetched.description;
     } catch (e) {
       failures.push({
         pkg: formula,
@@ -80,18 +87,19 @@ export async function runBrewIngest(
       fetchedAt,
       counters,
       failures,
+      ...(Object.keys(descriptions).length ? { descriptions } : {}),
     };
     await writeLatest(blob);
   }
 
-  return { ok, written, failures, counters, fetchedAt };
+  return { ok, written, failures, counters, descriptions, fetchedAt };
 }
 
 /** Hit formulae.brew.sh for one formula. Throws on non-2xx or malformed body. */
-export async function fetchBrewCounter(
+export async function fetchBrewPackage(
   formula: string,
   fetchImpl: typeof fetch,
-): Promise<PackageCounter> {
+): Promise<FetchedPackage> {
   const url = `${BREW_BASE}/${encodeURIComponent(formula)}.json`;
   const res = await fetchImpl(url, {
     headers: {
@@ -103,7 +111,7 @@ export async function fetchBrewCounter(
     throw new Error(`brew ${formula} HTTP ${res.status}`);
   }
   const body = (await res.json()) as unknown;
-  return parseBrewCounter(body);
+  return { counter: parseBrewCounter(body), ...descriptionAt(body, ["desc"]) };
 }
 
 /** Parse a formulae.brew.sh formula body. Pure — no I/O. */
@@ -144,4 +152,9 @@ function sumBucket(bucket: unknown, window: string): number {
     total += n;
   }
   return Math.round(total);
+}
+
+/** The counter alone — the shape every caller had before descriptions were kept. */
+export async function fetchBrewCounter(formula: string, fetchImpl: typeof fetch): Promise<PackageCounter> {
+  return (await fetchBrewPackage(formula, fetchImpl)).counter;
 }

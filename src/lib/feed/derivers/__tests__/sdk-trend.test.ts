@@ -22,6 +22,7 @@ function pkg(
     caveat: partial.caveat ?? null,
     counterName: partial.counterName ?? "lastDay",
     counterUnits: partial.counterUnits ?? "downloads/day",
+    ...(partial.description ? { description: partial.description } : {}),
   };
 }
 
@@ -120,5 +121,17 @@ describe("deriveSdkTrendCards", () => {
 
   it("returns [] on empty packages", () => {
     expect(deriveSdkTrendCards(baseDto)).toEqual([]);
+  });
+  it("quotes the registry's own description of the package; none when the registry sent none", () => {
+    const days = [{ date: "2026-04-27", count: 130, delta: 0.3 }];
+    const [withText, without] = deriveSdkTrendCards({
+      ...baseDto,
+      packages: [
+        pkg({ id: "brew:ollama", label: "ollama", registry: "brew", days, description: "Create, run, and share large language models (LLMs)" }),
+        pkg({ id: "crates:burn", label: "burn", registry: "crates", days }),
+      ],
+    });
+    expect(withText.summary).toBe("Create, run, and share large language models (LLMs)");
+    expect("summary" in without).toBe(false);
   });
 });

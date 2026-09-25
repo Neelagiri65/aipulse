@@ -14,6 +14,8 @@ import type { ModelUsageDto } from "@/lib/data/openrouter-types";
 import { cardId } from "@/lib/feed/card-id";
 import { FEED_SEVERITIES, FEED_TRIGGERS } from "@/lib/feed/thresholds";
 import type { Card } from "@/lib/feed/types";
+import { optionalSummary } from "@/lib/feed/derivers/publisher";
+import { toSummary } from "@/lib/feed/summary";
 
 const MODEL_MOVER_SOURCE_NAME = "OpenRouter";
 
@@ -28,11 +30,12 @@ export function deriveModelMoverCards(dto: ModelUsageDto): Card[] {
 
     const direction = delta < 0 ? "up" : "down";
     const magnitude = Math.abs(delta);
+    const headline = `${row.name} ${direction} ${magnitude} ranks on OpenRouter weekly`;
     cards.push({
       id: cardId("MODEL_MOVER", `openrouter:${row.slug}`, timestampMs),
       type: "MODEL_MOVER",
       severity: FEED_SEVERITIES.MODEL_MOVER,
-      headline: `${row.name} ${direction} ${magnitude} ranks on OpenRouter weekly`,
+      headline,
       detail: `Now #${row.rank}, was #${row.previousRank}.`,
       sourceName: MODEL_MOVER_SOURCE_NAME,
       sourceUrl: row.hubUrl,
@@ -44,6 +47,8 @@ export function deriveModelMoverCards(dto: ModelUsageDto): Card[] {
         previousRank: row.previousRank,
         delta,
       },
+      // OpenRouter's own description of the model, quoted (what the model IS, not why it moved).
+      ...optionalSummary(toSummary(row.description ?? "", headline)),
     });
   }
   return cards;

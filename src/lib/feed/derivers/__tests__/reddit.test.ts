@@ -112,4 +112,16 @@ describe("deriveRedditCards", () => {
     expect(cards[0].sourceUrl).toContain("reddit.com");
     expect(cards[0].sourceUrl).toContain("/comments/");
   });
+  it("a self-post's own words become the summary, footer and markup gone; no body, no summary", () => {
+    const [self, link] = deriveRedditCards(
+      [
+        item({ id: "s", title: "Small model, big memory",
+               body: '<div class="md"><p>I&#39;ve been testing a 0.8B model with n-gram memory.</p></div>' }),
+        item({ id: "l", title: "A link" }),
+      ],
+      NOW,
+    );
+    expect(self.summary).toBe("I've been testing a 0.8B model with n-gram memory.");
+    expect("summary" in link).toBe(false);
+  });
 });

@@ -19,6 +19,8 @@ import type { ToolId } from "@/components/health/tools";
 import { cardId } from "@/lib/feed/card-id";
 import { FEED_SEVERITIES } from "@/lib/feed/thresholds";
 import { STATUS_WORD } from "@/lib/feed/why-surfaced";
+import { optionalSummary } from "@/lib/feed/derivers/publisher";
+import { toSummary } from "@/lib/feed/summary";
 import type { Card } from "@/lib/feed/types";
 
 const TOOL_DISPLAY_NAMES: Record<ToolId, string> = {
@@ -84,6 +86,8 @@ export function deriveToolAlertCards(snapshot: StatusResult): Card[] {
         // Present only when the page names one (meta values cannot be null).
         ...(incidents[0]?.name ? { incidentName: incidents[0].name } : {}),
       },
+      // The status page's newest update on the open incident, in its own words.
+      ...optionalSummary(toSummary(incidents[0]?.latestUpdate ?? "", headline)),
     });
   }
   return cards;

@@ -45,7 +45,24 @@ export type RedditItem = {
   publishedTs: number;
   firstSeenTs: string;
   lastRefreshTs: string;
+  /**
+   * The post's own text as the feed carries it (HTML, entity-encoded), with Reddit's
+   * "submitted by /u/… [link] [comments]" footer cut off and capped at REDDIT_BODY_MAX_CHARS.
+   * Absent for link posts, whose feed entry is only that footer.
+   */
+  body?: string;
 };
+
+/** Stored per item in Redis; the card cuts it further at a sentence boundary. */
+export const REDDIT_BODY_MAX_CHARS = 3000;
+
+/** Everything before Reddit's own footer; empty when the entry is only the footer (a link post). */
+export function redditBody(description: string | undefined): string | undefined {
+  if (!description) return undefined;
+  const cut = description.lastIndexOf("submitted by");
+  const text = (cut >= 0 ? description.slice(0, cut) : description).replace(/(&#32;|\s)+$/, "").trim();
+  return text && text.replace(/<[^>]*>|&#32;|\s/g, "") ? text.slice(0, REDDIT_BODY_MAX_CHARS) : undefined;
+}
 
 export type RedditIngestResult = {
   ok: boolean;
@@ -201,7 +218,12 @@ export function normaliseRedditItem(
     publishedTs: Math.floor(publishedMs / 1000),
     firstSeenTs: nowIso,
     lastRefreshTs: nowIso,
+    ...optionalBody(redditBody(raw.description)),
   };
+}
+
+function optionalBody(body: string | undefined): { body?: string } {
+  return body ? { body } : {};
 }
 
 // ---------------------------------------------------------------------------

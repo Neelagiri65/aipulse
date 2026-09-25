@@ -71,6 +71,19 @@ describe("assembleSdkAdoption", () => {
     expect(ids).toEqual(["npm:openai", "pypi:transformers"]);
   });
 
+  it("carries the registry's own description onto the package; none when the blob has none", () => {
+    const brew = { ...makeLatest("brew", { ollama: { lastMonth: 1 }, llama: { lastMonth: 1 } }),
+                   descriptions: { ollama: "Create, run, and share large language models (LLMs)" } };
+    const dto = assembleSdkAdoption({
+      pkgLatest: { pypi: null, npm: null, crates: null, docker: null, brew, vscode: null },
+      snapshots: [],
+      today: "2026-04-25",
+    });
+    const byId = Object.fromEntries(dto.packages.map((p) => [p.id, p]));
+    expect(byId["brew:ollama"].description).toBe("Create, run, and share large language models (LLMs)");
+    expect("description" in byId["brew:llama"]).toBe(false);
+  });
+
   it("disambiguates same-name packages across registries", () => {
     const dto = assembleSdkAdoption({
       pkgLatest: {

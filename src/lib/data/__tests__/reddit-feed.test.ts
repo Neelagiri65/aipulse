@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   normaliseRedditItem,
+  redditBody,
   runRedditIngest,
   type RedditItem,
   type RedditStoreSink,
@@ -324,5 +325,31 @@ describe("runRedditIngest", () => {
     expect(result.ok).toBe(true);
     expect(result.sources.every((s) => s.written === 0)).toBe(true);
     expect(result.sources.every((s) => s.fetched > 0)).toBe(true);
+  });
+});
+
+describe("redditBody — the poster's text, without Reddit's footer", () => {
+  // Shapes as the Atom <content> arrives after XML decoding (live r/LocalLLaMA, 2026-09-26).
+  const self = '<!-- SC_OFF --><div class="md"><p>I&#39;ve been testing a 0.8B model with n-gram memory.</p></div><!-- SC_ON --> &#32; submitted by &#32; <a href="https://www.reddit.com/user/x"> /u/x </a> <br/> <span><a href="https://www.reddit.com/r/LocalLLaMA/comments/abc/">[link]</a></span> &#32; <span><a href="https://www.reddit.com/r/LocalLLaMA/comments/abc/">[comments]</a></span>';
+  const linkOnly = '&#32; submitted by &#32; <a href="https://www.reddit.com/user/y"> /u/y </a> <br/> <span><a href="https://example.com/">[link]</a></span> &#32; <span><a href="https://www.reddit.com/r/LocalLLaMA/comments/def/">[comments]</a></span>';
+
+  it("keeps the self-post text and cuts the footer", () => {
+    const body = redditBody(self)!;
+    expect(body).toContain("n-gram memory");
+    expect(body).not.toContain("submitted by");
+    expect(body).not.toContain("[comments]");
+  });
+
+  it("a link post (footer only) has no body; neither does an empty entry", () => {
+    expect(redditBody(linkOnly)).toBeUndefined();
+    expect(redditBody("")).toBeUndefined();
+    expect(redditBody(undefined)).toBeUndefined();
+  });
+
+  it("normaliseRedditItem stores the body only when there is one", () => {
+    const source = REDDIT_SOURCES[0];
+    const base = { title: "T", link: "https://www.reddit.com/r/LocalLLaMA/comments/abc/", pubDate: "2026-04-30T11:30:00Z", guid: "t3_abc" };
+    expect(normaliseRedditItem({ ...base, description: self }, source, "2026-04-30T12:00:00.000Z")!.body).toContain("n-gram");
+    expect("body" in normaliseRedditItem({ ...base, description: linkOnly }, source, "2026-04-30T12:00:00.000Z")!).toBe(false);
   });
 });

@@ -49,6 +49,8 @@ export type SdkAdoptionPackage = {
   caveat: string | null;
   counterName: string;
   counterUnits: string;
+  /** The registry's own description of the package, verbatim; absent when it sent none. */
+  description?: string;
 };
 
 export type SdkAdoptionDto = {
@@ -176,6 +178,7 @@ export function assembleSdkAdoption(
         caveat: config.caveat,
         counterName: config.counterName,
         counterUnits: config.counterUnits,
+        ...(latest?.descriptions?.[name] ? { description: latest.descriptions[name] } : {}),
       });
     }
   }

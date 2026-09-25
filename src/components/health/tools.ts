@@ -28,6 +28,11 @@ export type ToolIncident = {
   /** Statuspage incident lifecycle: investigating | identified | monitoring */
   status: string;
   createdAt: string;
+  /**
+   * The newest update's body, verbatim as the status page wrote it ("We are investigating…").
+   * Absent when the page posted no text. Quoted as the vendor's own words, never rewritten.
+   */
+  latestUpdate?: string;
 };
 
 /** Snapshot of a tool's current health. Always cites the source it came from. */

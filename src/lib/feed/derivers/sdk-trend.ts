@@ -25,6 +25,8 @@ import type {
 import { packageToolId } from "@/lib/feed/attribution";
 import { cardId } from "@/lib/feed/card-id";
 import { FEED_SEVERITIES, FEED_TRIGGERS } from "@/lib/feed/thresholds";
+import { optionalSummary } from "@/lib/feed/derivers/publisher";
+import { toSummary } from "@/lib/feed/summary";
 import type { Card } from "@/lib/feed/types";
 
 const REGISTRY_SOURCE: Record<SdkAdoptionRegistry, DataSource> = {
@@ -74,6 +76,8 @@ export function deriveSdkTrendCards(dto: SdkAdoptionDto): Card[] {
         latestCount: latest.count ?? 0,
         ...(toolId ? { toolId } : {}),
       },
+      // What the package IS, in its registry's own words (crates, Docker Hub, Homebrew today).
+      ...optionalSummary(toSummary(pkg.description ?? "", pkg.label)),
     });
   }
   return cards;
