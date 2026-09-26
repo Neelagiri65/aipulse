@@ -29,6 +29,7 @@ import type {
   AgentFrameworkLanguage,
 } from "@/lib/data/agents-registry";
 import type { AgentFetchResult } from "@/lib/data/agents-fetch";
+import { toSummary } from "@/lib/feed/summary";
 
 const DORMANT_THRESHOLD_DAYS = 90;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -81,6 +82,9 @@ export type AgentRowView = {
   githubStaleSince: string | null;
   badge: AgentRowBadge | null;
   caveat: string | null;
+  /** The repo's own GitHub description as a card would quote it (toSummary); absent when the
+   *  repo has none. The source's words, never ours — the same rule as every board. */
+  summary?: string;
 };
 
 export type AssembleAgentsViewInput = {
@@ -153,6 +157,7 @@ function buildRow(
   const openIssues = githubBeyondCutoff ? null : cur?.openIssues ?? null;
   const pushedAt = githubBeyondCutoff ? null : cur?.pushedAt ?? null;
   const archived = githubBeyondCutoff ? null : cur?.archived ?? null;
+  const summary = githubBeyondCutoff ? undefined : toSummary(cur?.description ?? "", fw.name);
 
   const { delta, deltaState } = computeDelta(
     weeklyDownloads,
@@ -182,6 +187,7 @@ function buildRow(
     githubStaleSince,
     badge,
     caveat: fw.caveat ?? null,
+    ...(summary ? { summary } : {}),
   };
 }
 

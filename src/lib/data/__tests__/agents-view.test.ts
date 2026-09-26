@@ -339,4 +339,21 @@ describe("assembleAgentsView", () => {
     });
     expect(result.rows[0].caveat).toBe("Test caveat — propagate verbatim.");
   });
+  it("a row carries `summary` = the repo's own GitHub description as a card quotes it; none without one or beyond the stale cutoff", () => {
+    const pydantic = "How Python does AI. Agents, realtime voice, image generation, embeddings. Every model, every interface, typed end to end."; // live, 2026-09-26
+    const withText = { ...snap("langgraph", 11_000_000), description: pydantic };
+    const result = assembleAgentsView({
+      registry: [REG_ALIVE_FULL, REG_ALIVE_PYPI],
+      current: fetchResult("2026-05-03", withText, snap("crewai", 1_000)),
+      sevenDaysAgo: null,
+      now: () => NOW,
+    });
+    const byId = Object.fromEntries(result.rows.map((r) => [r.id, r]));
+    expect(byId.langgraph.summary).toBe(pydantic);
+    expect("summary" in byId.crewai).toBe(false);
+
+    const stale = { ...withText, githubStaleSince: "2026-01-01T00:00:00Z" };
+    const old = assembleAgentsView({ registry: [REG_ALIVE_FULL], current: { fetchedAt: "2026-05-03", frameworks: [stale] }, sevenDaysAgo: null, now: () => NOW });
+    expect("summary" in old.rows[0]).toBe(false);
+  });
 });

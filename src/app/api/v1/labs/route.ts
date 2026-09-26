@@ -1,4 +1,5 @@
 import { fetchLabActivity } from "@/lib/data/fetch-labs";
+import { describeLabs } from "@/lib/data/lab-repo-descriptions";
 import { handleV1Request } from "@/lib/api/v1-middleware";
 
 export const runtime = "nodejs";
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   return handleV1Request(request, async () => {
     try {
-      const payload = await fetchLabActivity();
+      const payload = await describeLabs(await fetchLabActivity(), process.env.GH_TOKEN);
       return {
         body: payload,
         cacheControl: "public, s-maxage=1800, stale-while-revalidate=21600",

@@ -15,13 +15,15 @@
  */
 
 import { fetchLabActivity } from "@/lib/data/fetch-labs";
+import { describeLabs } from "@/lib/data/lab-repo-descriptions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const payload = await fetchLabActivity();
+    // Each lab's active repos in their owners' words — the same text its Feed card quotes.
+    const payload = await describeLabs(await fetchLabActivity(), process.env.GH_TOKEN);
     return Response.json(payload, {
       headers: {
         "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=21600",

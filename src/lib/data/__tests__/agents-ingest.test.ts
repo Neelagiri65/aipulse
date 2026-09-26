@@ -321,6 +321,12 @@ describe("mergeWithPriorSnapshot", () => {
     expect(merged.githubStaleSince).toBe(PRIOR_FETCHED_AT);
   });
 
+  it("github fetch failed → the prior repo description is carried with the other GitHub fields", () => {
+    const cur = { ...makeSnapshot({ id: "lg", stars: null, pushedAt: null, fetchErrors: [{ source: "github" as const, message: "500" }] }), description: null };
+    const prior = { ...makeSnapshot({ id: "lg", stars: 31_111, pushedAt: "2026-05-02T01:00:00Z" }), description: "Build resilient agents." };
+    expect(mergeWithPriorSnapshot(cur, prior, PRIOR_FETCHED_AT, RUN_ISO).description).toBe("Build resilient agents.");
+  });
+
   it("recomputes weeklyDownloads from merged per-source values", () => {
     const cur = makeSnapshot({
       id: "lg",
