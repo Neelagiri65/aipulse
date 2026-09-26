@@ -70,6 +70,9 @@ export type ModelUsageRow = {
    * sent none. Quoted on a MODEL_MOVER card as the source's own words — never rewritten.
    */
   description?: string;
+  /** `description` as a card shows it — toSummary (cleaned, cut at a sentence); served by the
+   *  board routes so every surface quotes the same text. Absent when nothing is left. */
+  summary?: string;
 };
 
 export type ModelUsageDto = {
