@@ -94,7 +94,8 @@ export default async function SourcesPage() {
         <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
           Every number on gawk.dev traces to a public source. This page lists
           all {totals.sourceCount} data sources currently feeding the
-          dashboard, plus {totals.labCount} curated AI labs that compose
+          dashboard, plus {totals.labCount}{" "}
+          curated AI labs that compose
           the AI Labs layer. Each row shows what the source tracks, how
           often it&rsquo;s polled, and when it was last seen live.
         </p>
