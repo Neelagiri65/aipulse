@@ -67,4 +67,9 @@ describe("toSummary — markdown (OpenRouter descriptions, live 2026-09-26)", ()
       "Image understanding is native, rather than added afterward as in the earlier experimental V4 Flash Vision Exp. It is suited for coding.",
     );
   });
+
+  it("a link whose URL is in angle brackets keeps its text (OpenRouter, Laguna S 2.1, live 2026-09-26)", () => {
+    const raw = "Laguna S 2.1 is the latest coding agent model from [Poolside](<https://poolside.ai/>). It is open-weight.";
+    expect(toSummary(raw)).toBe("Laguna S 2.1 is the latest coding agent model from Poolside. It is open-weight.");
+  });
 });

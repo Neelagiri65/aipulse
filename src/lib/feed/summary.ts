@@ -12,13 +12,14 @@
 export function toSummary(raw: string | null | undefined, headline = "", maxChars = 300): string | undefined {
   if (!raw) return undefined;
   let s = raw
+    // Markdown links first, as OpenRouter writes them — `[text](url)` and `[text](<url>)`: the link
+    // keeps its text. Before the tag strip, which would read `<https://…>` as a tag and leave "( )".
+    .replace(/!?\[([^\]]*)\]\((?:<[^>]*>|[^)\s]*)(?:\s+"[^"]*")?\)/g, "$1")
     .replace(/<!\[CDATA\[|\]\]>/g, "")
     .replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, " ")
     .replace(/<br\s*\/?>|<\/p>/gi, " ")
     .replace(/<[^>]+>/g, " ");
   s = decodeEntities(s)
-    // Markdown, as OpenRouter writes its model descriptions: a link keeps its text, emphasis marks go.
-    .replace(/!?\[([^\]]*)\]\([^)\s]*\)/g, "$1")
     .replace(/(\*\*|__)(.+?)\1/g, "$2")
     .replace(/\s+/g, " ")
     .trim();
