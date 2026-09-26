@@ -16,6 +16,7 @@ import type { RssWireItem } from "@/lib/data/wire-rss";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { CardSummary } from "@/components/feed/CardSummary";
 import { StoryLines } from "@/components/feed/StoryLines";
 
 import { fetchAllStatus } from "@/lib/data/fetch-status";
@@ -156,6 +157,7 @@ export default async function CardPage({
         {card.detail ? (
           <p className="ap-feed-card-detail">{card.detail}</p>
         ) : null}
+        <CardSummary card={card} />
         {card.story ? <StoryLines story={card.story} /> : null}
         <a
           className="ap-feed-card-source"

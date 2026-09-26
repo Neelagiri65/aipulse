@@ -2714,6 +2714,11 @@ body[data-highlights="1"] { --ap-strip-h: 36px; }
   text-wrap: balance;
 }
 .ap-reading__body { margin: 0; font-size: 16px; line-height: 1.5; color: var(--ink2); }
+.ap-summary { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ap-summary__head { font-size: 12px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--ink-muted); }
+.ap-summary__text { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink2); overflow-wrap: anywhere; }
+.ap-summary--machine .ap-summary__text { font-style: italic; }
+.ap-summary__label { margin: 0; font-size: 12px; color: var(--ink-muted); overflow-wrap: anywhere; }
 .ap-reading__src { margin: 0; font-size: 13px; font-style: italic; color: var(--ink-muted); }
 .ap-reading__why { background: var(--tint); border-radius: 14px; padding: 14px 16px; }
 .ap-reading__whyhead { font-size: 12px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 4px; }

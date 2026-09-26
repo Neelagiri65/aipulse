@@ -67,4 +67,19 @@ describe("FeedReading", () => {
     const html = renderToStaticMarkup(<FeedReading card={card} nowMs={Date.parse("2026-09-07T10:00:00Z")} />);
     expect(html).not.toContain("Also reported by");
   });
+  it("shows the source's words after the detail, and a machine summary labelled with its model", () => {
+    const now = Date.parse("2026-09-07T10:00:00Z");
+    const own = renderToStaticMarkup(<FeedReading card={{ ...card, summary: "MiniMax's flagship model." }} nowMs={now} />);
+    expect(own).toMatch(/Now #16, was #5\.<\/p><section[^>]*data-summary-kind="source"/);
+    expect(own).toContain("In their words");
+    const machine = renderToStaticMarkup(
+      <FeedReading
+        card={{ ...card, type: "NEWS", machineSummary: { text: "A post about a model.", model: "openai/gpt-oss-20b", generatedAt: "2026-09-07T09:30:00Z" } }}
+        nowMs={now}
+      />,
+    );
+    expect(machine).toContain("Machine summary");
+    expect(machine).toContain("Written by openai/gpt-oss-20b from the linked page");
+    expect(machine).not.toContain("In their words");
+  });
 });

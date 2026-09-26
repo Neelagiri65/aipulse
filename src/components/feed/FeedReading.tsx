@@ -1,8 +1,10 @@
 /**
- * The reading surface for one feed card (web v2, PRD §8): kicker, headline, the source's own words,
+ * The reading surface for one feed card (web v2, PRD §8): kicker, headline, the detail, the summary
+ * (CardSummary: the source's own words, else a labelled machine summary),
  * the source line, "Why this surfaced" from the locked thresholds, and the two actions. Stateless,
  * safe for SSR; the digest and the deep-link page keep FeedCard.
  */
+import { CardSummary } from "@/components/feed/CardSummary";
 import { StoryLines } from "@/components/feed/StoryLines";
 import { FeedCardShareButton } from "@/components/feed/FeedCardShareButton";
 import type { FeedCardDiscuss } from "@/components/feed/FeedCard";
@@ -64,6 +66,7 @@ export function FeedReading({ card, nowMs, discuss }: FeedReadingProps) {
       </div>
       <h2 className="ap-reading__headline">{card.headline}</h2>
       {card.detail ? <p className="ap-reading__body">{card.detail}</p> : null}
+      <CardSummary card={card} />
       {card.story ? <StoryLines story={card.story} /> : null}
       <p className="ap-reading__src">
         <a href={card.sourceUrl} target="_blank" rel="noreferrer">
