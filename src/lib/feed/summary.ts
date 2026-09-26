@@ -3,7 +3,7 @@
  * abstract, a Product Hunt description — cleaned to plain text and cut at a sentence. Never written,
  * paraphrased or summarised by gawk.dev: every word shown is the source's, in the source's order.
  *
- * Cleaning is mechanical: markup removed, entities decoded, whitespace collapsed, the WordPress
+ * Cleaning is mechanical: markup removed (HTML tags; markdown links keep their text, emphasis marks go), entities decoded, whitespace collapsed, the WordPress
  * "The post … appeared first on …" footer dropped. Cutting keeps whole sentences up to `maxChars`;
  * a trailing fragment the source itself cut off ("…" mid-sentence, as MIT Technology Review's feed
  * does) is dropped rather than shown as if complete. Returns undefined when nothing is left, or
@@ -16,7 +16,12 @@ export function toSummary(raw: string | null | undefined, headline = "", maxChar
     .replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, " ")
     .replace(/<br\s*\/?>|<\/p>/gi, " ")
     .replace(/<[^>]+>/g, " ");
-  s = decodeEntities(s).replace(/\s+/g, " ").trim();
+  s = decodeEntities(s)
+    // Markdown, as OpenRouter writes its model descriptions: a link keeps its text, emphasis marks go.
+    .replace(/!?\[([^\]]*)\]\([^)\s]*\)/g, "$1")
+    .replace(/(\*\*|__)(.+?)\1/g, "$2")
+    .replace(/\s+/g, " ")
+    .trim();
   s = s.replace(/\s*The post .{1,300}? appeared first on .{1,120}?\.?$/i, "").trim();
   // WordPress marks its excerpt cut with "[…]" or "[...]": the same as the source's own "…".
   s = s.replace(/\s*\[(?:…|\.\.\.)\]$/, "…");

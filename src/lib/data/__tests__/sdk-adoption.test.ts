@@ -82,6 +82,20 @@ describe("assembleSdkAdoption", () => {
     const byId = Object.fromEntries(dto.packages.map((p) => [p.id, p]));
     expect(byId["brew:ollama"].description).toBe("Create, run, and share large language models (LLMs)");
     expect("description" in byId["brew:llama"]).toBe(false);
+    expect(byId["brew:ollama"].summary).toBe("Create, run, and share large language models (LLMs)");
+    expect("summary" in byId["brew:llama"]).toBe(false);
+  });
+
+  it("summary cleans a README-HTML description (npm llamaindex, live 2026-09-26); description stays verbatim", () => {
+    const raw = '<p align="center">   <img height="100" width="100" alt="LlamaIndex logo" src="https://ts.llamaindex.ai/square.svg" /> </p> <h1 align="center">LlamaIndex.TS</h1> <h3 align="center">   Data framework for your LLM application. </h3>';
+    const npm = { ...makeLatest("npm", { llamaindex: { lastDay: 1 } }), descriptions: { llamaindex: raw } };
+    const dto = assembleSdkAdoption({
+      pkgLatest: { pypi: null, npm, crates: null, docker: null, brew: null, vscode: null },
+      snapshots: [],
+      today: "2026-04-25",
+    });
+    expect(dto.packages[0].summary).toBe("LlamaIndex.TS Data framework for your LLM application.");
+    expect(dto.packages[0].description).toBe(raw);
   });
 
   it("disambiguates same-name packages across registries", () => {

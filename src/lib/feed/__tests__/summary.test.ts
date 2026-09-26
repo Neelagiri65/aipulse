@@ -58,3 +58,13 @@ describe("toSummary — the source's own words, cleaned and cut at a sentence", 
     for (const w of words(toSummary(raw)!)) expect(inWords.has(w)).toBe(true);
   });
 });
+
+describe("toSummary — markdown (OpenRouter descriptions, live 2026-09-26)", () => {
+  it("a markdown link keeps its text and loses its URL; emphasis marks go", () => {
+    const raw =
+      "Image understanding is native, rather than added afterward as in the earlier experimental [V4 Flash Vision Exp](https://openrouter.ai/deepseek/deepseek-v4-flash-vision-exp).\n\nIt is **suited** for coding.";
+    expect(toSummary(raw)).toBe(
+      "Image understanding is native, rather than added afterward as in the earlier experimental V4 Flash Vision Exp. It is suited for coding.",
+    );
+  });
+});

@@ -124,4 +124,19 @@ describe("GET /api/panels/model-usage", () => {
     });
     expect(dto.sanityWarnings).toEqual(["test warning"]);
   });
+  it("each row carries `summary` = its description as a card quotes it; none without one", async () => {
+    const stored = mkStored(3);
+    stored.rows[0] = {
+      ...stored.rows[0],
+      name: "DeepSeek: DeepSeek V4.1 Flash",
+      description:
+        "DeepSeek V4.1 Flash is a sparse mixture-of-experts model from DeepSeek, and the first built on the company's Causal Encoder-Decoder (CED) architecture. It activates 8B parameters on input and 16B on output from a 552B-parameter backbone, an asymmetric split that keeps per-token compute low relative to the model's total size. Image understanding is native to the architecture, as in the earlier experimental [V4 Flash Vision Exp](https://openrouter.ai/deepseek/deepseek-v4-flash-vision-exp).",
+    };
+    const { dto } = await handleGetModelUsage(mkRequest(), { store: mkStore(stored), now: fixedClock });
+    expect(dto.rows[0].summary).toBe(
+      "DeepSeek V4.1 Flash is a sparse mixture-of-experts model from DeepSeek, and the first built on the company's Causal Encoder-Decoder (CED) architecture.",
+    );
+    expect(dto.rows[0].description).toBe(stored.rows[0].description);
+    expect("summary" in dto.rows[1]).toBe(false);
+  });
 });

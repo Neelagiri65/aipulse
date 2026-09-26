@@ -11,6 +11,8 @@
  * (cron / per-derive) read, not high-frequency polling.
  */
 
+import { toSummary } from "@/lib/feed/summary";
+
 const PH_TOKEN = process.env.PRODUCT_HUNT_TOKEN;
 const PH_ENDPOINT = "https://api.producthunt.com/v2/api/graphql";
 
@@ -20,6 +22,9 @@ export type ProductHuntPost = {
   tagline: string;
   /** The maker's description, plain text per the PH schema (`Post.description: String`, nullable). */
   description?: string | null;
+  /** `description` as a card quotes it (toSummary against the tagline); absent when it only
+   *  repeats the tagline or nothing is left. */
+  summary?: string;
   url: string;
   votesCount: number;
   createdAt: string;
@@ -70,7 +75,11 @@ export async function fetchProductHuntLaunches(): Promise<ProductHuntResult> {
       .map((e: { node?: ProductHuntPost }) => e.node)
       .filter((n: ProductHuntPost | undefined): n is ProductHuntPost => !!n && !!n.id && !!n.url)
       .filter((n: ProductHuntPost) => (n.votesCount ?? 0) >= MIN_VOTES)
-      .sort((a: ProductHuntPost, b: ProductHuntPost) => (b.votesCount ?? 0) - (a.votesCount ?? 0));
+      .sort((a: ProductHuntPost, b: ProductHuntPost) => (b.votesCount ?? 0) - (a.votesCount ?? 0))
+      .map((n: ProductHuntPost) => {
+        const summary = toSummary(n.description, n.tagline);
+        return summary ? { ...n, summary } : n;
+      });
     return { ok: true, posts, generatedAt };
   } catch {
     return { ok: false, posts: [], generatedAt };

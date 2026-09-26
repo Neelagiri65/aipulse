@@ -22,6 +22,7 @@
 import type { DailySnapshot, SnapshotPackageEntry } from "@/lib/data/snapshot";
 import type { PackageLatest } from "@/lib/data/pkg-store";
 import { deltasFromCounts } from "@/lib/data/sdk-adoption-deltas";
+import { toSummary } from "@/lib/feed/summary";
 
 export type SdkAdoptionRegistry =
   | "pypi"
@@ -51,6 +52,8 @@ export type SdkAdoptionPackage = {
   counterUnits: string;
   /** The registry's own description of the package, verbatim; absent when it sent none. */
   description?: string;
+  /** `description` as a card shows it (toSummary: cleaned, cut at a sentence). */
+  summary?: string;
 };
 
 export type SdkAdoptionDto = {
@@ -178,13 +181,20 @@ export function assembleSdkAdoption(
         caveat: config.caveat,
         counterName: config.counterName,
         counterUnits: config.counterUnits,
-        ...(latest?.descriptions?.[name] ? { description: latest.descriptions[name] } : {}),
+        ...describe(latest?.descriptions?.[name], name),
       });
     }
   }
 
   const generatedAt = (input.now?.() ?? new Date()).toISOString();
   return { packages, generatedAt };
+}
+
+/** The registry's words verbatim (`description`) and as a card quotes them (`summary`). */
+function describe(raw: string | undefined, name: string): Pick<SdkAdoptionPackage, "description" | "summary"> {
+  if (!raw) return {};
+  const summary = toSummary(raw, name);
+  return summary ? { description: raw, summary } : { description: raw };
 }
 
 function buildColumnDates(today: string, windowDays: number): string[] {

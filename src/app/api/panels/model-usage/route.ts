@@ -21,6 +21,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { toSummary } from "@/lib/feed/summary";
 
 import { redisOpenRouterStore, type OpenRouterStore } from "@/lib/data/openrouter-store";
 import { OPENROUTER_SOURCE_CAVEAT, type ModelUsageDto } from "@/lib/data/openrouter-types";
@@ -53,12 +54,18 @@ export async function handleGetModelUsage(
   const dto = stored ?? buildEmptyDto(deps.now);
   const trimmed: ModelUsageDto = {
     ...dto,
-    rows: dto.rows.slice(0, limit),
+    rows: dto.rows.slice(0, limit).map(withSummary),
   };
   return {
     dto: trimmed,
     cacheHeader: "public, s-maxage=300, stale-while-revalidate=60",
   };
+}
+
+/** The row's own words as the Feed quotes them: the same toSummary, keyed on the model's name. */
+function withSummary(row: ModelUsageDto["rows"][number]): ModelUsageDto["rows"][number] {
+  const summary = toSummary(row.description ?? "", row.name);
+  return summary ? { ...row, summary } : row;
 }
 
 export async function GET(request: Request) {
