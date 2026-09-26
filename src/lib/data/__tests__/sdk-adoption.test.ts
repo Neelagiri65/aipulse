@@ -289,7 +289,7 @@ describe("assembleSdkAdoption", () => {
     expect(row.days[4].count).toBe(100);
   });
 
-  it("flags pypi rows with the third-party-aggregator caveat and firstParty=false", () => {
+  it("flags pypi rows with the lag caveat (no aggregator credit) and firstParty=false", () => {
     const dto = assembleSdkAdoption({
       pkgLatest: {
         pypi: makeLatest("pypi", { transformers: { lastDay: 100 } }),
@@ -304,7 +304,8 @@ describe("assembleSdkAdoption", () => {
     });
     const row = dto.packages[0];
     expect(row.firstParty).toBe(false);
-    expect(row.caveat).toMatch(/pypistats/i);
+    expect(row.caveat).toMatch(/lag the underlying day by 24-48h/);
+    expect(row.caveat).not.toMatch(/pypistats|third-party aggregator/i);
   });
 
   it("flags first-party registries (npm/crates/docker/brew) with firstParty=true and no aggregator caveat", () => {

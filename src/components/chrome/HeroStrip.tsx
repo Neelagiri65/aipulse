@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import type { StatusResult } from "@/lib/data/fetch-status";
-import { VERIFIED_SOURCES } from "@/lib/data-sources";
 import { deriveSev } from "@/components/chrome/StatusBar";
 import { PushAlertToggle } from "@/components/chrome/PushAlertToggle";
 
@@ -74,8 +73,7 @@ export function HeroStrip({ status, variant = "desktop" }: HeroStripProps) {
       <div className="flex flex-col gap-0.5">
         <h1 className="ap-hero__q ap-hero__q--lg">Is your AI coding stack working right now?</h1>
         <span className="ap-hero__sub">
-          Claude · Cursor · Copilot · Windsurf · OpenAI — tracked from{" "}
-          {VERIFIED_SOURCES.length} verified sources ·{" "}
+          Claude · Cursor · Copilot · Windsurf · OpenAI ·{" "}
           {/* Server-rendered link to the digest archive. The archive's 100+ issue
               pages were reachable only from the sitemap; a crawler's first-pass
               HTML of the homepage is the one place a link reliably counts. */}

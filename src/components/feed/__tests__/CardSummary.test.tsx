@@ -7,23 +7,24 @@ const machine = {
   model: "openai/gpt-oss-20b",
   generatedAt: "2026-09-26T10:00:00Z",
 };
-const LABEL = "Written by openai/gpt-oss-20b from the linked page · not the source&#x27;s words";
 
 describe("CardSummary", () => {
-  it("the source's words under 'In their words', with no machine label", () => {
+  it("the source's words alone, with no heading and no machine label", () => {
     const html = renderToStaticMarkup(<CardSummary card={{ summary: "Create, run, and share large language models (LLMs)" }} />);
-    expect(html).toContain("In their words");
+    expect(html).not.toContain("In their words");
+    expect(html).not.toContain("ap-summary__head");
     expect(html).toContain("Create, run, and share large language models (LLMs)");
     expect(html).toContain('data-summary-kind="source"');
     expect(html).not.toContain("Machine summary");
     expect(html).not.toContain("Written by");
   });
 
-  it("a machine summary is headed and labelled with its model, never as their words", () => {
+  it("a machine summary is headed 'Machine summary' only, with no written-by credit line", () => {
     const html = renderToStaticMarkup(<CardSummary card={{ machineSummary: machine }} />);
     expect(html).toContain("Machine summary");
     expect(html).toContain(machine.text);
-    expect(html).toContain(LABEL);
+    expect(html).not.toContain("Written by");
+    expect(html).not.toContain("not the source");
     expect(html).toContain('data-summary-kind="machine"');
     expect(html).not.toContain("In their words");
   });

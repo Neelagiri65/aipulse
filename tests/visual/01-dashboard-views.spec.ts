@@ -67,7 +67,7 @@ test.describe("dashboard views", () => {
     await closeBoard(page);
   });
 
-  test("Health carries four tiles under the band, each with a source and a time", async ({ page }) => {
+  test("Health carries four tiles under the band, each with a time and no source credit", async ({ page }) => {
     await openDashboard(page);
     const tiles = page.getByTestId("health-tiles");
     await expect(tiles).toBeVisible();
@@ -75,7 +75,7 @@ test.describe("dashboard views", () => {
     await expect(each).toHaveCount(4);
     for (const id of ["mover", "tools", "aicfg", "labs"]) {
       const t = tiles.locator(`[data-tile="${id}"]`);
-      await expect(t.locator(".ap-htile__src a:not(.ap-htile__drill)")).toBeVisible();
+      await expect(t.locator(".ap-htile__src a:not(.ap-htile__drill)")).toHaveCount(0);
       await expect(t.locator(".ap-htile__src")).not.toBeEmpty();
     }
     // The status poll answers on every environment: the tools tile is live with a UTC stamp.
@@ -135,7 +135,7 @@ test.describe("dashboard views", () => {
     await expect(reading).toBeVisible();
     const firstTitle = await rows.first().locator(".ap-trow__title").textContent();
     await expect(reading.locator(".ap-reading__headline")).toHaveText(firstTitle ?? "");
-    await expect(reading).toContainText("Why this surfaced");
+    await expect(reading).not.toContainText("Why this surfaced");
     if (count > 1) {
       await rows.nth(1).locator("button").click();
       const secondTitle = await rows.nth(1).locator(".ap-trow__title").textContent();

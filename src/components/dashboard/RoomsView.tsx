@@ -80,8 +80,8 @@ export function RoomsView({ rows, polledAt, windowMinutes, compact, community }:
         {live
           ? `Discord server widget · read ${hhmm(live.fetchedAt)} · ${live.countMeaning}`
           : lastKnown
-            ? `Discord server widget · last answered ${hhmm(lastKnown.fetchedAt)} · a count is shown only while the widget answers, never carried forward as if it were live.`
-            : "Discord server widget · the server publishes it or it does not; when it is off, Gawk shows the door and no number."}
+            ? `Discord server widget · last answered ${hhmm(lastKnown.fetchedAt)}`
+            : "Discord server widget · not answering"}
       </p>
 
       <div className="ap-inset" data-testid="community-discord">

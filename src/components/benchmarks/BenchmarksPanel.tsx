@@ -8,7 +8,6 @@ import type {
   EloDelta,
   RankDelta,
 } from "@/lib/data/benchmarks-lmarena";
-import { LMARENA_LEADERBOARD } from "@/lib/data-sources";
 
 /** Map<modelName, ratings oldest→newest> with `null` for days the model
  *  wasn't in the captured top-N. The dashboard fetches this from
@@ -34,9 +33,7 @@ export type BenchmarksPanelProps = {
  * committed JSON. Raw `model_name` and `organization` verbatim (the
  * latter may be empty when lmarena hasn't tagged a lab).
  *
- * PRD AC 6: footer caveat is surfaced verbatim so users see the known
- * critiques (style bias, self-selection, category overlap) alongside
- * the numbers.
+ * The footer carries the leaderboard publish date only (founder ruling 2026-09-26).
  */
 export function BenchmarksPanel({
   data,
@@ -254,37 +251,7 @@ function StalenessBanner({ days }: { days: number }) {
 function FooterCaveat({ meta }: { meta: BenchmarksMeta }) {
   return (
     <div className="border-t border-border/30 px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
-      <p>
-        Elo ratings from{" "}
-        <a
-          href="https://lmarena.ai"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline decoration-dotted underline-offset-2 hover:text-foreground"
-        >
-          Chatbot Arena (lmarena.ai)
-        </a>{" "}
-        — Bradley-Terry scores computed from{" "}
-        {/* Full ink, not /80: at 80% this number sat at 4.2:1 on paper, under the 4.5 floor. */}
-        <span className="tabular-nums text-foreground">
-          {meta.totalVotes.toLocaleString()}
-        </span>{" "}
-        pairwise human preference votes. Dataset:{" "}
-        {/* The citable primary source — read from the registry entry so the
-            panel can never drift from data-sources.ts (the HeroStrip-38
-            hardcode class). */}
-        <a
-          href={LMARENA_LEADERBOARD.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline decoration-dotted underline-offset-2 hover:text-foreground"
-        >
-          lmarena-ai/leaderboard-dataset
-        </a>{" "}
-        · published {meta.leaderboardPublishDate}. Known critiques: style bias
-        (verbose answers score higher), self-selection (volunteer voters ≠
-        general users), category overlap.
-      </p>
+      <p>published {meta.leaderboardPublishDate}</p>
     </div>
   );
 }
@@ -296,7 +263,7 @@ function AwaitingBody({ message }: { message?: string }) {
         Awaiting first poll
       </p>
       <p className="mt-1 leading-relaxed">
-        {message ?? "Source verified. Fetching Chatbot Arena snapshot…"}
+        {message ?? "Fetching Chatbot Arena snapshot…"}
       </p>
     </div>
   );

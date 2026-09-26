@@ -28,9 +28,6 @@ import {
 } from "@/components/panels/sdk-adoption/MatrixHeatmap";
 import { RowDrawer } from "@/components/panels/sdk-adoption/RowDrawer";
 import { SparklineListView } from "@/components/panels/sdk-adoption/SparklineListView";
-import { formatProvenanceTooltip } from "@/lib/provenance";
-
-const SDK_ADOPTION_SOURCE_URL = "https://gawk.dev/sources";
 
 export type SdkAdoptionPanelProps = {
   data: SdkAdoptionDto | null;
@@ -222,27 +219,6 @@ export function SdkAdoptionPanel({
           originUrl={originUrl}
         />
       ) : null}
-      <footer
-        className="sdk-adoption-footer"
-        title={formatProvenanceTooltip(
-          trimmed.generatedAt,
-          SDK_ADOPTION_SOURCE_URL,
-        )}
-      >
-        <span aria-hidden="true" className="sdk-adoption-footer-icon">ⓘ</span>
-        <span>
-          Per-package downloads from PyPI, npm, crates.io, Docker Hub,
-          Homebrew, VS Code Marketplace.{" "}
-          <a
-            href={SDK_ADOPTION_SOURCE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="sdk-adoption-footer-link"
-          >
-            Sources ↗
-          </a>
-        </span>
-      </footer>
     </div>
   );
 }

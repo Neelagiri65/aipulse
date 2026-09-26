@@ -83,7 +83,7 @@ describe("ModelUsagePanel", () => {
     expect(html).toContain("Collecting baseline");
   });
 
-  it("renders the canonical caveat as a hover tooltip on the footer", () => {
+  it("carries no caveat footer tooltip", () => {
     const html = renderToStaticMarkup(
       <ModelUsagePanel
         data={mkDto([mkRow(1, "anthropic/m")])}
@@ -92,11 +92,11 @@ describe("ModelUsagePanel", () => {
         originUrl="https://gawk.dev"
       />,
     );
-    expect(html).toContain("OpenRouter request volume");
-    expect(html).toContain("not end-user adoption");
+    expect(html).not.toContain("OpenRouter request volume");
+    expect(html).not.toContain("model-usage-footer");
   });
 
-  it("renders the one-line footer with source link to OpenRouter rankings", () => {
+  it("renders no credit footer with source link to OpenRouter rankings", () => {
     const html = renderToStaticMarkup(
       <ModelUsagePanel
         data={mkDto([mkRow(1, "anthropic/m")])}
@@ -105,9 +105,9 @@ describe("ModelUsagePanel", () => {
         originUrl="https://gawk.dev"
       />,
     );
-    expect(html).toContain("OpenRouter reflects API-first developer spend");
-    expect(html).toContain("Direct customers");
-    expect(html).toContain('href="https://openrouter.ai/rankings"');
+    expect(html).not.toContain("OpenRouter reflects API-first developer spend");
+    expect(html).not.toContain("Direct customers");
+    expect(html).not.toContain("Source ↗");
   });
 
   it("shows the catalogue-fallback banner when ordering is fallback", () => {

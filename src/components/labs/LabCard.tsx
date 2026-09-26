@@ -12,7 +12,7 @@ import { CATEGORY_META, type LabKind } from "@/lib/data/labs-registry";
  * contains labs — typically 1, occasionally 2 when two HQs fall in the
  * same 4° bucket). Renders:
  *   - lab name + kind badge (industry / academic / non-profit)
- *   - city, country, HQ source link (verifiable coord provenance)
+ *   - city, country
  *   - 7d total event count + per-type breakdown pills
  *   - tracked repos with per-repo count + GitHub link
  *   - stale / quiet flags so the card never lies about gaps
@@ -104,7 +104,6 @@ function LabBody({ lab }: { lab: EventMeta }) {
   const byType = lab.labByType ?? {};
   const repos = lab.labRepos ?? [];
   const orgs = lab.labOrgs ?? [];
-  const hq = lab.labHqSourceUrl;
   const primary = lab.labUrl;
   const isStale = lab.labStale === true;
   const isInactive = lab.labInactive === true;
@@ -148,16 +147,6 @@ function LabBody({ lab }: { lab: EventMeta }) {
         <span className="truncate">
           {city && country ? `${city}, ${country}` : country ?? city ?? "—"}
         </span>
-        {hq && (
-          <a
-            href={hq}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-2 shrink-0 hover:text-[#a855f7] hover:underline"
-          >
-            HQ source ↗
-          </a>
-        )}
       </div>
 
       <div className="mt-2 flex items-baseline justify-between">

@@ -98,7 +98,7 @@ function aiConfigTile(events?: GlobeEventsResult): HealthTile {
 function labsTile(labs?: LabsPayload): HealthTile {
   const base = { id: "labs" as const, source: "data/ai-labs.json", sourceUrl: REGISTRY_URL, boardId: "labs" as const };
   if (!labs) return { ...base, value: "—", label: "HQs on the registry", at: null, pending: true };
-  return { ...base, value: labs.labs.length.toLocaleString("en-GB"), label: "HQs on the registry · curated, each with a cited source", at: labs.generatedAt, pending: false };
+  return { ...base, value: labs.labs.length.toLocaleString("en-GB"), label: "HQs on the registry", at: labs.generatedAt, pending: false };
 }
 
 export function deriveHealthTiles(input: HealthTilesInput): HealthTile[] {

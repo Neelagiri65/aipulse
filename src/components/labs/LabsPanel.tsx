@@ -152,25 +152,7 @@ function SourceFooter({
   })();
   return (
     <div className="border-t border-border/40 px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-      <span>Source: </span>
-      <a
-        href="https://github.com/Neelagiri65/aipulse/blob/main/data/ai-labs.json"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline-offset-2 hover:text-foreground hover:underline"
-      >
-        data/ai-labs.json
-      </a>
-      <span> + </span>
-      <a
-        href="https://docs.github.com/en/rest/activity/events#list-repository-events"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline-offset-2 hover:text-foreground hover:underline"
-      >
-        GH Repo Events
-      </a>
-      <span className="ml-2">· refreshed {t}Z</span>
+      <span>refreshed {t}Z</span>
       {failureCount > 0 && (
         <span
           className="ml-2 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-[1px] text-amber-700 dark:text-amber-400"

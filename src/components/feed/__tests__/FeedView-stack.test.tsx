@@ -64,7 +64,9 @@ describe("FeedView × stack", () => {
     expect(html).toContain("Your stack · 1 of 4");
     expect(rowOrder(html)).toEqual(["alert-copilot", "alert-cursor", "news-1", "release-1"]);
     expect(html.match(/feed-stack-divider/g)).toHaveLength(1);
-    expect(html).toContain("Everything else · 3 · still ranked, nothing hidden");
+    expect(html).toContain("Everything else · 3<");
+    expect(html).not.toContain("still ranked");
+    expect(html).not.toContain("How this feed is built");
     expect(html).toContain('data-stack="1"');
     expect(html).toContain('data-stack-mine="1"');
     expect(html).toContain('data-stack-rest="3"');

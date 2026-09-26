@@ -144,7 +144,7 @@ describe("RowDrawer", () => {
     expect(html).toContain('aria-modal="true"');
   });
 
-  it("renders the canonical OpenRouter caveat", () => {
+  it("renders no Source caveat section", () => {
     const html = renderToStaticMarkup(
       <RowDrawer
         row={mkRow()}
@@ -153,8 +153,8 @@ describe("RowDrawer", () => {
         originUrl="https://gawk.dev"
       />,
     );
-    expect(html).toContain("OpenRouter request volume");
-    expect(html).toContain("not end-user adoption");
+    expect(html).not.toContain("OpenRouter request volume");
+    expect(html).not.toContain("Source caveat");
   });
 });
 

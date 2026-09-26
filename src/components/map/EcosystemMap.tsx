@@ -548,17 +548,6 @@ function LabDetailCard({
           ))}
         </div>
       )}
-
-      <div className="border-t border-slate-100 pt-2">
-        <a
-          href={lab.hqSourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[9px] font-medium uppercase tracking-wide text-slate-300 transition-colors hover:text-slate-500"
-        >
-          HQ source ↗
-        </a>
-      </div>
     </div>
   );
 }

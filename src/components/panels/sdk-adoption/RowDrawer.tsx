@@ -172,7 +172,7 @@ export function RowDrawer({
         </section>
 
         {pkg.caveat ? (
-          <section className="drawer-caveat" aria-label="Source caveat">
+          <section className="drawer-caveat">
             <p>{pkg.caveat}</p>
           </section>
         ) : null}

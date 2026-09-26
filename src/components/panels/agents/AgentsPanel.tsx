@@ -268,7 +268,7 @@ function DeltaCell({
 function PanelFooter({ generatedAt }: { generatedAt: string }) {
   return (
     <div className="border-t border-border/40 px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-      assembled {formatRelative(generatedAt)} · sources: pypi · npm · github
+      assembled {formatRelative(generatedAt)}
     </div>
   );
 }

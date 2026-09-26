@@ -102,7 +102,7 @@ export function HealthCardGrid({ data, polledAt }: HealthCardGridProps) {
       {others.length > 0 && (
         <>
           <div className="ap-stack__divider" data-testid="stack-others">
-            Not in your stack · {others.length} · still tracked, nothing hidden
+            Not in your stack · {others.length}
           </div>
           {incidentsFirst(others).map((r) => (
             <ToolHealthCard key={r.tool.id} config={r.tool} data={r.data} />

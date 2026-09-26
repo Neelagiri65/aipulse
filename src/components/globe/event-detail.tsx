@@ -469,10 +469,7 @@ function EventRow({ point }: { point: GlobePoint }) {
           <span className="ap-sev-pill ap-sev-pill--pending">NO CFG</span>
         )}
         {source === "gharchive" && (
-          <span
-            className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground"
-            title="Sourced from GH Archive hourly dump"
-          >
+          <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
             archive
           </span>
         )}

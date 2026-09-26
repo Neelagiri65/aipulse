@@ -90,7 +90,7 @@ const REGISTRY_CONFIG: Record<SdkAdoptionRegistry, RegistryConfig> = {
     derivedDaily: false,
     firstParty: false,
     caveat:
-      "Counts via pypistats — third-party aggregator over the public PyPI BigQuery downloads dataset; values can lag the underlying day by 24-48h.",
+      "Values can lag the underlying day by 24-48h.",
   },
   npm: {
     counterField: "lastDay",

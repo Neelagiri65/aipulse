@@ -281,16 +281,7 @@ function PanelFooter({
   };
   return (
     <div className="border-t border-border/40 px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-      <span>Source: </span>
-      <a
-        href="/data-sources.md"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline-offset-2 hover:text-foreground hover:underline"
-      >
-        5 curated publisher RSS/Atom feeds
-      </a>
-      <span className="ml-2">· polled {fmt(polledAt)}Z</span>
+      <span>polled {fmt(polledAt)}Z</span>
       <span className="ml-2">· last ingest {fmt(lastFetchOkTs)}Z</span>
     </div>
   );

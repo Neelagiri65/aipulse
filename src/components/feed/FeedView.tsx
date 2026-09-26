@@ -23,7 +23,6 @@ import type { FeedCardDiscuss } from "@/components/feed/FeedCard";
 import { FeedReading, formatAge } from "@/components/feed/FeedReading";
 import type { CommunityState } from "@/lib/community/use-community";
 import { QuietDayBanner } from "@/components/feed/QuietDayBanner";
-import { VERIFIED_SOURCES } from "@/lib/data-sources";
 import { cardToolId, partitionCardsByStack } from "@/lib/feed/stack";
 import type { Card, CardType, FeedResponse } from "@/lib/feed/types";
 import { KIND_LABEL, KIND_PLURAL, rowMark } from "@/lib/feed/why-surfaced";
@@ -231,7 +230,7 @@ export function FeedView({
                 stack && i === mineCount ? (
                   <li key="stack-divider" className="ap-feed-list-divider" data-testid="feed-stack-divider">
                     {mineCount > 0
-                      ? `Everything else · ${visible.length - mineCount} · still ranked, nothing hidden`
+                      ? `Everything else · ${visible.length - mineCount}`
                       : attributedCount > 0
                         ? `Nothing among these ${visible.length} cards names a tool in your stack · ${attributedCount} name${attributedCount === 1 ? "s" : ""} other tools · all ${visible.length} below`
                         : `Nothing among these ${visible.length} cards names a tool · all ${visible.length} below`}
@@ -283,21 +282,6 @@ export function FeedView({
               <li className="ap-feed-list-item ap-trow ap-feedrows__empty">No cards of this kind in the feed right now.</li>
             ) : null}
           </ul>
-        </div>
-        <p className="ap-feedrows__foot">
-          Rows are the cards the feed derived from its sources, in the locked severity order, newest first
-          within a tier. Nothing is scored. A quiet day says so above the list.
-        </p>
-        <div className="ap-inset ap-howbuilt">
-          <div className="ap-howbuilt__head">How this feed is built</div>
-          <p className="ap-howbuilt__body">
-            A state change on a tracked status page, a rank move on OpenRouter, a download swing on a
-            registry, a curated source crossing its threshold: each becomes one card with its source and
-            time. Nothing is ranked or scored beyond the locked severity tiers.
-          </p>
-          <p className="ap-howbuilt__src">
-            <a href="/methodology">Thresholds on the methodology page</a> · <a href="/sources">{VERIFIED_SOURCES.length} verified sources</a>
-          </p>
         </div>
       </div>
       {variant === "desktop" && selected ? (

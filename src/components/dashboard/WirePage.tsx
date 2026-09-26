@@ -135,14 +135,9 @@ export function WirePage({
             </div>
           ) : null}
         </div>
-        <p className="ap-wire__foot">
-          Every row is a public event as its publisher reports it — GitHub event time, HN story time — newest
-          first. ai-cfg / no-cfg is the deterministic file-presence probe (CLAUDE.md, .cursorrules, …), never a
-          guess. Nothing is ranked or scored.
-        </p>
       </div>
       {variant === "desktop" && selected ? (
-        <WireDetail row={selected} nowMs={nowMs} windowMinutes={ghCoverage?.windowMinutes} />
+        <WireDetail row={selected} nowMs={nowMs} />
       ) : null}
     </div>
   );
@@ -223,7 +218,7 @@ function HnRow({ row, nowMs, variant, selected, onSelect }: RowProps<"hn">) {
 }
 
 /** The detail for one wire row: what it is, where it came from, and its durable links. */
-export function WireDetail({ row, nowMs, windowMinutes }: { row: WireItem; nowMs: number; windowMinutes?: number }) {
+export function WireDetail({ row, nowMs }: { row: WireItem; nowMs: number }) {
   if (row.kind === "gh") {
     const repo = repoHref(row.repo);
     const actor = actorHref(row.actor);
@@ -237,35 +232,16 @@ export function WireDetail({ row, nowMs, windowMinutes }: { row: WireItem; nowMs
         <h2 className="ap-reading__headline ap-wiredetail__headline">{row.repo}</h2>
         <p className="ap-reading__body">
           {prettyType(row.type)} by @{actorLabel(row.actor)}, {formatRelative(row.createdAt, nowMs)}
-          {" "}ago by the publisher&apos;s clock.
+          {" "}ago.
         </p>
         <dl className="ap-wiredetail__facts">
           <dt>AI config</dt>
           <dd>
             <span className={`ap-mark ap-mark--sm ap-mark--${row.hasAiConfig ? "solid" : "hollow"}`} aria-hidden />
             {row.hasAiConfig ? "ai-cfg — a config file was found" : "no-cfg — none of the probed files present"} (CLAUDE.md,
-            .cursorrules, … — file presence only, never inferred)
-          </dd>
-          <dt>Source</dt>
-          <dd>
-            {gl
-              ? "GitLab public events API"
-              : row.sourceKind === "gharchive"
-                ? "GH Archive (hourly dump)"
-                : row.sourceKind === "tracked-repo"
-                  ? "GitHub Events API · tracked repo (complete stream, not the sampled firehose)"
-                  : "GitHub Events API"}{" "}
-            · event {row.eventId}
+            .cursorrules, … — file presence only)
           </dd>
         </dl>
-        <div className="ap-reading__why">
-          <div className="ap-reading__whyhead">Why this is here</div>
-          <p>
-            A public {prettyType(row.type).toLowerCase()} the poll received
-            {windowMinutes ? ` in the last ${windowMinutes} minutes` : ""}. Every event of a tracked kind (push, PR,
-            issue, release, create, comment, review) is on the wire in publisher order; nothing is filtered by score.
-          </p>
-        </div>
         <div className="ap-reading__actions">
           {repo ? (
             <a className="ap-btn-ghost ap-reading__open" href={repo} target="_blank" rel="noopener noreferrer">
@@ -289,16 +265,10 @@ export function WireDetail({ row, nowMs, windowMinutes }: { row: WireItem; nowMs
       <h2 className="ap-reading__headline ap-wiredetail__headline">{row.title}</h2>
       <p className="ap-reading__body">
         Posted by @{row.author}, {formatRelative(row.createdAt, nowMs)}
-        {" "}ago by HN&apos;s clock
+        {" "}ago
         {row.locationLabel ? ` · ${row.locationLabel}` : ""}.
       </p>
-      <div className="ap-reading__why">
-        <div className="ap-reading__whyhead">Why this is here</div>
-        <p>
-          An AI story from the Hacker News feed, in publisher order with the points and comments HN reports. The
-          link is the discussion, not the article.
-        </p>
-      </div>
+      <p className="ap-reading__body">The link is the discussion, not the article.</p>
       <div className="ap-reading__actions">
         <a className="ap-btn-ghost ap-reading__open" href={row.hnUrl} target="_blank" rel="noopener noreferrer">
           Open on Hacker News
@@ -352,7 +322,7 @@ function formatRelative(iso: string, nowMs: number): string {
  */
 function isoPublisherTimeTitle(iso: string): string {
   try {
-    return `${new Date(iso).toISOString()} · publisher event time`;
+    return new Date(iso).toISOString();
   } catch {
     return iso;
   }
