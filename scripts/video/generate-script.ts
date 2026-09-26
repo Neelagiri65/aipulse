@@ -14,6 +14,12 @@
 import { readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import type { VideoData, ModelEntry } from "../../src/video/types";
+import { modelOptions } from "../../src/lib/summaries/machine-summary";
+
+// meta/llama-4-maverick left the NIM catalogue (2026-09-26); gpt-oss-20b is the model measured
+// reachable on this key (scripts/machine-summary-smoke.ts). Its reasoning tokens count against
+// max_tokens, so the budget is the answer plus modelOptions' reasoning allowance.
+const NIM_MODEL = "openai/gpt-oss-20b";
 
 const DATA_PATH = resolve(process.cwd(), "data/video-daily.json");
 
@@ -176,9 +182,10 @@ Return ONLY the rewritten script, nothing else. Three paragraphs: hero (2 senten
     url = "https://integrate.api.nvidia.com/v1/chat/completions";
     headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
     body = {
-      model: "meta/llama-4-maverick-17b-128e-instruct",
+      model: NIM_MODEL,
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 600,
+      ...modelOptions(NIM_MODEL),
+      max_tokens: 600 + 1024,
       temperature: 0.7,
     };
   } else {
