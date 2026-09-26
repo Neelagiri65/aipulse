@@ -3,10 +3,9 @@ import Link from "next/link";
 import { PrivacyFooter } from "@/components/consent/PrivacyFooter";
 import { SubscribeForm } from "@/components/subscribe/SubscribeForm";
 import { listDigestDates } from "@/lib/digest/archive";
-import { VERIFIED_SOURCES } from "@/lib/data-sources";
 
 const NEWSLETTER_DESCRIPTION =
-  "The Daily gawk.dev — one email a day on what actually moved in the AI ecosystem. Tool outages, model ranking moves, SDK adoption shifts. Every number cites its public source.";
+  "The Daily gawk.dev — one email a day on what actually moved in the AI ecosystem. Tool outages, model ranking moves, SDK adoption shifts.";
 
 export const metadata: Metadata = {
   title: "The Daily gawk.dev — newsletter",
@@ -39,7 +38,6 @@ export const dynamic = "force-dynamic";
  */
 export default async function NewsletterPage() {
   const latestIssue = (await listDigestDates())[0] ?? null;
-  const sourceCount = VERIFIED_SOURCES.length;
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-16 text-foreground">
@@ -50,16 +48,13 @@ export default async function NewsletterPage() {
         The Daily gawk.dev
       </h1>
       <p className="mb-8 font-mono text-sm text-muted-foreground">
-        ~2 minutes · {sourceCount} verified sources · zero noise
+        ~2 minutes · zero noise
       </p>
 
       <p className="mb-10 text-[15px] leading-relaxed text-muted-foreground">
         One email, every morning (UTC): what actually moved in the AI
         ecosystem in the last 24 hours — pulled from the same public feeds
-        as the dashboard, nothing inferred or editorialised. Every number
-        links to the public source it was read from. Quiet days say so
-        instead of manufacturing news. Unsubscribe in one click from any
-        email.
+        as the dashboard. Unsubscribe in one click from any email.
       </p>
 
       <h2 className="mb-4 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">

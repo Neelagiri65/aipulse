@@ -132,9 +132,6 @@ export default async function ReportOgImage({
             color: og.muted,
           }}
         >
-          <div style={{ display: "flex", color: og.ink2 }}>
-            Every number cites its public source.
-          </div>
           <div style={{ marginLeft: "auto", display: "flex" }}>
             gawk.dev/reports/{config.slug}
           </div>

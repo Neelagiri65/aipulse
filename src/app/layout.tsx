@@ -34,7 +34,7 @@ const SITE_ORIGIN =
   "https://gawk.dev";
 
 const SITE_DESCRIPTION =
-  "Real-time observatory for the global AI ecosystem. Every number cites its public source.";
+  "Real-time observatory for the global AI ecosystem.";
 
 /**
  * JSON-LD for Organization + WebSite. The description leads with "AI coding

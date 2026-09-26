@@ -79,9 +79,6 @@ export default async function SiteOgImage() {
             color: og.muted,
           }}
         >
-          <div style={{ display: "flex", color: og.ink2 }}>
-            Every number cites its public source.
-          </div>
           <div style={{ marginLeft: "auto", display: "flex" }}>gawk.dev</div>
         </div>
       </div>

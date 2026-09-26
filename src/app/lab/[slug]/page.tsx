@@ -37,7 +37,6 @@ import {
   pickTopLabsBy7dActivity,
 } from "@/lib/data/labs-top";
 import { shortEventType } from "@/components/globe/event-types";
-import { formatProvenanceTooltip } from "@/lib/provenance";
 import { CATEGORY_META } from "@/lib/data/labs-registry";
 
 export const runtime = "nodejs";
@@ -65,7 +64,7 @@ export async function generateMetadata({
   const lab = await loadTopLab(slug);
   if (!lab) return { title: "Lab not found · gawk.dev" };
   const title = `${lab.displayName} · AI Lab profile · gawk.dev`;
-  const description = `${lab.displayName} — ${lab.city}, ${lab.country}. ${lab.total} GitHub events across ${lab.repos.length} tracked repos in the last 7 days. Aggregated from public GitHub Events API; verified HQ coordinate.`;
+  const description = `${lab.displayName} — ${lab.city}, ${lab.country}. ${lab.total} GitHub events across ${lab.repos.length} tracked repos in the last 7 days.`;
   return {
     title,
     description,
@@ -85,8 +84,6 @@ export default async function LabEntityPage({
   const lab = await loadTopLab(slug);
   if (!lab) notFound();
 
-  const payload = await fetchLabActivity();
-  const generatedAt = payload.generatedAt;
   const typeEntries = Object.entries(lab.byType)
     .filter(([, n]) => n > 0)
     .sort((a, z) => z[1] - a[1]);
@@ -142,14 +139,6 @@ export default async function LabEntityPage({
           <span>
             HQ: {lab.city}, {lab.country}
           </span>
-          <a
-            href={lab.hqSourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline decoration-dotted underline-offset-2 hover:text-foreground"
-          >
-            HQ source ↗
-          </a>
         </div>
       </header>
 
@@ -246,9 +235,8 @@ export default async function LabEntityPage({
 
       <footer
         className="mt-10 border-t border-border/40 pt-4 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
-        title={formatProvenanceTooltip(generatedAt, "https://gawk.dev/sources")}
       >
-        Aggregated from public GitHub Events API. Top-{LAB_PAGE_TOP_N_DEFAULT} by 7d activity only.{" "}
+        Top-{LAB_PAGE_TOP_N_DEFAULT} repos by 7-day activity.{" "}
         <Link
           href="/sources"
           className="underline decoration-dotted underline-offset-2 hover:text-foreground"

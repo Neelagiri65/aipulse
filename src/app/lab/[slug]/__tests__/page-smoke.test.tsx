@@ -94,7 +94,7 @@ describe("/lab/[slug]", () => {
     );
     expect(html).toContain("Anthropic");
     expect(html).toContain("San Francisco");
-    expect(html).toContain("HQ source");
+    expect(html).not.toContain("HQ source");
     expect(html).toContain("1,234");
     expect(html).toContain("anthropic/flagship");
     expect(html).toContain("github.com/anthropic"); // GH org link

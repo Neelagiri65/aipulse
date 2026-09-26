@@ -55,7 +55,7 @@ export function buildDigestRssXml(
     `  <channel>`,
     `    <title>The Daily gawk.dev</title>`,
     `    <link>${escapeXml(`${origin}/newsletter`)}</link>`,
-    `    <description>One email a day on what actually moved in the AI ecosystem. Every number cites its public source.</description>`,
+    `    <description>One email a day on what actually moved in the AI ecosystem.</description>`,
     `    <language>en</language>`,
     channelItems,
     `  </channel>`,
