@@ -79,9 +79,12 @@ export type LabActivity = {
   stale: boolean;
   /**
    * The lab's active repositories as their owners describe them on GitHub ("owner/repo — …"),
-   * read only for the lab a LAB_HIGHLIGHT card is about. Absent otherwise.
+   * read for the lab a LAB_HIGHLIGHT card is about, and for every lab on /api/labs (describeLabs).
+   * Absent when none of its active repos has a description.
    */
   reposDescribed?: string;
+  /** `reposDescribed` as a card quotes it (toSummary) — what the board detail shows. */
+  summary?: string;
 };
 
 export type LabsPayload = {

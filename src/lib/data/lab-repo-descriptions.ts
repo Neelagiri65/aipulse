@@ -7,7 +7,8 @@
  */
 
 import { GITHUB_REPO_META } from "@/lib/data-sources";
-import type { LabActivity } from "@/lib/data/fetch-labs";
+import type { LabActivity, LabsPayload } from "@/lib/data/fetch-labs";
+import { toSummary } from "@/lib/feed/summary";
 
 const FETCH_TIMEOUT_MS = 5_000;
 const REVALIDATE_SECONDS = 24 * 60 * 60;
@@ -69,4 +70,25 @@ export async function describeLabRepos(
     active.map(async (r) => ({ owner: r.owner, repo: r.repo, description: await fetchRepoDescription(r.owner, r.repo, token, fetchImpl) })),
   );
   return describeRepos(described);
+}
+
+/**
+ * Every lab on the board described the way the LAB_HIGHLIGHT card describes its lab: its ≤3 most
+ * active repositories in their owners' words, and that text as a card quotes it (`summary`). The
+ * repo reads are cached a day, so the six-hourly labs warm pays for them and readers do not.
+ * A lab with no described repo is left as it was.
+ */
+export async function describeLabs(
+  payload: LabsPayload,
+  token: string | undefined,
+  fetchImpl: typeof fetch = fetch,
+): Promise<LabsPayload> {
+  const labs = await Promise.all(
+    payload.labs.map(async (lab) => {
+      const reposDescribed = await describeLabRepos(lab, token, fetchImpl);
+      const summary = toSummary(reposDescribed ?? "", lab.displayName);
+      return reposDescribed ? { ...lab, reposDescribed, ...(summary ? { summary } : {}) } : lab;
+    }),
+  );
+  return { ...payload, labs };
 }
