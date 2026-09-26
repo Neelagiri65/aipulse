@@ -8,7 +8,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { VERIFIED_SOURCES } from "@/lib/data-sources";
 
 const listDigestDates = vi.fn();
 vi.mock("@/lib/digest/archive", () => ({
@@ -40,7 +39,8 @@ describe("/newsletter page", () => {
   it("source count in the tagline is the registry count, not a hardcode", async () => {
     listDigestDates.mockResolvedValue([]);
     const html = renderToStaticMarkup(await NewsletterPage());
-    expect(html).toContain(`${VERIFIED_SOURCES.length} verified sources`);
+    expect(html).not.toContain("verified sources");
+    expect(html).not.toContain("Every number cites");
   });
 
   it("Redis failure is fail-soft upstream, but a rejecting lister must not 500 the page", async () => {

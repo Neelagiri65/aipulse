@@ -16,7 +16,7 @@ type ConfirmState = "ok" | "expired" | "invalid" | "not-found" | "error";
 const COPY: Record<ConfirmState, { heading: string; body: string }> = {
   ok: {
     heading: "You're subscribed.",
-    body: "We'll send one daily digest at 08:00 UTC. Every number cites its public source. Unsubscribe any time via the link at the bottom of every email.",
+    body: "We'll send one daily digest at 08:00 UTC. Unsubscribe any time via the link at the bottom of every email.",
   },
   expired: {
     heading: "That link has expired.",

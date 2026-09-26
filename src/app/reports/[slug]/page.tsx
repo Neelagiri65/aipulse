@@ -51,7 +51,7 @@ export async function generateMetadata({
     ? `gawk.dev AI Genesis Report · ${config.window}`
     : `${config.title} · gawk.dev`;
   const subtitleText = isEditorialPlaceholder(config.subtitle)
-    ? `gawk.dev AI Genesis Report covering ${config.window}. Every number cites its public source.`
+    ? `gawk.dev AI Genesis Report covering ${config.window}.`
     : config.subtitle;
   // S62g.3: meta description must be ≥100 chars per LinkedIn's
   // unfurl-quality bar. The visible page subtitle stays operator-
@@ -177,7 +177,7 @@ function ArticleJsonLd({
     ? `gawk.dev AI Genesis Report · ${config.window}`
     : config.title;
   const description = isEditorialPlaceholder(config.subtitle)
-    ? `gawk.dev AI Genesis Report covering ${config.window}. Every number cites its public source.`
+    ? `gawk.dev AI Genesis Report covering ${config.window}.`
     : config.subtitle;
   const ld = {
     "@context": "https://schema.org",

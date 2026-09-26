@@ -279,7 +279,6 @@ function ReportBlockChart({
         }}
       >
         <span>gawk.dev</span>
-        <span>Every number cites its public source.</span>
       </div>
     </div>
   );
