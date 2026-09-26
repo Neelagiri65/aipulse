@@ -24,9 +24,8 @@ export function CardSummary({ card }: { card: Pick<Card, "summary" | "machineSum
     <section className="ap-summary ap-summary--machine" data-testid="card-summary" data-summary-kind="machine">
       <div className="ap-summary__head">Machine summary</div>
       <p className="ap-summary__text">{text}</p>
-      <p className="ap-summary__label">
-        Written by {machine.model} from the linked page · not the source&apos;s words
-      </p>
+      {/* One string: split JSX text lost the space after the model in the client bundle ("20bfrom"). */}
+      <p className="ap-summary__label">{`Written by ${machine.model} from the linked page · not the source's words`}</p>
     </section>
   );
 }
