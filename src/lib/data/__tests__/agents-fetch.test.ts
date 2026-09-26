@@ -94,6 +94,7 @@ describe("fetchAgentSnapshots", () => {
           open_issues_count: 516,
           pushed_at: "2026-05-03T01:05:11Z",
           archived: false,
+          description: "Build resilient agents.", // live, 2026-09-26
         }),
     });
 
@@ -110,6 +111,7 @@ describe("fetchAgentSnapshots", () => {
     expect(fw.openIssues).toBe(516);
     expect(fw.pushedAt).toBe("2026-05-03T01:05:11Z");
     expect(fw.archived).toBe(false);
+    expect(fw.description).toBe("Build resilient agents.");
     expect(fw.fetchErrors).toEqual([]);
   });
 

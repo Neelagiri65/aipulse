@@ -44,6 +44,9 @@ export type AgentFrameworkSnapshot = {
   pushedAt: string | null;
   /** GH `archived` flag — true means the owner explicitly archived the repo. */
   archived: boolean | null;
+  /** GH `description`, verbatim — the repo owner's own words. Same fetch as the four fields
+   *  above; optional so blobs written before it existed still read. null = the repo has none. */
+  description?: string | null;
   /**
    * Per-source last-known-good staleness. ISO of the run when the source's
    * data was LAST freshly fetched. `null` here means "fresh THIS run".
@@ -148,12 +151,14 @@ async function fetchOneFramework(
   let openIssues: number | null = null;
   let pushedAt: string | null = null;
   let archived: boolean | null = null;
+  let description: string | null = null;
   try {
     const meta = await fetchGithubRepoMeta(fw.githubRepo, fetchImpl, ghToken);
     stars = meta.stars;
     openIssues = meta.openIssues;
     pushedAt = meta.pushedAt;
     archived = meta.archived;
+    description = meta.description;
   } catch (e) {
     errors.push({ source: "github", message: errMessage(e) });
   }
@@ -172,6 +177,7 @@ async function fetchOneFramework(
     openIssues,
     pushedAt,
     archived,
+    description,
     // Fresh-fetch is always staleSince=null; the ingest merge stamps
     // staleSince to the run's ISO when a source fails AND a prior
     // value exists to carry forward.
@@ -285,6 +291,7 @@ async function fetchGithubRepoMeta(
   openIssues: number;
   pushedAt: string;
   archived: boolean;
+  description: string | null;
 }> {
   const url = `${GITHUB_BASE}/${repo}`;
   const headers: Record<string, string> = {
@@ -307,7 +314,8 @@ async function fetchGithubRepoMeta(
   const openIssues = toCount(o.open_issues_count, "open_issues_count");
   const pushedAt = toIsoString(o.pushed_at, "pushed_at");
   const archived = typeof o.archived === "boolean" ? o.archived : false;
-  return { stars, openIssues, pushedAt, archived };
+  const description = typeof o.description === "string" && o.description.trim() ? o.description : null;
+  return { stars, openIssues, pushedAt, archived, description };
 }
 
 function toCount(value: unknown, field: string): number {

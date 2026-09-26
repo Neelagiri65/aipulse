@@ -89,6 +89,7 @@ export function mergeWithPriorSnapshot(
     if (current.openIssues === null && prior.openIssues !== null) merged.openIssues = prior.openIssues;
     if (current.pushedAt === null && prior.pushedAt !== null) merged.pushedAt = prior.pushedAt;
     if (current.archived === null && prior.archived !== null) merged.archived = prior.archived;
+    if (!current.description && prior.description) merged.description = prior.description;
     if (merged.stars !== null || merged.pushedAt !== null) {
       merged.githubStaleSince = prior.githubStaleSince ?? priorStamp;
     }
