@@ -11,7 +11,7 @@ import { openDashboard, shot, switchTab } from "./_helpers";
  * Structural assertions only: which tools carry incident cards changes daily,
  * so the spec never pins a tool id, and both divider copies are acceptable.
  */
-const DIVIDER = /Everything else · \d+ · still ranked, nothing hidden|Nothing among these \d+ cards names a tool/;
+const DIVIDER = /Everything else · \d+|Nothing among these \d+ cards names a tool/;
 // The feed mounts in a loading state and fetches /api/feed on the client; a
 // cold local build composes it from live sources and can take a while.
 const FEED_READY_MS = 120_000;

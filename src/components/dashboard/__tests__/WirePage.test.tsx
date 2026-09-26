@@ -63,19 +63,26 @@ describe("WirePage", () => {
     expect(html).toContain("Hacker News · 142 points · 37 comments · 07/09/2026 08:45 UTC");
     expect(html).toContain("Open on Hacker News");
     expect(html).toContain("The link is the discussion, not the article.");
+    expect(html).not.toContain("Why this is here");
+    expect(html).not.toContain("HN&#x27;s clock");
   });
 
   it("a GitLab event is named as GitLab in the detail, with its GitLab links", () => {
     const html = renderToStaticMarkup(<WireDetail row={{ ...(ghArchive as Extract<WireItem, { kind: "gh" }>), sourceKind: "gitlab", eventId: "gl:77" }} nowMs={Date.parse(polledAt)} />);
     expect(html).toContain("GitLab public event · PR ·");
-    expect(html).toContain("GitLab public events API · event gl:77");
     expect(html).toContain('href="https://gitlab.com/bob"');
-    expect(html).toContain("40m ago by the publisher");
+    expect(html).toContain("40m ago.");
+    expect(html).not.toContain("by the publisher");
+    expect(html).not.toContain("GitLab public events API");
   });
 
-  it("a tracked-repo event names its complete stream in the Source line", () => {
+  it("the gh detail carries no Source credit row and no 'Why this is here' block; the file list stays", () => {
     const html = renderToStaticMarkup(<WireDetail row={{ ...(gh as Extract<WireItem, { kind: "gh" }>), sourceKind: "tracked-repo" }} nowMs={Date.parse(polledAt)} />);
-    expect(html).toContain("GitHub Events API · tracked repo (complete stream, not the sampled firehose) · event 1");
+    expect(html).not.toContain("<dt>Source</dt>");
+    expect(html).not.toContain("GitHub Events API");
+    expect(html).not.toContain("Why this is here");
+    expect(html).not.toContain("never inferred");
+    expect(html).toContain("file presence only)");
   });
 
   it("pages the list: the first 200 rows, then a show-more with the honest remainder", () => {

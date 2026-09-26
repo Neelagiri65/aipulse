@@ -117,16 +117,6 @@ function SourceBody({ source }: { source: RssSourcePanel }) {
           >
             rss ↗
           </a>
-          <span className="text-muted-foreground">·</span>
-          <a
-            href={source.hqSourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-[#f97316] hover:underline"
-            title="HQ coordinate provenance"
-          >
-            HQ source ↗
-          </a>
           {(() => {
             const url = deriveTranslateUrl(source.publisherUrl, source.lang);
             if (!url) return null;
@@ -193,14 +183,6 @@ function SourceBody({ source }: { source: RssSourcePanel }) {
         </ul>
       </div>
 
-      {source.caveat && (
-        <div className="mt-2 border-t border-border/30 pt-1.5 font-mono text-[9px] leading-relaxed text-foreground/50">
-          <span className="uppercase tracking-wider text-foreground/60">
-            Transparency ·{" "}
-          </span>
-          <span>{source.caveat}</span>
-        </div>
-      )}
     </div>
   );
 }

@@ -141,11 +141,7 @@ export default async function CardPage({
       </article>
 
       <p className="text-xs text-muted-foreground">
-        gawk.dev · live observatory of the AI ecosystem · every number cites a
-        public source ·{" "}
-        <Link href="/methodology" className="underline">
-          how cards are ranked
-        </Link>
+        gawk.dev · live observatory of the AI ecosystem
       </p>
     </main>
   );

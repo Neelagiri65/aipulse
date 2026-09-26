@@ -1,7 +1,7 @@
 /**
  * The reading surface for one feed card (web v2, PRD §8): kicker, headline, the detail, the summary
  * (CardSummary: the source's own words, else a labelled machine summary),
- * the source line, "Why this surfaced" from the locked thresholds, and the two actions. Stateless,
+ * the source line, and the two actions. Stateless,
  * safe for SSR. The phone list links each row to the /feed/[cardId] permalink instead.
  */
 import { CardSummary } from "@/components/feed/CardSummary";
@@ -9,7 +9,7 @@ import { StoryLines } from "@/components/feed/StoryLines";
 import { FeedCardShareButton } from "@/components/feed/FeedCardShareButton";
 import type { FeedCardDiscuss } from "@/components/feed/FeedCard";
 import type { Card } from "@/lib/feed/types";
-import { KIND_LABEL, stateWord, whySurfaced } from "@/lib/feed/why-surfaced";
+import { KIND_LABEL, stateWord } from "@/lib/feed/why-surfaced";
 
 export type FeedReadingProps = {
   card: Card;
@@ -77,10 +77,6 @@ export function FeedReading({ card, nowMs, discuss }: FeedReadingProps) {
         {" · "}
         <a href={`/feed/${card.id}`}>permalink</a>
       </p>
-      <div className="ap-reading__why">
-        <div className="ap-reading__whyhead">Why this surfaced</div>
-        <p>{whySurfaced(card)}</p>
-      </div>
       <div className="ap-reading__actions">
         <a className="ap-btn-ghost ap-reading__open" href={card.sourceUrl} target="_blank" rel="noreferrer">
           Open the source

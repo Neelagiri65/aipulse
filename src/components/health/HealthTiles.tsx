@@ -6,8 +6,8 @@ import { boardHref, type BoardId } from "@/components/chrome/primary-tabs";
 
 /**
  * Four compact tiles under the world band on Health (canvas Health board, PRD §7): a number, what
- * it counts, its source and the time the source was read. Numbers are ink; a pending tile is "—"
- * in muted italic with its source line and no time — never a 0 before the source answers.
+ * it counts and the time it was read. Numbers are ink; a pending tile is "—" in muted italic
+ * with no time — never a 0 before the source answers.
  */
 export function HealthTiles({ onOpenBoard, ...input }: HealthTilesInput & { onOpenBoard?: (id: BoardId) => void }) {
   const tiles = deriveHealthTiles(input);
@@ -20,9 +20,6 @@ export function HealthTiles({ onOpenBoard, ...input }: HealthTilesInput & { onOp
             <div className="ap-htile__label">{t.label}</div>
           </div>
           <div className="ap-htile__src">
-            <a href={t.sourceUrl} target={t.sourceUrl.startsWith("/") ? undefined : "_blank"} rel={t.sourceUrl.startsWith("/") ? undefined : "noopener noreferrer"}>
-              {t.source}
-            </a>
             <span>{t.at ? stampUtc(t.at) : "waiting for the first read"}</span>
             {t.boardId ? (
               <a

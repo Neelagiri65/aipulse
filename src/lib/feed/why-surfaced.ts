@@ -68,13 +68,13 @@ export function whySurfaced(card: Card): string {
       const incidents = num(m.activeIncidents) ?? 0;
       const state = status ? (STATUS_WORD[status] ?? status.replace(/_/g, " ")) : "a state change";
       const inc = incidents > 0 ? ` with ${incidents} active incident${incidents === 1 ? "" : "s"}` : "";
-      return `${card.sourceName} reported ${state}${inc}. Every state change on a tracked status page becomes a tool alert; nothing is ranked or scored.`;
+      return `${card.sourceName} reported ${state}${inc}. Every state change on a tracked status page becomes a tool alert.`;
     }
     case "MODEL_MOVER": {
       const prev = num(m.previousRank);
       const cur = num(m.currentRank);
       const move = prev !== undefined && cur !== undefined ? `Moved from #${prev} to #${cur} on OpenRouter's weekly ranking.` : "Moved on OpenRouter's weekly ranking.";
-      return `${move} A move of more than ${T.MODEL_MOVER_RANK_DELTA} ranks becomes a model mover; the ranking is OpenRouter's own.`;
+      return `${move} A move of more than ${T.MODEL_MOVER_RANK_DELTA} ranks becomes a model mover.`;
     }
     case "SDK_TREND": {
       const pct = num(m.deltaPct);
@@ -84,21 +84,21 @@ export function whySurfaced(card: Card): string {
     }
     case "NEWS": {
       if (str(m.subreddit) || str(m.redditId)) {
-        return `Posted on ${card.sourceName} within the last ${T.NEWS_REDDIT_WINDOW_HOURS} hours; at most ${T.NEWS_REDDIT_MAX_PER_SUB} posts per subreddit per window, and the subreddit's own curation is trusted, not a score. The link is the discussion.`;
+        return `Posted on ${card.sourceName} within the last ${T.NEWS_REDDIT_WINDOW_HOURS} hours; at most ${T.NEWS_REDDIT_MAX_PER_SUB} posts per subreddit per window. The link is the discussion.`;
       }
       return `Passed ${T.NEWS_HN_POINTS} points on Hacker News within ${T.NEWS_HN_WINDOW_HOURS} hours of landing. The link is the discussion, not the article.`;
     }
     case "PRESS":
-      return `Published by ${card.sourceName} within the last ${T.NEWS_PUBLISHER_WINDOW_HOURS} hours; at most ${T.NEWS_PUBLISHER_MAX_PER_SOURCE} articles per publisher per window, in the publisher's own order. The headline is the publisher's, unedited.`;
+      return `Published by ${card.sourceName} within the last ${T.NEWS_PUBLISHER_WINDOW_HOURS} hours; at most ${T.NEWS_PUBLISHER_MAX_PER_SOURCE} articles per publisher per window.`;
     case "NEW_RELEASE":
       return `Published on Hugging Face by a major lab within the last ${T.NEW_RELEASE_AGE_HOURS} hours with at least ${T.NEW_RELEASE_MIN_LIKES} likes.`;
     case "PRODUCT_LAUNCH": {
       const votes = num(m.votes);
-      return `In Product Hunt's top Artificial Intelligence launches, in Product Hunt's own order${votes !== undefined ? `, with ${votes} upvotes` : ""}. No freshness window: the date shown is the launch's real date.`;
+      return `In Product Hunt's top Artificial Intelligence launches${votes !== undefined ? `, with ${votes} upvotes` : ""}. There is no freshness window.`;
     }
     case "RESEARCH": {
       const cat = str(m.primaryCategory);
-      return `One of the five newest papers in arXiv's cs.AI listing${cat ? ` (primary category ${cat})` : ""}, in arXiv's own order by date. Nothing is re-ranked.`;
+      return `One of the five newest papers in arXiv's cs.AI listing${cat ? ` (primary category ${cat})` : ""}.`;
     }
     case "LAB_HIGHLIGHT": {
       const total = num(m.total);

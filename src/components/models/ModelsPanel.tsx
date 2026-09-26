@@ -88,18 +88,7 @@ function ModelRow({ model, rank }: { model: HuggingFaceModel; rank: number }) {
 
 function SourceFooter({ generatedAt, stale }: { generatedAt: string; stale: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-2 border-t border-border/30 px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-      <span className="truncate">
-        Source:{" "}
-        <a
-          href="https://huggingface.co/models?pipeline_tag=text-generation&sort=downloads"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline decoration-dotted underline-offset-2 hover:text-foreground"
-        >
-          hf-models
-        </a>
-      </span>
+    <div className="flex items-center justify-end gap-2 border-t border-border/30 px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
       <span className={stale ? "text-amber-400/80" : ""}>
         {stale ? "stale · " : ""}
         {formatRelative(generatedAt)}
@@ -114,7 +103,7 @@ function AwaitingBody() {
       <p className="ap-label-sm" style={{ color: "var(--sev-degrade)" }}>
         Awaiting first poll
       </p>
-      <p className="mt-1 leading-relaxed">Source verified. Fetching HuggingFace…</p>
+      <p className="mt-1 leading-relaxed">Fetching HuggingFace…</p>
     </div>
   );
 }

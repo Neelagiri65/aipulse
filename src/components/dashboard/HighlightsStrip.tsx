@@ -50,7 +50,6 @@ export function HighlightsStrip({
             data-testid="highlights-chip"
             data-card-type={card.type}
             aria-label={`${card.headline} — open ${panel} panel`}
-            title={`Source: ${card.sourceName}`}
           >
             <span
               className={`ap-mark ap-mark--${TONE_MARK[tone]} ap-mark--sm`}
@@ -111,7 +110,6 @@ function RotatingTicker({
         data-testid="highlights-chip"
         data-card-type={card.type}
         aria-label={`${card.headline} — open ${panel} panel`}
-        title={`Source: ${card.sourceName}`}
       >
         <span
           className={`ap-mark ap-mark--${TONE_MARK[tone]} ap-mark--sm`}

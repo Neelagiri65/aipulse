@@ -20,7 +20,6 @@ import {
   formatIncidentDuration,
   formatIncidentImpact,
 } from "@/lib/data/last-incident";
-import { formatProvenanceTooltip } from "@/lib/provenance";
 import { PROBE_LATENCY_CEILING_MS } from "@/lib/data/tool-probe";
 
 export type ToolHealthCardProps = {
@@ -82,11 +81,9 @@ export function ToolHealthCard({ config, data, defaultOpen }: ToolHealthCardProp
           <p className="ap-trow__sub">{config.subtitle}</p>
           {state.mode === "no-data" && <NoDataBody config={config} />}
           {state.mode === "pending" && (
-            <Note head="Source pending verification">
-              Source not Phase-0 validated yet. No number shown to preserve the trust contract.
-            </Note>
+            <Note head="Not tracked yet">No number yet.</Note>
           )}
-          {state.mode === "awaiting" && <Note head="Awaiting first poll">Source verified. Polling…</Note>}
+          {state.mode === "awaiting" && <Note head="Awaiting first poll">Polling…</Note>}
           {state.mode === "live" && data && (
             <>
               {data.activeIncidents && data.activeIncidents.length > 0 && (
@@ -104,7 +101,7 @@ export function ToolHealthCard({ config, data, defaultOpen }: ToolHealthCardProp
             </>
           )}
           {state.mode !== "no-data" && (
-            <SourceFooter mode={state.mode} data={data} sourceUrl={sourceUrl} sourceLabel={sourceLabel} />
+            <SourceFooter mode={state.mode} data={data} />
           )}
         </div>
       )}
@@ -267,35 +264,12 @@ function ProbeRow({ probe }: { probe: NonNullable<ToolHealthData["probe"]> }) {
   );
 }
 
-function SourceFooter({
-  mode,
-  data,
-  sourceUrl,
-  sourceLabel,
-}: {
-  mode: RowMode;
-  data?: ToolHealthData;
-  sourceUrl?: string;
-  sourceLabel: string;
-}) {
+function SourceFooter({ mode, data }: { mode: RowMode; data?: ToolHealthData }) {
   const now = useNow();
-  const provenanceTitle =
-    mode === "live" && data?.lastCheckedAt && sourceUrl
-      ? formatProvenanceTooltip(data.lastCheckedAt, sourceUrl, now)
-      : undefined;
+  if (mode !== "live" || !data?.lastCheckedAt) return null;
   return (
-    <p className="ap-trow__src" title={provenanceTitle}>
-      <span>
-        Source:{" "}
-        {sourceUrl ? (
-          <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="ap-trow__link">
-            {sourceLabel}
-          </a>
-        ) : (
-          sourceLabel
-        )}
-      </span>
-      {mode === "live" && data?.lastCheckedAt && <span>checked {formatRelative(data.lastCheckedAt, now)}</span>}
+    <p className="ap-trow__src">
+      <span>checked {formatRelative(data.lastCheckedAt, now)}</span>
     </p>
   );
 }

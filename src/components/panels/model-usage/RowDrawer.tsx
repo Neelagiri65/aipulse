@@ -29,10 +29,7 @@ import {
   formatContextLength,
   formatPricing,
 } from "@/components/panels/model-usage/ModelUsageList";
-import {
-  OPENROUTER_SOURCE_CAVEAT,
-  type ModelUsageRow,
-} from "@/lib/data/openrouter-types";
+import type { ModelUsageRow } from "@/lib/data/openrouter-types";
 
 export type RankHistoryPoint = {
   /** UTC date (YYYY-MM-DD). */
@@ -189,10 +186,6 @@ export function RowDrawer({
               Rank history will appear after the first 24h of snapshots.
             </p>
           )}
-        </section>
-
-        <section className="drawer-caveat" aria-label="Source caveat">
-          <p>{OPENROUTER_SOURCE_CAVEAT}</p>
         </section>
 
         <footer className="drawer-share">

@@ -190,7 +190,7 @@ function formatRelative(iso: string): string {
 
 function isoPublisherTimeTitle(iso: string): string {
   try {
-    return `${new Date(iso).toISOString()} · publisher event time`;
+    return new Date(iso).toISOString();
   } catch {
     return iso;
   }

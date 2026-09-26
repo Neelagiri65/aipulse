@@ -17,7 +17,7 @@ const card: Card = {
 };
 
 describe("FeedReading", () => {
-  it("kicker, headline, the source's words, source link, permalink, why, actions", () => {
+  it("kicker, headline, the source's words, source link, permalink, actions — no 'Why this surfaced' block", () => {
     const html = renderToStaticMarkup(<FeedReading card={card} nowMs={Date.parse("2026-09-07T10:00:00Z")} />);
     expect(html).toContain("Model mover · OpenRouter · 07/09/2026 09:00 UTC");
     expect(html).toContain("MiniMax: MiniMax M3 down 11 ranks");
@@ -25,8 +25,8 @@ describe("FeedReading", () => {
     expect(html).toMatch(/<a [^>]*href="https:\/\/openrouter\.ai\/rankings"[^>]*rel="noreferrer"/);
     expect(html).toContain("1h ago");
     expect(html).toContain('href="/feed/MODEL_MOVER-abc"');
-    expect(html).toContain("Why this surfaced");
-    expect(html).toContain(`more than ${FEED_TRIGGERS.MODEL_MOVER_RANK_DELTA} ranks`);
+    expect(html).not.toContain("Why this surfaced");
+    expect(html).not.toContain(`more than ${FEED_TRIGGERS.MODEL_MOVER_RANK_DELTA} ranks`);
     expect(html).toContain("Open the source");
     expect(html).toContain("feed-share-MODEL_MOVER-abc");
   });
@@ -39,7 +39,7 @@ describe("FeedReading", () => {
       />,
     );
     expect(html).toContain('class="ap-word ap-word--out">a major outage<');
-    expect(html).toContain("Anthropic Status reported a major outage with 1 active incident.");
+    expect(html).not.toContain("Anthropic Status reported a major outage with 1 active incident.");
   });
 
   it("a storied card names the other outlets and threads, each linked (live shape, 2026-09-24)", () => {
@@ -67,11 +67,12 @@ describe("FeedReading", () => {
     const html = renderToStaticMarkup(<FeedReading card={card} nowMs={Date.parse("2026-09-07T10:00:00Z")} />);
     expect(html).not.toContain("Also reported by");
   });
-  it("shows the source's words after the detail, and a machine summary labelled with its model", () => {
+  it("shows the source's words after the detail, and a machine summary under its heading", () => {
     const now = Date.parse("2026-09-07T10:00:00Z");
     const own = renderToStaticMarkup(<FeedReading card={{ ...card, summary: "MiniMax's flagship model." }} nowMs={now} />);
     expect(own).toMatch(/Now #16, was #5\.<\/p><section[^>]*data-summary-kind="source"/);
-    expect(own).toContain("In their words");
+    expect(own).toContain("MiniMax&#x27;s flagship model.");
+    expect(own).not.toContain("In their words");
     const machine = renderToStaticMarkup(
       <FeedReading
         card={{ ...card, type: "NEWS", machineSummary: { text: "A post about a model.", model: "openai/gpt-oss-20b", generatedAt: "2026-09-07T09:30:00Z" } }}
@@ -79,7 +80,7 @@ describe("FeedReading", () => {
       />,
     );
     expect(machine).toContain("Machine summary");
-    expect(machine).toContain("Written by openai/gpt-oss-20b from the linked page");
-    expect(machine).not.toContain("In their words");
+    expect(machine).toContain("A post about a model.");
+    expect(machine).not.toContain("Written by");
   });
 });

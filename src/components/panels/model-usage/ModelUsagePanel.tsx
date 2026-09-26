@@ -26,11 +26,7 @@ import {
   RowDrawer,
   type RankHistoryPoint,
 } from "@/components/panels/model-usage/RowDrawer";
-import {
-  OPENROUTER_SOURCE_CAVEAT,
-  type ModelUsageDto,
-} from "@/lib/data/openrouter-types";
-import { formatProvenanceTooltip } from "@/lib/provenance";
+import type { ModelUsageDto } from "@/lib/data/openrouter-types";
 
 const TRENDING_DEEP_LINK = "https://openrouter.ai/rankings?view=trending";
 
@@ -160,24 +156,6 @@ export function ModelUsagePanel({
         focusedSlug={focusedSlug}
         onRowClick={(slug) => setFocusedSlug(slug)}
       />
-      <footer
-        className="model-usage-footer"
-        title={`${OPENROUTER_SOURCE_CAVEAT}\n\n${formatProvenanceTooltip(data.fetchedAt, "https://openrouter.ai/rankings")}`}
-      >
-        <span aria-hidden="true" className="model-usage-footer-icon">ⓘ</span>
-        <span>
-          OpenRouter reflects API-first developer spend. Direct customers
-          invisible.{" "}
-          <a
-            href="https://openrouter.ai/rankings"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="model-usage-footer-link"
-          >
-            Source ↗
-          </a>
-        </span>
-      </footer>
       {focusedRow ? (
         <RowDrawer
           row={focusedRow}
