@@ -188,7 +188,8 @@ export default function MethodologyPage() {
           around <strong>21%</strong> of raw events and is biased toward
           English-speaking developer profiles. Chinese, Indian, and other
           non-English developer activity is{" "}
-          <strong>systematically underrepresented</strong> in the geographic
+          <strong>systematically underrepresented</strong>{" "}
+          in the geographic
           view — the events still land in the Wire feed and panel
           aggregates, but they don&rsquo;t become dots until the geocoder
           can resolve their author&rsquo;s self-declared location.
