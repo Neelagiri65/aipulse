@@ -11,46 +11,17 @@
  * brand, monospace claim text. Iterate after first LinkedIn unfurl.
  */
 
-import { readRssWire } from "@/lib/data/rss-store";
-import type { RssWireItem } from "@/lib/data/wire-rss";
 import { ImageResponse } from "next/og";
 import { BrandLockup, og, ogFont } from "@/lib/og-brand";
 
-import { fetchAllStatus } from "@/lib/data/fetch-status";
-import { redisOpenRouterStore } from "@/lib/data/openrouter-store";
-import {
-  ymdUtc,
-  readRecentSnapshots,
-} from "@/lib/data/snapshot";
-import { readLatest } from "@/lib/data/pkg-store";
-import {
-  assembleSdkAdoption,
-  type SdkAdoptionRegistry,
-} from "@/lib/data/sdk-adoption";
-import { readWire } from "@/lib/data/hn-store";
-import { fetchRecentPapers } from "@/lib/data/fetch-research";
-import { fetchLabActivity } from "@/lib/data/fetch-labs";
-import { fetchRecentModels } from "@/lib/data/fetch-models";
-import { readRecentRedditItems } from "@/lib/data/reddit-feed";
-import { fetchProductHuntLaunches } from "@/lib/data/fetch-producthunt";
-import { OPENROUTER_SOURCE_CAVEAT } from "@/lib/data/openrouter-types";
 
-import { composeFeed, type FeedSnapshots } from "@/lib/feed/compose";
+import { findFeedCard } from "@/lib/feed/load";
 import type { Card } from "@/lib/feed/types";
 
 export const runtime = "nodejs";
 export const alt = "gawk.dev card";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-
-const REGISTRIES: SdkAdoptionRegistry[] = [
-  "pypi",
-  "npm",
-  "crates",
-  "docker",
-  "brew",
-  "vscode",
-];
 
 /**
  * Severity, on the site's own ramp rather than Tailwind's defaults.
@@ -153,107 +124,5 @@ export default async function CardOgImage({
 }
 
 async function findCardById(cardId: string): Promise<Card | null> {
-  const snapshots = await loadSnapshots();
-  const response = composeFeed(snapshots, Date.now());
-  return response.cards.find((c) => c.id === cardId) ?? null;
-}
-
-async function loadSnapshots(): Promise<FeedSnapshots> {
-  const nowIso = new Date().toISOString();
-  const [status, models, sdk, hn, research, labs, hfRecent, reddit, productHunt, rss] = await Promise.all([
-    fetchAllStatus().catch(() => ({
-      data: {},
-      polledAt: nowIso,
-      failures: [],
-    })),
-    redisOpenRouterStore.readRankingsLatest().then(
-      (dto) =>
-        dto ?? {
-          ordering: "catalogue-fallback" as const,
-          generatedAt: nowIso,
-          fetchedAt: nowIso,
-          rows: [],
-          trendingDiffersFromTopWeekly: false,
-          sanityWarnings: [],
-          sourceCaveat: OPENROUTER_SOURCE_CAVEAT,
-        },
-      () => ({
-        ordering: "catalogue-fallback" as const,
-        generatedAt: nowIso,
-        fetchedAt: nowIso,
-        rows: [],
-        trendingDiffersFromTopWeekly: false,
-        sanityWarnings: [],
-        sourceCaveat: OPENROUTER_SOURCE_CAVEAT,
-      }),
-    ),
-    loadSdk(nowIso),
-    readWire().catch(() => ({
-      ok: false as const,
-      items: [],
-      points: [],
-      polledAt: nowIso,
-      coverage: {
-        itemsTotal: 0,
-        itemsWithLocation: 0,
-        geocodeResolutionPct: 0,
-      },
-      meta: { lastFetchOkTs: null, staleMinutes: null },
-      source: "unavailable" as const,
-    })),
-    fetchRecentPapers().catch(() => ({
-      ok: false as const,
-      papers: [],
-      generatedAt: nowIso,
-    })),
-    fetchLabActivity().catch(() => ({
-      labs: [],
-      generatedAt: nowIso,
-      failures: [],
-    })),
-    fetchRecentModels()
-      .then((r) => (r.ok ? r.models : []))
-      .catch(() => []),
-    readRecentRedditItems(50).catch(
-      () => [] as Awaited<ReturnType<typeof readRecentRedditItems>>,
-    ),
-    fetchProductHuntLaunches().catch(() => ({
-      ok: false as const,
-      posts: [],
-      generatedAt: nowIso,
-    })),
-    // Publisher stories need their own page and unfurl card too — the same read the Feed uses.
-    readRssWire()
-      .then((w) => w.items)
-      .catch(() => [] as RssWireItem[]),
-  ]);
-  return { status, models, sdk, hn, research, labs, hfRecent, reddit, productHunt, rss };
-}
-
-async function loadSdk(nowIso: string) {
-  try {
-    const today = ymdUtc();
-    const [snaps, ...latests] = await Promise.all([
-      readRecentSnapshots(31),
-      ...REGISTRIES.map((r) => readLatest(r)),
-    ]);
-    const pkgLatest = {
-      pypi: latests[0] ?? null,
-      npm: latests[1] ?? null,
-      crates: latests[2] ?? null,
-      docker: latests[3] ?? null,
-      brew: latests[4] ?? null,
-      vscode: latests[5] ?? null,
-    };
-    return assembleSdkAdoption({
-      pkgLatest,
-      snapshots: snaps,
-      today,
-      windowDays: 30,
-      baselineWindow: 30,
-      now: () => new Date(),
-    });
-  } catch {
-    return { packages: [], generatedAt: nowIso };
-  }
+  return findFeedCard(cardId);
 }

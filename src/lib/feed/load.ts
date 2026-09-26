@@ -55,6 +55,7 @@ import { leadingLab } from "@/lib/feed/derivers/lab-highlight";
 import { describeLabRepos } from "@/lib/data/lab-repo-descriptions";
 import { fetchModelCardParagraph, MODEL_CARD_FETCH_CAP } from "@/lib/data/hf-model-card";
 import type {
+  Card,
   DegradedSource,
   FeedResponse,
   StaleSource,
@@ -303,3 +304,16 @@ async function withMachineSummaries(wire: HnWireResult): Promise<HnWireResult> {
   };
 }
 
+
+/**
+ * One card by id, from the same composed + contained feed every other surface serves — so the
+ * permalink and its share image carry the same summaries and honour the same quarantine. Null
+ * when the card has rolled out of the live feed.
+ */
+export async function findFeedCard(
+  cardId: string,
+  nowMs: number = Date.now(),
+): Promise<Card | null> {
+  const response = await loadFeedResponse(nowMs);
+  return response.cards.find((c) => c.id === cardId) ?? null;
+}

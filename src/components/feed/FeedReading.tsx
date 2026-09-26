@@ -2,7 +2,7 @@
  * The reading surface for one feed card (web v2, PRD §8): kicker, headline, the detail, the summary
  * (CardSummary: the source's own words, else a labelled machine summary),
  * the source line, "Why this surfaced" from the locked thresholds, and the two actions. Stateless,
- * safe for SSR; the digest and the deep-link page keep FeedCard.
+ * safe for SSR. The phone list links each row to the /feed/[cardId] permalink instead.
  */
 import { CardSummary } from "@/components/feed/CardSummary";
 import { StoryLines } from "@/components/feed/StoryLines";
