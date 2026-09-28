@@ -26,6 +26,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SocialLinks } from "@/components/chrome/SocialLinks";
 import { notFound } from "next/navigation";
 
 import {
@@ -243,6 +244,7 @@ export default async function LabEntityPage({
         >
           Methodology ↗
         </Link>
+        <SocialLinks className="ap-social--start mt-4" />
       </footer>
     </main>
   );

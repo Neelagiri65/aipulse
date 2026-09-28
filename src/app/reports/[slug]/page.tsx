@@ -20,6 +20,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SocialLinks } from "@/components/chrome/SocialLinks";
 import { notFound } from "next/navigation";
 
 import { getReportConfig } from "@/lib/reports/registry";
@@ -550,6 +551,7 @@ function MethodologyFooter({ config: _config }: { config: GenesisReportConfig })
       >
         {EDITORIAL_PLACEHOLDER}
       </span>
+      <SocialLinks className="ap-social--start mt-4" />
     </footer>
   );
 }
