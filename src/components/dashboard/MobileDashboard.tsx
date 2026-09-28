@@ -49,6 +49,7 @@ import type { FreshnessState } from "@/components/chrome/TopBar";
 import type { FeedResponse } from "@/lib/feed/types";
 import { track } from "@/lib/analytics";
 import { HeroStrip } from "@/components/chrome/HeroStrip";
+import { SocialLinks } from "@/components/chrome/SocialLinks";
 import { HighlightsStrip } from "@/components/dashboard/HighlightsStrip";
 import {
   pickTopHighlights,
@@ -406,6 +407,7 @@ export function MobileDashboard(props: MobileDashboardProps) {
 
       <footer className="ap-mobile-footer">
         <CronHealthChip cronHealth={props.cronHealth} />
+        <SocialLinks />
         <a
           href="/data-sources.md"
           target="_blank"

@@ -710,7 +710,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   padding: 6px 12px;
   height: 32px;
   background: var(--ap-bg);
@@ -729,6 +729,52 @@
   text-decoration: none;
 }
 .ap-mobile-footer__link:hover { text-decoration: underline; }
+
+/* --------------------------------------------------------------------------
+   "gawk.dev elsewhere" — social icon row (SocialLinks.tsx). Simple Icons
+   painted through a CSS mask so each is one colour: muted ink at rest, the
+   --link accent on hover / focus-visible. 18px marks with a 4px hit pad.
+   -------------------------------------------------------------------------- */
+.ap-social {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.ap-social a {
+  display: inline-flex;
+  padding: 4px;
+  margin: -4px;
+  border-radius: 4px;
+  color: var(--muted-foreground);
+}
+.ap-social a:hover,
+.ap-social a:focus-visible { color: var(--link); }
+.ap-social a:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.ap-social__ico {
+  display: block;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+  -webkit-mask: var(--m) center / contain no-repeat;
+  mask: var(--m) center / contain no-repeat;
+  transition: background-color 0.15s;
+}
+.ap-social--start { justify-content: flex-start; }
+/* Mobile app-shell footer is a fixed 32px bar: every child stays on one line
+   and the cron-health chip (a live number) is never truncated. The icon row
+   tightens its gap to fit, and on phones narrower than 375px, where it cannot
+   fit beside the chip, it is left out of this bar rather than squeezing the
+   data. */
+.ap-mobile-footer .ap-social { flex-wrap: nowrap; gap: 6px; flex: none; }
+.ap-mobile-footer .ap-social a { padding: 3px; margin: -3px; }
+.ap-mobile-footer__cron { flex: none; white-space: nowrap; }
+.ap-mobile-footer__link { flex: none; white-space: nowrap; }
+@media (max-width: 374px) {
+  .ap-mobile-footer .ap-social { display: none; }
+}
 
 /* --------------------------------------------------------------------------
    Mobile MODELS tab — sub-tab strip [Downloads | Bench | Usage] + body.

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CommunityLink } from "@/components/chrome/CommunityLink";
+import { SocialLinks } from "@/components/chrome/SocialLinks";
 
 /**
  * PrivacyFooter — single-line footer link shown on static pages
@@ -49,6 +50,7 @@ export function PrivacyFooter() {
         </Link>
         <CommunityLink variant="footer" />
       </nav>
+      <SocialLinks className="mt-4" />
     </footer>
   );
 }
