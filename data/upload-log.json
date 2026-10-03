@@ -1438,5 +1438,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-10-03",
+    "videoId": "mDNQOhpUxCs",
+    "url": "https://youtu.be/mDNQOhpUxCs",
+    "title": "Space Bunny Alpha holds #1 on OpenRouter | gawk.dev Daily — 3 October 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-10-03T12:26:24.289Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
