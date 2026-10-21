@@ -1642,5 +1642,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-10-21",
+    "videoId": "EN0rSCpGjOM",
+    "url": "https://youtu.be/EN0rSCpGjOM",
+    "title": "vllm/vllm-openai downloads up 28.1% on docker | gawk.dev Daily — 21 October 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-10-21T14:39:56.221Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
