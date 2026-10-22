@@ -98,3 +98,6 @@ data/source-health.json
 data/source-health-history.json
 data/watchdog-memory.json
 data/watchdog-report.json
+
+# Private working notes (kept locally)
+CLAUDE.md
