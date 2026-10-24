@@ -1666,5 +1666,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-10-24",
+    "videoId": "3B-4vCAm2P0",
+    "url": "https://youtu.be/3B-4vCAm2P0",
+    "title": "DeepSeek V4.1 Flash 1017 takes #1 on OpenRouter | gawk.dev Daily — 24 October 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-10-24T11:59:46.687Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
