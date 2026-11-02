@@ -89,9 +89,10 @@ describe("fetchAllStatus — one broken source degrades one card", () => {
 
     await fetchAllStatus();
 
-    // 6 statuspage/incidents fetches + the GitHub issues search. The five
-    // history fetches live in the mocked module and are covered separately.
-    expect(fetchMock.mock.calls.length).toBe(7);
+    // 6 statuspage/incidents fetches + OpenAI's components.json (its summary
+    // lists a subset) + the GitHub issues search. The five history fetches live
+    // in the mocked module and are covered separately.
+    expect(fetchMock.mock.calls.length).toBe(8);
 
     expect(fetchMock.mock.calls.length).toBeGreaterThan(0);
     for (const [, init] of fetchMock.mock.calls as unknown as Array<
@@ -178,7 +179,9 @@ describe("fetchAllStatus — one broken source degrades one card", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
-        if (String(url).includes(OPENAI_STATUS_URL)) {
+        // Both OpenAI legs (summary.json and components.json) carry the bad
+        // shape, so neither can supply a list that rescues the codex card.
+        if (String(url).includes("status.openai.com/api/v2/")) {
           // `components` a truthy non-array: `overallStatus` reads
           // `status.indicator` and survives, so the openai-api card builds
           // fine — but `findComponent`'s `.find` throws while assembling
