@@ -61,17 +61,38 @@ export type StatusResult = {
 
 async function fetchStatuspage(
   source: DataSource,
+  opts: { fullComponents?: boolean } = {},
 ): Promise<StatuspageSummary | Error> {
   if (!source.apiUrl) return new Error(`no apiUrl on ${source.id}`);
   try {
     return await withCeiling(source.id, FETCH_TIMEOUT_MS, async () => {
-      const res = await fetch(source.apiUrl!, {
-        next: { revalidate: REVALIDATE_SECONDS, tags: [source.id] },
-        headers: { Accept: "application/json" },
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      });
+      const get = (url: string) =>
+        fetch(url, {
+          next: { revalidate: REVALIDATE_SECONDS, tags: [source.id] },
+          headers: { Accept: "application/json" },
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        });
+      // OpenAI's summary.json lists a subset of the page's components (25 of 37 on
+      // 2026-11-02, without `Codex Web` / `Codex API`); components.json lists them all.
+      // A failed components request keeps the summary's own list rather than failing the card.
+      const componentsUrl = opts.fullComponents
+        ? source.apiUrl!.replace(/summary\.json$/, "components.json")
+        : null;
+      const [res, comps] = await Promise.all([
+        get(source.apiUrl!),
+        componentsUrl
+          ? get(componentsUrl).then(
+              async (r) => (r.ok ? ((await r.json()) as { components?: unknown }).components : undefined),
+              () => undefined,
+            )
+          : Promise.resolve(undefined),
+      ]);
       if (!res.ok) throw new Error(`${source.id} returned ${res.status}`);
-      return (await res.json()) as StatuspageSummary;
+      const summary = (await res.json()) as StatuspageSummary;
+      if (Array.isArray(comps) && comps.length > (summary.components?.length ?? 0)) {
+        return { ...summary, components: comps as StatuspageSummary["components"] };
+      }
+      return summary;
     });
   } catch (err) {
     return err instanceof Error ? err : new Error(String(err));
@@ -309,7 +330,7 @@ export async function fetchAllStatus(
     cursorSamples,
   ] = await Promise.all([
     fetchStatuspage(ANTHROPIC_STATUS),
-    fetchStatuspage(OPENAI_STATUS),
+    fetchStatuspage(OPENAI_STATUS, { fullComponents: true }),
     fetchIncidents(OPENAI_INCIDENTS),
     fetchStatuspage(GITHUB_STATUS),
     fetchStatuspage(WINDSURF_STATUS),

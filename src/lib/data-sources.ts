@@ -395,7 +395,7 @@ export const OPENAI_STATUS: DataSource = {
     "Per-component status for every OpenAI-operated component including ChatGPT, the OpenAI API, Codex Web, Codex API, CLI, and the VS Code extension. summary.json returns `{page, status, components}` only — see `openai-incidents` for the incidents feed.",
   sanityCheck: {
     description:
-      "Response must include a `components` array with entries named exactly `Codex Web` and `Codex API` (verified literals, 2026-04-18). If either is missing on a future poll, the affected card falls to graceful degradation.",
+      "Response must include a `components` array with entries named exactly `Codex Web` and `Codex API` (verified literals, 2026-04-18). If either is missing on a future poll, the affected card falls to graceful degradation. Since 2026-11-02 summary.json lists only a subset of components (25 of 37, without the Codex ones); the component list is read from the sibling components.json, with summary.json's list as the fallback.",
   },
   verifiedAt: "2026-04-18",
   license: {
