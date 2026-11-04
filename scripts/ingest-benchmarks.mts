@@ -14,7 +14,7 @@
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
-import { runIngest } from "../src/lib/data/benchmarks-ingest.ts";
+import { runIngest, type CommittedBenchmarks } from "../src/lib/data/benchmarks-ingest.ts";
 
 const OUT_PATH = path.join(
   process.cwd(),
@@ -22,10 +22,24 @@ const OUT_PATH = path.join(
   "benchmarks",
   "lmarena-latest.json",
 );
+// The snapshot deltas compare against — see choosePrevious in benchmarks-ingest.ts.
+const PREV_PATH = path.join(process.cwd(), "data", "benchmarks", "lmarena-previous.json");
+
+async function readJson<T>(p: string): Promise<T | null> {
+  try {
+    return JSON.parse(await readFile(p, "utf8")) as T;
+  } catch {
+    return null; // absent on first ingest
+  }
+}
 
 async function main() {
   console.log("[benchmarks] runIngest()");
-  const result = await runIngest();
+  const committed: CommittedBenchmarks = {
+    latest: await readJson<CommittedBenchmarks["latest"]>(OUT_PATH),
+    previous: await readJson<CommittedBenchmarks["previous"]>(PREV_PATH),
+  };
+  const result = await runIngest({ committed });
   if (!result.ok) {
     console.error(
       "[benchmarks] INGEST FAILED:",
@@ -55,6 +69,11 @@ async function main() {
   }
 
   await mkdir(path.dirname(OUT_PATH), { recursive: true });
+  if (result.rollover) {
+    // Written before latest is overwritten: this is the board being replaced.
+    await writeFile(PREV_PATH, JSON.stringify(result.rollover, null, 2) + "\n", "utf8");
+    console.log("[benchmarks] rolled previous snapshot to", result.rollover[0]?.leaderboardPublishDate);
+  }
   const next = JSON.stringify(payload, null, 2) + "\n";
 
   let prev = "";

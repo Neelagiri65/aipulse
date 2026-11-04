@@ -70,7 +70,7 @@ jobs:
       - name: Commit if changed
         id: commit
         run: |
-          if git diff --quiet --exit-code data/benchmarks/lmarena-latest.json; then
+          if git diff --quiet --exit-code data/benchmarks/lmarena-latest.json data/benchmarks/lmarena-previous.json; then
             echo "No change to data/benchmarks/lmarena-latest.json; skipping commit."
             echo "rows=0" >> "$GITHUB_OUTPUT"
             exit 0
@@ -78,7 +78,7 @@ jobs:
 
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/benchmarks/lmarena-latest.json
+          git add data/benchmarks/lmarena-latest.json data/benchmarks/lmarena-previous.json
 
           ROWS=$(node -e "console.log(JSON.parse(require('fs').readFileSync('data/benchmarks/lmarena-latest.json','utf8')).rows?.length ?? 0)")
           echo "rows=$ROWS" >> "$GITHUB_OUTPUT"
