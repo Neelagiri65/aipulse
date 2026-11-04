@@ -1720,7 +1720,7 @@ export const MACHINE_SUMMARY_NIM: DataSource = {
   responseFormat: "json",
   updateFrequency: "event-driven",
   rateLimit: {
-    note: "Off unless MACHINE_SUMMARIES=on and NVIDIA_NIM_KEY is set. At most 5 per ingest run (every 15 min) and 60 per UTC day (Redis counter); no new summary starts after 60 s of a run. One article fetch + one model call each.",
+    note: "Off unless MACHINE_SUMMARIES=on and NVIDIA_NIM_KEY is set. At most 5 per ingest run (every 15 min), 60 written per UTC day (Redis counter), and 200 attempts per UTC day; no new summary starts after 40 s of a run. One article fetch + one model call each, plus one immediate retry on a 429/5xx. Failures are recorded per item: fetch/model failures wait 15 min, then 1 h, and stop after 3 attempts; too-short/ungrounded are final for that article text (page re-read after 6 h, model asked again only if the text changed).",
   },
   auth: "nvidia-nim-key",
   measures:
