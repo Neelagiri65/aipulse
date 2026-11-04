@@ -106,6 +106,9 @@ export type DataSource = {
   url: string;
   /** Machine-readable endpoint the app actually calls. */
   apiUrl?: string;
+  /** Statuspage sources only: the full component list, read alongside `apiUrl` when the summary
+   *  lists a subset. Optional leg — its failure keeps the summary's own list. */
+  componentsApiUrl?: string;
   responseFormat?: ResponseFormat;
   updateFrequency: UpdateFrequency;
   rateLimit?: RateLimit;
@@ -385,6 +388,7 @@ export const OPENAI_STATUS: DataSource = {
   category: "status-page",
   url: "https://status.openai.com",
   apiUrl: "https://status.openai.com/api/v2/summary.json",
+  componentsApiUrl: "https://status.openai.com/api/v2/components.json",
   responseFormat: "json",
   updateFrequency: "minutely",
   rateLimit: {
@@ -395,9 +399,9 @@ export const OPENAI_STATUS: DataSource = {
     "Per-component status for every OpenAI-operated component including ChatGPT, the OpenAI API, Codex Web, Codex API, CLI, and the VS Code extension. summary.json returns `{page, status, components}` only — see `openai-incidents` for the incidents feed.",
   sanityCheck: {
     description:
-      "Response must include a `components` array with entries named exactly `Codex Web` and `Codex API` (verified literals, 2026-04-18). If either is missing on a future poll, the affected card falls to graceful degradation. Since 2026-11-02 summary.json lists only a subset of components (25 of 37, without the Codex ones); the component list is read from the sibling components.json, with summary.json's list as the fallback.",
+      "Response must include a `components` array with entries named exactly `Codex Web` and `Codex API` (verified literals, 2026-04-18). If either is missing on a future poll, the affected card falls to graceful degradation. Since 2026-11-02 summary.json lists only a subset of components (25 of 37, without the Codex ones); the component list is read from `componentsApiUrl` (components.json: 37 components incl. Codex Web + Codex API, re-verified 2026-11-05), with summary.json's list as the fallback. components.json has its own 3 s limit and can never fail the source: a hang, an error status or a non-JSON 200 all fall back.",
   },
-  verifiedAt: "2026-04-18",
+  verifiedAt: "2026-11-05",
   license: {
     label: "No published terms (incident.io)",
     termsUrl: "https://incident.io/terms",

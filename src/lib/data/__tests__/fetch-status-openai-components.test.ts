@@ -69,4 +69,46 @@ describe("OpenAI components come from components.json", () => {
     expect(r.data["codex"]?.status).toBe("operational");
     expect(r.data["openai-api"]).toBeDefined();
   });
+
+  // Review of #212: both of these took the WHOLE OpenAI source down (both cards grey) although
+  // summary.json had answered.
+  const withCodexInSummary = summary([{ name: "Codex Web", status: "operational" }, { name: "Codex API", status: "operational" }]);
+
+  it("a components.json that never answers falls back after its own limit, before the source's", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.stubGlobal("fetch", vi.fn((url: string) => {
+        const u = String(url);
+        if (u.includes("components.json")) return new Promise<Response>(() => {}); // hangs, ignores abort
+        if (u.includes("status.openai.com/api/v2/summary.json")) return Promise.resolve(ok(withCodexInSummary));
+        return Promise.resolve(ok(other));
+      }));
+      const pending = fetchAllStatus({ skipHistory: true });
+      await vi.advanceTimersByTimeAsync(3_100); // past COMPONENTS_TIMEOUT_MS, short of the 5 s ceiling
+      const r = await pending;
+      expect(r.failures.filter((f) => f.toolId === "openai-api" || f.toolId === "codex")).toEqual([]);
+      expect(r.data["codex"]?.status).toBe("operational");
+      expect(r.data["openai-api"]).toBeDefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a 200 components.json that is not JSON falls back instead of failing both cards", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      const u = String(url);
+      if (u.includes("components.json"))
+        return { ok: true, status: 200, json: async () => { throw new SyntaxError("Unexpected token <"); } } as unknown as Response;
+      if (u.includes("status.openai.com/api/v2/summary.json")) return ok(withCodexInSummary);
+      return ok(other);
+    }));
+    const r = await fetchAllStatus({ skipHistory: true });
+    expect(r.failures.filter((f) => f.toolId === "openai-api" || f.toolId === "codex")).toEqual([]);
+    expect(r.data["codex"]?.status).toBe("operational");
+  });
+
+  it("the components URL is declared in the registry, not derived from the summary URL", async () => {
+    const { OPENAI_STATUS } = await import("@/lib/data-sources");
+    expect(OPENAI_STATUS.componentsApiUrl).toBe("https://status.openai.com/api/v2/components.json");
+  });
 });
