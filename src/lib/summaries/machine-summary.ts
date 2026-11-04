@@ -170,6 +170,8 @@ export async function summariseArticle(opts: {
   /** The hash of the article text at the last final failure. Same text → no model call. */
   knownHash?: string;
   retryWaitMs?: number;
+  /** Asked before the second model call; false → no retry (the caller's time budget is spent). */
+  mayRetry?: () => boolean;
 }): Promise<SummariseOutcome> {
   const fetchImpl = opts.fetchImpl ?? fetch;
   let text: string;
@@ -213,7 +215,7 @@ export async function summariseArticle(opts: {
       if (e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError")) throw e;
       res = new Response(null, { status: 599 }); // connection dropped: retryable
     }
-    if (retryable(res.status)) {
+    if (retryable(res.status) && (opts.mayRetry?.() ?? true)) {
       await new Promise((r) => setTimeout(r, opts.retryWaitMs ?? MODEL_RETRY_WAIT_MS));
       res = await callModel();
     }
