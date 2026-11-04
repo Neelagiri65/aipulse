@@ -9,6 +9,8 @@ import type { MachineSummary } from "@/lib/summaries/machine-summary";
 
 const KEY_PREFIX = "msum:";
 const COUNT_PREFIX = "msum:count:";
+const FAIL_PREFIX = "msum:fail:";
+const ATTEMPT_PREFIX = "msum:attempts:";
 /** Longer than any card's life in the feed window. */
 const SUMMARY_TTL_SECONDS = 7 * 24 * 60 * 60;
 const COUNT_TTL_SECONDS = 2 * 24 * 60 * 60;
@@ -25,6 +27,23 @@ function redis(): Redis | null {
   return cached;
 }
 
+/** Founder's 2026-09-26 cap counts successes (timeouts must not spend the allowance). This is a
+ *  separate ceiling on ATTEMPTS, so a bad day for the endpoint cannot turn into hundreds of calls.
+ *  Per-item backoff keeps a normal day far below it. */
+export const MACHINE_SUMMARY_ATTEMPTS_PER_DAY = 200;
+
+/** The last failed attempt for one item. Kept so the next run does not repeat it blindly. */
+export type MachineSummaryFailure = {
+  reason: string;
+  /** Failed attempts so far for this item. */
+  attempts: number;
+  lastAt: string;
+  /** Article text hash at the failure, when the page was read. */
+  inputHash?: string;
+  /** Operator-only: HTTP status + body excerpt, error name, or the rejected answer. */
+  detail?: string;
+};
+
 export type MachineSummaryStore = {
   available(): boolean;
   read(keys: string[]): Promise<Map<string, MachineSummary>>;
@@ -34,6 +53,11 @@ export type MachineSummaryStore = {
   spent(day: string): Promise<number>;
   /** Records one written summary against today's cap. */
   claim(day: string): Promise<boolean>;
+  readFailures(keys: string[]): Promise<Map<string, MachineSummaryFailure>>;
+  writeFailure(key: string, failure: MachineSummaryFailure): Promise<void>;
+  /** Attempts made today (every call to the summariser, success or not). */
+  attempted(day: string): Promise<number>;
+  countAttempt(day: string): Promise<void>;
 };
 
 export const redisMachineSummaryStore: MachineSummaryStore = {
@@ -70,5 +94,34 @@ export const redisMachineSummaryStore: MachineSummaryStore = {
     const n = await r.incr(COUNT_PREFIX + day);
     if (n === 1) await r.expire(COUNT_PREFIX + day, COUNT_TTL_SECONDS);
     return n <= MACHINE_SUMMARIES_PER_DAY;
+  },
+  async readFailures(keys) {
+    const r = redis();
+    const out = new Map<string, MachineSummaryFailure>();
+    if (!r || keys.length === 0) return out;
+    // Not caught: a failed read must not look like "no failures" and re-run every item.
+    const values = await r.mget<(MachineSummaryFailure | string | null)[]>(...keys.map((k) => FAIL_PREFIX + k));
+    values.forEach((v, i) => {
+      const parsed = typeof v === "string" ? (JSON.parse(v) as MachineSummaryFailure) : v;
+      if (parsed && typeof parsed.reason === "string") out.set(keys[i], parsed);
+    });
+    return out;
+  },
+  async writeFailure(key, failure) {
+    const r = redis();
+    if (!r) return;
+    await r.set(FAIL_PREFIX + key, JSON.stringify(failure), { ex: SUMMARY_TTL_SECONDS });
+  },
+  async attempted(day) {
+    const r = redis();
+    if (!r) return MACHINE_SUMMARY_ATTEMPTS_PER_DAY;
+    const n = Number(await r.get(ATTEMPT_PREFIX + day));
+    return Number.isFinite(n) ? n : 0;
+  },
+  async countAttempt(day) {
+    const r = redis();
+    if (!r) return;
+    const n = await r.incr(ATTEMPT_PREFIX + day);
+    if (n === 1) await r.expire(ATTEMPT_PREFIX + day, COUNT_TTL_SECONDS);
   },
 };

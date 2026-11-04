@@ -59,11 +59,23 @@ export type SummariseOutcome =
   | { ok: true; summary: MachineSummary }
   | {
       ok: false;
-      reason: "fetch" | "too-short" | "model" | "ungrounded";
+      reason: "fetch" | "too-short" | "model" | "ungrounded" | "unchanged";
       /** Why, for the operator: an HTTP status and body excerpt, an error name, or the rejected
        *  answer. Never shown to readers. */
       detail?: string;
+      /** SHA-256 of the article text, when the page was read. Lets a final failure be retried
+       *  only once the page says something different. */
+      inputHash?: string;
     };
+
+/** A model failure worth one immediate second try: rate limit, overload, or a dropped
+ *  connection. Not a timeout — a second 45 s wait would outlast the run — and not a 4xx, which
+ *  will say the same thing again. */
+function retryable(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+/** Wait before the second model call. */
+export const MODEL_RETRY_WAIT_MS = 2_000;
 
 const NAMED: Record<string, string> = {
   amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", hellip: "…", mdash: "—", ndash: "–",
@@ -155,6 +167,9 @@ export async function summariseArticle(opts: {
   model?: string;
   fetchImpl?: typeof fetch;
   now?: () => Date;
+  /** The hash of the article text at the last final failure. Same text → no model call. */
+  knownHash?: string;
+  retryWaitMs?: number;
 }): Promise<SummariseOutcome> {
   const fetchImpl = opts.fetchImpl ?? fetch;
   let text: string;
@@ -169,11 +184,12 @@ export async function summariseArticle(opts: {
   } catch {
     return { ok: false, reason: "fetch" };
   }
-  if (text.length < ARTICLE_MIN_CHARS) return { ok: false, reason: "too-short" };
+  const inputHash = await sha256Hex(text);
+  if (opts.knownHash && opts.knownHash === inputHash) return { ok: false, reason: "unchanged", inputHash };
+  if (text.length < ARTICLE_MIN_CHARS) return { ok: false, reason: "too-short", inputHash };
 
-  let answer: string;
-  try {
-    const res = await fetchImpl(NIM_ENDPOINT, {
+  const callModel = () =>
+    fetchImpl(NIM_ENDPOINT, {
       method: "POST",
       headers: { Authorization: `Bearer ${opts.apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -187,9 +203,23 @@ export async function summariseArticle(opts: {
       }),
       signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
     });
+
+  let answer: string;
+  try {
+    let res: Response;
+    try {
+      res = await callModel();
+    } catch (e) {
+      if (e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError")) throw e;
+      res = new Response(null, { status: 599 }); // connection dropped: retryable
+    }
+    if (retryable(res.status)) {
+      await new Promise((r) => setTimeout(r, opts.retryWaitMs ?? MODEL_RETRY_WAIT_MS));
+      res = await callModel();
+    }
     if (!res.ok) {
       const excerpt = (await res.text().catch(() => "")).slice(0, 200);
-      return { ok: false, reason: "model", detail: `HTTP ${res.status} ${excerpt}` };
+      return { ok: false, reason: "model", detail: `HTTP ${res.status} ${excerpt}`, inputHash };
     }
     const body = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     answer = (body.choices?.[0]?.message?.content ?? "")
@@ -198,9 +228,9 @@ export async function summariseArticle(opts: {
       .replace(/\s+/g, " ")
       .trim();
   } catch (e) {
-    return { ok: false, reason: "model", detail: e instanceof Error ? `${e.name}: ${e.message}` : String(e) };
+    return { ok: false, reason: "model", detail: e instanceof Error ? `${e.name}: ${e.message}` : String(e), inputHash };
   }
-  if (!isGrounded(answer, `${opts.title}\n${text}`)) return { ok: false, reason: "ungrounded", detail: answer };
+  if (!isGrounded(answer, `${opts.title}\n${text}`)) return { ok: false, reason: "ungrounded", detail: answer || "(empty answer)", inputHash };
 
   return {
     ok: true,
@@ -209,7 +239,7 @@ export async function summariseArticle(opts: {
       model: opts.model ?? MACHINE_SUMMARY_MODEL,
       promptVersion: MACHINE_SUMMARY_PROMPT_VERSION,
       inputUrl: opts.url,
-      inputHash: await sha256Hex(text),
+      inputHash,
       generatedAt: (opts.now?.() ?? new Date()).toISOString(),
     },
   };

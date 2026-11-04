@@ -65,7 +65,7 @@ function fetchWith(page: Response | Error, model: Response | Error) {
 const nim = (content: string) => new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
 
 describe("summariseArticle — fails closed at every step", () => {
-  const base = { url: "https://example.com/devstral", title: "Mistral releases Devstral 3", apiKey: "k", now: () => new Date("2026-09-26T10:00:00Z") };
+  const base = { url: "https://example.com/devstral", title: "Mistral releases Devstral 3", apiKey: "k", now: () => new Date("2026-09-26T10:00:00Z"), retryWaitMs: 0 };
 
   it("returns a traceable summary when the article reads and the answer is grounded", async () => {
     const out = await summariseArticle({ ...base, fetchImpl: fetchWith(new Response(ARTICLE), nim("Mistral released Devstral 3, a 24B coding model under Apache 2.0.")) });
