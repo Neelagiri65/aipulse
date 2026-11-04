@@ -129,3 +129,31 @@ describe("BenchmarksPanel — Trend column (S48g sparkline retrofit)", () => {
     expect(html).not.toContain("14-day Elo history for claude-sonnet-4.6");
   });
 });
+
+// Until 2026-11-04 every committed snapshot carried only NEW deltas (the previous-snapshot fetch
+// found nothing — see benchmarks-ingest.ts), so prod had never rendered an arrow. This renders the
+// committed payload itself, which now carries real movement.
+import committed from "../../../../data/benchmarks/lmarena-latest.json";
+
+describe("BenchmarksPanel — deltas from the committed snapshot", () => {
+  const data = committed as BenchmarksPayload;
+  const html = renderToStaticMarkup(
+    <BenchmarksPanel data={data} error={undefined} isInitialLoading={false} />,
+  );
+  const rows = data.ok ? data.rows : [];
+
+  it("draws an up arrow and a down arrow with the amount the payload carries", () => {
+    const up = rows.find((r) => r.rankDelta.kind === "up");
+    const down = rows.find((r) => r.rankDelta.kind === "down");
+    expect(up && down).toBeTruthy();
+    expect(html).toContain(`▲${(up!.rankDelta as { amount: number }).amount}`);
+    expect(html).toContain(`▼${(down!.rankDelta as { amount: number }).amount}`);
+  });
+
+  it("draws signed Elo changes", () => {
+    const change = rows.find((r) => r.eloDelta.kind === "change");
+    const amount = (change!.eloDelta as { amount: number }).amount;
+    const sign = amount > 0 ? "\\+" : "−";
+    expect(html).toMatch(new RegExp(`>${sign}(<!-- -->)?${Math.abs(amount)}<`));
+  });
+});

@@ -16,6 +16,9 @@
 
 import { NextResponse } from "next/server";
 import { runIngest } from "@/lib/data/benchmarks-ingest";
+import type { ArenaRow } from "@/lib/data/benchmarks-lmarena";
+import latest from "../../../../../data/benchmarks/lmarena-latest.json";
+import previous from "../../../../../data/benchmarks/lmarena-previous.json";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,7 +40,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await runIngest();
+  // The bundled committed files, so the inspection payload computes the same deltas the cron would.
+  const result = await runIngest({
+    committed: {
+      latest: latest as { meta: { leaderboardPublishDate: string } | null; rows: ArenaRow[] },
+      previous: previous as ArenaRow[],
+    },
+  });
   return NextResponse.json(result);
 }
 

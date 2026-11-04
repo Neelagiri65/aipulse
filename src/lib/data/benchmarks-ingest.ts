@@ -5,11 +5,19 @@
  *   1. fetchLatestSnapshot — `config=text, split=latest`. Paginates until
  *      20 rows with `category === "overall"` are collected (or 5 pages
  *      exhausted). Returns the top 20 sorted by `rank` asc.
- *   2. fetchPreviousSnapshot(latestDate) — `config=text, split=full`. The
- *      full split is ordered oldest-first, so we seek from the tail
- *      backwards: fetch `num_rows_total - N` forward to find the newest
- *      `leaderboard_publish_date` strictly less than `latestDate`, then
- *      gather all `category === "overall"` rows for that prev date.
+ *
+ * The PREVIOUS snapshot (what deltas compare against) is NOT fetched from
+ * HF. It is the top 20 this repo committed for the previous publish date,
+ * carried forward by `choosePrevious` and stored in
+ * `data/benchmarks/lmarena-previous.json`.
+ *
+ * Why: until 2026-11-04 it was read from the tail of `split=full`, on the
+ * assumption that the split is ordered oldest-first. It is not — it is
+ * grouped by category, and its last 3,000 rows were all `spanish` (11
+ * publish dates, zero `overall`). The scan found no candidates, returned
+ * null without an error, and every one of 188 committed snapshots shipped
+ * with every row "new" and `prevPublishDate: null`. The recorded tail page
+ * is pinned in __tests__/fixtures/hf-full-split-tail.json.
  *
  * Pure-logic helpers (parseHfRow, selectTop20, computeDeltas, buildPayload,
  * runSanityCheck) live in `benchmarks-lmarena.ts` and are fully unit-tested.
@@ -38,7 +46,6 @@ const DATASET = "lmarena-ai/leaderboard-dataset";
 const CONFIG = "text";
 const PAGE_LENGTH = 100;
 const LATEST_MAX_PAGES = 5;
-const PREV_TAIL_ROWS = 3000;
 const FETCH_TIMEOUT_MS = 10_000;
 
 type HfRowsPage = {
@@ -95,60 +102,69 @@ export async function fetchLatestSnapshot(): Promise<ArenaRow[]> {
   return selectTop20(collected);
 }
 
+export type CommittedBenchmarks = {
+  /** `data/benchmarks/lmarena-latest.json` as committed before this run. */
+  latest: { meta: { leaderboardPublishDate: string } | null; rows: ArenaRow[] } | null;
+  /** `data/benchmarks/lmarena-previous.json` as committed before this run. */
+  previous: ArenaRow[] | null;
+};
+
+export type PreviousChoice = {
+  previous: ArenaRow[] | null;
+  /** Rows to write to lmarena-previous.json — set only when the publish date rolled over. */
+  rollover: ArenaRow[] | null;
+  reason: string;
+};
+
+const ARENA_KEYS = [
+  "rank", "modelName", "organization", "rating", "ratingLower", "ratingUpper",
+  "voteCount", "category", "leaderboardPublishDate",
+] as const;
+
+/** Committed rows carry rankDelta/eloDelta; the previous file holds plain ArenaRows. */
+export function toArenaRows(rows: ArenaRow[]): ArenaRow[] {
+  return rows.map((r) => {
+    const out = {} as Record<string, unknown>;
+    for (const k of ARENA_KEYS) out[k] = r[k];
+    return out as ArenaRow;
+  });
+}
+
 /**
- * Seek the most-recent publish date strictly less than `latestDate` by
- * scanning backwards through the tail of `split=full`. Returns all
- * `category === "overall"` rows for that previous date. Returns null
- * when no earlier date exists (e.g. first snapshot ever ingested).
+ * Which snapshot the fetched `latestDate` is compared against.
+ *  - committed latest is OLDER  → the board was republished: it becomes the previous (rollover).
+ *  - committed latest is SAME   → rerun of the same board: reuse the stored previous.
+ *  - committed latest is NEWER  → upstream went backwards: no comparison, never an invented one.
+ * "Previous" therefore means the previous publish date this repo INGESTED. The daily cron
+ * outpaces lmarena's publishes, so it is the previous published date in practice, and
+ * `meta.prevPublishDate` names the actual date either way.
  */
-export async function fetchPreviousSnapshot(
-  latestDate: string,
-): Promise<ArenaRow[] | null> {
-  // Probe total to locate the tail.
-  const probe = await fetchPage("full", 0, 1);
-  const total = probe.num_rows_total;
-  if (!Number.isFinite(total) || total <= 0) return null;
-
-  const tailStart = Math.max(0, total - PREV_TAIL_ROWS);
-  const candidates: ArenaRow[] = [];
-
-  for (
-    let offset = tailStart;
-    offset < total;
-    offset += PAGE_LENGTH
-  ) {
-    const body = await fetchPage("full", offset, PAGE_LENGTH);
-    for (const entry of body.rows) {
-      const parsed = parseHfRow(entry.row);
-      if (parsed && isOverall(parsed)) candidates.push(parsed);
-    }
-    if (body.rows.length < PAGE_LENGTH) break;
+export function choosePrevious(latestDate: string, committed: CommittedBenchmarks): PreviousChoice {
+  const committedDate = committed.latest?.meta?.leaderboardPublishDate ?? null;
+  if (committedDate === null || !committed.latest || committed.latest.rows.length === 0) {
+    return { previous: null, rollover: null, reason: "no committed snapshot" };
   }
-
-  if (candidates.length === 0) return null;
-
-  // Previous publish date = newest date < latestDate.
-  const dates = new Set<string>();
-  for (const c of candidates) {
-    if (c.leaderboardPublishDate < latestDate) dates.add(c.leaderboardPublishDate);
+  if (committedDate < latestDate) {
+    const rows = toArenaRows(committed.latest.rows);
+    return { previous: rows, rollover: rows, reason: `rollover: ${committedDate} -> ${latestDate}` };
   }
-  if (dates.size === 0) return null;
-  const prevDate = [...dates].sort().pop()!;
-
-  const prevRows = candidates
-    .filter((c) => c.leaderboardPublishDate === prevDate)
-    .filter((r) => r.rank >= 1 && r.rank <= 50) // allow slack; selectTop20 trims
-    .slice();
-  prevRows.sort((a, b) => a.rank - b.rank);
-  return prevRows.slice(0, 20);
+  if (committedDate > latestDate) {
+    return { previous: null, rollover: null, reason: `upstream went backwards: committed ${committedDate}, fetched ${latestDate}` };
+  }
+  const prev = committed.previous;
+  if (prev && prev.length > 0 && prev[0].leaderboardPublishDate < latestDate) {
+    return { previous: prev, rollover: null, reason: `carried: ${prev[0].leaderboardPublishDate}` };
+  }
+  return { previous: null, rollover: null, reason: "no previous snapshot on file" };
 }
 
 export type IngestResult =
-  | { ok: true; payload: BenchmarksPayload }
+  | { ok: true; payload: BenchmarksPayload; rollover: ArenaRow[] | null; previousReason: string }
   | { ok: false; reason: string; error?: string };
 
 export async function runIngest(opts: {
   now?: () => Date;
+  committed?: CommittedBenchmarks;
 } = {}): Promise<IngestResult> {
   const now = (opts.now ?? (() => new Date()))();
   const fetchedAt = now.toISOString();
@@ -170,18 +186,10 @@ export async function runIngest(opts: {
 
   const latestDate = current[0].leaderboardPublishDate;
 
-  let previous: ArenaRow[] | null = null;
-  try {
-    previous = await fetchPreviousSnapshot(latestDate);
-  } catch (err) {
-    // Non-fatal: degrade to all-NEW by passing null.
-    console.warn(
-      "[benchmarks] previous-snapshot fetch failed, degrading to NEW:",
-      err instanceof Error ? err.message : err,
-    );
-    previous = null;
-  }
+  const choice = choosePrevious(latestDate, opts.committed ?? { latest: null, previous: null });
+  console.log("[benchmarks] previous snapshot:", choice.reason);
+  const previous = choice.previous;
 
   const payload = buildPayload(current, previous, { fetchedAt });
-  return { ok: true, payload };
+  return { ok: true, payload, rollover: choice.rollover, previousReason: choice.reason };
 }

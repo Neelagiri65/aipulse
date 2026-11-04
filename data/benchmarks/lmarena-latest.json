@@ -29,10 +29,12 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "change",
+        "amount": 3
       }
     },
     {
@@ -46,10 +48,11 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "same"
       }
     },
     {
@@ -63,10 +66,12 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "change",
+        "amount": 1
       }
     },
     {
@@ -80,10 +85,11 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "same"
       }
     },
     {
@@ -97,10 +103,12 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "change",
+        "amount": 1
       }
     },
     {
@@ -114,10 +122,12 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "change",
+        "amount": 1
       }
     },
     {
@@ -131,10 +141,12 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "change",
+        "amount": -2
       }
     },
     {
@@ -148,10 +160,11 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "same"
       }
     },
     {
@@ -165,10 +178,12 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "change",
+        "amount": -1
       }
     },
     {
@@ -182,10 +197,12 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "up",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "change",
+        "amount": 1
       }
     },
     {
@@ -199,10 +216,11 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "same"
       }
     },
     {
@@ -216,10 +234,11 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 3
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "same"
       }
     },
     {
@@ -233,10 +252,11 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "same"
       }
     },
     {
@@ -250,10 +270,12 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "change",
+        "amount": -1
       }
     },
     {
@@ -267,10 +289,12 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "change",
+        "amount": -1
       }
     },
     {
@@ -284,10 +308,11 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "same"
       }
     },
     {
@@ -301,10 +326,12 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "change",
+        "amount": 1
       }
     },
     {
@@ -318,10 +345,11 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "same"
       }
     },
     {
@@ -335,19 +363,20 @@
       "category": "overall",
       "leaderboardPublishDate": "2026-10-28",
       "rankDelta": {
-        "kind": "new"
+        "kind": "down",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "same"
       }
     }
   ],
   "meta": {
     "leaderboardPublishDate": "2026-10-28",
-    "prevPublishDate": null,
+    "prevPublishDate": "2026-10-22",
     "totalVotes": 842584,
-    "staleDays": 5,
-    "fetchedAt": "2026-11-02T10:55:13.398Z"
+    "staleDays": 7,
+    "fetchedAt": "2026-11-04T10:59:03.388Z"
   },
   "sanity": {
     "ok": false,
