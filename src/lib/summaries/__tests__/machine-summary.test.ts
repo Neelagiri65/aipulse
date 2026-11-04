@@ -94,6 +94,38 @@ describe("summariseArticle — fails closed at every step", () => {
       .toMatchObject({ ok: false, reason: "model" });
   });
 
+  it("retries a dropped connection once, but never a timeout", async () => {
+    const page = new Response(ARTICLE);
+    let calls = 0;
+    const dropThenOk = vi.fn(async (url: string) => {
+      if (!url.includes("integrate.api.nvidia.com")) return page.clone();
+      if (++calls === 1) throw new TypeError("fetch failed");
+      return nim("Mistral released Devstral 3, a 24B coding model under Apache 2.0.");
+    }) as unknown as typeof fetch;
+    expect((await summariseArticle({ ...base, fetchImpl: dropThenOk })).ok).toBe(true);
+    expect(calls).toBe(2);
+
+    let timeouts = 0;
+    const timeout = vi.fn(async (url: string) => {
+      if (!url.includes("integrate.api.nvidia.com")) return page.clone();
+      timeouts += 1;
+      throw new DOMException("The operation timed out.", "TimeoutError");
+    }) as unknown as typeof fetch;
+    expect(await summariseArticle({ ...base, fetchImpl: timeout })).toMatchObject({ ok: false, reason: "model" });
+    expect(timeouts).toBe(1);
+  });
+
+  it("does not retry when the caller says the time is spent", async () => {
+    let calls = 0;
+    const busy = vi.fn(async (url: string) => {
+      if (!url.includes("integrate.api.nvidia.com")) return new Response(ARTICLE);
+      calls += 1;
+      return new Response("busy", { status: 503 });
+    }) as unknown as typeof fetch;
+    await summariseArticle({ ...base, fetchImpl: busy, mayRetry: () => false });
+    expect(calls).toBe(1);
+  });
+
   it("a reasoning model's <think> block is not part of the summary", async () => {
     const out = await summariseArticle({ ...base, fetchImpl: fetchWith(new Response(ARTICLE), nim("<think>Let me read. 99 things.</think> Mistral released Devstral 3, a 24B coding model.")) });
     expect(out.ok && out.summary.text).toBe("Mistral released Devstral 3, a 24B coding model.");

@@ -40,12 +40,15 @@ export function needsMachineSummary(item: HnWireItem, nowMs: number): boolean {
  * When a failed item may be tried again. Before 2026-11-04 failures were not recorded, so every
  * 15-minute run fetched the same unreadable page and re-asked the model about the same rejected
  * article — up to ~96 calls a day per stuck item, none counted against the cap.
- *  - fetch / model / store: the next try waits 15 min, then 1 h; after 3 failed attempts, give up.
+ *  - fetch / model: the next try waits 15 min, then 1 h.
  *  - too-short / ungrounded: final for that article text. Re-read the page after 6 h; the model
  *    is asked again only if the text changed.
+ *  - Either way, 3 failed attempts and the item is given up (a page whose text changes on every
+ *    read would otherwise reach the model every 6 h).
+ * A store failure writes no record; it fails closed because the attempt counter throws first.
  */
 export const TRANSIENT_WAITS_MS = [15 * 60_000, 60 * 60_000];
-export const MAX_TRANSIENT_ATTEMPTS = 3;
+export const MAX_ATTEMPTS = 3;
 export const FINAL_RECHECK_MS = 6 * 60 * 60_000;
 const FINAL_REASONS = new Set(["too-short", "ungrounded"]);
 
@@ -56,8 +59,8 @@ export function isFinalFailure(f: MachineSummaryFailure): boolean {
 export function retryDueAt(f: MachineSummaryFailure): number | null {
   const last = Date.parse(f.lastAt);
   if (!Number.isFinite(last)) return 0;
+  if (f.attempts >= MAX_ATTEMPTS) return null;
   if (isFinalFailure(f)) return last + FINAL_RECHECK_MS;
-  if (f.attempts >= MAX_TRANSIENT_ATTEMPTS) return null;
   return last + TRANSIENT_WAITS_MS[Math.min(f.attempts, TRANSIENT_WAITS_MS.length) - 1];
 }
 
@@ -70,8 +73,10 @@ export type MachineSummaryRun = {
   attemptsCapped?: boolean;
   /** Items not tried this run because an earlier failure's wait has not passed (or gave up). */
   waiting?: number;
-  /** Every failure this run, with why — so a skip reason can be diagnosed, not just counted. */
-  failures?: Array<{ id: string; reason: string; attempts: number; detail?: string }>;
+  /** Every failure this run. The WHY (error body, rejected answer) is NOT here: this result is
+   *  echoed into the public repo's Actions log, and a rejected answer is ungrounded model text.
+   *  It is kept in the item's Redis failure record (msum:fail:hn:<id>) for the operator. */
+  failures?: Array<{ id: string; reason: string; attempts: number }>;
 };
 
 export async function runHnMachineSummaries(opts: {
@@ -132,6 +137,8 @@ export async function runHnMachineSummaries(opts: {
         now: () => new Date(nowMs),
         knownHash: prev && isFinalFailure(prev) ? prev.inputHash : undefined,
         retryWaitMs: opts.retryWaitMs,
+        // A second model call may take another 45 s: only start one inside the run's budget.
+        mayRetry: () => clock() - startedAt <= MACHINE_SUMMARY_TIME_BUDGET_MS,
       });
       if (outcome.ok) {
         await opts.store.write(key, outcome.summary);
@@ -151,7 +158,7 @@ export async function runHnMachineSummaries(opts: {
               detail: outcome.detail?.slice(0, 300),
             };
         await opts.store.writeFailure(key, record);
-        run.failures!.push({ id: item.id, reason: outcome.reason, attempts: record.attempts, detail: outcome.detail?.slice(0, 200) });
+        run.failures!.push({ id: item.id, reason: outcome.reason, attempts: record.attempts });
       }
     } catch {
       run.skipped.store = (run.skipped.store ?? 0) + 1;

@@ -117,7 +117,9 @@ describe("failures are remembered, not retried every 15 minutes", () => {
     const f = vi.fn(async (url: string) => url.includes("nvidia") ? new Response("busy", { status: 503 }) : new Response(PAGE));
     const mem = memoryStore();
     const r1 = await runAt(mem, f as unknown as typeof fetch, NOW);
-    expect(r1.failures).toEqual([{ id: "1", reason: "model", attempts: 1, detail: "HTTP 503 busy" }]);
+    expect(r1.failures).toEqual([{ id: "1", reason: "model", attempts: 1 }]);
+    // The why is kept for the operator in Redis, never in the run result (echoed to a public log).
+    expect(mem.failures.get(machineSummaryKey("1"))?.detail).toBe("HTTP 503 busy");
     expect(modelHits(f)).toBe(2); // one immediate retry on a 503
 
     expect((await runAt(mem, f as unknown as typeof fetch, NOW + 10 * 60_000)).waiting).toBe(1);
@@ -172,9 +174,42 @@ describe("failures are remembered, not retried every 15 minutes", () => {
   it("stops at the day's attempt ceiling, separate from the success cap", async () => {
     const mem = memoryStore();
     mem.setAttempts(MACHINE_SUMMARY_ATTEMPTS_PER_DAY);
-    const run = await runAt(mem, fetchOk, NOW);
+    const f = vi.fn(async () => new Response(PAGE));
+    const run = await runAt(mem, f as unknown as typeof fetch, NOW);
     expect(run.attemptsCapped).toBe(true);
     expect(run.written).toBe(0);
+    expect(f).not.toHaveBeenCalled();
+  });
+
+  it("the run result never carries the rejected answer or the error body", async () => {
+    const f = vi.fn(async (url: string) => url.includes("nvidia")
+      ? new Response(JSON.stringify({ choices: [{ message: { content: "Mistral released Devstral 3 with 99 percent accuracy." } }] }))
+      : new Response(PAGE));
+    const run = await runAt(memoryStore(), f as unknown as typeof fetch, NOW);
+    expect(JSON.stringify(run)).not.toMatch(/99 percent/);
+  });
+
+  it("a page whose text changes on every read is given up after 3 attempts", async () => {
+    let n = 0;
+    const f = vi.fn(async (url: string) => url.includes("nvidia")
+      ? new Response(JSON.stringify({ choices: [{ message: { content: "Mistral released Devstral 3 with 99 percent accuracy." } }] }))
+      : new Response(PAGE + `<p>Related reading, rotated on every page load, number ${++n} of many.</p>`));
+    const mem = memoryStore();
+    for (let t = NOW; t < NOW + 48 * HOUR; t += 15 * 60_000) await runAt(mem, f as unknown as typeof fetch, t);
+    expect(modelHits(f)).toBe(3);
+  });
+
+  it("no second model call once the run's time budget is spent", async () => {
+    let t = NOW;
+    const f = vi.fn(async (url: string) => {
+      if (url.includes("nvidia")) { t += 41_000; return new Response("busy", { status: 503 }); }
+      return new Response(PAGE);
+    });
+    await runHnMachineSummaries({
+      items: [item("1")], store: memoryStore().store, env: ON, nowMs: NOW,
+      fetchImpl: f as unknown as typeof fetch, clock: () => t, retryWaitMs: 0,
+    });
+    expect(modelHits(f)).toBe(1);
   });
 
   it("an unreadable failure record stops the run rather than retrying everything", async () => {
