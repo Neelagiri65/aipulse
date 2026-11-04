@@ -27,13 +27,17 @@ export type ArenaRow = {
   leaderboardPublishDate: string;
 };
 
+/** `none`: there is no earlier board to compare with (first ingest, nothing on file, upstream went
+ *  backwards). Not `new` — that would tell readers every model on the board is new. */
 export type RankDelta =
+  | { kind: "none" }
   | { kind: "new" }
   | { kind: "same" }
   | { kind: "up"; amount: number }
   | { kind: "down"; amount: number };
 
 export type EloDelta =
+  | { kind: "none" }
   | { kind: "new" }
   | { kind: "same" }
   | { kind: "change"; amount: number };
@@ -179,8 +183,8 @@ export function computeDeltas(
   if (!previous || previous.length === 0) {
     return current.map((row) => ({
       ...row,
-      rankDelta: { kind: "new" },
-      eloDelta: { kind: "new" },
+      rankDelta: { kind: "none" },
+      eloDelta: { kind: "none" },
     }));
   }
 

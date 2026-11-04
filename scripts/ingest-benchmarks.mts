@@ -54,6 +54,13 @@ async function main() {
     process.exit(0);
   }
 
+  if (result.behindCommitted) {
+    // Upstream served an older board than the one committed. Keep the committed (newer) board;
+    // writing this one would make the next rollover store it as "previous" and lose the newer.
+    console.warn("[benchmarks] NOT WRITTEN —", result.previousReason);
+    process.exit(0);
+  }
+
   const payload = result.payload;
   if (!payload.ok) {
     console.error("[benchmarks] payload not ok:", payload.reason);

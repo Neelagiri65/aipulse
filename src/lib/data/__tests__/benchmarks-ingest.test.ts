@@ -11,8 +11,11 @@ import {
   parseHfRow,
 } from "@/lib/data/benchmarks-lmarena";
 import hfTail from "./fixtures/hf-full-split-tail.json";
-import committedLatest from "../../../../data/benchmarks/lmarena-latest.json";
-import committedPrevious from "../../../../data/benchmarks/lmarena-previous.json";
+// Frozen copies of the committed boards (2026-11-04). NOT the live data/benchmarks files: the bot
+// rewrites those at every lmarena publish, and a test pinned to them goes red on its own.
+import committedLatest from "./fixtures/lmarena-latest-2026-10-28.json";
+import committedPrevious from "./fixtures/lmarena-previous-2026-10-22.json";
+import { computeDeltas } from "@/lib/data/benchmarks-lmarena";
 
 const row = (over: Partial<ArenaRow> = {}): ArenaRow => ({
   rank: 1,
@@ -77,6 +80,12 @@ describe("choosePrevious", () => {
     expect(c.previous).toBeNull();
     expect(c.rollover).toBeNull();
     expect(c.reason).toMatch(/backwards/);
+    expect(c.behindCommitted).toBe(true);
+  });
+
+  it("only the backwards case tells the caller not to write", () => {
+    expect(choosePrevious("2026-10-28", committed("2026-10-22")).behindCommitted).toBeUndefined();
+    expect(choosePrevious("2026-10-28", committed("2026-10-28", null)).behindCommitted).toBeUndefined();
   });
 
   it("gives no comparison on the very first ingest", () => {
@@ -84,8 +93,20 @@ describe("choosePrevious", () => {
   });
 });
 
-describe("deltas against the committed boards (real data)", () => {
-  // lmarena-previous.json was seeded from the 2026-10-22 commit of lmarena-latest.json (c3fd660).
+describe("no earlier board → no comparison, not NEW", () => {
+  it("marks every row none (rendered as a dash), never new", () => {
+    const rows = computeDeltas([row(), row({ rank: 2, modelName: "Model B" })], null);
+    expect(rows.map((r) => [r.rankDelta.kind, r.eloDelta.kind])).toEqual([["none", "none"], ["none", "none"]]);
+  });
+
+  it("a model absent from a real previous board is still new", () => {
+    const rows = computeDeltas([row(), row({ rank: 2, modelName: "Model B" })], [row()]);
+    expect(rows[1].rankDelta.kind).toBe("new");
+  });
+});
+
+describe("deltas against the committed boards (frozen real data)", () => {
+  // The previous board was seeded from the 2026-10-22 commit of lmarena-latest.json (c3fd660).
   const current = toArenaRows((committedLatest as { rows: ArenaRow[] }).rows);
   const choice = choosePrevious(current[0].leaderboardPublishDate, {
     latest: committedLatest as CommittedBenchmarks["latest"],

@@ -144,16 +144,16 @@ describe("isOverall / selectTop20", () => {
 });
 
 describe("computeDeltas", () => {
-  it("marks every row NEW when previous is null", () => {
+  it("marks every row none (no comparison), not NEW, when previous is null", () => {
     const current = [row({ rank: 1, modelName: "A" })];
     const out = computeDeltas(current, null);
-    expect(out[0].rankDelta).toEqual({ kind: "new" });
-    expect(out[0].eloDelta).toEqual({ kind: "new" });
+    expect(out[0].rankDelta).toEqual({ kind: "none" });
+    expect(out[0].eloDelta).toEqual({ kind: "none" });
   });
 
-  it("marks every row NEW when previous is empty", () => {
+  it("marks every row none (no comparison), not NEW, when previous is empty", () => {
     const out = computeDeltas([row()], []);
-    expect(out[0].rankDelta).toEqual({ kind: "new" });
+    expect(out[0].rankDelta).toEqual({ kind: "none" });
   });
 
   it("rank up: model moved from rank 5 to rank 2 → up:3", () => {
@@ -311,7 +311,7 @@ describe("buildPayload", () => {
     expect(out.ok).toBe(true);
     if (out.ok) {
       expect(out.rows).toHaveLength(20);
-      expect(out.rows[0].rankDelta).toEqual({ kind: "new" });
+      expect(out.rows[0].rankDelta).toEqual({ kind: "none" });
       expect(out.meta.leaderboardPublishDate).toBe("2026-04-17");
       expect(out.meta.totalVotes).toBe(20 * 30000);
       expect(out.meta.prevPublishDate).toBeNull();
