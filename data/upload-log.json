@@ -1786,5 +1786,17 @@
       "youtube",
       "discord"
     ]
+  },
+  {
+    "date": "2026-11-04",
+    "videoId": "eXQyDrpisc8",
+    "url": "https://youtu.be/eXQyDrpisc8",
+    "title": "ollama downloads up 20.5% on brew | gawk.dev Daily — 4 November 2026",
+    "visibility": "public",
+    "uploadedAt": "2026-11-04T17:32:07.720Z",
+    "platforms": [
+      "youtube",
+      "discord"
+    ]
   }
 ]
