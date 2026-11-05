@@ -132,6 +132,24 @@ describe("failures are remembered, not retried every 15 minutes", () => {
     expect(f.mock.calls.length).toBe(calls);
   });
 
+  it("a fetch failure keeps its reason in Redis, and a page that refuses us is given up after one attempt", async () => {
+    const down = vi.fn(async (url: string) => url.includes("nvidia") ? new Response("") : new Response("", { status: 502 }));
+    const memDown = memoryStore();
+    await runAt(memDown, down as unknown as typeof fetch, NOW);
+    expect(memDown.failures.get(machineSummaryKey("1"))).toMatchObject({ reason: "fetch", attempts: 1, detail: "HTTP 502" });
+    expect((await runAt(memDown, down as unknown as typeof fetch, NOW + 15 * 60_000)).failures?.[0].attempts).toBe(2);
+
+    const refused = vi.fn(async (url: string) => url.includes("nvidia") ? new Response("") : new Response("", { status: 403 }));
+    const mem = memoryStore();
+    const r1 = await runAt(mem, refused as unknown as typeof fetch, NOW);
+    expect(r1.failures).toEqual([{ id: "1", reason: "blocked", attempts: 1 }]);
+    expect(mem.failures.get(machineSummaryKey("1"))?.detail).toBe("HTTP 403");
+    const later = await runAt(mem, refused as unknown as typeof fetch, NOW + 6 * HOUR);
+    expect(later.waiting).toBe(1);
+    expect(pageHits(refused)).toBe(1);
+    expect(modelHits(refused)).toBe(0);
+  });
+
   it("a 4xx from the model is not retried immediately", async () => {
     const f = vi.fn(async (url: string) => url.includes("nvidia") ? new Response("no", { status: 404 }) : new Response(PAGE));
     await runAt(memoryStore(), f as unknown as typeof fetch, NOW);

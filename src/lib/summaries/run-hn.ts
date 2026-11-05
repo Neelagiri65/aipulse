@@ -43,6 +43,7 @@ export function needsMachineSummary(item: HnWireItem, nowMs: number): boolean {
  *  - fetch / model: the next try waits 15 min, then 1 h.
  *  - too-short / ungrounded: final for that article text. Re-read the page after 6 h; the model
  *    is asked again only if the text changed.
+ *  - blocked (the page answered 401/403): given up after the first attempt.
  *  - Either way, 3 failed attempts and the item is given up (a page whose text changes on every
  *    read would otherwise reach the model every 6 h).
  * A store failure writes no record; it fails closed because the attempt counter throws first.
@@ -59,7 +60,7 @@ export function isFinalFailure(f: MachineSummaryFailure): boolean {
 export function retryDueAt(f: MachineSummaryFailure): number | null {
   const last = Date.parse(f.lastAt);
   if (!Number.isFinite(last)) return 0;
-  if (f.attempts >= MAX_ATTEMPTS) return null;
+  if (f.attempts >= MAX_ATTEMPTS || f.reason === "blocked") return null;
   if (isFinalFailure(f)) return last + FINAL_RECHECK_MS;
   return last + TRANSIENT_WAITS_MS[Math.min(f.attempts, TRANSIENT_WAITS_MS.length) - 1];
 }

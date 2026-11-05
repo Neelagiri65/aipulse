@@ -59,7 +59,9 @@ export type SummariseOutcome =
   | { ok: true; summary: MachineSummary }
   | {
       ok: false;
-      reason: "fetch" | "too-short" | "model" | "ungrounded" | "unchanged";
+      /** blocked = the page answered 401/403: it refuses automated readers, so asking again
+       *  will not help (2026-11-06: openai.com, behind bot protection). We never try to get past it. */
+      reason: "fetch" | "blocked" | "too-short" | "model" | "ungrounded" | "unchanged";
       /** Why, for the operator: an HTTP status and body excerpt, an error name, or the rejected
        *  answer. Never shown to readers. */
       detail?: string;
@@ -181,10 +183,13 @@ export async function summariseArticle(opts: {
       redirect: "follow",
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
-    if (!res.ok) return { ok: false, reason: "fetch" };
+    if (!res.ok) {
+      const reason = res.status === 401 || res.status === 403 ? "blocked" : "fetch";
+      return { ok: false, reason, detail: `HTTP ${res.status}` };
+    }
     text = articleText(await res.text());
-  } catch {
-    return { ok: false, reason: "fetch" };
+  } catch (e) {
+    return { ok: false, reason: "fetch", detail: e instanceof Error ? `${e.name}: ${e.message}` : String(e) };
   }
   const inputHash = await sha256Hex(text);
   if (opts.knownHash && opts.knownHash === inputHash) return { ok: false, reason: "unchanged", inputHash };

@@ -86,12 +86,28 @@ describe("summariseArticle — fails closed at every step", () => {
   it("a page too short to be an article, a failed fetch, a failed model call: no summary", async () => {
     expect(await summariseArticle({ ...base, fetchImpl: fetchWith(new Response("<p>" + "x".repeat(ARTICLE_MIN_CHARS / 4) + "</p>"), nim("x")) }))
       .toMatchObject({ ok: false, reason: "too-short" });
-    expect(await summariseArticle({ ...base, fetchImpl: fetchWith(new Response("", { status: 403 }), nim("x")) }))
+    expect(await summariseArticle({ ...base, fetchImpl: fetchWith(new Response("", { status: 500 }), nim("x")) }))
       .toMatchObject({ ok: false, reason: "fetch" });
     expect(await summariseArticle({ ...base, fetchImpl: fetchWith(new Error("timeout"), nim("x")) }))
       .toMatchObject({ ok: false, reason: "fetch" });
     expect(await summariseArticle({ ...base, fetchImpl: fetchWith(new Response(ARTICLE), new Response("busy", { status: 429 })) }))
       .toMatchObject({ ok: false, reason: "model" });
+  });
+
+  it("a failed fetch says why, for the operator: the HTTP status or the error", async () => {
+    expect(await summariseArticle({ ...base, fetchImpl: fetchWith(new Response("", { status: 404 }), nim("x")) }))
+      .toMatchObject({ ok: false, reason: "fetch", detail: "HTTP 404" });
+    expect(await summariseArticle({ ...base, fetchImpl: fetchWith(new Response("", { status: 503 }), nim("x")) }))
+      .toMatchObject({ ok: false, reason: "fetch", detail: "HTTP 503" });
+    expect(await summariseArticle({ ...base, fetchImpl: fetchWith(Object.assign(new Error("aborted"), { name: "TimeoutError" }), nim("x")) }))
+      .toMatchObject({ ok: false, reason: "fetch", detail: "TimeoutError: aborted" });
+  });
+
+  it("a page that refuses us (401/403) is 'blocked', not a transient fetch failure", async () => {
+    for (const status of [401, 403]) {
+      expect(await summariseArticle({ ...base, fetchImpl: fetchWith(new Response("", { status }), nim("x")) }))
+        .toMatchObject({ ok: false, reason: "blocked", detail: `HTTP ${status}` });
+    }
   });
 
   it("retries a dropped connection once, but never a timeout", async () => {
