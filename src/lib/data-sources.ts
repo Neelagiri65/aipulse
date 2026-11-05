@@ -1713,7 +1713,7 @@ export const HF_MODEL_CARD: DataSource = {
 
 export const MACHINE_SUMMARY_NIM: DataSource = {
   id: "machine-summary-nim",
-  name: "Machine summary — linked article text summarised by NVIDIA NIM (openai/gpt-oss-20b)",
+  name: "Machine summary — linked article text summarised by NVIDIA NIM (nvidia/nemotron-3.5-bolt-e4b)",
   category: "community-sentiment",
   url: "https://build.nvidia.com",
   apiUrl: "https://integrate.api.nvidia.com/v1/chat/completions",
@@ -1732,7 +1732,7 @@ export const MACHINE_SUMMARY_NIM: DataSource = {
     expectedMax: 60,
     unit: "machine summaries per UTC day",
   },
-  verifiedAt: "2026-09-26",
+  verifiedAt: "2026-11-06",
   license: {
     label: "NVIDIA API terms; article text belongs to its publisher",
     termsUrl: "https://build.nvidia.com/legal",
