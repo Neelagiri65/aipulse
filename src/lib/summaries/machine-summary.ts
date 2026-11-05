@@ -20,7 +20,15 @@
  * out; of the reachable ones gpt-oss-20b had the most grounded, readable answers and the fewest
  * failures (Nemotron Super mostly 503). meta/llama-4-maverick was no longer in the catalogue.
  */
-export const MACHINE_SUMMARY_MODEL = "openai/gpt-oss-20b";
+/**
+ * Re-measured 2026-11-06 (same script, vault docs/msum-smoke-2026-11-06*.txt): openai/gpt-oss-20b
+ * is still listed in the NIM catalogue but hung on every request (a five-word prompt timed out at
+ * 150 s), so every model call failed from at least 2026-11-04 (last summary written 2026-10-29).
+ * Of 7 catalogue models, 5 returned 404/410 for the account; nemotron-3.5-bolt-e4b grounded 6/7
+ * (twice; lightning-30b-a3b 4/7 then 5/7, its rejections mostly format: quotes, > 2 sentences),
+ * median ~0.8 s. Bolt's answers are terser and sometimes lift press-release wording.
+ */
+export const MACHINE_SUMMARY_MODEL = "nvidia/nemotron-3.5-bolt-e4b";
 export const MACHINE_SUMMARY_PROMPT_VERSION = "ms-1";
 const NIM_ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions";
 const USER_AGENT = "gawk.dev-summary/1.0 (+https://gawk.dev/sources)";
