@@ -141,6 +141,12 @@ export async function runHnMachineSummaries(opts: {
         // A second model call may take another 45 s: only start one inside the run's budget.
         mayRetry: () => clock() - startedAt <= MACHINE_SUMMARY_TIME_BUDGET_MS,
       });
+      if (outcome.ok || outcome.reason === "model" || outcome.reason === "ungrounded") {
+        // The model answered (even if grounding rejected it) or it did not. Never fails the item.
+        await opts.store
+          .recordModel(outcome.ok || outcome.reason === "ungrounded", new Date(nowMs).toISOString())
+          .catch(() => undefined);
+      }
       if (outcome.ok) {
         await opts.store.write(key, outcome.summary);
         await opts.store.claim(day);

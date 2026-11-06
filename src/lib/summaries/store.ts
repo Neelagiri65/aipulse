@@ -11,6 +11,8 @@ const KEY_PREFIX = "msum:";
 const COUNT_PREFIX = "msum:count:";
 const FAIL_PREFIX = "msum:fail:";
 const ATTEMPT_PREFIX = "msum:attempts:";
+/** One record for the model itself: answered or not, across every item and run. */
+const MODEL_HEALTH_KEY = "msum:model";
 /** Longer than any card's life in the feed window. */
 const SUMMARY_TTL_SECONDS = 7 * 24 * 60 * 60;
 const COUNT_TTL_SECONDS = 2 * 24 * 60 * 60;
@@ -44,6 +46,27 @@ export type MachineSummaryFailure = {
   detail?: string;
 };
 
+/**
+ * Whether the model answers. Added 2026-11-06: openai/gpt-oss-20b timed out on every call for at
+ * least a week (last summary 10-29) and nothing surfaced it, because each item's failures were
+ * counted alone. A streak across items is what /api/integrity pages on.
+ * "Answered" includes an answer the grounding check rejected: the model worked; the article did not.
+ * Page failures (fetch, blocked, too-short) never touch this record.
+ */
+export type ModelHealth = {
+  /** Model calls in a row that got no answer (timeout, HTTP error, dropped connection). */
+  failStreak: number;
+  lastOkAt: string | null;
+  lastFailAt: string | null;
+};
+
+export function nextModelHealth(prev: ModelHealth | null, ok: boolean, at: string): ModelHealth {
+  const base: ModelHealth = prev ?? { failStreak: 0, lastOkAt: null, lastFailAt: null };
+  return ok
+    ? { ...base, failStreak: 0, lastOkAt: at }
+    : { ...base, failStreak: base.failStreak + 1, lastFailAt: at };
+}
+
 export type MachineSummaryStore = {
   available(): boolean;
   read(keys: string[]): Promise<Map<string, MachineSummary>>;
@@ -58,7 +81,15 @@ export type MachineSummaryStore = {
   /** Attempts made today (every call to the summariser, success or not). */
   attempted(day: string): Promise<number>;
   countAttempt(day: string): Promise<void>;
+  /** Throws when Redis cannot be read: "could not look" must not read as "healthy". */
+  readModelHealth(): Promise<ModelHealth | null>;
+  recordModel(ok: boolean, at: string): Promise<void>;
 };
+
+function parseModelHealth(v: unknown): ModelHealth | null {
+  const parsed = typeof v === "string" ? (JSON.parse(v) as ModelHealth) : (v as ModelHealth | null);
+  return parsed && typeof parsed.failStreak === "number" ? parsed : null;
+}
 
 export const redisMachineSummaryStore: MachineSummaryStore = {
   available: () => redis() !== null,
@@ -123,5 +154,17 @@ export const redisMachineSummaryStore: MachineSummaryStore = {
     if (!r) return;
     const n = await r.incr(ATTEMPT_PREFIX + day);
     if (n === 1) await r.expire(ATTEMPT_PREFIX + day, COUNT_TTL_SECONDS);
+  },
+  async readModelHealth() {
+    const r = redis();
+    if (!r) return null;
+    return parseModelHealth(await r.get(MODEL_HEALTH_KEY));
+  },
+  async recordModel(ok, at) {
+    const r = redis();
+    if (!r) return;
+    // Read-modify-write is safe: wire-ingest-hn runs one at a time (workflow concurrency group).
+    const prev = parseModelHealth(await r.get(MODEL_HEALTH_KEY));
+    await r.set(MODEL_HEALTH_KEY, JSON.stringify(nextModelHealth(prev, ok, at)));
   },
 };

@@ -13,6 +13,8 @@
  *     today's video actually resolves on YouTube.
  *   - Digest: freshness of the daily-digest cron-health beacon (post the
  *     CR/LF fix that beacon only advances on a real send, so it is honest).
+ *   - Machine summaries: FAIL when the model has failed several calls in a
+ *     row (msum:model). A dead model went unseen for a week before this.
  *
  * Always 200 — this is a report, not a gate. The integrity-watch workflow
  * curls it and routes any non-OK verdict to Discord.
@@ -31,6 +33,9 @@ import {
   type IntegrityReport,
 } from "@/lib/integrity/checks";
 import { readAllCronHealth, CRON_WORKFLOWS } from "@/lib/data/cron-health";
+import { evaluateMachineSummaries } from "@/lib/integrity/machine-summaries";
+import { machineSummaryConfig } from "@/lib/summaries/run-hn";
+import { redisMachineSummaryStore } from "@/lib/summaries/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -88,6 +93,20 @@ async function probeDigest(now: number): Promise<IntegrityReport> {
   });
 }
 
+/** Machine-summary model probe: pages on a run of failed model calls. */
+async function probeMachineSummaries(now: number): Promise<IntegrityReport> {
+  const enabled = machineSummaryConfig() !== null && redisMachineSummaryStore.available();
+  let health: Awaited<ReturnType<typeof redisMachineSummaryStore.readModelHealth>> | "unreadable" = null;
+  if (enabled) {
+    try {
+      health = await redisMachineSummaryStore.readModelHealth();
+    } catch {
+      health = "unreadable";
+    }
+  }
+  return evaluateMachineSummaries({ enabled, health, now });
+}
+
 export async function GET() {
   const now = Date.now();
 
@@ -96,12 +115,13 @@ export async function GET() {
     inProcessFetcher,
     now,
   );
-  const [video, digest] = await Promise.all([
+  const [video, digest, machineSummaries] = await Promise.all([
     probeVideo(now),
     probeDigest(now),
+    probeMachineSummaries(now),
   ]);
 
-  const reports = [...httpReports, video, digest];
+  const reports = [...httpReports, video, digest, machineSummaries];
   const s = summarise(reports);
 
   return NextResponse.json({
