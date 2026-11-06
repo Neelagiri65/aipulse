@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import realBoard20261028 from "./fixtures/lmarena-latest-2026-10-28.json";
 import {
   type ArenaRow,
   buildPayload,
@@ -245,7 +246,7 @@ describe("runSanityCheck", () => {
         row({ rank: i, modelName: `M${i}`, rating: 1450 - i * 2, voteCount: 30000 }),
       );
     }
-    rows.push(row({ rank: 20, modelName: "M20", rating: 1520, voteCount: 30000 }));
+    rows.push(row({ rank: 20, modelName: "M20", rating: 1700, voteCount: 30000 }));
     const report = runSanityCheck(rows, {
       leaderboardPublishDate: "2026-04-17",
       fetchedAt: "2026-04-20",
@@ -267,10 +268,28 @@ describe("runSanityCheck", () => {
     expect(report.warnings.some((w) => w.includes("publish_age_days"))).toBe(true);
   });
 
-  it("fails when top1 vote_count below 5000", () => {
+  it("fails when top1 rating is out of range (too high)", () => {
     const rows: ArenaRow[] = [];
     for (let i = 1; i <= 20; i++) {
-      rows.push(row({ rank: i, modelName: `M${i}`, rating: 1450 - i * 10, voteCount: 1000 }));
+      rows.push(row({ rank: i, modelName: `M${i}`, rating: 1700 - i * 10, voteCount: 30000 }));
+    }
+    const report = runSanityCheck(rows, { leaderboardPublishDate: "2026-04-17", fetchedAt: "2026-04-20" });
+    expect(report.warnings.some((w) => w.includes("top1_rating"))).toBe(true);
+  });
+
+  it("the real 2026-10-28 board (new #1 at 1540 Elo, 4,403 votes) raises no warning", () => {
+    // Widened 2026-11-06 (founder): top-1 Elo above 1500 on every board since 2026-06-10, and a new
+    // #1 arrives with 2.3k–5k votes (2,386 / 2,906 / 2,307 / 4,403 in committed history).
+    const rows = (realBoard20261028 as { rows: ArenaRow[] }).rows;
+    const report = runSanityCheck(rows, { leaderboardPublishDate: "2026-10-28", fetchedAt: "2026-10-29T03:15:00Z" });
+    expect(report.warnings).toEqual([]);
+    expect(report.ok).toBe(true);
+  });
+
+  it("fails when top1 vote_count below 1000", () => {
+    const rows: ArenaRow[] = [];
+    for (let i = 1; i <= 20; i++) {
+      rows.push(row({ rank: i, modelName: `M${i}`, rating: 1450 - i * 10, voteCount: 500 }));
     }
     const report = runSanityCheck(rows, {
       leaderboardPublishDate: "2026-04-17",

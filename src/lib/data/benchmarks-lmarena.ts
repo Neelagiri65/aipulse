@@ -225,16 +225,21 @@ export function computeDeltas(
 // ---------------------------------------------------------------------------
 
 export const SANITY_RANGES = {
-  top1Rating: { min: 1300, max: 1500 },
-  // Upper bound widened from 1400 → 1500 after the 2026-04-17 live ingest
-  // observed rank20_rating=1447.7. Frontier Elo values bunch near the top;
-  // the original narrower range was guesswork before real data. Mirror in
-  // `data-sources.ts` / `public/data-sources.md` is authoritative for the
-  // transparency contract.
-  rank20Rating: { min: 1100, max: 1500 },
+  // Upper bounds widened 1500 → 1650 on 2026-11-06 (founder): top-1 Elo has
+  // been above 1500 on every board since 2026-06-10 and climbs ~7/month
+  // (1500 → 1540 by 2026-10-28); rank-20 climbs the same way (1449 → 1480).
+  // 1650 leaves >1 year of headroom while still catching a scale change.
+  top1Rating: { min: 1300, max: 1650 },
+  // rank20 upper bound: 1400 → 1500 after the 2026-04-17 live ingest
+  // observed 1447.7 (frontier bunching), then 1500 → 1650 as above. Mirror in
+  // `data-sources.ts` is authoritative for the transparency contract.
+  rank20Rating: { min: 1100, max: 1650 },
   rowCount: { min: 20, max: 20 },
   publishAgeDays: { min: 0, max: 14 },
-  top1VoteCount: { min: 5000, max: Infinity },
+  // 5000 → 1000 on 2026-11-06 (founder): a new #1 arrives with 2.3k–5k votes
+  // (committed history: 2,386 / 2,906 / 2,307 / 4,403), so 5000 warned on
+  // every new leader. 1000 still catches a broken or zeroed vote field.
+  top1VoteCount: { min: 1000, max: Infinity },
 } as const;
 
 export function runSanityCheck(
