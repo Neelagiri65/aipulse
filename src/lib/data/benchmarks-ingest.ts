@@ -114,6 +114,9 @@ export type PreviousChoice = {
   /** Rows to write to lmarena-previous.json — set only when the publish date rolled over. */
   rollover: ArenaRow[] | null;
   reason: string;
+  /** The fetched board is OLDER than the committed one. The caller must not write it: it would
+   *  replace a newer board, and the next rollover would then lose that board for good. */
+  behindCommitted?: true;
 };
 
 const ARENA_KEYS = [
@@ -149,7 +152,10 @@ export function choosePrevious(latestDate: string, committed: CommittedBenchmark
     return { previous: rows, rollover: rows, reason: `rollover: ${committedDate} -> ${latestDate}` };
   }
   if (committedDate > latestDate) {
-    return { previous: null, rollover: null, reason: `upstream went backwards: committed ${committedDate}, fetched ${latestDate}` };
+    return {
+      previous: null, rollover: null, behindCommitted: true,
+      reason: `upstream went backwards: committed ${committedDate}, fetched ${latestDate}`,
+    };
   }
   const prev = committed.previous;
   if (prev && prev.length > 0 && prev[0].leaderboardPublishDate < latestDate) {
@@ -159,7 +165,7 @@ export function choosePrevious(latestDate: string, committed: CommittedBenchmark
 }
 
 export type IngestResult =
-  | { ok: true; payload: BenchmarksPayload; rollover: ArenaRow[] | null; previousReason: string }
+  | { ok: true; payload: BenchmarksPayload; rollover: ArenaRow[] | null; previousReason: string; behindCommitted: boolean }
   | { ok: false; reason: string; error?: string };
 
 export async function runIngest(opts: {
@@ -191,5 +197,8 @@ export async function runIngest(opts: {
   const previous = choice.previous;
 
   const payload = buildPayload(current, previous, { fetchedAt });
-  return { ok: true, payload, rollover: choice.rollover, previousReason: choice.reason };
+  return {
+    ok: true, payload, rollover: choice.rollover, previousReason: choice.reason,
+    behindCommitted: choice.behindCommitted === true,
+  };
 }

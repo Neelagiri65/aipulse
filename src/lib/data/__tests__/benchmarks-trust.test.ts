@@ -40,13 +40,13 @@ function claimsMovement(r: { rankDelta: { kind: string } }): boolean {
 }
 
 describe("benchmarks — delta-provenance (no fabricated Elo/rank movement)", () => {
-  it("NO previous snapshot → every row is `new`, ZERO movement claims", () => {
+  it("NO previous snapshot → every row is `none` (not NEW), ZERO movement claims", () => {
     const out = computeDeltas(
       [row(1, "claude-opus", 1500), row(2, "gpt-5", 1490)],
       null,
     );
     for (const r of out) {
-      expect(r.rankDelta.kind).toBe("new");
+      expect(r.rankDelta.kind).toBe("none");
       // The invariant: a movement claim requires a real baseline.
       expect(
         auditItem([checkDeltaProvenance(claimsMovement(r), false)]),

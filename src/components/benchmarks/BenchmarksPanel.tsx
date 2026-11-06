@@ -198,7 +198,13 @@ function TrendCell({
   );
 }
 
+/** No earlier board to compare with: a dash, never NEW (which would call every model new). */
+function NoComparison() {
+  return <span className="font-mono text-muted-foreground" title="No earlier board to compare with">—</span>;
+}
+
 function RankDeltaBadge({ delta }: { delta: RankDelta }) {
+  if (delta.kind === "none") return <NoComparison />;
   if (delta.kind === "new") {
     return <span className="font-mono text-[9px] uppercase tracking-wider text-sky-700 dark:text-sky-300">NEW</span>;
   }
@@ -220,6 +226,7 @@ function RankDeltaBadge({ delta }: { delta: RankDelta }) {
 }
 
 function EloDeltaBadge({ delta }: { delta: EloDelta }) {
+  if (delta.kind === "none") return <NoComparison />;
   if (delta.kind === "new") {
     return <span className="font-mono text-[9px] uppercase tracking-wider text-sky-700 dark:text-sky-300">NEW</span>;
   }
