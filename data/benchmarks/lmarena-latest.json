@@ -376,13 +376,10 @@
     "prevPublishDate": "2026-10-22",
     "totalVotes": 842584,
     "staleDays": 9,
-    "fetchedAt": "2026-11-06T10:45:46.880Z"
+    "fetchedAt": "2026-11-06T14:06:12.688Z"
   },
   "sanity": {
-    "ok": false,
-    "warnings": [
-      "top1_rating=1540.0 outside [1300,1500]",
-      "top1_vote_count=4403 below 5000"
-    ]
+    "ok": true,
+    "warnings": []
   }
 }
