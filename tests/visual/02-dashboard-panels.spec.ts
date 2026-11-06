@@ -87,6 +87,20 @@ test.describe("boards", () => {
     await expect(page.getByTestId("board-view")).toHaveAttribute("data-board", "benchmarks");
   });
 
+  test("the insight line keeps a space between its text and its source", async ({ page }) => {
+    // Regression 2026-11-06: .ap-insight is a flex row, which drops the source span's leading
+    // space — prod read "1540 Elo· Chatbot Arena". The gap must be real pixels, not a text space.
+    await page.goto("/?tab=more&board=benchmarks");
+    const source = page.locator(".ap-insight__source").first();
+    await expect(source).toBeVisible({ timeout: 20_000 });
+    const gap = await page.evaluate(() => {
+      const t = document.querySelector(".ap-insight__text")!.getBoundingClientRect();
+      const s = document.querySelector(".ap-insight__source")!.getBoundingClientRect();
+      return Math.abs(s.top - t.top) < 2 ? s.left - t.right : null; // null: wrapped onto its own line
+    });
+    if (gap !== null) expect(gap).toBeGreaterThan(3);
+  });
+
   test("SDK Adoption panel opens on nav click", async ({ page }) => {
     await openBoardViaMore(page, "SDK Adoption");
     const sdk = boardByTitle(page, /SDK Adoption/i);
