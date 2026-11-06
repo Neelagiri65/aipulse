@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { HnWireItem } from "@/lib/data/wire-hn";
 import { machineSummaryConfig, machineSummaryKey, runHnMachineSummaries } from "@/lib/summaries/run-hn";
 import type { MachineSummary } from "@/lib/summaries/machine-summary";
-import { MACHINE_SUMMARY_ATTEMPTS_PER_DAY, type MachineSummaryFailure, type MachineSummaryStore } from "@/lib/summaries/store";
+import { MACHINE_SUMMARY_ATTEMPTS_PER_DAY, nextModelHealth, type MachineSummaryFailure, type MachineSummaryStore, type ModelHealth } from "@/lib/summaries/store";
 
 const NOW = Date.parse("2026-09-26T10:00:00Z");
 const ON = { MACHINE_SUMMARIES: "on", NVIDIA_NIM_KEY: "k" };
@@ -21,6 +21,7 @@ function memoryStore(alreadySpent = 0, existing: Record<string, MachineSummary> 
   const failures = new Map<string, MachineSummaryFailure>(Object.entries(priorFailures));
   let used = alreadySpent;
   let attempts = 0;
+  let health: ModelHealth | null = null;
   const store: MachineSummaryStore = {
     available: () => true,
     read: async (keys) => new Map(keys.filter((k) => saved.has(k)).map((k) => [k, saved.get(k)!])),
@@ -31,8 +32,10 @@ function memoryStore(alreadySpent = 0, existing: Record<string, MachineSummary> 
     writeFailure: async (k, f) => { failures.set(k, f); },
     attempted: async () => attempts,
     countAttempt: async () => { attempts += 1; },
+    readModelHealth: async () => health,
+    recordModel: async (ok, at) => { health = nextModelHealth(health, ok, at); },
   };
-  return { store, saved, failures, used: () => used, attempts: () => attempts, setAttempts: (n: number) => { attempts = n; } };
+  return { store, saved, failures, used: () => used, attempts: () => attempts, setAttempts: (n: number) => { attempts = n; }, health: () => health };
 }
 
 const fetchOk = vi.fn(async (url: string) =>
@@ -237,5 +240,53 @@ describe("failures are remembered, not retried every 15 minutes", () => {
     const run = await runAt(mem, f, NOW);
     expect(run.skipped.store).toBe(1);
     expect(f).not.toHaveBeenCalled();
+  });
+});
+
+describe("model health — every model call is recorded, so a dead model can page", () => {
+  const runAt = (mem: ReturnType<typeof memoryStore>, f: typeof fetch, at: number, id = "1") =>
+    runHnMachineSummaries({
+      items: [item(id, { createdAtI: at / 1000 - 3600 })],
+      store: mem.store, env: ON, nowMs: at, fetchImpl: f, clock: () => at, retryWaitMs: 0,
+    });
+  const iso = (ms: number) => new Date(ms).toISOString();
+
+  it("consecutive model failures build a streak across items and runs; an answer resets it", async () => {
+    const dead = vi.fn(async (url: string) => url.includes("nvidia") ? new Response("busy", { status: 503 }) : new Response(PAGE)) as unknown as typeof fetch;
+    const mem = memoryStore();
+    await runAt(mem, dead, NOW, "1");
+    await runAt(mem, dead, NOW + 60_000, "2");
+    await runAt(mem, dead, NOW + 120_000, "3");
+    expect(mem.health()).toEqual({ failStreak: 3, lastOkAt: null, lastFailAt: iso(NOW + 120_000) });
+
+    await runAt(mem, fetchOk, NOW + 180_000, "4");
+    expect(mem.health()).toEqual({ failStreak: 0, lastOkAt: iso(NOW + 180_000), lastFailAt: iso(NOW + 120_000) });
+  });
+
+  it("an ungrounded answer is the model working: it resets the streak", async () => {
+    const offTopic = vi.fn(async (url: string) =>
+      url.includes("nvidia")
+        ? new Response(JSON.stringify({ choices: [{ message: { content: "Google launched Gemini 9 with 900B parameters." } }] }))
+        : new Response(PAGE)) as unknown as typeof fetch;
+    const mem = memoryStore();
+    await mem.store.recordModel(false, iso(NOW - 60_000));
+    await runAt(mem, offTopic, NOW);
+    expect(mem.health()?.failStreak).toBe(0);
+    expect(mem.health()?.lastOkAt).toBe(iso(NOW));
+  });
+
+  it("a page that cannot be read never touches the model's record", async () => {
+    const down = vi.fn(async () => new Response("", { status: 502 })) as unknown as typeof fetch;
+    const mem = memoryStore();
+    await runAt(mem, down, NOW);
+    expect(mem.health()).toBeNull();
+  });
+
+  it("a failed health write never fails the summary that was written", async () => {
+    const mem = memoryStore();
+    mem.store.recordModel = async () => { throw new Error("redis down"); };
+    const run = await runAt(mem, fetchOk, NOW);
+    expect(run.written).toBe(1);
+    expect(run.skipped.store).toBeUndefined();
   });
 });
