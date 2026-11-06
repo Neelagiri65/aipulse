@@ -96,9 +96,11 @@ export function modelsInsight(
 }
 
 /**
- * Benchmarks panel (lmarena). Surfaces the largest rank climb since the
- * previous leaderboard snapshot; falls back to the #1 hold line when no
- * model moved up. Every figure (rank, delta, Elo) comes straight from the
+ * Benchmarks panel (lmarena). A change at #1 leads (founder 2026-11-06:
+ * "new #1 leads the insight line") — a model new to the board at #1, or one
+ * that climbed to #1. Otherwise the largest rank climb since the previous
+ * leaderboard snapshot; falls back to the #1 hold line when no model moved
+ * up. "new"/"up" only exist when there is a previous board to compare with. Every figure (rank, delta, Elo) comes straight from the
  * committed payload.
  *
  * Returns null when the payload is not ok or has no rows.
@@ -113,6 +115,21 @@ export function benchmarksInsight(
     ? `${meta.leaderboardPublishDate} vs ${meta.prevPublishDate}`
     : meta.leaderboardPublishDate;
   const source = `Chatbot Arena · ${period}`;
+
+  const top = rows.find((r) => r.rank === 1);
+  if (top && top.rankDelta.kind === "new") {
+    return {
+      text: `New #1: ${top.modelName}, new to the board at ${Math.round(top.rating)} Elo`,
+      source,
+    };
+  }
+  if (top && top.rankDelta.kind === "up") {
+    const ranks = top.rankDelta.amount === 1 ? "rank" : "ranks";
+    return {
+      text: `New #1: ${top.modelName} ▲${top.rankDelta.amount} ${ranks} at ${Math.round(top.rating)} Elo`,
+      source,
+    };
+  }
 
   // Biggest climber: largest rankDelta "up" amount. Ties broken by better
   // (lower) current rank, then model name — deterministic.

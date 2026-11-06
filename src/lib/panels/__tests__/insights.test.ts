@@ -166,6 +166,35 @@ describe("benchmarksInsight", () => {
     expect(insight!.text).toBe("Biggest climber: B ▲1 rank to #2");
   });
 
+  it("a model new to the board at #1 leads, ahead of any climber", () => {
+    const insight = benchmarksInsight(
+      benchPayload([
+        arenaRow("Gemini 4 Carbon (High)", 1, 1540.2, { kind: "new" }),
+        arenaRow("Gemini 4 Argon (High)", 2, 1529, { kind: "down", amount: 1 }),
+        arenaRow("Claude Fable 5 (High)", 11, 1480, { kind: "up", amount: 1 }),
+      ]),
+    );
+    expect(insight!.text).toBe("New #1: Gemini 4 Carbon (High), new to the board at 1540 Elo");
+  });
+
+  it("a model that climbed to #1 leads, with its climb", () => {
+    const insight = benchmarksInsight(
+      benchPayload([
+        arenaRow("B", 1, 1450, { kind: "up", amount: 2 }),
+        arenaRow("A", 2, 1440, { kind: "down", amount: 1 }),
+        arenaRow("C", 9, 1300, { kind: "up", amount: 5 }),
+      ]),
+    );
+    expect(insight!.text).toBe("New #1: B ▲2 ranks at 1450 Elo");
+  });
+
+  it("no comparison board → no 'New #1' claim", () => {
+    const insight = benchmarksInsight(
+      benchPayload([arenaRow("A", 1, 1400, { kind: "none" })]),
+    );
+    expect(insight!.text).toBe("A holds #1 at 1400 Elo");
+  });
+
   it("falls back to the #1 hold line when nothing climbed", () => {
     const insight = benchmarksInsight(
       benchPayload([
