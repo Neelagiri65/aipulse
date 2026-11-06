@@ -59,32 +59,32 @@ export type StatusResult = {
   staleAsOf?: string;
 };
 
-async function fetchStatuspage(
-  source: DataSource,
-  opts: { fullComponents?: boolean } = {},
-): Promise<StatuspageSummary | Error> {
+/** The optional components leg must finish well inside the source's own 5 s ceiling, so a slow
+ *  components.json can never take the summary (and every card it feeds) down with it. */
+export const COMPONENTS_TIMEOUT_MS = 3_000;
+
+async function fetchStatuspage(source: DataSource): Promise<StatuspageSummary | Error> {
   if (!source.apiUrl) return new Error(`no apiUrl on ${source.id}`);
   try {
     return await withCeiling(source.id, FETCH_TIMEOUT_MS, async () => {
-      const get = (url: string) =>
+      const get = (url: string, ms: number) =>
         fetch(url, {
           next: { revalidate: REVALIDATE_SECONDS, tags: [source.id] },
           headers: { Accept: "application/json" },
-          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+          signal: AbortSignal.timeout(ms),
         });
       // OpenAI's summary.json lists a subset of the page's components (25 of 37 on
       // 2026-11-02, without `Codex Web` / `Codex API`); components.json lists them all.
-      // A failed components request keeps the summary's own list rather than failing the card.
-      const componentsUrl = opts.fullComponents
-        ? source.apiUrl!.replace(/summary\.json$/, "components.json")
-        : null;
+      // This leg NEVER rejects and has its own shorter limit: a hang, an error status or a
+      // non-JSON 200 all keep the summary's own list rather than failing every card it feeds.
+      const componentsUrl = source.componentsApiUrl;
       const [res, comps] = await Promise.all([
-        get(source.apiUrl!),
+        get(source.apiUrl!, FETCH_TIMEOUT_MS),
         componentsUrl
-          ? get(componentsUrl).then(
-              async (r) => (r.ok ? ((await r.json()) as { components?: unknown }).components : undefined),
-              () => undefined,
-            )
+          ? withCeiling(`${source.id}:components`, COMPONENTS_TIMEOUT_MS, async () => {
+              const r = await get(componentsUrl, COMPONENTS_TIMEOUT_MS);
+              return r.ok ? ((await r.json()) as { components?: unknown }).components : undefined;
+            }).catch(() => undefined)
           : Promise.resolve(undefined),
       ]);
       if (!res.ok) throw new Error(`${source.id} returned ${res.status}`);
@@ -330,7 +330,7 @@ export async function fetchAllStatus(
     cursorSamples,
   ] = await Promise.all([
     fetchStatuspage(ANTHROPIC_STATUS),
-    fetchStatuspage(OPENAI_STATUS, { fullComponents: true }),
+    fetchStatuspage(OPENAI_STATUS),
     fetchIncidents(OPENAI_INCIDENTS),
     fetchStatuspage(GITHUB_STATUS),
     fetchStatuspage(WINDSURF_STATUS),
