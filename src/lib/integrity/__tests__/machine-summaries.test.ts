@@ -53,3 +53,33 @@ describe("evaluateMachineSummaries — a dead model must page, not hide for a we
     expect(r.checks[0].detail).toMatch(/could not read/);
   });
 });
+
+describe("evaluateMachineSummaries — a rejected API key says so, and pages on the first call", () => {
+  const health = (failStreak: number, keyRejected?: boolean) => ({
+    failStreak, lastOkAt: "2026-11-09T19:26:29Z", lastFailAt: "2026-11-10T14:47:49Z", keyRejected,
+  });
+
+  it("one rejected call → FAIL, and the detail names the key, not the model", () => {
+    const r = evaluateMachineSummaries({ enabled: true, health: health(1, true), now: NOW });
+    expect(r.verdict).toBe("FAIL");
+    expect(r.checks[0].detail).toMatch(/API key was rejected/);
+    expect(r.checks[0].detail).toContain("2026-11-09T19:26:29Z");
+    expect(r.checks[0].detail).not.toMatch(/model failed/);
+  });
+
+  it("one failure of any other kind stays below the threshold", () => {
+    expect(evaluateMachineSummaries({ enabled: true, health: health(1, false), now: NOW }).verdict).toBe("OK");
+    expect(evaluateMachineSummaries({ enabled: true, health: health(1), now: NOW }).verdict).toBe("OK");
+  });
+
+  it("a long streak whose latest failure was not a rejected key keeps the model wording", () => {
+    const r = evaluateMachineSummaries({ enabled: true, health: health(21, false), now: NOW });
+    expect(r.verdict).toBe("FAIL");
+    expect(r.checks[0].detail).toMatch(/model failed 21 consecutive calls/);
+  });
+
+  it("the public detail carries no provider error body", () => {
+    const r = evaluateMachineSummaries({ enabled: true, health: health(4, true), now: NOW });
+    expect(r.checks[0].detail).not.toMatch(/Forbidden|Authorization failed/);
+  });
+});

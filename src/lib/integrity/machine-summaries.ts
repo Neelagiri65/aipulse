@@ -6,6 +6,10 @@
  * counted per item. This reads the cross-item streak (msum:model) and FAILs past a threshold, so
  * the integrity-watch workflow pages Discord.
  *
+ * A refused API key (401/403) is reported as that, and pages on the first call: it does not heal by
+ * waiting. From 2026-11-10 the key was refused for five days under the wording "model failed N
+ * consecutive calls", which pointed at the wrong thing.
+ *
  * The board is public: the report carries counts and timestamps only — never an error body.
  */
 
@@ -31,6 +35,13 @@ export function evaluateMachineSummaries(args: {
   if (!args.health) return report(true, "info", "no model call recorded yet");
 
   const { failStreak, lastOkAt } = args.health;
+  if (args.health.keyRejected && failStreak >= 1) {
+    return report(
+      false,
+      "critical",
+      `the API key was rejected (HTTP 401/403) on the last ${failStreak} model call${failStreak === 1 ? "" : "s"}; last answer ${lastOkAt ?? "never"}`,
+    );
+  }
   if (failStreak >= MODEL_FAIL_STREAK_PAGE) {
     return report(
       false,

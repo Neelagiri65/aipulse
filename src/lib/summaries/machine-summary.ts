@@ -69,7 +69,7 @@ export type SummariseOutcome =
       ok: false;
       /** blocked = the page answered 401/403: it refuses automated readers, so asking again
        *  will not help (2026-11-06: openai.com, behind bot protection). We never try to get past it. */
-      reason: "fetch" | "blocked" | "too-short" | "model" | "ungrounded" | "unchanged";
+      reason: "fetch" | "blocked" | "too-short" | "model" | "auth" | "ungrounded" | "unchanged";
       /** Why, for the operator: an HTTP status and body excerpt, an error name, or the rejected
        *  answer. Never shown to readers. */
       detail?: string;
@@ -234,7 +234,9 @@ export async function summariseArticle(opts: {
     }
     if (!res.ok) {
       const excerpt = (await res.text().catch(() => "")).slice(0, 200);
-      return { ok: false, reason: "model", detail: `HTTP ${res.status} ${excerpt}`, inputHash };
+      // 401/403 from the model endpoint is the API key being refused: nothing about this article.
+      const reason = res.status === 401 || res.status === 403 ? "auth" : "model";
+      return { ok: false, reason, detail: `HTTP ${res.status} ${excerpt}`, inputHash };
     }
     const body = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     answer = (body.choices?.[0]?.message?.content ?? "")
