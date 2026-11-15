@@ -10,7 +10,9 @@
  *   - HTTP outputs (globe-events, feed) via the shared runner.
  *   - Video: reads data/upload-log.json + YouTube oEmbed — the daily-video
  *     job goes green on mp4 existence, so the only honest check is whether
- *     today's video actually resolves on YouTube.
+ *     today's video actually resolves on YouTube. While the daily-video
+ *     workflow is disabled by hand on GitHub (read live, per request), an
+ *     old last upload is reported as paused rather than STALE.
  *   - Digest: freshness of the daily-digest cron-health beacon (post the
  *     CR/LF fix that beacon only advances on a real send, so it is honest).
  *   - Machine summaries: FAIL when the model has failed several calls in a
@@ -26,7 +28,11 @@ import path from "node:path";
 import { buildProbeSpecs, PROBE_ORIGIN } from "@/lib/integrity/specs";
 import { inProcessFetcher } from "@/lib/integrity/in-process";
 import { runProbes, summarise } from "@/lib/integrity/run";
-import { evaluateVideo, type UploadLogEntry } from "@/lib/integrity/video";
+import {
+  evaluateVideo,
+  isWorkflowPaused,
+  type UploadLogEntry,
+} from "@/lib/integrity/video";
 import {
   buildReport,
   checkFreshness,
@@ -46,6 +52,30 @@ function origin(): string {
   return env || PROBE_ORIGIN;
 }
 
+const DAILY_VIDEO_WORKFLOW_URL =
+  "https://api.github.com/repos/Neelagiri65/aipulse/actions/workflows/daily-video.yml";
+
+/** Has someone disabled the daily-video workflow on GitHub? Any failure to
+ *  read the state answers "no", so a stale video still pages. */
+async function readVideoPaused(): Promise<boolean> {
+  try {
+    const token = process.env.GH_TOKEN?.trim();
+    const res = await fetch(DAILY_VIDEO_WORKFLOW_URL, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "User-Agent": "gawk-integrity (+https://gawk.dev)",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return false;
+    return isWorkflowPaused(await res.json());
+  } catch {
+    return false;
+  }
+}
+
 /** Video probe: is the most recent upload-log entry recent AND live on
  *  YouTube? Daily video → allow up to 2 days before stale. */
 async function probeVideo(now: number): Promise<IntegrityReport> {
@@ -60,6 +90,8 @@ async function probeVideo(now: number): Promise<IntegrityReport> {
   } catch {
     latest = null;
   }
+
+  const pausedRead = readVideoPaused();
 
   let oembedTitle: string | null = null;
   if (latest?.url) {
@@ -77,7 +109,13 @@ async function probeVideo(now: number): Promise<IntegrityReport> {
     }
   }
 
-  return evaluateVideo({ latest, now, maxAgeMinutes: 2 * 1440, oembedTitle });
+  return evaluateVideo({
+    latest,
+    now,
+    maxAgeMinutes: 2 * 1440,
+    oembedTitle,
+    paused: await pausedRead,
+  });
 }
 
 /** Digest probe: freshness of the daily-digest cron-health beacon. */
