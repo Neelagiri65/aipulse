@@ -44,6 +44,9 @@ export function needsMachineSummary(item: HnWireItem, nowMs: number): boolean {
  *  - too-short / ungrounded: final for that article text. Re-read the page after 6 h; the model
  *    is asked again only if the text changed.
  *  - blocked (the page answered 401/403): given up after the first attempt.
+ *  - auth (the model endpoint answered 401/403: the API key was refused): no record is written
+ *    and the run stops. Before 2026-11-15 this counted as a model failure, so a key rejected for
+ *    five days used up all 3 attempts of 7 items that had nothing wrong with them.
  *  - Either way, 3 failed attempts and the item is given up (a page whose text changes on every
  *    read would otherwise reach the model every 6 h).
  * A store failure writes no record; it fails closed because the attempt counter throws first.
@@ -57,9 +60,15 @@ export function isFinalFailure(f: MachineSummaryFailure): boolean {
   return FINAL_REASONS.has(f.reason);
 }
 
+/** A record written before 2026-11-15 for a rejected key: reason "model", detail "HTTP 401/403 …". */
+function isLegacyKeyRejection(f: MachineSummaryFailure): boolean {
+  return f.reason === "model" && /^HTTP 40[13]\b/.test(f.detail ?? "");
+}
+
 export function retryDueAt(f: MachineSummaryFailure): number | null {
   const last = Date.parse(f.lastAt);
   if (!Number.isFinite(last)) return 0;
+  if (isLegacyKeyRejection(f)) return 0;
   if (f.attempts >= MAX_ATTEMPTS || f.reason === "blocked") return null;
   if (isFinalFailure(f)) return last + FINAL_RECHECK_MS;
   return last + TRANSIENT_WAITS_MS[Math.min(f.attempts, TRANSIENT_WAITS_MS.length) - 1];
@@ -141,11 +150,18 @@ export async function runHnMachineSummaries(opts: {
         // A second model call may take another 45 s: only start one inside the run's budget.
         mayRetry: () => clock() - startedAt <= MACHINE_SUMMARY_TIME_BUDGET_MS,
       });
-      if (outcome.ok || outcome.reason === "model" || outcome.reason === "ungrounded") {
+      if (outcome.ok || outcome.reason === "model" || outcome.reason === "auth" || outcome.reason === "ungrounded") {
         // The model answered (even if grounding rejected it) or it did not. Never fails the item.
         await opts.store
-          .recordModel(outcome.ok || outcome.reason === "ungrounded", new Date(nowMs).toISOString())
+          .recordModel(outcome.ok || outcome.reason === "ungrounded", new Date(nowMs).toISOString(), !outcome.ok && outcome.reason === "auth")
           .catch(() => undefined);
+      }
+      if (!outcome.ok && outcome.reason === "auth") {
+        // The key was refused. Not this item's failure, and every other item would get the same
+        // answer: leave their records alone and stop. The model record above is what pages.
+        run.skipped.auth = (run.skipped.auth ?? 0) + 1;
+        run.failures!.push({ id: item.id, reason: "auth", attempts: prev?.attempts ?? 0 });
+        break;
       }
       if (outcome.ok) {
         await opts.store.write(key, outcome.summary);

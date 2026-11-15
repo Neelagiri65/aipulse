@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { HnWireItem } from "@/lib/data/wire-hn";
-import { machineSummaryConfig, machineSummaryKey, runHnMachineSummaries } from "@/lib/summaries/run-hn";
+import { machineSummaryConfig, machineSummaryKey, retryDueAt, runHnMachineSummaries } from "@/lib/summaries/run-hn";
 import type { MachineSummary } from "@/lib/summaries/machine-summary";
 import { MACHINE_SUMMARY_ATTEMPTS_PER_DAY, nextModelHealth, type MachineSummaryFailure, type MachineSummaryStore, type ModelHealth } from "@/lib/summaries/store";
 
@@ -33,7 +33,7 @@ function memoryStore(alreadySpent = 0, existing: Record<string, MachineSummary> 
     attempted: async () => attempts,
     countAttempt: async () => { attempts += 1; },
     readModelHealth: async () => health,
-    recordModel: async (ok, at) => { health = nextModelHealth(health, ok, at); },
+    recordModel: async (ok, at, keyRejected) => { health = nextModelHealth(health, ok, at, keyRejected); },
   };
   return { store, saved, failures, used: () => used, attempts: () => attempts, setAttempts: (n: number) => { attempts = n; }, health: () => health };
 }
@@ -257,10 +257,10 @@ describe("model health — every model call is recorded, so a dead model can pag
     await runAt(mem, dead, NOW, "1");
     await runAt(mem, dead, NOW + 60_000, "2");
     await runAt(mem, dead, NOW + 120_000, "3");
-    expect(mem.health()).toEqual({ failStreak: 3, lastOkAt: null, lastFailAt: iso(NOW + 120_000) });
+    expect(mem.health()).toEqual({ failStreak: 3, lastOkAt: null, lastFailAt: iso(NOW + 120_000), keyRejected: false });
 
     await runAt(mem, fetchOk, NOW + 180_000, "4");
-    expect(mem.health()).toEqual({ failStreak: 0, lastOkAt: iso(NOW + 180_000), lastFailAt: iso(NOW + 120_000) });
+    expect(mem.health()).toEqual({ failStreak: 0, lastOkAt: iso(NOW + 180_000), lastFailAt: iso(NOW + 120_000), keyRejected: false });
   });
 
   it("an ungrounded answer is the model working: it resets the streak", async () => {
@@ -288,5 +288,77 @@ describe("model health — every model call is recorded, so a dead model can pag
     const run = await runAt(mem, fetchOk, NOW);
     expect(run.written).toBe(1);
     expect(run.skipped.store).toBeUndefined();
+  });
+});
+
+describe("a rejected API key is the key's fault, not the article's", () => {
+  const rejected = () => vi.fn(async (url: string) =>
+    url.includes("nvidia")
+      ? new Response('{"status":403,"title":"Forbidden","detail":"Authorization failed"}', { status: 403 })
+      : new Response(PAGE));
+  const modelHits = (f: ReturnType<typeof vi.fn>) => f.mock.calls.filter(([u]) => String(u).includes("nvidia")).length;
+  const run = (mem: ReturnType<typeof memoryStore>, f: unknown, at: number, ids: string[]) =>
+    runHnMachineSummaries({
+      items: ids.map((id) => item(id, { createdAtI: at / 1000 - 3600 })),
+      store: mem.store, env: ON, nowMs: at, fetchImpl: f as typeof fetch, clock: () => at, retryWaitMs: 0,
+    });
+
+  it.each([401, 403])("HTTP %i writes no failure record for the item, so no attempt is spent on it", async (status) => {
+    const f = vi.fn(async (url: string) => url.includes("nvidia") ? new Response("no", { status }) : new Response(PAGE));
+    const mem = memoryStore();
+    const r = await run(mem, f, NOW, ["1"]);
+    expect(mem.failures.size).toBe(0);
+    expect(r.skipped).toEqual({ auth: 1 });
+    expect(r.failures).toEqual([{ id: "1", reason: "auth", attempts: 0 }]);
+  });
+
+  it("stops the run at the first rejection: one model call, however many items are waiting", async () => {
+    const f = rejected();
+    const mem = memoryStore();
+    await run(mem, f, NOW, ["1", "2", "3"]);
+    expect(modelHits(f)).toBe(1);
+  });
+
+  it("the same items are tried again on later runs and summarised once the key works, however long it was rejected", async () => {
+    const f = rejected();
+    const mem = memoryStore();
+    for (let i = 0; i < 6; i++) await run(mem, f, NOW + i * 900_000, ["1"]);
+    expect(modelHits(f)).toBe(6);
+    expect(mem.failures.size).toBe(0);
+    const r = await run(mem, fetchOk, NOW + 7 * 900_000, ["1"]);
+    expect(r.written).toBe(1);
+  });
+
+  it("marks the model record as a rejected key; an answer or a different failure clears the mark", async () => {
+    const mem = memoryStore();
+    await run(mem, rejected(), NOW, ["1"]);
+    expect(mem.health()).toMatchObject({ failStreak: 1, keyRejected: true });
+
+    const busy = vi.fn(async (url: string) => url.includes("nvidia") ? new Response("busy", { status: 503 }) : new Response(PAGE));
+    await run(mem, busy, NOW + 60_000, ["2"]);
+    expect(mem.health()).toMatchObject({ failStreak: 2, keyRejected: false });
+
+    await run(mem, rejected(), NOW + 120_000, ["3"]);
+    await run(mem, fetchOk, NOW + 180_000, ["4"]);
+    expect(mem.health()).toMatchObject({ failStreak: 0, keyRejected: false });
+  });
+
+  it("the run result carries the reason only, never the provider's error body", async () => {
+    const r = await run(memoryStore(), rejected(), NOW, ["1"]);
+    expect(JSON.stringify(r)).not.toMatch(/Forbidden|Authorization failed/);
+  });
+
+  it("an item given up under the old rule (3 attempts, all rejected-key responses) is due again", () => {
+    const old: MachineSummaryFailure = {
+      reason: "model", attempts: 3, lastAt: new Date(NOW).toISOString(),
+      detail: 'HTTP 403 {"status":403,"title":"Forbidden","detail":"Authorization failed"}',
+    };
+    expect(retryDueAt(old)).toBe(0);
+    expect(retryDueAt({ ...old, detail: "HTTP 401 nope" })).toBe(0);
+    // Any other model failure at 3 attempts stays given up.
+    expect(retryDueAt({ ...old, detail: "HTTP 404 gone" })).toBeNull();
+    expect(retryDueAt({ ...old, detail: "TimeoutError: timed out" })).toBeNull();
+    // A page that answered 403 is "blocked", a different thing, and stays given up.
+    expect(retryDueAt({ reason: "blocked", attempts: 1, lastAt: old.lastAt, detail: "HTTP 403" })).toBeNull();
   });
 });

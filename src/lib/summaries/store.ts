@@ -58,13 +58,16 @@ export type ModelHealth = {
   failStreak: number;
   lastOkAt: string | null;
   lastFailAt: string | null;
+  /** The most recent call was refused with 401/403: the API key, not the model. Cleared by an
+   *  answer or by any other kind of failure. Absent on records written before 2026-11-15. */
+  keyRejected?: boolean;
 };
 
-export function nextModelHealth(prev: ModelHealth | null, ok: boolean, at: string): ModelHealth {
+export function nextModelHealth(prev: ModelHealth | null, ok: boolean, at: string, keyRejected = false): ModelHealth {
   const base: ModelHealth = prev ?? { failStreak: 0, lastOkAt: null, lastFailAt: null };
   return ok
-    ? { ...base, failStreak: 0, lastOkAt: at }
-    : { ...base, failStreak: base.failStreak + 1, lastFailAt: at };
+    ? { ...base, failStreak: 0, lastOkAt: at, keyRejected: false }
+    : { ...base, failStreak: base.failStreak + 1, lastFailAt: at, keyRejected };
 }
 
 export type MachineSummaryStore = {
@@ -83,7 +86,7 @@ export type MachineSummaryStore = {
   countAttempt(day: string): Promise<void>;
   /** Throws when Redis cannot be read: "could not look" must not read as "healthy". */
   readModelHealth(): Promise<ModelHealth | null>;
-  recordModel(ok: boolean, at: string): Promise<void>;
+  recordModel(ok: boolean, at: string, keyRejected?: boolean): Promise<void>;
 };
 
 function parseModelHealth(v: unknown): ModelHealth | null {
@@ -160,11 +163,11 @@ export const redisMachineSummaryStore: MachineSummaryStore = {
     if (!r) return null;
     return parseModelHealth(await r.get(MODEL_HEALTH_KEY));
   },
-  async recordModel(ok, at) {
+  async recordModel(ok, at, keyRejected) {
     const r = redis();
     if (!r) return;
     // Read-modify-write is safe: wire-ingest-hn runs one at a time (workflow concurrency group).
     const prev = parseModelHealth(await r.get(MODEL_HEALTH_KEY));
-    await r.set(MODEL_HEALTH_KEY, JSON.stringify(nextModelHealth(prev, ok, at)));
+    await r.set(MODEL_HEALTH_KEY, JSON.stringify(nextModelHealth(prev, ok, at, keyRejected)));
   },
 };
