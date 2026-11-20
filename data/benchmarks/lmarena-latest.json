@@ -5,85 +5,88 @@
       "rank": 1,
       "modelName": "Gemini 4 Carbon (High)",
       "organization": "google",
-      "rating": 1538.2356025956585,
-      "ratingLower": 1528.6907695446478,
-      "ratingUpper": 1547.7804356466693,
-      "voteCount": 4266,
+      "rating": 1539.3081974827726,
+      "ratingLower": 1529.750463400826,
+      "ratingUpper": 1548.8659315647192,
+      "voteCount": 4262,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
         "kind": "same"
       },
       "eloDelta": {
-        "kind": "same"
+        "kind": "change",
+        "amount": 1
       }
     },
     {
       "rank": 2,
-      "modelName": "Gemini 4 Neon (High)",
+      "modelName": "Gemini 4 Argon (High)",
       "organization": "google",
-      "rating": 1529.6792212040723,
-      "ratingLower": 1519.7781971652055,
-      "ratingUpper": 1539.580245242939,
-      "voteCount": 3885,
+      "rating": 1527.5448522948343,
+      "ratingLower": 1522.5041745859926,
+      "ratingUpper": 1532.5855300036758,
+      "voteCount": 27193,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "new"
+        "kind": "up",
+        "amount": 1
       },
       "eloDelta": {
-        "kind": "new"
+        "kind": "change",
+        "amount": -1
       }
     },
     {
       "rank": 3,
-      "modelName": "Gemini 4 Argon (High)",
+      "modelName": "Gemini 4 Neon (High)",
       "organization": "google",
-      "rating": 1528.572348635968,
-      "ratingLower": 1523.4954223194165,
-      "ratingUpper": 1533.6492749525194,
-      "voteCount": 25751,
+      "rating": 1523.5532166015744,
+      "ratingLower": 1515.0798165977105,
+      "ratingUpper": 1532.026616605438,
+      "voteCount": 5555,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
         "kind": "down",
         "amount": 1
       },
       "eloDelta": {
-        "kind": "same"
+        "kind": "change",
+        "amount": -6
       }
     },
     {
       "rank": 4,
       "modelName": "Claude Opus 5.5 (High)",
       "organization": "anthropic",
-      "rating": 1513.9997379477963,
-      "ratingLower": 1508.2572301478513,
-      "ratingUpper": 1519.7422457477412,
-      "voteCount": 17727,
+      "rating": 1512.865228413885,
+      "ratingLower": 1507.1649467260415,
+      "ratingUpper": 1518.5655101017285,
+      "voteCount": 18286,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 1
+        "kind": "same"
       },
       "eloDelta": {
-        "kind": "same"
+        "kind": "change",
+        "amount": -1
       }
     },
     {
       "rank": 5,
       "modelName": "Claude Fable 5.1 (Max)",
       "organization": "anthropic",
-      "rating": 1511.9232964210828,
-      "ratingLower": 1506.5801709379036,
-      "ratingUpper": 1517.2664219042617,
-      "voteCount": 21941,
+      "rating": 1512.4735632286672,
+      "ratingLower": 1507.169447362052,
+      "ratingUpper": 1517.7776790952823,
+      "voteCount": 22408,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 1
+        "kind": "same"
       },
       "eloDelta": {
         "kind": "same"
@@ -93,34 +96,31 @@
       "rank": 6,
       "modelName": "Claude Opus 5 (Max)",
       "organization": "anthropic",
-      "rating": 1506.3405496331561,
-      "ratingLower": 1501.6501789022511,
-      "ratingUpper": 1511.030920364061,
-      "voteCount": 35568,
+      "rating": 1506.3644818549558,
+      "ratingLower": 1501.6751479110453,
+      "ratingUpper": 1511.0538157988663,
+      "voteCount": 35534,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 1
+        "kind": "same"
       },
       "eloDelta": {
-        "kind": "change",
-        "amount": -1
+        "kind": "same"
       }
     },
     {
       "rank": 7,
       "modelName": "Muse Wonder (Max)",
       "organization": "meta",
-      "rating": 1502.5652797794717,
-      "ratingLower": 1496.7309073700314,
-      "ratingUpper": 1508.3996521889117,
-      "voteCount": 15331,
+      "rating": 1503.3155733721408,
+      "ratingLower": 1497.5609021518944,
+      "ratingUpper": 1509.070244592387,
+      "voteCount": 16158,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 1
+        "kind": "same"
       },
       "eloDelta": {
         "kind": "same"
@@ -130,15 +130,14 @@
       "rank": 8,
       "modelName": "Claude Opus 5 (High)",
       "organization": "anthropic",
-      "rating": 1502.2114096641901,
-      "ratingLower": 1498.6001392435671,
-      "ratingUpper": 1505.8226800848129,
-      "voteCount": 73457,
+      "rating": 1502.2467024779637,
+      "ratingLower": 1498.6376921719063,
+      "ratingUpper": 1505.8557127840209,
+      "voteCount": 73414,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 1
+        "kind": "same"
       },
       "eloDelta": {
         "kind": "same"
@@ -148,15 +147,14 @@
       "rank": 9,
       "modelName": "Gemini 4 Hydrogen (High)",
       "organization": "google",
-      "rating": 1501.7686144174559,
-      "ratingLower": 1492.8120943709798,
-      "ratingUpper": 1510.7251344639321,
-      "voteCount": 4737,
+      "rating": 1501.7760000165435,
+      "ratingLower": 1492.8345268291323,
+      "ratingUpper": 1510.7174732039548,
+      "voteCount": 4743,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 1
+        "kind": "same"
       },
       "eloDelta": {
         "kind": "same"
@@ -166,15 +164,14 @@
       "rank": 10,
       "modelName": "Claude Opus 4.6 (High)",
       "organization": "anthropic",
-      "rating": 1501.4365737450853,
-      "ratingLower": 1498.1978165635028,
-      "ratingUpper": 1504.6753309266678,
-      "voteCount": 84226,
+      "rating": 1501.4841057716892,
+      "ratingLower": 1498.246338527774,
+      "ratingUpper": 1504.7218730156042,
+      "voteCount": 84188,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 1
+        "kind": "same"
       },
       "eloDelta": {
         "kind": "same"
@@ -184,15 +181,14 @@
       "rank": 11,
       "modelName": "Gemini 3.8 Flash (High)",
       "organization": "google",
-      "rating": 1499.7792514162468,
-      "ratingLower": 1495.7343299882648,
-      "ratingUpper": 1503.8241728442288,
-      "voteCount": 70822,
+      "rating": 1500.2489156723623,
+      "ratingLower": 1496.2312365364378,
+      "ratingUpper": 1504.266594808287,
+      "voteCount": 73351,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 1
+        "kind": "same"
       },
       "eloDelta": {
         "kind": "same"
@@ -202,15 +198,14 @@
       "rank": 12,
       "modelName": "Claude Opus 4.6",
       "organization": "anthropic",
-      "rating": 1496.877922107334,
-      "ratingLower": 1493.7101171901202,
-      "ratingUpper": 1500.0457270245477,
-      "voteCount": 88982,
+      "rating": 1496.7282816937543,
+      "ratingLower": 1493.561000667559,
+      "ratingUpper": 1499.8955627199498,
+      "voteCount": 88918,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 1
+        "kind": "same"
       },
       "eloDelta": {
         "kind": "same"
@@ -220,12 +215,12 @@
       "rank": 13,
       "modelName": "Muse Spark 1.3 (Max)",
       "organization": "meta",
-      "rating": 1492.830849930671,
-      "ratingLower": 1488.003747256424,
-      "ratingUpper": 1497.6579526049181,
-      "voteCount": 29406,
+      "rating": 1493.55876983511,
+      "ratingLower": 1488.7501212956536,
+      "ratingUpper": 1498.3674183745668,
+      "voteCount": 30142,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
         "kind": "same"
       },
@@ -238,32 +233,32 @@
       "rank": 14,
       "modelName": "MiMo-V2.6-Pro",
       "organization": "xiaomi",
-      "rating": 1492.1272276814202,
-      "ratingLower": 1482.6917340067173,
-      "ratingUpper": 1501.562721356123,
-      "voteCount": 4056,
+      "rating": 1492.7069136884154,
+      "ratingLower": 1483.2628867666047,
+      "ratingUpper": 1502.1509406102264,
+      "voteCount": 4045,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
         "kind": "same"
       },
       "eloDelta": {
-        "kind": "same"
+        "kind": "change",
+        "amount": 1
       }
     },
     {
       "rank": 15,
       "modelName": "Claude Fable 5 (High)",
       "organization": "anthropic",
-      "rating": 1491.7804496886383,
-      "ratingLower": 1487.5964239819446,
-      "ratingUpper": 1495.9644753953323,
-      "voteCount": 45336,
+      "rating": 1491.8266867891527,
+      "ratingLower": 1487.644451618066,
+      "ratingUpper": 1496.0089219602398,
+      "voteCount": 45315,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 3
+        "kind": "same"
       },
       "eloDelta": {
         "kind": "same"
@@ -273,15 +268,14 @@
       "rank": 16,
       "modelName": "Claude Opus 4.7 (High)",
       "organization": "anthropic",
-      "rating": 1489.7227793672876,
-      "ratingLower": 1485.9680448345823,
-      "ratingUpper": 1493.4775138999926,
-      "voteCount": 64131,
+      "rating": 1489.894686684384,
+      "ratingLower": 1486.1400323174128,
+      "ratingUpper": 1493.649341051355,
+      "voteCount": 64074,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 1
+        "kind": "same"
       },
       "eloDelta": {
         "kind": "same"
@@ -291,15 +285,14 @@
       "rank": 17,
       "modelName": "Gemini 3.7 Flash (High)",
       "organization": "google",
-      "rating": 1489.224694552575,
-      "ratingLower": 1484.5478343309924,
-      "ratingUpper": 1493.9015547741576,
-      "voteCount": 33110,
+      "rating": 1489.3244054221184,
+      "ratingLower": 1484.6479497464147,
+      "ratingUpper": 1494.0008610978223,
+      "voteCount": 33087,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 1
+        "kind": "same"
       },
       "eloDelta": {
         "kind": "same"
@@ -309,53 +302,49 @@
       "rank": 18,
       "modelName": "Qwen3.8-Max",
       "organization": "alibaba",
-      "rating": 1485.594016040716,
-      "ratingLower": 1481.146612896303,
-      "ratingUpper": 1490.0414191851291,
-      "voteCount": 39457,
+      "rating": 1485.3362182705957,
+      "ratingLower": 1480.9124489458131,
+      "ratingUpper": 1489.7599875953786,
+      "voteCount": 40248,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 1
+        "kind": "same"
       },
       "eloDelta": {
         "kind": "change",
-        "amount": 1
+        "amount": -1
       }
     },
     {
       "rank": 19,
       "modelName": "Muse Spark 1.2 (xHigh)",
       "organization": "meta",
-      "rating": 1483.5707284020234,
-      "ratingLower": 1478.0238261381935,
-      "ratingUpper": 1489.1176306658535,
-      "voteCount": 17645,
+      "rating": 1484.0246496302227,
+      "ratingLower": 1478.5395250006131,
+      "ratingUpper": 1489.5097742598325,
+      "voteCount": 18264,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 1
+        "kind": "same"
       },
       "eloDelta": {
-        "kind": "change",
-        "amount": 1
+        "kind": "same"
       }
     },
     {
       "rank": 20,
       "modelName": "Claude Opus 4.7",
       "organization": "anthropic",
-      "rating": 1483.420624637536,
-      "ratingLower": 1479.6568711652105,
-      "ratingUpper": 1487.1843781098614,
-      "voteCount": 65194,
+      "rating": 1483.3651609304804,
+      "ratingLower": 1479.6025761951573,
+      "ratingUpper": 1487.1277456658033,
+      "voteCount": 65152,
       "category": "overall",
-      "leaderboardPublishDate": "2026-11-18",
+      "leaderboardPublishDate": "2026-11-19",
       "rankDelta": {
-        "kind": "down",
-        "amount": 1
+        "kind": "same"
       },
       "eloDelta": {
         "kind": "same"
@@ -363,11 +352,11 @@
     }
   ],
   "meta": {
-    "leaderboardPublishDate": "2026-11-18",
-    "prevPublishDate": "2026-11-11",
-    "totalVotes": 745028,
+    "leaderboardPublishDate": "2026-11-19",
+    "prevPublishDate": "2026-11-18",
+    "totalVotes": 754337,
     "staleDays": 1,
-    "fetchedAt": "2026-11-19T11:30:10.364Z"
+    "fetchedAt": "2026-11-20T11:26:44.153Z"
   },
   "sanity": {
     "ok": true,
